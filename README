@@ -1,0 +1,94 @@
+This library provides vernacular files containing tactics for
+simplifying the proofs of inequalities on expressions of real numbers
+for the Coq proof assistant.
+
+This package is free software; you can redistribute it and/or modify it
+under the terms of GNU Lesser General Public License (see the COPYING
+file). Author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
+
+As this library relies on the fast integer library, version 8.2 of Coq
+is expected for compiling it. By modifying the first lines of the
+tactics.v file and removing the offending files, the library might be
+usable with older versions of Coq. The library can be compiled by
+issuing the command "make".
+
+
+I. Invocation
+-------------
+
+In order to use the tactics of the library, one has to import the
+"tactics" file into a Coq proof script. The main tactic is named
+"interval".
+
+The tactic can be applied on a goal of the form "(f1 <= e <= f2)%R" with
+"e" an expression involving the usual arithmetic operators + - * / and
+sqrt. Sub-expressions not starting with such operators have to be,
+either terms "t" appearing in hypothesis inequalities "(f3 <= t <= f4)%R"
+or simple integers. The bounds "f1" "f2" ... are binary floating-point
+numbers: either relative integers or quotients of relative integers by
+power-of-two, e.g. (42)%R or (-17/8)%R. The following inequalities are
+also recognized:
+
+  (e <= f)%R
+  (f <= e)%R
+  (Rabs e <= f)%R      handled as (-f <= e <= f)%R
+
+Hint: When trying to prove a proposition "(e1 <= e2)%R" where neither
+sides are floating-point numbers, applying Rminus_le will change the
+proposition to "(e1 - e2 <= 0)%R", hence bringing out a floating-point
+bound.
+
+
+II. Fine-tuning
+---------------
+
+There are two forms of the tactic: either a simple "interval", or an
+"interval with (param1, param2, ...)". The parameters are parsed from
+left to right: If some parameters are conflicting, the earlier ones are
+discarded. Available parameter classes are: (with the type of their
+arguments, if any)
+
+  i_prec (p:nat)      sets precision of the floating-point computations
+  i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
+  i_bisect (x:R)      splits input interval on x and repeat until proven
+  i_bisect_diff (x:R) same as bisect, but studies variations along x too
+  i_nocheck           delays verification until Qed is reached
+
+Default parameters are (i_prec 30), (i_depth 15), and no bisection.
+
+
+III. Examples
+-------------
+
+(** BEGIN **)
+Require Import Reals.
+Require Import tactics.
+
+Goal
+  forall x, (-1 <= x <= 1)%R ->
+  (sqrt (1 - x) <= 3/2)%R.
+Proof.
+  intros.
+  interval.
+Qed.
+
+Goal
+  forall x, (3/2 <= x <= 2)%R ->
+  forall y, (1 <= y <= 33/32)%R ->
+  (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
+Proof.
+  intros.
+  interval with (i_prec 19, i_bisect x).
+Qed.
+
+Goal
+  forall x, (1/2 <= x <= 2)%R ->
+  (Rabs (sqrt x - (((((122 / 7397 * x + (-1733) / 13547) * x
+                   + 529 / 1274) * x + (-767) / 999) * x
+                   + 407 / 334) * x + 227 / 925))
+    <= 5/65536)%R.
+Proof.
+  intros.
+  interval with (i_bisect_diff x, i_nocheck).
+Qed.
+(*** END ***)
