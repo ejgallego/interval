@@ -218,10 +218,10 @@ Ltac xalgorithm lx :=
     end
   | |- Rle ?a ?b =>
     let v := get_float b in
-    refine ((fun (p : contains (I.convert (I.bnd F.nan v)) (Xreal a)) => match p with conj _ q => q end) _)
+    refine (proj2 (_ : contains (I.convert (I.bnd F.nan v)) (Xreal a)))
   | |- Rle ?a ?b =>
     let v := get_float a in
-    refine ((fun (p : contains (I.convert (I.bnd v F.nan)) (Xreal b)) => match p with conj q _ => q end) _)
+    refine (proj1 (_ : contains (I.convert (I.bnd v F.nan)) (Xreal b)))
   | _ => fail 100 "Goal is not an inequality with floating-point bounds."
   end ;
   match goal with
@@ -373,6 +373,12 @@ Inductive interval_tac_parameters :=
   | i_bisect_diff : R -> interval_tac_parameters
   | i_depth : nat -> interval_tac_parameters.
 
+Ltac tuple_to_list params l :=
+  match params with
+  | pair ?a ?b => tuple_to_list a (b :: l)
+  | ?b => constr:(b :: l)
+  end.
+
 Ltac do_interval_parse params :=
   let rec aux vars prec depth eval_tac check_tac params :=
     match params with
@@ -390,53 +396,93 @@ Tactic Notation "interval" :=
   do_interval_parse (@nil interval_tac_parameters).
 
 Tactic Notation "interval" "with" constr(params) :=
-  let rec aux params l :=
-    match params with
-    | pair ?a ?b => aux a (b :: l)
-    | ?b => constr:(b :: l)
-    end in
-  do_interval_parse ltac:(aux params (@nil interval_tac_parameters)).
+  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
-Ltac generalize_interval t b :=
+Ltac do_interval_generalize t b :=
   match b with
   | I.Inan => fail 100 "Nothing known about" t
   | I.Ibnd ?l ?u =>
     let l := eval vm_compute in (FtoX (F.toF l)) in
     let u := eval vm_compute in (FtoX (F.toF u)) in
-    match l with
-    | Xnan =>
-      match u with
-      | Xnan => fail 100 "Nothing known about" t
-      | Xreal ?u => refine ((_ : (t <= u)%R -> _) (proj2 _))
+    match goal with
+    | |- ?P =>
+      match l with
+      | Xnan =>
+        match u with
+        | Xnan => fail 100 "Nothing known about" t
+        | Xreal ?u => refine ((_ : (t <= u)%R -> P) _)
+        end
+      | Xreal ?l =>
+        match u with
+        | Xnan => refine ((_ : (l <= t)%R -> P) _)
+        | Xreal ?u => refine ((_ : (l <= t <= u)%R -> P) _)
+        end
       end
-    | Xreal ?l =>
-      match u with
-      | Xnan => refine ((_ : (l <= t)%R -> _) (proj1 _))
-      | Xreal ?u => refine ((_ : (l <= t <= u)%R -> _) _)
-      end
-    | _ => idtac l
     end
   end.
 
-Ltac interval_intro t :=
-  let prec := eval vm_compute in (C.ZtoE (Z_of_nat 30%nat)) in
-  match get_algorithm t (@nil R) with
+Ltac do_interval_intro_eval extend bounds formula prec depth :=
+  eval vm_compute in (extend (nth 0 (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.Inan)).
+
+Ltac do_interval_intro_bisect extend bounds formula prec depth :=
+  eval vm_compute in
+   (match bounds with
+    | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
+      V.Algos.lookup_1d (fun b => nth 0 (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.Inan) l u extend depth
+    | _ => I.Inan
+    end).
+
+Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
+  eval vm_compute in
+   (match bounds with
+    | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
+      V.Algos.lookup_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) 0 b) l u extend depth
+    | _ => I.Inan
+    end).
+
+Ltac do_interval_intro t extend params vars prec depth eval_tac :=
+  let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
+  match get_algorithm t vars with
   | (?formula, ?constants) =>
     let bounds := get_bounds constants in
-    let v := eval vm_compute in (nth 0 (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.Inan) in
-    generalize_interval t v ;
-    [ intro | do_interval (@nil R) 30%nat 15%nat do_interval_eval do_interval_nocheck
-      (*let formula_ := fresh "algo" in
-      pose (formula_ := formula) ;
-      let bounds_ := fresh "bounds" in
-      pose (bounds_ := bounds) ;
-      refine (V.xreal_to_real formula_ constants 0 (I.convert v)
-        (interval_helper_evaluate bounds_ v formula_ prec 0 _)) ;
-      vm_cast_no_check (refl_equal true)*) ]
+    let v := eval_tac extend bounds formula prec depth in
+    do_interval_generalize t v ;
+    [ intro | do_interval_parse params ]
   end.
 
+Ltac do_interval_intro_parse t_ extend params_ :=
+  let rec aux vars prec depth eval_tac params :=
+    match params with
+    | nil => do_interval_intro t_ extend params_ vars prec depth eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
+    | cons i_nocheck ?t => aux vars prec depth eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect_diff t
+    | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
+    end in
+  aux (@nil R) 30%nat 5%nat do_interval_intro_eval params_.
+
+Tactic Notation "interval_intro" constr(t) :=
+  do_interval_intro_parse t (fun v : I.type => v) (cons i_nocheck nil).
+
+Tactic Notation "interval_intro" constr(t) "lower" :=
+  do_interval_intro_parse t I.upper_extent (cons i_nocheck nil).
+
+Tactic Notation "interval_intro" constr(t) "upper"  :=
+  do_interval_intro_parse t I.lower_extent (cons i_nocheck nil).
+
+Tactic Notation "interval_intro" constr(t) "with" constr(params) :=
+  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (cons i_nocheck nil)).
+
+Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) :=
+  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (cons i_nocheck nil)).
+
+Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) :=
+  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (cons i_nocheck nil)).
+
 (*
-Lemma blo :
+Lemma blo1 :
   forall x, (Rabs x <= 5)%R ->
   (-4 <= x + 1)%R.
 intros.
@@ -445,18 +491,19 @@ Qed.
 *)
 
 (*
-Lemma blo :
-  forall x, (0 <= x)%R ->
+Lemma blo2 :
   (2/3 <= 5/7)%R.
 intros.
-interval_intro (2/3)%R.
-apply Rle_trans with (1 := proj2 H0).
+interval_intro (5/7)%R lower with (i_prec 4%nat).
+apply Rle_trans with (2 := H).
 interval.
 Qed.
+
+Print blo2.
 *)
 
 (*
-Lemma blo :
+Lemma blo3 :
   forall x, (x <= 0)%R ->
   (0 <= x - x <= 0)%R.
 intros.
@@ -470,7 +517,6 @@ Lemma blo4 :
   forall y, (1 <= y <= 33/32)%R ->
   (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
 intros.
-bisect x.
+interval with (bisect x).
 Qed.
-Print blo4.
 *)

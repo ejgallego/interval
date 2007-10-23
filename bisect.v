@@ -1,3 +1,4 @@
+Require Import Bool.
 Require Import List.
 Require Import Reals.
 Require Import missing.
@@ -64,6 +65,29 @@ exact H2.
 intros _ H0 x _.
 discriminate H0.
 Qed.
+
+Definition lookup_1d_step fi l u output cont :=
+  if I.subset (fi (I.bnd l u)) output then output
+  else
+    let m := I.midpoint (I.bnd l u) in
+    let output := cont l m output in
+    if I.lower_bounded output || I.upper_bounded output then cont m u output
+    else cont m u output.
+
+Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
+  match steps with
+  | O => I.join (fi (I.bnd l u)) output
+  | S n =>
+    lookup_1d_step fi l u output
+      (fun l u output => lookup_1d_main fi l u output n)
+  end.
+
+Definition lookup_1d fi l u extend steps :=
+  let m := iter_nat steps _ (fun u => I.midpoint (I.bnd l u)) u in
+  let output := extend (fi (I.bnd l m)) in
+  if I.lower_bounded output || I.upper_bounded output then
+    lookup_1d_main fi l u output steps
+  else output.
 
 Definition diff_refining prec xi yi yi' fi :=
   match I.sign_large yi' with

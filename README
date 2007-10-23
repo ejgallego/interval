@@ -38,15 +38,23 @@ sides are floating-point numbers, applying Rminus_le will change the
 proposition to "(e1 - e2 <= 0)%R", hence bringing out a floating-point
 bound.
 
+A helper tactic "interval_intro e" is also available. Instead of proving
+the current goal, it computes an enclosure of the expression "e" passed
+as argument and it introduces the inequalities into the proof context.
+If only one bound is needed, the keywords "lower" and "upper" can be
+passed to the tactic, so that it does not perform useless computations.
+For example, "interval_intro e lower" introduces only a floating-point
+lower bound of "e" in the context.
+
 
 II. Fine-tuning
 ---------------
 
-There are two forms of the tactic: either a simple "interval", or an
-"interval with (param1, param2, ...)". The parameters are parsed from
-left to right: If some parameters are conflicting, the earlier ones are
-discarded. Available parameter classes are: (with the type of their
-arguments, if any)
+The behavior of the tactics can be tuned by adding an optional set of
+parameters "with (param1, param2, ...)" at the end of the tactics. These
+parameters are parsed from left to right: If some parameters are
+conflicting, the earlier ones are discarded. Available parameter classes
+are: (with the type of their arguments, if any)
 
   i_prec (p:nat)      sets precision of the floating-point computations
   i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
@@ -54,8 +62,32 @@ arguments, if any)
   i_bisect_diff (x:R) same as bisect, but studies variations along x too
   i_nocheck           delays verification until Qed is reached
 
-Default parameters are (i_prec 30), (i_depth 15), and no bisection.
+Notes on bisection: For both tactics, performing a bisection of depth 1
+is not much slower than performing no bisection. If the current goal can
+be proven by "interval" with a bisection of depth n, then increasing the
+depth to n + 1 will not have any noticeable effect. For
+"interval_intro", increasing the depth from n to n + 1 can, however,
+double the computation time. Performing an "i_bisect_diff" bisection has
+a much higher cost per sub-interval, but it can considerably reduce the
+amount of sub-intervals considered. As a consequence, unless there is a
+huge amount of trivial propositions to prove, one should use this
+improved bisection.
 
+Notes on checking: By default, Coq performs the computations twice. The
+first time when the tactic is invoked, the second time when the whole
+proof is verified by Qed. If the user already knows the current goal is
+provable by "interval" and its parameters, then (i_nocheck) can be
+passed so that the first computation run is skipped. If the goal is in
+fact unprovable, then Coq will complain at Qed time that "refl_equal
+true" has not the type "... = true". For "interval_intro", computations
+would be performed thrice, as they are needed for finding the
+proposition, for proving it, and for verifying it again at Qed time. As
+a consequence, (i_nocheck) is implicit for "interval_intro" in order to
+skip the redundant proof.
+
+The default parameters of the tactics are (i_prec 30) and no bisection.
+If the user enables a bisection, the default depth is (i_depth 15) for
+"interval" and (i_depth 5) for "interval_intro".
 
 III. Examples
 -------------
@@ -69,6 +101,25 @@ Goal
   (sqrt (1 - x) <= 3/2)%R.
 Proof.
   intros.
+  interval.
+Qed.
+
+Goal
+  forall x, (-1 <= x <= 1)%R ->
+  (sqrt (1 - x) <= 141422/100000)%R.
+Proof.
+  intros.
+  apply Rminus_le.
+  interval.
+Qed.
+
+Goal
+  forall x, (-1 <= x <= 1)%R ->
+  (sqrt (1 - x) <= 141422/100000)%R.
+Proof.
+  intros.
+  interval_intro (sqrt (1 - x)) upper.
+  apply Rle_trans with (1 := H0).
   interval.
 Qed.
 
