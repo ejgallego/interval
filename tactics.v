@@ -8,17 +8,17 @@ Require Import xreal.
 Require Import definitions.
 Require Import generic.
 Require Import generic_proof.
-Require Import stdz_carrier.
+(*Require Import stdz_carrier.*)
 Require Import bigint_carrier.
 Require Import specific_ops.
 Require Import interval.
-Require Import interval_float.
+Require Import interval_float_full.
 Require Import bisect.
 
 (*Module C := StdZRadix2.*)
 Module C := BigIntRadix2.
 Module F := SpecificFloat C.
-Module I := FloatInterval F.
+Module I := FloatIntervalFull F.
 Module V := Valuator I.
 
 Ltac get_float t :=
@@ -44,7 +44,7 @@ Ltac get_float t :=
       end in
     let e := aux d in
     let m := get_mantissa n in
-    eval vm_compute in (F.fromF (Float 2 s m (Zneg e))) in
+    eval vm_compute in (F.fromF (generic.Float 2 s m (Zneg e))) in
   let get_float_integer s t :=
     let rec aux m e :=
       match m with
@@ -56,7 +56,7 @@ Ltac get_float t :=
     let m := get_mantissa t in
     let v := aux m Z0 in
     match v with
-    | (?m, ?e) => eval vm_compute in (F.fromF (Float 2 s m e))
+    | (?m, ?e) => eval vm_compute in (F.fromF (generic.Float 2 s m e))
     end in
   match t with
   | 0%R => F.zero
@@ -70,23 +70,23 @@ Ltac get_float t :=
   end.
 
 Lemma Rabs_contains :
-  forall m e v,
-  contains (I.convert (I.bnd (F.Float true m e) (F.Float false m e))) (Xreal v) ->
-  match F.toF (F.Float false m e) with
+  forall f v,
+  contains (I.convert (I.bnd (F.neg f) f)) (Xreal v) ->
+  match F.toF f with
   | generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
   | _ => True
   end.
-intros m e v (H1, H2).
-case_eq (F.toF (F.Float false m e)) ; trivial.
+intros [|m e] v (H1, H2).
+exact I.
+case_eq (F.toF (Float m e)) ; trivial.
 intro b. case b ; trivial.
 clear b.
 intros.
 apply Rabs_def1_le.
-unfold I.convert_bound in H2.
+unfold I.I.convert_bound in H2.
 rewrite H in H2.
 exact H2.
-unfold I.convert_bound in H1.
-change (F.Float true m e) with (F.neg (F.Float false m e)) in H1.
+unfold I.I.convert_bound in H1.
 rewrite F.neg_correct in H1.
 rewrite Fneg_correct in H1.
 rewrite H in H1.
@@ -94,21 +94,21 @@ exact H1.
 Qed.
 
 Lemma Rabs_contains_rev :
-  forall m e v,
-  match F.toF (F.Float false m e) with
+  forall f v,
+  match F.toF f with
   | generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
   | _ => False
   end ->
-  contains (I.convert (I.bnd (F.Float true m e) (F.Float false m e))) (Xreal v).
-intros m e v.
-case_eq (F.toF (F.Float false m e)) ; try (intros ; elim H0).
+  contains (I.convert (I.bnd (F.neg f) f)) (Xreal v).
+intros [|m e] v.
+do 2 split.
+case_eq (F.toF (Float m e)) ; try (intros ; elim H0).
 intros b p z.
 case b ; intros.
 elim H0.
 generalize (Rabs_def2_le _ _ H0).
 clear H0. intros (H1, H2).
-split ; unfold I.convert_bound.
-change (F.Float true m e) with (F.neg (F.Float false m e)).
+split ; unfold I.I.convert_bound.
 rewrite F.neg_correct.
 rewrite Fneg_correct.
 rewrite H.
@@ -117,93 +117,128 @@ rewrite H.
 exact H2.
 Qed.
 
-Ltac list_add a l :=
-  match l with
-  | nil        => constr:(cons a l)
-  | cons a _   => l
-  | cons ?x ?l => let m := list_add a l in constr:(cons x m)
-  end.
+Inductive expr :=
+  | Econst : nat -> expr
+  | Eunary : V.unary_op -> expr -> expr
+  | Ebinary : V.binary_op -> expr -> expr -> expr.
 
-Ltac list_find a l :=
-  let rec aux n l :=
+Ltac list_add a l :=
+  let rec aux a l n :=
+    match l with
+    | nil        => constr:(n, cons a l)
+    | cons a _   => constr:(n, l)
+    | cons ?x ?l =>
+      match aux a l (S n) with
+      | (?n, ?l) => constr:(n, cons x l)
+      end
+    end in
+  aux a l O.
+
+Ltac remove_constants t l :=
+  let rec aux t l :=
+    match get_float t with
+    | false =>
+      let aux_u o a :=
+        match aux a l with
+        | (?u, ?l) => constr:(Eunary o u, l)
+        end in
+      let aux_b o a b :=
+        match aux b l with
+        | (?v, ?l) =>
+          match aux a l with
+          | (?u, ?l) => constr:(Ebinary o u v, l)
+          end
+        end in
+      match t with
+      | Ropp ?a => aux_u V.Neg a
+      | Rabs ?a => aux_u V.Abs a
+      | Rinv ?a => aux_u V.Inv a
+      | Rsqr ?a => aux_u V.Sqr a
+      | Rmult ?a ?a => aux_u V.Sqr a
+      | sqrt ?a => aux_u V.Sqrt a
+      | Ratan ?a => aux_u V.Atan a
+      | Rplus ?a ?b => aux_b V.Add a b
+      | Rminus ?a ?b => aux_b V.Sub a b
+      | Rplus ?a (Ropp ?b) => aux_b V.Sub a b
+      | Rmult ?a ?b => aux_b V.Mul a b
+      | Rdiv ?a ?b => aux_b V.Div a b
+      | Rmult ?a (Rinv ?b) => aux_b V.Div a b
+      | _ =>
+        match list_add t l with
+        | (?n, ?l) => constr:(Econst n, l)
+        end
+      end
+    | _ =>
+      match list_add t l with
+      | (?n, ?l) => constr:(Econst n, l)
+      end
+    end in
+  aux t l.
+
+Ltac list_find1 a l :=
+  let rec aux l n :=
     match l with
     | nil       => false
-    | cons (Rinv R0) ?l => aux n l (* /0 is used as a marker *)
     | cons a _  => n
-    | cons _ ?l => aux (S n) l
+    | cons _ ?l => aux l (S n)
     end in
-  aux O l.
+  aux l O.
 
-Ltac get_algorithm t l :=
-  let get_constants t l :=
-    let rec aux t l :=
-      match get_float t with
-      | false =>
-        match t with
-        | Ropp ?a => aux a l
-        | Rabs ?a => aux a l
-        | sqrt ?a => aux a l
-        | Rplus ?a ?b => aux a ltac:(aux b l)
-        | Rminus ?a ?b => aux a ltac:(aux b l)
-        | Rmult ?a ?b => aux a ltac:(aux b l)
-        | Rdiv ?a ?b => aux a ltac:(aux b l)
-        | Rmult ?a (Rinv ?b) => aux a ltac:(aux b l)
-        | _ => list_add t l
-        end
-      | _ => list_add t l
-      end in
-    aux t l in
-  let get_terms t l :=
-    let rec aux t l :=
-      match list_find t l with
+Ltac get_non_constants t :=
+  let rec aux t l :=
+    match t with
+    | Econst _ => l
+    | _ =>
+      match list_find1 t l with
       | false =>
         let m :=
           match t with
-          | Ropp ?a => aux a l
-          | Rabs ?a => aux a l
-          | sqrt ?a => aux a l
-          | Rplus ?a ?b => aux a ltac:(aux b l)
-          | Rminus ?a ?b => aux a ltac:(aux b l)
-          | Rmult ?a ?b => aux a ltac:(aux b l)
-          | Rdiv ?a ?b => aux a ltac:(aux b l)
-          | Rmult ?a (Rinv ?b) => aux a ltac:(aux b l)
+          | Eunary _ ?a => aux a l
+          | Ebinary _ ?a ?b => aux a ltac:(aux b l)
           end in
         constr:(cons t m)
       | _ => l
-      end in
-    let m := constr:(cons (Rinv R0) l) in
-    aux t m in
-  let rec generate l q :=
+      end
+    end in
+  aux t (@nil expr).
+
+Ltac list_find2 a l :=
+  let rec aux l n :=
     match l with
-    | cons (Rinv R0) ?l => constr:(q, l)
+    | nil       => false
+    | cons a _  => n
+    | cons _ ?l => aux l (S n)
+    end in
+  match a with
+  | Econst ?n => eval compute in (n + length l)%nat
+  | _ => aux l O
+  end.
+
+Ltac generate_machine l :=
+  let rec aux l q :=
+    match l with
+    | nil => q
     | cons ?t ?l =>
       let m :=
         match t with
-        | Ropp ?a =>
-          let u := list_find a l in constr:(V.Unary V.Neg u)
-        | Rabs ?a =>
-          let u := list_find a l in constr:(V.Unary V.Abs u)
-        | sqrt ?a =>
-          let u := list_find a l in constr:(V.Unary V.Sqrt u)
-        | Rplus ?a ?b =>
-          let u := list_find a l in
-          let v := list_find b l in constr:(V.Binary V.Add u v)
-        | Rminus ?a ?b =>
-          let u := list_find a l in
-          let v := list_find b l in constr:(V.Binary V.Sub u v)
-        | Rmult ?a ?b =>
-          let u := list_find a l in
-          let v := list_find b l in constr:(V.Binary V.Mul u v)
-        | Rdiv ?a ?b =>
-          let u := list_find a l in
-          let v := list_find b l in constr:(V.Binary V.Div u v)
-        | Rmult ?a (Rinv ?b) =>
-          let u := list_find a l in
-          let v := list_find b l in constr:(V.Binary V.Div u v)
+        | Eunary ?o ?a =>
+          let u := list_find2 a l in
+          constr:(V.Unary o u)
+        | Ebinary ?o ?a ?b =>
+          let u := list_find2 a l in
+          let v := list_find2 b l in
+          constr:(V.Binary o u v)
         end in
-      generate l (cons m q)
+      aux l (cons m q)
     end in
-  generate ltac:(get_terms t ltac:(get_constants t l)) (@nil V.term).
+  aux l (@nil V.term).
+
+Ltac extract_algorithm t l :=
+  match remove_constants t l with
+  | (?t, ?lc) =>
+    let lm := generate_machine ltac:(get_non_constants t) in
+    constr:(lm, lc)
+  end.
 
 Ltac xalgorithm lx :=
   match goal with
@@ -214,7 +249,7 @@ Ltac xalgorithm lx :=
   | |- Rle (Rabs ?a) ?b =>
     let v := get_float b in
     match v with
-    | F.Float false ?m ?e => refine (Rabs_contains m e a _)
+    | Float ?m ?e => refine (Rabs_contains v a _)
     end
   | |- Rle ?a ?b =>
     let v := get_float b in
@@ -226,7 +261,7 @@ Ltac xalgorithm lx :=
   end ;
   match goal with
   | |- contains ?xi (Xreal ?y) =>
-    match get_algorithm y lx with
+    match extract_algorithm y lx with
     | (?a, ?b) =>
       let formula := fresh "formula" in
       pose (formula := a) ;
@@ -254,8 +289,8 @@ Ltac get_bounds l :=
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
           match v with
-          | F.Float false ?m ?e =>
-            constr:(V.Bproof (Xreal x) (I.bnd (F.Float true m e) v) (Rabs_contains_rev m e x H))
+          | Float ?m ?e =>
+            constr:(V.Bproof (Xreal x) (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
           end
         | _ =>
           let v := get_float x in
@@ -269,7 +304,7 @@ Ltac get_bounds l :=
 
 Lemma interval_helper_evaluate :
   forall bounds output formula prec n,
-  I.subset (nth n (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.Inan) output = true ->
+  I.subset (nth n (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.nai) output = true ->
   contains (I.convert output) (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
 intros.
 eapply subset_contains.
@@ -281,8 +316,8 @@ Qed.
 Lemma interval_helper_bisection :
   forall bounds output formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
-    V.Algos.bisect_1d (fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.Inan) l u output depth = true
+  | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+    V.Algos.bisect_1d (fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u output depth = true
   | _ => False
   end ->
   contains (I.convert output) (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
@@ -299,7 +334,7 @@ elim H.
 intros.
 clear bounds b xi.
 pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
-pose (fi := fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp l0)) I.Inan).
+pose (fi := fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp l0)) I.nai).
 change (contains (I.convert output) (f x)).
 refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
 exact (V.eval_bnd_correct_ext _ _ _ _).
@@ -308,7 +343,7 @@ Qed.
 Lemma interval_helper_bisection_diff :
   forall bounds output formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
+  | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
     V.Algos.bisect_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) n b) l u output depth = true
   | _ => False
   end ->
@@ -399,11 +434,9 @@ Tactic Notation "interval" "with" constr(params) :=
   do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Ltac do_interval_generalize t b :=
-  match b with
-  | I.Inan => fail 100 "Nothing known about" t
-  | I.Ibnd ?l ?u =>
-    let l := eval vm_compute in (FtoX (F.toF l)) in
-    let u := eval vm_compute in (FtoX (F.toF u)) in
+  match eval vm_compute in (I.convert b) with
+  | Inan => fail 100 "Nothing known about" t
+  | Ibnd ?l ?u =>
     match goal with
     | |- ?P =>
       match l with
@@ -422,27 +455,27 @@ Ltac do_interval_generalize t b :=
   end.
 
 Ltac do_interval_intro_eval extend bounds formula prec depth :=
-  eval vm_compute in (extend (nth 0 (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.Inan)).
+  eval vm_compute in (extend (nth 0 (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.nai)).
 
 Ltac do_interval_intro_bisect extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
-      V.Algos.lookup_1d (fun b => nth 0 (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.Inan) l u extend depth
-    | _ => I.Inan
+    | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+      V.Algos.lookup_1d (fun b => nth 0 (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u extend depth
+    | _ => I.nai
     end).
 
 Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (I.Ibnd l u) _) tail =>
+    | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
       V.Algos.lookup_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) 0 b) l u extend depth
-    | _ => I.Inan
+    | _ => I.nai
     end).
 
 Ltac do_interval_intro t extend params vars prec depth eval_tac :=
   let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
-  match get_algorithm t vars with
+  match extract_algorithm t vars with
   | (?formula, ?constants) =>
     let bounds := get_bounds constants in
     let v := eval_tac extend bounds formula prec depth in
@@ -517,6 +550,6 @@ Lemma blo4 :
   forall y, (1 <= y <= 33/32)%R ->
   (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
 intros.
-interval with (bisect x).
+interval with (i_bisect x).
 Qed.
 *)

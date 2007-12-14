@@ -55,6 +55,27 @@ Definition Fscale radix (f : float radix) d :=
 Implicit Arguments Fscale.
 
 (*
+ * Fscale2
+ *)
+
+Definition Fscale2 radix (f : float radix) d :=
+  match f with
+  | Float s m e =>
+    match radix, d with
+    | xO xH, _ => Float radix s m (e + d)
+    | _, Z0 => f
+    | _, Zpos nb =>
+      Float radix s (iter_pos nb _ (fun x => xO x) m) e
+    | xO r, Zneg nb =>
+      Float radix s (iter_pos nb _ (fun x => Pmult r x) m) (e + d)
+    | _, _ => Fnan radix
+    end
+  | _ => f
+  end.
+
+Implicit Arguments Fscale2.
+
+(*
  * Fcmp
  *
  * 1. Compare signs.

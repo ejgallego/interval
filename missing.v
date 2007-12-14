@@ -1,6 +1,8 @@
 Require Import Reals.
 Require Import ZArith.
 
+Axiom Ratan: R -> R.
+
 Lemma Rplus_le_reg_r :
   forall r r1 r2 : R,
   (r1 + r <= r2 + r)%R -> (r1 <= r2)%R.

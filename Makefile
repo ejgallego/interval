@@ -1,5 +1,5 @@
 PACKAGE=interval
-VERSION=0.2
+VERSION=0.3
 
 ##########################
 #                        #
@@ -38,11 +38,13 @@ VFILES=bigint_carrier.v\
   generic.v\
   interval.v\
   interval_float.v\
+  interval_float_full.v\
   missing.v\
   specific_ops.v\
   specific_sig.v\
   stdz_carrier.v\
   tactics.v\
+  transcend.v\
   xreal.v\
   xreal_derive.v
 VOFILES=$(VFILES:.v=.vo)

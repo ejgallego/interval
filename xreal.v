@@ -1,4 +1,5 @@
 Require Import Reals.
+Require Import missing.
 
 (*
  * Rcompare
@@ -215,3 +216,11 @@ case x ; case y ; intros ; try apply refl_equal.
 unfold Xmul, Xdiv, Xinv, Rdiv.
 case (is_zero r) ; intros ; apply refl_equal.
 Qed.
+
+Definition Xsqr x := Xmul x x.
+
+Definition Xatan x :=
+  match x with
+  | Xreal u => Xreal (Ratan u)
+  | Xnan => Xnan
+  end.

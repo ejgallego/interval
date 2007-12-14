@@ -164,6 +164,30 @@ rewrite Rmult_plus_distr_r.
 case s ; simpl ; try rewrite Ropp_plus_distr ; apply refl_equal.
 Qed.
 
+Lemma FtoR_sub :
+  forall radix s m1 m2 e,
+  (Zpos m2 < Zpos m1)%Z ->
+  (FtoR radix s m1 e + FtoR radix (negb s) m2 e)%R = FtoR radix s (m1 - m2) e.
+intros.
+repeat rewrite FtoR_split.
+replace (Zpos (m1 - m2)) with (Zpos m1 - Zpos m2)%Z.
+rewrite minus_Z2R.
+unfold Rminus.
+rewrite Rmult_plus_distr_r.
+case s ; simpl.
+rewrite Ropp_plus_distr.
+rewrite Ropp_mult_distr_l_reverse.
+rewrite Ropp_involutive.
+apply refl_equal.
+rewrite Ropp_mult_distr_l_reverse.
+apply refl_equal.
+replace (Zpos m1 - Zpos m2)%Z with (-(Zpos m2 - Zpos m1))%Z by ring.
+unfold Zlt in H.
+simpl in *.
+rewrite H.
+apply refl_equal.
+Qed.
+
 Lemma FtoR_mul :
   forall radix s1 s2 m1 m2 e1 e2,
   (FtoR radix s1 m1 e1 * FtoR radix s2 m2 e2)%R =
@@ -280,6 +304,44 @@ repeat rewrite FtoR_split.
 rewrite exp_factor_mul.
 case b ; simpl ; ring.
 Qed.
+
+(*
+ * Fscale2
+ *)
+
+Theorem Fscale2_correct :
+  forall radix (f : float radix) d,
+  match radix with xO _ => true | _ => false end = true ->
+  FtoX (Fscale2 f d) = Xmul (FtoX f) (Xreal (exp_factor 2 d)).
+intros.
+case f ; simpl ; intros.
+apply refl_equal.
+rewrite Rmult_0_l.
+apply refl_equal.
+case_eq radix ; intros ; rewrite H0 in H ; try discriminate H.
+clear H.
+cut (FtoX
+  match d with
+  | 0%Z => Float (xO p0) b p z
+  | Zpos nb =>
+      Float (xO p0) b
+        (iter_pos nb positive (fun x : positive => xO x) p) z
+  | Zneg nb =>
+      Float (xO p0) b
+        (iter_pos nb positive
+           (fun x : positive => Pmult p0 x) p) (z + d)
+  end = Xreal (FtoR (xO p0) b p z * exp_factor 2 d)).
+intro H.
+case_eq p0 ; intros ; rewrite H1 in H ; try exact H.
+exact (Fscale_correct _ (Float 2 b p z) _).
+clear.
+case d ; intros.
+rewrite Rmult_1_r.
+apply refl_equal.
+simpl.
+apply f_equal.
+repeat rewrite FtoR_split.
+Admitted.
 
 (*
  * Fcmp
@@ -895,62 +957,42 @@ intros.
 unfold Xadd, FtoX.
 unfold Fadd_slow_aux1.
 change (Zpos mx + Zneg my)%Z with (Zpos mx - Zpos my)%Z.
-case sx ; case sy ; unfold eqb.
-(* - - *)
-simpl.
+case_eq (eqb sx sy) ; intro H.
+(* == *)
+rewrite (eqb_prop _ _ H).
 rewrite FtoR_add.
 apply refl_equal.
-(* - + *)
-Admitted.
-(*
-replace (FtoR radix true mx e + FtoR radix false my e)%R
-  with (- (Z2R (Zpos mx - Zpos my) * exp_factor radix e))%R.
-case (Zpos mx - Zpos my)%Z ; intros.
-rewrite Rmult_0_l.
-rewrite Ropp_0.
+(* != *)
+replace sy with (negb sx).
+clear H.
+case_eq (Zpos mx - Zpos my)%Z.
+intro H.
+rewrite <- (FtoR_neg radix sx).
+unfold FtoR.
+change (Zneg mx) with (- Zpos mx)%Z.
+rewrite (Zminus_eq _ _ H).
+rewrite Rplus_opp_r.
 apply refl_equal.
+intro p.
+unfold Zminus, Zplus.
 simpl.
-rewrite FtoR_split.
-apply refl_equal.
+case_eq ((mx ?= my)%positive Eq) ; intros ; try discriminate H0.
+rewrite (FtoR_sub radix sx).
+now inversion H0.
+apply Zgt_lt.
+exact H.
+intro p.
+unfold Zminus, Zplus.
 simpl.
-apply f_equal.
-rewrite FtoR_split.
-simpl.
-ring.
-simpl.
-
-replace (- (Z2R (Zneg p) * powerRZ (Z2R (Zpos radix)) e))%R with (FtoR radix false p e).
-apply refl_equal.
-unfold FtoR, HtoR.
-change (Z2R (Zneg p)) with (- Z2R (Zpos p))%R.
-ring.
-unfold HtoR.
-rewrite minus_Z2R.
-ring.
-(* + - *)
-replace (HtoR radix mx e + - HtoR radix my e)%R
-  with ((Z2R (Zpos mx - Zpos my) * powerRZ (Z2R (Zpos radix)) e))%R.
-case (Zpos mx - Zpos my)%Z ; intros.
-rewrite Rmult_0_l.
-apply refl_equal.
-apply refl_equal.
-replace (Z2R (Zneg p) * powerRZ (Z2R (Zpos radix)) e)%R with (FtoR radix true p e).
-apply refl_equal.
-unfold FtoR, HtoR.
-change (Z2R (Zneg p)) with (- Z2R (Zpos p))%R.
-ring.
-unfold HtoR.
-rewrite minus_Z2R.
-ring.
-(* + + *)
-replace (HtoR radix mx e + HtoR radix my e)%R with (FtoR radix false (mx + my) e)%R.
-apply refl_equal.
-unfold FtoR, HtoR.
-fold (Zpos mx + Zpos my)%Z.
-rewrite plus_Z2R.
-ring.
+case_eq ((mx ?= my)%positive Eq) ; intros ; try discriminate H0.
+pattern sx at 2 ; rewrite <- (negb_involutive sx).
+rewrite Rplus_comm.
+rewrite (FtoR_sub radix (negb sx)).
+now inversion H0.
+exact H.
+generalize H. clear.
+now case sx ; case sy.
 Qed.
-*)
 
 Lemma Fadd_slow_aux2_correct :
   forall radix sx sy mx my ex ey,

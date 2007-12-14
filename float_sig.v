@@ -8,7 +8,9 @@ Require Import generic_proof.
 Module Type FloatOps.
 
 Parameter radix : positive.
+Parameter even_radix : bool.
 Parameter radix_correct : (1 < Zpos radix)%Z.
+Parameter even_radix_correct : match radix with xO _ => true | _ => false end = even_radix.
 Parameter type : Set.
 Parameter toF : type -> float radix.
 
@@ -16,6 +18,7 @@ Parameter precision : Set.
 Parameter sfactor : Set.
 Parameter prec : precision -> positive.
 Parameter ZtoS : Z -> sfactor.
+Parameter PtoP : positive -> precision.
 
 Parameter zero : type.
 Parameter nan : type.
@@ -26,9 +29,11 @@ Parameter real : type -> bool.
 Parameter cmp : type -> type -> Xcomparison.
 Parameter min : type -> type -> type.
 Parameter max : type -> type -> type.
+Parameter round : rounding_mode -> precision -> type -> type.
 Parameter neg : type -> type.
 Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
+Parameter scale2 : type -> sfactor -> type.
 Parameter add_exact : type -> type -> type.
 Parameter sub_exact : type -> type -> type.
 Parameter mul_exact : type -> type -> type.
@@ -64,6 +69,10 @@ Parameter abs_correct :
 
 Parameter scale_correct :
   forall x d, FtoX (toF (scale x (ZtoS d))) = FtoX (Fscale (toF x) d).
+
+Parameter scale2_correct :
+  forall x d, even_radix = true ->
+  FtoX (toF (scale2 x (ZtoS d))) = FtoX (Fscale2 (toF x) d).
 
 Parameter add_exact_correct :
   forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).

@@ -7,9 +7,9 @@ Require Import float_sig.
 Require Import generic.
 Require Import generic_proof.
 
-Inductive Interval : Set :=
-  | Inan : Interval
-  | Ibnd (l u : ExtendedR) : Interval.
+Inductive interval : Set :=
+  | Inan : interval
+  | Ibnd (l u : ExtendedR) : interval.
 
 Definition contains i v :=
   match i, v with
@@ -203,14 +203,14 @@ Qed.
 
 Definition interval_extension
   (f : ExtendedR -> ExtendedR)
-  (fi : Interval -> Interval) :=
-  forall b : Interval, forall x : ExtendedR,
+  (fi : interval -> interval) :=
+  forall b : interval, forall x : ExtendedR,
   contains b x -> contains (fi b) (f x).
 
 Definition interval_extension_2
   (f : ExtendedR -> ExtendedR -> ExtendedR)
-  (fi : Interval -> Interval -> Interval) :=
-  forall bx by : Interval, forall x y : ExtendedR,
+  (fi : interval -> interval -> interval) :=
+  forall bx by : interval, forall x y : ExtendedR,
   contains bx x -> contains by y ->
   contains (fi bx by) (f x y).
 
@@ -233,7 +233,7 @@ Module Type IntervalOps.
 Parameter bound_type : Set.
 Parameter convert_bound : bound_type -> ExtendedR.
 Parameter type : Set.
-Parameter convert : type -> Interval.
+Parameter convert : type -> interval.
 Parameter nai : type.
 Parameter bnd : bound_type -> bound_type -> type.
 
@@ -277,15 +277,21 @@ Parameter precision : Set.
 
 Parameter neg : type -> type.
 Parameter abs : type -> type.
+Parameter inv : precision -> type -> type.
+Parameter sqr : precision -> type -> type.
 Parameter sqrt : precision -> type -> type.
+Parameter atan : precision -> type -> type.
 Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
 Parameter div : precision -> type -> type -> type.
 
 Parameter neg_correct : extension Xneg neg.
+Parameter inv_correct : forall prec, extension Xinv (inv prec).
+Parameter sqr_correct : forall prec, extension Xsqr (sqr prec).
 Parameter abs_correct : extension Xabs abs.
 Parameter sqrt_correct : forall prec, extension Xsqrt (sqrt prec).
+Parameter atan_correct : forall prec, extension Xatan (atan prec).
 Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).

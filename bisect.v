@@ -136,7 +136,7 @@ End IntervalAlgos.
 Module Valuator (I : IntervalOps).
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Sqrt.
+  | Neg | Abs | Inv | Sqr | Sqrt | Atan.
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -148,7 +148,8 @@ Inductive term : Set :=
 Set Implicit Arguments.
 
 Record operations (A : Set) : Set :=
-  { unary : unary_op -> A -> A
+  { constant : Z -> A
+  ; unary : unary_op -> A -> A
   ; binary : binary_op -> A -> A -> A }.
 
 Unset Implicit Arguments.
@@ -168,24 +169,24 @@ Definition eval_generic A def (ops : operations A) :=
 Implicit Arguments eval_generic.
 
 Definition bnd_operations prec :=
-  Build_operations
-    (fun o => match o with Neg => I.neg | Abs => I.abs | Sqrt => I.sqrt prec end)
+  Build_operations I.fromZ
+    (fun o => match o with Neg => I.neg | Abs => I.abs | Inv => I.inv prec | Sqr => I.sqr prec | Sqrt => I.sqrt prec | Atan => I.atan prec end)
     (fun o => match o with Add => I.add prec | Sub => I.sub prec | Mul => I.mul prec | Div => I.div prec end).
 
 Definition eval_bnd prec :=
   eval_generic I.nai (bnd_operations prec).
 
 Definition ext_operations :=
-  Build_operations
-    (fun o => match o with Neg => Xneg | Abs => Xabs | Sqrt => Xsqrt end)
+  Build_operations (fun x => Xreal (Z2R x))
+    (fun o => match o with Neg => Xneg | Abs => Xabs | Inv => Xinv | Sqr => Xsqr | Sqrt => Xsqrt | Atan => Xatan end)
     (fun o => match o with Add => Xadd | Sub => Xsub | Mul => Xmul | Div => Xdiv end).
 
 Definition eval_ext :=
   eval_generic (Xreal 0) ext_operations.
 
 Definition real_operations :=
-  Build_operations
-    (fun o => match o with Neg => Ropp | Abs => Rabs | Sqrt => R_sqrt.sqrt end)
+  Build_operations Z2R
+    (fun o => match o with Neg => Ropp | Abs => Rabs | Inv => Rinv | Sqr => Rsqr | Sqrt => R_sqrt.sqrt | Atan => Ratan end)
     (fun o => match o with Add => Rplus | Sub => Rminus | Mul => Rmult | Div => Rdiv end).
 
 Definition eval_real :=
@@ -193,6 +194,7 @@ Definition eval_real :=
 
 Definition diff_operations A (ops : @operations A) :=
   Build_operations
+   (fun x => (constant ops x, constant ops 0))
    (fun o x =>
     match x with
     | (v, d) =>
@@ -200,8 +202,13 @@ Definition diff_operations A (ops : @operations A) :=
       | Neg => let f := unary ops Neg in (f v, f d)
       | Abs => let w := unary ops Abs v in (w,
         binary ops Mul d (binary ops Div v w))
+      | Inv => (unary ops Inv v,
+        unary ops Neg (binary ops Div d (unary ops Sqr v)))
+      | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
       | Sqrt => let w := unary ops Sqrt v in (w,
         binary ops Div d (binary ops Add w w))
+      | Atan =>
+        (unary ops Atan v, binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       end
     end)
    (fun o x y =>
@@ -223,7 +230,7 @@ Lemma unary_ext_correct :
   unary ext_operations o x = Xreal y ->
   exists u, x = Xreal u /\ unary real_operations o u = y.
 intros o x y.
-case o ; simpl ; [ unfold Xneg | unfold Xabs | unfold Xsqrt ] ;
+case o ; simpl ; [ unfold Xneg | unfold Xabs | unfold Xinv | unfold Xsqr, Xmul | unfold Xsqrt | unfold Xatan ] ;
   intros ; xtotal ; refl_exists ; assumption.
 Qed.
 
@@ -248,8 +255,11 @@ case o ; simpl.
 apply Xderive_neg.
 exact Hf.
 admit.
+admit.
+admit.
 apply Xderive_sqrt.
 exact Hf.
+admit.
 Qed.
 
 Lemma binary_diff_correct :
@@ -365,7 +375,7 @@ apply iterated_bnd_nth.
 intros.
 case n.
 case a ; intros ; simpl ;
-  [ case u ; [ apply I.neg_correct | apply I.abs_correct | apply I.sqrt_correct ]
+  [ case u ; [ apply I.neg_correct | apply I.abs_correct | apply I.inv_correct | apply I.sqr_correct | apply I.sqrt_correct | apply I.atan_correct ]
   | case b ; [ apply I.add_correct | apply I.sub_correct | apply I.mul_correct | apply I.div_correct ]
   ] ; apply IHl.
 apply IHl.

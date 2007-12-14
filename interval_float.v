@@ -8,13 +8,16 @@ Require Import generic_proof.
 Require Import float_sig.
 Require Import interval.
 
-Module FloatInterval (F : FloatOps with Definition radix := 2%positive) <: IntervalOps.
+Inductive f_interval (A : Set) : Set :=
+  | Inan : f_interval A
+  | Ibnd (l u : A) : f_interval A.
 
-Inductive type_ : Set :=
-  | Inan : type_
-  | Ibnd (l u : F.type) : type_.
+Implicit Arguments Inan [A].
+Implicit Arguments Ibnd [A].
 
-Definition type := type_.
+Module FloatInterval (F : FloatOps with Definition even_radix := true).
+
+Definition type := f_interval F.type.
 Definition bound_type := F.type.
 Definition precision := F.precision.
 
@@ -24,8 +27,9 @@ Definition convert xi :=
   | Inan => interval.Inan
   | Ibnd l u => interval.Ibnd (convert_bound l) (convert_bound u)
   end.
-Definition nai := Inan.
-Definition bnd := Ibnd.
+
+Definition nai := @Inan F.type.
+Definition bnd := @Ibnd F.type.
 
 Lemma bnd_correct :
   forall l u,
@@ -142,7 +146,7 @@ Definition midpoint xi :=
     | Xund, Xeq => F.fromZ (-1)%Z
     | Xgt, Xund => F.scale xl (F.ZtoS 1%Z)
     | Xund, Xlt => F.scale xu (F.ZtoS 1%Z)
-    | _, _ => F.scale (F.add_exact xl xu) (F.ZtoS (-1)%Z)
+    | _, _ => F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)%Z)
     end
   end.
 
@@ -196,13 +200,17 @@ Definition abs xi :=
   | Inan => Inan
   end.
 
-(*
 Definition scale xi d :=
   match xi with
   | Ibnd xl xu => Ibnd (F.scale xl d) (F.scale xu d)
   | Inan => Inan
   end.
-*)
+
+Definition scale2 xi d :=
+  match xi with
+  | Ibnd xl xu => Ibnd (F.scale2 xl d) (F.scale2 xu d)
+  | Inan => Inan
+  end.
 
 Definition sqrt prec xi :=
   match xi with
@@ -252,6 +260,20 @@ Definition div_mixed_r prec xi y :=
   | Inan => Inan
   end.
 
+Definition sqr prec xi :=
+  match xi with
+  | Ibnd xl xu =>
+    match sign_large_ xl xu with
+    | Xund =>
+      let xm := F.max (F.abs xl) (F.abs xu) in
+      Ibnd F.zero (F.mul rnd_UP prec xm xm)
+    | Xeq => Ibnd F.zero F.zero
+    | Xlt => Ibnd (F.mul rnd_DN prec xu xu) (F.mul rnd_UP prec xl xl)
+    | Xgt => Ibnd (F.mul rnd_DN prec xl xl) (F.mul rnd_UP prec xu xu)
+    end
+  | _ => Inan
+  end.
+
 Definition mul prec xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
@@ -274,6 +296,18 @@ Definition mul prec xi yi :=
 
 Definition Fdivz mode prec x y :=
   if F.real y then F.div mode prec x y else F.zero.
+
+Definition inv prec xi :=
+  match xi with
+  | Ibnd xl xu =>
+    match sign_strict xl xu with
+    | Xund => Inan
+    | Xeq => Inan
+    | _ => let one := F.fromZ 1 in
+      Ibnd (Fdivz rnd_DN prec one xu) (Fdivz rnd_UP prec one xl)
+    end
+  | _ => Inan
+  end.
 
 Definition div prec xi yi :=
   match xi, yi with
@@ -455,6 +489,12 @@ intros [ | xl xu].
 intros _.
 exact I.
 intros (x, (Hxl, Hxu)).
+assert (Hr: (1 <= P2R (F.radix * 1))%R).
+rewrite P2R_INR.
+apply (le_INR 1).
+apply lt_le_S.
+apply lt_O_nat_of_P.
+(* . *)
 simpl.
 repeat rewrite F.cmp_correct.
 repeat rewrite Fcmp_correct.
@@ -480,7 +520,9 @@ simpl.
 split.
 exact I.
 pattern r at 2 ; rewrite <- Rmult_1_r.
-apply Rmult_le_compat_neg_l ; auto with real.
+apply Rmult_le_compat_neg_l.
+exact (Rlt_le _ _ H).
+exact Hr.
 rewrite F.zero_correct.
 split ; auto with real.
 (* infinite upper *)
@@ -498,16 +540,18 @@ rewrite X.
 simpl.
 split.
 pattern r at 1 ; rewrite <- Rmult_1_r.
-apply Rmult_le_compat_l ; auto with real.
+apply Rmult_le_compat_l.
+exact (Rlt_le _ _ H).
+exact Hr.
 exact I.
 (* finite bounds *)
 assert (
-  match FtoX (F.toF (F.scale (F.add_exact xl xu) (F.ZtoS (-1)))) with
+  match FtoX (F.toF (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) with
   | Xnan => False
   | Xreal x0 => (r <= x0 <= r0)%R
   end).
-rewrite F.scale_correct.
-rewrite Fscale_correct.
+rewrite F.scale2_correct. 2: apply refl_equal.
+rewrite Fscale2_correct. 2: apply F.even_radix_correct.
 rewrite F.add_exact_correct.
 rewrite Fadd_exact_correct.
 unfold convert_bound in *.
@@ -974,5 +1018,8 @@ case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* solve by transivity *)
   eauto 8 with mulauto.
 Qed.
+
+Axiom inv_correct : forall prec, extension Xinv (inv prec).
+Axiom sqr_correct : forall prec, extension Xsqr (sqr prec).
 
 End FloatInterval.
