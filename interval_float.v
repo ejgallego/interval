@@ -77,6 +77,23 @@ Definition subset xi yi :=
   | _, _ => false
   end.
 
+Definition overlap xi yi :=
+  match xi, yi with
+  | Ibnd xl xu, Ibnd yl yu =>
+    match F.cmp xl yl with
+    | Xund =>
+      match F.real xl, F.real yl with
+      | false, true => match F.cmp xu yl with Xlt => false | _ => true end
+      | true, false => match F.cmp yu xl with Xlt => false | _ => true end
+      | _, _ => true
+      end
+    | Xlt => match F.cmp xu yl with Xlt => false | _ => true end
+    | _ => match F.cmp yu xl with Xlt => false | _ => true end
+    end
+  | Inan, _ => true
+  | _, Inan => true
+  end.
+
 Definition join xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
@@ -377,6 +394,22 @@ unfold convert_bound.
 case (F.toF x) ; intros ; rewrite H ; apply refl_equal.
 Qed.
 
+Lemma Fcmp_le_mixed :
+  forall xl yu,
+  F.cmp xl yu <> Xgt -> le_mixed (convert_bound xl) (convert_bound yu).
+intros.
+rewrite F.cmp_correct in H.
+rewrite Fcmp_correct in H.
+xreal_tac yu.
+xreal_tac xl.
+refine (Rnot_lt_le _ _ _).
+intro H0.
+simpl in H.
+elim H.
+rewrite (Rcompare_correct_gt _ _ H0).
+apply refl_equal.
+Qed.
+
 Lemma subset_correct :
   forall xi yi : type,
   subset xi yi = true -> interval.subset (convert xi) (convert yi).
@@ -387,8 +420,8 @@ destruct (andb_prop _ _ H) as (H1, H2).
 split.
 (* lower bound *)
 generalize H1. clear.
-repeat rewrite F.cmp_correct.
-repeat rewrite Fcmp_correct.
+rewrite F.cmp_correct.
+rewrite Fcmp_correct.
 unfold le_lower, le_upper, convert_bound.
 case (FtoX (F.toF xl)) ; simpl.
 unfold negb. rewrite real_correct.
@@ -400,8 +433,8 @@ generalize (Rcompare_correct xrl r).
 case (Rcompare xrl r) ; intros ; simpl ; now auto with real.
 (* upper bound *)
 generalize H2. clear.
-repeat rewrite F.cmp_correct.
-repeat rewrite Fcmp_correct.
+rewrite F.cmp_correct.
+rewrite Fcmp_correct.
 unfold le_upper, convert_bound.
 case (FtoX (F.toF xu)) ; simpl.
 unfold negb. rewrite real_correct.

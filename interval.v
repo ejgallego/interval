@@ -201,6 +201,118 @@ auto with real.
 exact (proj2 (contains_le _ _ _ H)).
 Qed.
 
+Definition le_mixed x y :=
+  match y with
+  | Xnan => True
+  | Xreal yr =>
+    match x with
+    | Xnan => True
+    | Xreal xr => Rle xr yr
+    end
+  end.
+
+Lemma le_mixed_lower :
+  forall xl yr,
+  le_mixed xl (Xreal yr) -> le_lower xl (Xreal yr).
+intros [|xr] yr H.
+exact H.
+exact (Ropp_le_contravar _ _ H).
+Qed.
+
+Lemma le_mixed_upper :
+  forall xr yu,
+  le_mixed (Xreal xr) yu -> le_upper (Xreal xr) yu.
+intros xr [|yr] H ; exact H.
+Qed.
+
+Definition not_empty xi :=
+  exists v, contains xi (Xreal v).
+
+Lemma le_mixed_not_empty :
+  forall x y, le_mixed x y ->
+  not_empty (Ibnd x y).
+intros [|xr] [|yr] Hl.
+exists R0. now split.
+exists yr. repeat split.
+apply Rle_refl.
+exists xr. repeat split.
+apply Rle_refl.
+exists xr. split.
+apply Rle_refl.
+exact Hl.
+Qed.
+
+Lemma contains_minf_not_empty :
+  forall xu, not_empty (Ibnd Xnan xu).
+intros [|xr].
+exists R0. now split.
+exists xr. repeat split.
+apply Rle_refl.
+Qed.
+
+Lemma contains_pinf_not_empty :
+  forall xl, not_empty (Ibnd xl Xnan).
+intros [|xr].
+exists R0. now split.
+exists xr. repeat split.
+apply Rle_refl.
+Qed.
+
+Definition overlap xi yi :=
+  match xi, yi with
+  | Ibnd xl xu, Ibnd yl yu =>
+    (le_lower xl yl /\ le_mixed yl xu /\ le_mixed yl yu) \/
+    (le_lower yl xl /\ le_mixed xl yu /\ le_mixed xl xu)
+  | Ibnd xl xu, Inan => le_mixed xl xu
+  | Inan, Ibnd yl yu => le_mixed yl yu
+  | Inan, Inan => True
+  end.
+
+Lemma overlap_contains_aux :
+  forall xl xu yl yu,
+  le_lower xl yl -> le_mixed yl xu -> le_mixed yl yu ->
+  exists v, contains (Ibnd xl xu) (Xreal v) /\ contains (Ibnd yl yu) (Xreal v).
+intros xl xu yl yu Ho1 Ho2 Ho3.
+destruct yl as [|yr].
+destruct xl. 2: elim Ho1.
+destruct xu as [|xr].
+destruct (contains_minf_not_empty yu) as (yr, Hy).
+exists yr.
+split ; [ now split | exact Hy ].
+destruct yu as [|yr].
+exists xr. repeat split.
+apply Rle_refl.
+exists (Rmin xr yr).
+repeat split.
+apply Rmin_l.
+apply Rmin_r.
+exists yr.
+split.
+apply le_contains.
+exact Ho1.
+exact Ho2.
+split.
+apply Rle_refl.
+exact Ho3.
+Qed.
+
+Theorem overlap_contains :
+  forall xi yi,
+  overlap xi yi ->
+  exists v,
+  contains xi (Xreal v) /\ contains yi (Xreal v).
+intros [|xl xu] [|yl yu] Ho.
+exists R0. now split.
+destruct (le_mixed_not_empty _ _ Ho) as (v, Hv).
+exists v. now split.
+destruct (le_mixed_not_empty _ _ Ho) as (v, Hv).
+exists v. now split.
+destruct Ho as [(Ho1,(Ho2,Ho3))|(Ho1,(Ho2,Ho3))].
+exact (overlap_contains_aux _ _ _ _ Ho1 Ho2 Ho3).
+destruct (overlap_contains_aux _ _ _ _ Ho1 Ho2 Ho3) as (v, (H1, H2)).
+exists v. split ; assumption.
+Qed.
+
 Definition interval_extension
   (f : ExtendedR -> ExtendedR)
   (fi : interval -> interval) :=
@@ -247,13 +359,13 @@ Parameter nai_correct :
 Notation subset_ := subset.
 
 Parameter subset : type -> type -> bool.
+Parameter overlap : type -> type -> bool.
 
 Parameter subset_correct :
   forall xi yi : type,
   subset xi yi = true -> subset_ (convert xi) (convert yi).
 
 Parameter join : type -> type -> type.
-
 Parameter meet : type -> type -> type.
 
 Parameter sign_large : type -> Xcomparison.
@@ -280,6 +392,9 @@ Parameter abs : type -> type.
 Parameter inv : precision -> type -> type.
 Parameter sqr : precision -> type -> type.
 Parameter sqrt : precision -> type -> type.
+Parameter cos : precision -> type -> type.
+Parameter sin : precision -> type -> type.
+Parameter tan : precision -> type -> type.
 Parameter atan : precision -> type -> type.
 Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
@@ -291,6 +406,9 @@ Parameter inv_correct : forall prec, extension Xinv (inv prec).
 Parameter sqr_correct : forall prec, extension Xsqr (sqr prec).
 Parameter abs_correct : extension Xabs abs.
 Parameter sqrt_correct : forall prec, extension Xsqrt (sqrt prec).
+Parameter cos_correct : forall prec, extension Xcos (cos prec).
+Parameter sin_correct : forall prec, extension Xsin (sin prec).
+Parameter tan_correct : forall prec, extension Xtan (tan prec).
 Parameter atan_correct : forall prec, extension Xatan (atan prec).
 Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).

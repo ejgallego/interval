@@ -219,8 +219,26 @@ Qed.
 
 Definition Xsqr x := Xmul x x.
 
+Definition Xcos x :=
+  match x with
+  | Xreal u => Xreal (cos u)
+  | Xnan => Xnan
+  end.
+
+Definition Xsin x :=
+  match x with
+  | Xreal u => Xreal (sin u)
+  | Xnan => Xnan
+  end.
+
+Definition Xtan x :=
+  match x with
+  | Xreal u => Xreal (tan u)
+  | Xnan => Xnan
+  end.
+
 Definition Xatan x :=
   match x with
-  | Xreal u => Xreal (Ratan u)
+  | Xreal u => Xreal (atan u)
   | Xnan => Xnan
   end.

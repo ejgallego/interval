@@ -5,10 +5,6 @@ Require Import float_sig.
 Require Import generic.
 Require Import generic_proof.
 Require Import interval_float.
-(*
-Require Import specific_ops.
-Require Import stdz_carrier.
-*)
 
 Module TranscendentalFloatFast (F : FloatOps with Definition even_radix := true).
 
@@ -33,12 +29,13 @@ CoFixpoint constant_generator_aux gen n :=
 Definition constant_generator gen :=
   constant_generator_aux gen 1.
 
+(* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru two div (nb : nat) { struct nb } :=
   let npwu := F.mul rnd_UP prec powu sqru in
   let valu := F.div rnd_UP prec npwu div in
   match F.cmp valu thre, nb with
-  | Xlt, _ => I.bnd (F.neg valu) valu
-  | _, O => I.bnd (F.neg valu) valu
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
   | _, S n =>
     let npwl := F.mul rnd_DN prec powl sqrl in
     let vall := F.div rnd_DN prec npwl div in
@@ -46,6 +43,24 @@ Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru two div (nb : nat) { struc
       (atan_fast0_aux prec thre npwl npwu sqrl sqru two (F.add_exact div two) n)
   end.
 
+(*
+Definition atan_fast0_aux prec thre powl powu sqrl sqru two div nb :=
+  let fix aux powl powu div (nb : nat) { struct nb } :=
+    let npwu := F.mul rnd_UP prec powu sqru in
+    let valu := F.div rnd_UP prec npwu div in
+    match F.cmp valu thre, nb with
+    | Xlt, _ => I.bnd (F.neg valu) valu
+    | _, O => I.bnd (F.neg valu) valu
+    | _, S n =>
+      let npwl := F.mul rnd_DN prec powl sqrl in
+      let vall := F.div rnd_DN prec npwl div in
+      I.sub prec (I.bnd vall valu)
+        (aux npwl npwu (F.add_exact div two) n)
+    end in
+  aux powl powu div nb.
+*)
+
+(* -1/2 <= input <= 1/2 *)
 Definition atan_fast0 prec x :=
   let x2l := F.mul rnd_DN prec x x in
   let x2u := F.mul rnd_UP prec x x in
@@ -55,8 +70,9 @@ Definition atan_fast0 prec x :=
   let rem := atan_fast0_aux prec thre c1 c1 x2l x2u (F.fromZ 2) (F.fromZ 3) (nat_of_P p) in
   I.mul_mixed prec (I.sub prec (I.bnd c1 c1) rem) x.
 
+(* -1/2 <= input <= 1/2 *)
 Definition atan_fast0i prec xi :=
-  let x2 := I.mul prec xi xi in
+  let x2 := I.sqr prec xi in
   let c1 := F.fromZ 1 in
   let p := F.prec prec in
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
@@ -100,13 +116,277 @@ Definition atan_fast prec x :=
   | Xund => I.nai
   end.
 
+(* 0 <= inputs *)
+Fixpoint cos_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
+  let npwu := F.mul rnd_UP prec powu sqru in
+  let valu := F.div rnd_UP prec npwu div in
+  match F.cmp valu thre, nb with
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
+  | _, S n =>
+    let npwl := F.mul rnd_DN prec powl sqrl in
+    let vall := F.div rnd_DN prec npwl div in
+    let one := F.fromZ 1 in
+    let nfact := F.add_exact fact (F.add_exact one one) in
+    let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact one)) in
+    I.sub prec (I.bnd vall valu)
+      (cos_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
+  end.
+
+(* -1/2 <= input <= 1/2 *)
+Definition cos_fast0 prec x :=
+  let x2l := F.mul rnd_DN prec x x in
+  let x2u := F.mul rnd_UP prec x x in
+  let c1 := F.fromZ 1 in
+  let p := F.prec prec in
+  let thre := F.scale c1 (F.ZtoS (Zneg p)) in
+  let rem := cos_fast0_aux prec thre c1 c1 x2l x2u (F.fromZ 3) (F.fromZ 2) (nat_of_P p) in
+  I.sub prec (I.bnd c1 c1) rem.
+
+(* 0 <= input *)
+Definition sin_cos_reduce prec x :=
+  let c1 := F.fromZ 1 in
+  let sp1 := F.ZtoS 1%Z in
+  let sm1 := F.ZtoS (-1)%Z in
+  let i1 := I.bnd c1 c1 in
+  let th := F.scale2 c1 sm1 in
+  let fix reduce x (nb : nat) {struct nb} :=
+    match F.cmp x th, nb with
+    | Xlt, _ => (Xgt, cos_fast0 prec x)
+    | _, O => (Xeq, I.bnd (F.neg c1) c1)
+    | _, S n =>
+      match reduce (F.scale2 x sm1) n with
+      | (s, c) =>
+       (match s, I.sign_large c with
+        | Xlt, Xgt => Xlt
+        | Xlt, Xlt => Xgt
+        | Xgt, Xlt => Xlt
+        | Xgt, Xgt => Xgt
+        | _, _ => s
+        end,
+        I.sub prec (I.scale2 (I.sqr prec c) sp1) i1)
+      end
+    end in
+  reduce x.
+
+(*
+Definition cos_fastP prec x :=
+  let c1 := F.fromZ 1 in
+  let c2 := F.fromZ 2 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let i1 := I.bnd c1 c1 in
+  let ir := I.bnd (F.neg c1) c1 in
+  let th := F.scale2 c1 sm1 in
+  let fix reduce x (nb : nat) {struct nb} :=
+    match F.cmp x th, nb with
+    | Xlt, _ => cos_fast0 prec x
+    | _, O => ir
+    | _, S n =>
+      let c := reduce (F.scale2 x sm1) n in
+      I.meet ir (I.sub prec (I.mul_mixed prec (I.sqr prec c) c2) i1)
+    end in
+  reduce x 20.
+*)
+
+(* 0 <= input *)
+Definition cos_fastP prec x :=
+  snd (sin_cos_reduce prec x 20).
+
+Definition cos_fast prec x :=
+  match F.cmp x F.zero with
+  | Xeq => I.fromZ 1
+  | Xlt => cos_fastP prec (F.neg x)
+  | Xgt => cos_fastP prec x
+  | Xund => I.nai
+  end.
+
+(* 0 <= inputs *)
+Fixpoint sin_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
+  let npwu := F.mul rnd_UP prec powu sqru in
+  let valu := F.div rnd_UP prec npwu div in
+  match F.cmp valu thre, nb with
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
+  | _, S n =>
+    let npwl := F.mul rnd_DN prec powl sqrl in
+    let vall := F.div rnd_DN prec npwl div in
+    let one := F.fromZ 1 in
+    let nfact := F.add_exact fact (F.add_exact one one) in
+    let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact one)) in
+    I.sub prec (I.bnd vall valu)
+      (cos_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
+  end.
+
+(* -1/2 <= input <= 1/2 *)
+Definition sin_fast0 prec x :=
+  let x2l := F.mul rnd_DN prec x x in
+  let x2u := F.mul rnd_UP prec x x in
+  let c1 := F.fromZ 1 in
+  let p := F.prec prec in
+  let thre := F.scale c1 (F.ZtoS (Zneg p)) in
+  let rem := sin_fast0_aux prec thre c1 c1 x2l x2u (F.fromZ 4) (F.fromZ 6) (nat_of_P p) in
+  I.mul_mixed prec (I.sub prec (I.bnd c1 c1) rem) x.
+
+(*
+(* 0 <= input *)
+Definition sin_fastP prec x :=
+  let c1 := F.fromZ 1 in
+  let c2 := F.fromZ 2 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let i1 := I.bnd c1 c1 in
+  let ir := I.bnd (F.neg c1) c1 in
+  let th := F.scale2 c1 sm1 in
+  match F.cmp x th with
+  | Xlt => sin_fast0 prec x
+  | _ => (* parallel evaluation of sign(sin) / cos *)
+    let fix reduce x (nb : nat) {struct nb} :=
+      match F.cmp x th, nb with
+      | Xlt, _ => (Xgt, cos_fast0 prec x)
+      | _, O => (Xeq, ir)
+      | _, S n =>
+        match reduce (F.scale2 x sm1) n with
+        | (s, c) =>
+          let s2 :=
+            match s, I.sign_large c with
+            | Xlt, Xgt => Xlt
+            | Xlt, Xlt => Xgt
+            | Xgt, Xlt => Xlt
+            | Xgt, Xgt => Xgt
+            | _, _ => s
+            end in
+         (s2,
+          I.meet ir (I.sub prec (I.mul_mixed prec (I.sqr prec c) c2) i1))
+        end
+      end in
+    match reduce x 20 with
+    | (s, c) =>
+      let v := I.sqrt prec (I.sub prec i1 (I.sqr prec c)) in
+      match s with
+      | Xlt => I.neg v
+      | Xgt => v
+      | _ => ir
+      end
+    end
+  end.
+*)
+
+(* 0 <= input *)
+Definition sin_fastP prec x :=
+  let c1 := F.fromZ 1 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let th := F.scale2 c1 sm1 in
+  match F.cmp x th with
+  | Xlt => sin_fast0 prec x
+  | _ =>
+    match sin_cos_reduce prec x 20 with
+    | (s, c) =>
+      let v := I.sqrt prec (I.sub prec (I.bnd c1 c1) (I.sqr prec c)) in
+      match s with
+      | Xlt => I.neg v
+      | Xgt => v
+      | _ => I.bnd (F.neg c1) c1
+      end
+    end
+  end.
+
+Definition sin_fast prec x :=
+  match F.cmp x F.zero with
+  | Xeq => I.bnd F.zero F.zero
+  | Xlt => I.neg (sin_fastP prec (F.neg x))
+  | Xgt => sin_fastP prec x
+  | Xund => I.nai
+  end.
+
+(*
+(* 0 <= input *)
+Definition tan_fastP prec x :=
+  let c1 := F.fromZ 1 in
+  let c2 := F.fromZ 2 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let i1 := I.bnd c1 c1 in
+  let ir := I.bnd (F.neg c1) c1 in
+  let th := F.scale2 c1 sm1 in
+  match F.cmp x th with
+  | Xlt =>
+    let s := sin_fast0 prec x in
+    I.div prec s (I.sqrt prec (I.sub prec i1 (I.sqr prec s)))
+  | _ => (* parallel evaluation of sign(sin) / cos *)
+    let fix reduce x (nb : nat) {struct nb} :=
+      match F.cmp x th, nb with
+      | Xlt, _ => (Xgt, cos_fast0 prec x)
+      | _, O => (Xeq, ir)
+      | _, S n =>
+        match reduce (F.scale2 x sm1) n with
+        | (s, c) =>
+          let s2 :=
+            match s, I.sign_large c with
+            | Xlt, Xgt => Xlt
+            | Xlt, Xlt => Xgt
+            | Xgt, Xlt => Xlt
+            | Xgt, Xgt => Xgt
+            | _, _ => s
+            end in
+         (s2,
+          I.meet ir (I.sub prec (I.mul_mixed prec (I.sqr prec c) c2) i1))
+        end
+      end in
+    match reduce x 20 with
+    | (s, c) =>
+      let v := I.sqrt prec (I.sub prec (I.div prec i1 (I.sqr prec c)) i1) in
+      match s, I.sign_large c with
+      | Xlt, Xgt => I.neg v
+      | Xgt, Xlt => I.neg v
+      | Xlt, Xlt => v
+      | Xgt, Xgt => v
+      | _, _ => I.nai
+      end
+    end
+  end.
+*)
+
+(* 0 <= input *)
+Definition tan_fastP prec x :=
+  let c1 := F.fromZ 1 in
+  let i1 := I.bnd c1 c1 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let th := F.scale2 c1 sm1 in
+  match F.cmp x th with
+  | Xlt =>
+    let s := sin_fast0 prec x in
+    I.div prec s (I.sqrt prec (I.sub prec i1 (I.sqr prec s)))
+  | _ =>
+    match sin_cos_reduce prec x 20 with
+    | (s, c) =>
+      let v := I.sqrt prec (I.sub prec (I.div prec i1 (I.sqr prec c)) i1) in
+      match s, I.sign_large c with
+      | Xlt, Xgt => I.neg v
+      | Xgt, Xlt => I.neg v
+      | Xlt, Xlt => v
+      | Xgt, Xgt => v
+      | _, _ => I.nai
+      end
+    end
+  end.
+
+Definition tan_fast prec x :=
+  match F.cmp x F.zero with
+  | Xeq => I.bnd F.zero F.zero
+  | Xlt => I.neg (tan_fastP prec (F.neg x))
+  | Xgt => tan_fastP prec x
+  | Xund => I.nai
+  end.
+
 End TranscendentalFloatFast.
 
 (*
+Require Import specific_ops.
+Require Import stdz_carrier.
 Module F := SpecificFloat StdZRadix2.
-Module A := Arctan F.
-
-Time Eval vm_compute in (A.atan_fast 50%Z (F.Float false 201%positive (-8)%Z)).
+Module A := TranscendentalFloatFast F.
+Time Eval vm_compute in (A.atan_fast 50%Z (Float 201%Z (-8)%Z)).
+Time Eval vm_compute in (A.cos_fast 50%Z (Float 201%Z (-8)%Z)).
+Time Eval vm_compute in (A.tan_fast 50%Z (Float 3619%Z (-8)%Z)).
+Time Eval vm_compute in (A.sin_fast 50%Z (Float 201%Z (-8)%Z)).
 *)
 
 (*

@@ -179,7 +179,6 @@ Lemma mantissa_cmp_correct :
   mantissa_cmp x y = Zcompare (Zpos (MtoP x)) (Zpos (MtoP y)).
 intros x y (px, Hx) (py, Hy).
 unfold mantissa_cmp, MtoP.
-(*rewrite Hx, Hy.*)
 generalize (BigN.spec_compare x y).
 case (x ?= y)%bigN ; intros ; apply sym_eq.
 apply <- Zcompare_Eq_iff_eq.

@@ -11,6 +11,33 @@ Module FloatIntervalFull (F : FloatOps with Definition even_radix := true) <: In
 Module T := TranscendentalFloatFast F.
 Module I := FloatInterval F.
 
+(* assumption |xi| <= pi *)
+Definition cos prec xi :=
+  match I.abs xi with
+  | Ibnd xl xu => I.bnd (I.lower (T.cos_fast prec xu)) (I.upper (T.cos_fast prec xl))
+  | Inan => Inan
+  end.
+
+Axiom cos_correct : forall prec, I.extension Xcos (cos prec).
+
+(* assumption |xi| <= pi/2 *)
+Definition sin prec xi :=
+  match xi with
+  | Ibnd xl xu => I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
+  | Inan => Inan
+  end.
+
+Axiom sin_correct : forall prec, I.extension Xsin (sin prec).
+
+(* assumption |xi| <= pi/2 *)
+Definition tan prec xi :=
+  match xi with
+  | Ibnd xl xu => I.bnd (I.lower (T.tan_fast prec xl)) (I.upper (T.tan_fast prec xu))
+  | Inan => Inan
+  end.
+
+Axiom tan_correct : forall prec, I.extension Xtan (tan prec).
+
 Definition atan prec xi :=
   match xi with
   | Ibnd xl xu => Ibnd (I.lower (T.atan_fast prec xl)) (I.upper (T.atan_fast prec xu))
@@ -29,6 +56,7 @@ Definition bnd_correct := I.bnd_correct.
 Definition nai_correct := I.nai_correct.
 Definition subset := I.subset.
 Definition subset_correct := I.subset_correct.
+Definition overlap := I.overlap.
 Definition join := I.join.
 Definition meet := I.meet.
 Definition sign_large := I.sign_large.

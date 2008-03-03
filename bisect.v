@@ -136,7 +136,7 @@ End IntervalAlgos.
 Module Valuator (I : IntervalOps).
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Atan.
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan.
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -170,7 +170,7 @@ Implicit Arguments eval_generic.
 
 Definition bnd_operations prec :=
   Build_operations I.fromZ
-    (fun o => match o with Neg => I.neg | Abs => I.abs | Inv => I.inv prec | Sqr => I.sqr prec | Sqrt => I.sqrt prec | Atan => I.atan prec end)
+    (fun o => match o with Neg => I.neg | Abs => I.abs | Inv => I.inv prec | Sqr => I.sqr prec | Sqrt => I.sqrt prec | Cos => I.cos prec | Sin => I.sin prec | Tan => I.tan prec | Atan => I.atan prec end)
     (fun o => match o with Add => I.add prec | Sub => I.sub prec | Mul => I.mul prec | Div => I.div prec end).
 
 Definition eval_bnd prec :=
@@ -178,7 +178,7 @@ Definition eval_bnd prec :=
 
 Definition ext_operations :=
   Build_operations (fun x => Xreal (Z2R x))
-    (fun o => match o with Neg => Xneg | Abs => Xabs | Inv => Xinv | Sqr => Xsqr | Sqrt => Xsqrt | Atan => Xatan end)
+    (fun o => match o with Neg => Xneg | Abs => Xabs | Inv => Xinv | Sqr => Xsqr | Sqrt => Xsqrt | Cos => Xcos | Sin => Xsin | Tan => Xtan | Atan => Xatan end)
     (fun o => match o with Add => Xadd | Sub => Xsub | Mul => Xmul | Div => Xdiv end).
 
 Definition eval_ext :=
@@ -186,7 +186,7 @@ Definition eval_ext :=
 
 Definition real_operations :=
   Build_operations Z2R
-    (fun o => match o with Neg => Ropp | Abs => Rabs | Inv => Rinv | Sqr => Rsqr | Sqrt => R_sqrt.sqrt | Atan => Ratan end)
+    (fun o => match o with Neg => Ropp | Abs => Rabs | Inv => Rinv | Sqr => Rsqr | Sqrt => R_sqrt.sqrt | Cos => cos | Sin => sin | Tan => tan | Atan => atan end)
     (fun o => match o with Add => Rplus | Sub => Rminus | Mul => Rmult | Div => Rdiv end).
 
 Definition eval_real :=
@@ -207,8 +207,14 @@ Definition diff_operations A (ops : @operations A) :=
       | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
       | Sqrt => let w := unary ops Sqrt v in (w,
         binary ops Div d (binary ops Add w w))
-      | Atan =>
-        (unary ops Atan v, binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
+      | Cos => (unary ops Cos v,
+        unary ops Neg (unary ops Sin v))
+      | Sin => (unary ops Sin v,
+        unary ops Cos v)
+      | Tan => (unary ops Tan v,
+        binary ops Div d (unary ops Sqr (unary ops Cos v)))
+      | Atan => (unary ops Atan v,
+        binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       end
     end)
    (fun o x y =>
@@ -230,7 +236,16 @@ Lemma unary_ext_correct :
   unary ext_operations o x = Xreal y ->
   exists u, x = Xreal u /\ unary real_operations o u = y.
 intros o x y.
-case o ; simpl ; [ unfold Xneg | unfold Xabs | unfold Xinv | unfold Xsqr, Xmul | unfold Xsqrt | unfold Xatan ] ;
+case o ; simpl ;
+  [ unfold Xneg
+  | unfold Xabs
+  | unfold Xinv
+  | unfold Xsqr, Xmul
+  | unfold Xsqrt
+  | unfold Xcos
+  | unfold Xsin
+  | unfold Xtan
+  | unfold Xatan ] ;
   intros ; xtotal ; refl_exists ; assumption.
 Qed.
 
@@ -259,6 +274,9 @@ admit.
 admit.
 apply Xderive_sqrt.
 exact Hf.
+admit.
+admit.
+admit.
 admit.
 Qed.
 
@@ -375,8 +393,19 @@ apply iterated_bnd_nth.
 intros.
 case n.
 case a ; intros ; simpl ;
-  [ case u ; [ apply I.neg_correct | apply I.abs_correct | apply I.inv_correct | apply I.sqr_correct | apply I.sqrt_correct | apply I.atan_correct ]
-  | case b ; [ apply I.add_correct | apply I.sub_correct | apply I.mul_correct | apply I.div_correct ]
+  [ case u ; [ apply I.neg_correct
+             | apply I.abs_correct
+             | apply I.inv_correct
+             | apply I.sqr_correct
+             | apply I.sqrt_correct
+             | apply I.cos_correct
+             | apply I.sin_correct
+             | apply I.tan_correct
+             | apply I.atan_correct ]
+  | case b ; [ apply I.add_correct
+             | apply I.sub_correct
+             | apply I.mul_correct
+             | apply I.div_correct ]
   ] ; apply IHl.
 apply IHl.
 Qed.
