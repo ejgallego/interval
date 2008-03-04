@@ -253,7 +253,7 @@ Ltac xtotal_aux :=
   end.
 
 Ltac xtotal :=
-  unfold Xneg, Xabs, Xadd, Xsub, Xmul, Xdiv, Xsqrt in * ;
+  unfold Xtan, Xcos, Xsin, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan in * ;
   repeat xtotal_aux.
 
 Theorem Xderive_compose :
@@ -348,46 +348,6 @@ rewrite X9.
 apply refl_equal.
 Qed.
 
-Lemma is_zero_eq :
-  forall x, is_zero x = true -> x = R0.
-intros.
-generalize (is_zero_correct x).
-rewrite H.
-intro.
-exact H0.
-Qed.
-
-Lemma is_zero_ne :
-  forall x, is_zero x = false -> x <> R0.
-intros.
-generalize (is_zero_correct x).
-rewrite H.
-intro.
-exact H0.
-Qed.
-
-Lemma is_zero_true :
-  forall x, x = R0 -> is_zero x = true.
-intros.
-generalize (is_zero_correct x).
-case (is_zero x).
-split.
-rewrite H.
-intro.
-elim H0.
-apply refl_equal.
-Qed.
-
-Lemma is_zero_false :
-  forall x, x <> R0 -> is_zero x = false.
-intros.
-generalize (is_zero_correct x).
-case (is_zero x).
-intro.
-elim (H H0).
-split.
-Qed.
-
 Theorem Xderive_div :
   forall f g f' g',
   Xderive f f' -> Xderive g g' ->
@@ -449,6 +409,45 @@ apply derivable_pt_lim_opp.
 apply Hf.
 Qed.
 
+Theorem Xderive_inv :
+  forall f f',
+  Xderive f f' ->
+  Xderive (fun x => Xinv (f x)) (fun x => Xneg (Xdiv (f' x) (Xsqr (f x)))).
+intros f f' Hf x.
+xtotal.
+generalize (is_zero_eq _ X8).
+generalize (is_zero_ne _ X7).
+intros.
+elim H.
+rewrite H0.
+apply Rmult_0_r.
+intro v.
+destruct (derivable_imp_defined_ne _ _ _ _ _ X6 (is_zero_ne _ X7) Hf) as (delta, (Hdelta, H0)).
+eapply derivable_pt_lim_eq_close with (1 := Hdelta).
+intros.
+instantiate (1 := inv_fct (proj_fun v f)).
+unfold inv_fct, proj_fun.
+destruct (H0 h H) as (w, (W1, W2)).
+rewrite W2.
+rewrite (is_zero_false _ W1).
+apply refl_equal.
+apply derivable_pt_lim_eq with (div_fct (fct_cte 1) (proj_fun v f)).
+intro x.
+unfold div_fct, fct_cte, Rdiv.
+apply Rmult_1_l.
+replace (- (r3 / (r5 * r5)))%R with ((0 * proj_fun v f r - r3 * fct_cte 1 r) / Rsqr (proj_fun v f r))%R.
+apply (derivable_pt_lim_div (fct_cte 1)).
+apply derivable_pt_lim_const.
+apply Hf.
+unfold proj_fun.
+rewrite X6.
+exact (is_zero_ne _ X7).
+unfold proj_fun, fct_cte, Rsqr.
+rewrite X6.
+field.
+exact (is_zero_ne _ X7).
+Qed.
+
 Theorem Xderive_sqrt :
   forall f f',
   Xderive f f' ->
@@ -456,10 +455,108 @@ Theorem Xderive_sqrt :
 intros f f' Hf x.
 xtotal.
 intro v.
-destruct (derivable_imp_defined_any _ _ _ _ X3 Hf) as (delta, (Hdelta, H0)).
+assert (Hx: (0 < r3)%R).
+destruct (total_order_T R0 r3) as [[H|H]|H].
+exact H.
+elim (is_zero_ne _ X5).
+rewrite <- H, sqrt_0, Rplus_0_l.
+apply refl_equal.
+elim Rgt_not_le with (1 := H).
+generalize (is_negative_correct r3).
+now rewrite X4.
+destruct (derivable_imp_defined_gt _ _ _ _ R0 X3 Hx Hf) as (delta, (Hdelta, H0)).
 eapply derivable_pt_lim_eq_close with (1 := Hdelta).
 intros.
-Admitted.
+instantiate (1 := comp sqrt (proj_fun v f)).
+destruct (H0 h H) as (w, (W1, W2)).
+unfold comp, proj_fun.
+rewrite W2.
+unfold is_negative, Rsign.
+rewrite (Rcompare_correct_gt _ _ W1).
+apply refl_equal.
+unfold Rdiv.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X3.
+replace (sqrt r3 + sqrt r3)%R with (2 * sqrt r3)%R by ring.
+apply derivable_pt_lim_sqrt.
+exact Hx.
+Qed.
+
+Theorem Xderive_sin :
+  forall f f',
+  Xderive f f' ->
+  Xderive (fun x => Xsin (f x)) (fun x => Xmul (f' x) (Xcos (f x))).
+intros f f' Hf x.
+xtotal.
+intro v.
+destruct (derivable_imp_defined_any _ _ _ _ X5 Hf) as (delta, (Hdelta, H0)).
+eapply derivable_pt_lim_eq_close with (1 := Hdelta).
+intros.
+instantiate (1 := comp sin (proj_fun v f)).
+destruct (H0 h H) as (w, W).
+unfold comp, proj_fun.
+rewrite W.
+apply refl_equal.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X5.
+apply derivable_pt_lim_sin.
+Qed.
+
+Theorem Xderive_cos :
+  forall f f',
+  Xderive f f' ->
+  Xderive (fun x => Xcos (f x)) (fun x => Xmul (f' x) (Xneg (Xsin (f x)))).
+intros f f' Hf x.
+xtotal.
+intro v.
+destruct (derivable_imp_defined_any _ _ _ _ X6 Hf) as (delta, (Hdelta, H0)).
+eapply derivable_pt_lim_eq_close with (1 := Hdelta).
+intros.
+instantiate (1 := comp cos (proj_fun v f)).
+destruct (H0 h H) as (w, W).
+unfold comp, proj_fun.
+rewrite W.
+apply refl_equal.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X6.
+apply derivable_pt_lim_cos.
+Qed.
+
+Theorem Xderive_tan :
+  forall f f',
+  Xderive f f' ->
+  Xderive (fun x => Xtan (f x)) (fun x => Xmul (f' x) (Xadd (Xreal 1) (Xsqr (Xtan (f x))))).
+intros f f' Hf x.
+xtotal.
+intro v.
+destruct (derivable_imp_defined_any _ _ _ _ X6 Hf) as (delta, (Hdelta, H0)).
+eapply derivable_pt_lim_eq_close with (1 := Hdelta).
+intros.
+instantiate (1 := comp tan (proj_fun v f)).
+destruct (H0 h H) as (w, W).
+unfold comp, proj_fun.
+rewrite W.
+admit.
+(*apply refl_equal.*)
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X6.
+change (sin r5 / cos r5 * (sin r5 / cos r5))%R with (Rsqr (tan r5))%R.
+apply derivable_pt_lim_tan.
+apply is_zero_ne.
+exact X7.
+Qed.
 
 Theorem Xderive_eq_diff :
   forall g' f f',
@@ -478,4 +575,28 @@ intro.
 discriminate H.
 rewrite (Heq _ (refl_equal _)) in Hf.
 exact Hf.
+Qed.
+
+Theorem Xderive_eq_fun :
+  forall g f f',
+ (forall x y, g x = Xreal y -> f x = Xreal y) ->
+  f Xnan = Xnan ->
+  Xderive g f' ->
+  Xderive f f'.
+intros g f f' Heq Hf Hg x.
+generalize (Heq x).
+intro Heqx.
+xtotal.
+generalize (Heqx _ (refl_equal _)).
+intro.
+discriminate H.
+intro v.
+destruct (derivable_imp_defined_any _ _ _ _ X2 Hg) as (delta, (Hdelta, H0)).
+apply derivable_pt_lim_eq_close with (1 := Hdelta) (3 := Hg v).
+intros.
+unfold proj_fun.
+destruct (H0 _ H) as (w, W).
+rewrite W.
+rewrite (Heq _ _ W).
+apply refl_equal.
 Qed.

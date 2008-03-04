@@ -553,6 +553,22 @@ apply Rgt_not_eq.
 exact (H2 _ H3).
 Qed.
 
+Theorem derivable_pt_lim_tan :
+  forall x,
+  (cos x <> 0)%R ->
+  derivable_pt_lim tan x (1 + Rsqr (tan x))%R.
+intros x Hx.
+change tan at 1 with (div_fct sin cos).
+replace (1 + Rsqr (tan x))%R with ((cos x * cos x - (-sin x) * sin x) / Rsqr (cos x))%R.
+apply derivable_pt_lim_div.
+apply derivable_pt_lim_sin.
+apply derivable_pt_lim_cos.
+exact Hx.
+unfold Rsqr, tan.
+field.
+exact Hx.
+Qed.
+
 Definition Ratan_seq x :=
   fun n => (x ^ (2 * n + 1) / INR (2 * n + 1))%R.
 

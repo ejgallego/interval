@@ -11,19 +11,34 @@ Module FloatIntervalFull (F : FloatOps with Definition even_radix := true) <: In
 Module T := TranscendentalFloatFast F.
 Module I := FloatInterval F.
 
-(* assumption |xi| <= pi *)
+Definition Fle x y :=
+  match F.cmp x y with
+  | Xlt | Xeq => true
+  | Xgt | Xund => false
+  end.
+
+(* meaningful only for |xi| <= pi *)
 Definition cos prec xi :=
   match I.abs xi with
-  | Ibnd xl xu => I.bnd (I.lower (T.cos_fast prec xu)) (I.upper (T.cos_fast prec xl))
+  | Ibnd xl xu =>
+    if Fle xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2%Z)) then
+      I.bnd (I.lower (T.cos_fast prec xu)) (I.upper (T.cos_fast prec xl))
+    else Inan
   | Inan => Inan
   end.
 
 Axiom cos_correct : forall prec, I.extension Xcos (cos prec).
 
-(* assumption |xi| <= pi/2 *)
+(* meaningful only for |xi| <= pi/2 *)
 Definition sin prec xi :=
   match xi with
-  | Ibnd xl xu => I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
+  | Ibnd xl xu =>
+    let pi4 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    match Fle (F.neg pi4) xl, Fle xu pi4 with
+    | true, true =>
+      I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
+    | _, _ => Inan
+    end
   | Inan => Inan
   end.
 
@@ -32,7 +47,13 @@ Axiom sin_correct : forall prec, I.extension Xsin (sin prec).
 (* assumption |xi| <= pi/2 *)
 Definition tan prec xi :=
   match xi with
-  | Ibnd xl xu => I.bnd (I.lower (T.tan_fast prec xl)) (I.upper (T.tan_fast prec xu))
+  | Ibnd xl xu =>
+    let pi4 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    match Fle (F.neg pi4) xl, Fle xu pi4 with
+    | true, true =>
+      I.bnd (I.lower (T.tan_fast prec xl)) (I.upper (T.tan_fast prec xu))
+    | _, _ => Inan
+    end
   | Inan => Inan
   end.
 

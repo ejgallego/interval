@@ -202,17 +202,17 @@ Definition diff_operations A (ops : @operations A) :=
       | Neg => let f := unary ops Neg in (f v, f d)
       | Abs => let w := unary ops Abs v in (w,
         binary ops Mul d (binary ops Div v w))
-      | Inv => (unary ops Inv v,
-        unary ops Neg (binary ops Div d (unary ops Sqr v)))
+      | Inv => let w := unary ops Inv v in (w,
+        binary ops Mul d (unary ops Neg (unary ops Sqr w)))
       | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
       | Sqrt => let w := unary ops Sqrt v in (w,
         binary ops Div d (binary ops Add w w))
       | Cos => (unary ops Cos v,
-        unary ops Neg (unary ops Sin v))
+        binary ops Mul d (unary ops Neg (unary ops Sin v)))
       | Sin => (unary ops Sin v,
-        unary ops Cos v)
-      | Tan => (unary ops Tan v,
-        binary ops Div d (unary ops Sqr (unary ops Cos v)))
+        binary ops Mul d (unary ops Cos v))
+      | Tan => let w := unary ops Tan v in (w,
+        binary ops Mul d (binary ops Add (constant ops 1) (unary ops Sqr w)))
       | Atan => (unary ops Atan v,
         binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       end
@@ -259,6 +259,19 @@ case o ; simpl ; [ unfold Xadd | unfold Xsub | unfold Xmul | unfold Xdiv ] ;
   intros ; xtotal ; refl_exists ; refl_exists ; assumption.
 Qed.
 
+Lemma rewrite_inv_diff :
+  forall u u',
+  Xmul u' (Xneg (Xsqr (Xinv u))) = Xneg (Xdiv u' (Xsqr u)).
+intros.
+rewrite Xmul_Xneg_distr_r.
+apply f_equal.
+rewrite Xdiv_split.
+apply f_equal.
+unfold Xsqr.
+apply sym_eq.
+apply Xinv_Xmul_distr.
+Qed.
+
 Lemma unary_diff_correct :
   forall o f f',
   Xderive f f' ->
@@ -267,17 +280,45 @@ Lemma unary_diff_correct :
 intros o f f' Hf g.
 unfold g. clear g.
 case o ; simpl.
-apply Xderive_neg.
-exact Hf.
+apply Xderive_neg with (1 := Hf).
 admit.
+(* Xinv *)
+apply Xderive_eq_diff with (fun x => Xneg (Xdiv (f' x) (Xsqr (f x)))).
+intros.
+rewrite <- H.
+apply sym_eq.
+apply rewrite_inv_diff.
+apply Xderive_inv with (1 := Hf).
+(* Xsqr *)
+change (fun x => Xsqr (f x)) with (fun x => Xmul (f x) (f x)).
+apply Xderive_mul ; exact Hf.
+(* *)
+apply Xderive_sqrt with (1 := Hf).
+apply Xderive_cos with (1 := Hf).
+apply Xderive_sin with (1 := Hf).
+apply Xderive_tan with (1 := Hf).
 admit.
-admit.
-apply Xderive_sqrt.
-exact Hf.
-admit.
-admit.
-admit.
-admit.
+Qed.
+
+Lemma rewrite_div_diff :
+  forall u v u' v',
+  Xdiv (Xsub u' (Xmul v' (Xdiv u v))) v = Xdiv (Xsub (Xmul u' v) (Xmul v' u)) (Xmul v v).
+intros.
+repeat rewrite Xdiv_split.
+rewrite Xinv_Xmul_distr.
+repeat rewrite <- Xmul_assoc.
+apply (f_equal (fun x => Xmul x (Xinv v))).
+pattern u' at 1 ; rewrite <- Xmul_1_r.
+pattern (Xmul (Xmul v' u) (Xinv v)) ; rewrite <- Xmask_Xfun_r with (1 := Xmul_propagate).
+rewrite Xfun_Xmask_r with (1 := Xsub_propagate).
+rewrite <- Xfun_Xmask_l with (1 := Xsub_propagate).
+rewrite <- Xfun_Xmask_r with (1 := Xmul_propagate).
+rewrite <- Xmul_Xinv.
+repeat rewrite Xsub_split.
+rewrite <- Xmul_assoc.
+rewrite <- Xmul_Xneg_distr_l.
+apply sym_eq.
+apply Xmul_Xadd_distr_r.
 Qed.
 
 Lemma binary_diff_correct :
@@ -291,8 +332,12 @@ case o ; simpl.
 apply Xderive_add ; assumption.
 apply Xderive_sub ; assumption.
 apply Xderive_mul ; assumption.
-admit.
-(*apply Xderive_div ; assumption.*)
+(* Xdiv *)
+apply Xderive_eq_diff with (fun x => Xdiv (Xsub (Xmul (f' x) (g x)) (Xmul (g' x) (f x))) (Xmul (g x) (g x))).
+intros. rewrite <- H.
+apply sym_eq.
+apply rewrite_div_diff.
+apply Xderive_div ; assumption.
 Qed.
 
 Lemma rev_formula :
