@@ -106,20 +106,24 @@ Definition meet xi yi :=
   | Ibnd xl xu, Ibnd yl yu =>
     let l :=
       match F.real xl, F.real yl with
-      | false, false => F.nan
-      | false, true => yl
+      | false, _ => yl
       | true, false => xl
       | true, true => F.max xl yl
       end in
     let u :=
       match F.real xu, F.real yu with
-      | false, false => F.nan
-      | false, true => yu
+      | false, _ => yu
       | true, false => xu
       | true, true => F.min xu yu
       end in
     Ibnd l u
   | _, _ => Inan
+  end.
+
+Definition mask xi yi : type :=
+  match yi with
+  | Inan => yi
+  | _ => xi
   end.
 
 Definition lower_extent xi :=
@@ -410,7 +414,7 @@ rewrite (Rcompare_correct_gt _ _ H0).
 apply refl_equal.
 Qed.
 
-Lemma subset_correct :
+Theorem subset_correct :
   forall xi yi : type,
   subset xi yi = true -> interval.subset (convert xi) (convert yi).
 intros xi yi.
@@ -446,7 +450,111 @@ generalize (Rcompare_correct xru r).
 case (Rcompare xru r) ; intros ; now auto with real.
 Qed.
 
-Lemma sign_large_correct :
+Theorem meet_correct :
+  forall xi yi v,
+  contains (convert xi) v -> contains (convert yi) v ->
+  contains (convert (meet xi yi)) v.
+intros [|xl xu] [|yl yu] [|v] ; simpl ; intros Hx Hy ; trivial.
+destruct Hx as (Hx1, Hx2).
+destruct Hy as (Hy1, Hy2).
+split.
+(* . *)
+rewrite real_correct.
+xreal_tac xl.
+exact Hy1.
+rewrite real_correct.
+xreal_tac yl.
+now rewrite X.
+unfold convert_bound in *.
+rewrite F.max_correct.
+rewrite Fmax_correct.
+rewrite X, X0.
+simpl.
+now apply Rmax_best.
+(* . *)
+rewrite real_correct.
+xreal_tac xu.
+exact Hy2.
+rewrite real_correct.
+xreal_tac yu.
+now rewrite X.
+unfold convert_bound in *.
+rewrite F.min_correct.
+rewrite Fmin_correct.
+rewrite X, X0.
+simpl.
+now apply Rmin_best.
+Qed.
+
+Lemma lower_bounded_correct_aux :
+  forall xl xu,
+  F.real xl = true ->
+  exists l, convert (Ibnd xl xu) = interval.Ibnd (Xreal l) (convert_bound xu).
+intros.
+generalize (F.real_correct xl).
+rewrite H. clear H.
+unfold convert, convert_bound.
+case (F.toF xl).
+intro H. discriminate H.
+intros _.
+now exists R0.
+intros s m e _.
+now exists (FtoR F.radix s m e).
+Qed.
+
+Lemma upper_bounded_correct_aux :
+  forall xl xu,
+  F.real xu = true ->
+  exists u, convert (Ibnd xl xu) = interval.Ibnd (convert_bound xl) (Xreal u).
+intros.
+generalize (F.real_correct xu).
+rewrite H. clear H.
+unfold convert, convert_bound.
+case (F.toF xu).
+intro H. discriminate H.
+intros _.
+now exists R0.
+intros s m e _.
+now exists (FtoR F.radix s m e).
+Qed.
+
+Theorem lower_bounded_correct :
+  forall xi,
+  lower_bounded xi = true ->
+  exists l, convert xi = interval.Ibnd (Xreal l) (convert_bound (upper xi)).
+intros [|xl xu].
+intro H. discriminate H.
+exact (lower_bounded_correct_aux _ _).
+Qed.
+
+Theorem upper_bounded_correct :
+  forall xi,
+  upper_bounded xi = true ->
+  exists u, convert xi = interval.Ibnd (convert_bound (lower xi)) (Xreal u).
+intros [|xl xu].
+intro H. discriminate H.
+exact (upper_bounded_correct_aux _ _).
+Qed.
+
+Theorem bounded_correct :
+  forall xi,
+  bounded xi = true ->
+  exists l, exists u, convert xi = interval.Ibnd (Xreal l) (Xreal u).
+intros [|xl xu].
+intro H. discriminate H.
+intro H.
+destruct (andb_prop _ _ H) as (H1, H2).
+destruct (lower_bounded_correct_aux xl xu H1) as (l, Hl).
+exists l.
+destruct (upper_bounded_correct_aux xl xu H2) as (u, Hu).
+exists u.
+simpl.
+inversion Hl.
+inversion Hu.
+apply refl_equal.
+Qed.
+
+Lemma sign_large_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_large_ xl xu with
@@ -476,6 +584,26 @@ apply Rle_trans with (1 := Hxl).
 apply Rle_trans with (1 := Hxu).
 apply Rlt_le.
 apply FtoR_Rneg.
+Qed.
+
+Theorem sign_large_correct :
+  forall xi,
+  match sign_large xi with
+  | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
+  | Xlt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle v 0
+  | Xgt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle 0 v
+  | Xund => True
+  end.
+intros [|xl xu].
+exact I.
+generalize (sign_large_correct_ xl xu).
+unfold sign_large.
+case (sign_large_ xl xu) ;
+  try intros H [|x] Hx ;
+  try (elim Hx ; fail) ;
+  try refl_exists ;
+  try apply f_equal ;
+  exact (proj1 (H _ Hx)).
 Qed.
 
 Lemma sign_strict_correct :
@@ -516,12 +644,15 @@ Qed.
 
 Theorem midpoint_correct :
   forall xi,
-  (exists x, contains (convert xi) (Xreal x)) ->
+  (exists x, contains (convert xi) x) ->
   contains (convert xi) (convert_bound (midpoint xi)).
-intros [ | xl xu].
+intros [|xl xu].
 intros _.
 exact I.
-intros (x, (Hxl, Hxu)).
+intros (x, Hx).
+destruct x as [|x].
+elim Hx.
+destruct Hx as (Hx1,Hx2).
 assert (Hr: (1 <= P2R (F.radix * 1))%R).
 rewrite P2R_INR.
 apply (le_INR 1).
@@ -615,6 +746,11 @@ rewrite H0, H1.
 split ; apply Rle_refl.
 Qed.
 
+Theorem mask_correct :
+  extension_2 Xmask mask.
+now intros xi [|yl yu] x [|y] Hx Hy.
+Qed.
+
 Theorem neg_correct :
   extension Xneg neg.
 intros [ | xl xu] [ | x] ; simpl ; trivial.
@@ -629,7 +765,7 @@ Theorem abs_correct :
   extension Xabs abs.
 intros [ | xl xu] [ | x] Hx ; trivial ; [ elim Hx | idtac ].
 simpl.
-generalize (sign_large_correct _ _ _ Hx).
+generalize (sign_large_correct_ _ _ _ Hx).
 case (sign_large_ xl xu) ; intros.
 (* zero *)
 rewrite (proj1 H).
@@ -941,10 +1077,10 @@ intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 unfold bnd, contains, convert, convert_bound.
 (* case study on sign of xi *)
-generalize (sign_large_correct xl xu x (conj Hxl Hxu)).
+generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
-  try ( generalize (sign_large_correct yl yu y (conj Hyl Hyu)) ;
+  try ( generalize (sign_large_correct_ yl yu y (conj Hyl Hyu)) ;
         case (sign_large_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   (* remove trivial comparisons with zero *)
   try ( rewrite F.zero_correct ; simpl ;

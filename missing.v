@@ -68,6 +68,22 @@ apply Rle_trans with r2 ; assumption.
 exact H.
 Qed.
 
+Lemma Rmin_best :
+  forall r1 r2 r,
+  (r <= r1)%R -> (r <= r2)%R -> (r <= Rmin r1 r2)%R.
+intros.
+unfold Rmin.
+now case (Rle_dec r1 r2).
+Qed.
+
+Lemma Rmax_best :
+  forall r1 r2 r,
+  (r1 <= r)%R -> (r2 <= r)%R -> (Rmax r1 r2 <= r)%R.
+intros.
+unfold Rmax.
+now case (Rle_dec r1 r2).
+Qed.
+
 Lemma Rle_Rinv_pos :
   forall x y : R,
   (0 < x)%R -> (x <= y)%R -> (/y <= /x)%R.
@@ -436,11 +452,15 @@ do 2 rewrite <- H.
 apply H2 ; assumption.
 Qed.
 
-Theorem derivable_pt_lim_eq_close :
-  forall f g x l delta, (0 < delta)%R ->
- (forall h, (Rabs h < delta)%R -> f (x + h)%R = g (x + h)%R) ->
+Definition locally_true x (P : R -> Prop) :=
+  exists delta, (0 < delta)%R /\
+  forall h, (Rabs h < delta)%R -> P (x + h)%R.
+
+Theorem derivable_pt_lim_eq_locally :
+  forall f g x l,
+  locally_true x (fun v => f v = g v) ->
   derivable_pt_lim f x l -> derivable_pt_lim g x l.
-intros f g x l delta1 Hd Heq Hf eps Heps.
+intros f g x l (delta1, (Hd, Heq)) Hf eps Heps.
 destruct (Hf eps Heps) as (delta2, H0).
 clear Hf.
 assert (0 < Rmin delta1 delta2)%R.
@@ -465,9 +485,42 @@ simpl.
 apply Rmin_l.
 Qed.
 
-Definition locally_true x (P : R -> Prop) :=
-  exists delta, (0 < delta)%R /\
-  forall h, (Rabs h < delta)%R -> P (x + h)%R.
+Theorem locally_true_and :
+  forall P Q x,
+  locally_true x P ->
+  locally_true x Q ->
+  locally_true x (fun x => P x /\ Q x).
+intros P Q x HP HQ.
+destruct HP as (e1, (He1, H3)).
+destruct HQ as (e2, (He2, H4)).
+exists (Rmin e1 e2).
+split.
+apply Rmin_pos ; assumption.
+intros.
+split.
+apply H3.
+apply Rlt_le_trans with (1 := H).
+apply Rmin_l.
+apply H4.
+apply Rlt_le_trans with (1 := H).
+apply Rmin_r.
+Qed.
+
+Theorem locally_true_imp :
+  forall P Q : R -> Prop,
+ (forall x, P x -> Q x) ->
+  forall x,
+  locally_true x P ->
+  locally_true x Q.
+intros P Q H x (d, (Hd, H0)).
+exists d.
+split.
+exact Hd.
+intros.
+apply H.
+apply H0.
+exact H1.
+Qed.
 
 Theorem continuity_pt_lt :
   forall f x y,
@@ -724,3 +777,32 @@ auto with real.
 exact R0.
 exact (Ratan_pos x H).
 Defined.
+
+Definition connected (P : R -> Prop) :=
+  forall x y, P x -> P y ->
+  forall z, (x <= z <= y)%R -> P z.
+
+Definition singleton x y :=
+  match Req_EM_T x y with
+  | left _ => True
+  | right _ => False
+  end.
+
+Definition union P Q (x : R) :=
+  P x \/ Q x.
+
+Definition intersection P Q (x : R) :=
+  P x /\ Q x.
+
+Definition hull P x :=
+  exists u, exists v, P u /\ P v /\ (u <= x <= v)%R.
+
+Lemma hull_connected :
+  forall P, connected (hull P).
+intros P a b (ua, (_, (Hua, (_, (Ha, _))))) (_, (vb, (_, (Hvb, (_, Hb))))) c Hc.
+exists ua.
+exists vb.
+refine (conj Hua (conj Hvb (conj _ _))).
+exact (Rle_trans _ _ _ Ha (proj1 Hc)).
+exact (Rle_trans _ _ _ (proj2 Hc) Hb).
+Qed.

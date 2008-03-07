@@ -26,6 +26,19 @@ Definition contains i v :=
   | _, Xnan => False
   end.
 
+Lemma contains_connected :
+  forall xi, connected (fun x => contains xi (Xreal x)).
+intros [|l u] a b Ha Hb x Hx.
+exact I.
+split.
+destruct l as [|l].
+exact I.
+exact (Rle_trans _ _ _ (proj1 Ha) (proj1 Hx)).
+destruct u as [|u].
+exact I.
+exact (Rle_trans _ _ _ (proj2 Hx) (proj2 Hb)).
+Qed.
+
 Definition le_upper x y :=
   match y with
   | Xnan => True
@@ -258,6 +271,74 @@ exists xr. repeat split.
 apply Rle_refl.
 Qed.
 
+Lemma contains_not_empty :
+  forall x xi, contains xi x -> not_empty xi.
+intros x [|[u _|l [_|u]]].
+intros _.
+exists R0.
+exact I.
+apply contains_minf_not_empty.
+apply contains_pinf_not_empty.
+case x.
+intro H.
+elim H.
+intros xr H.
+exists xr.
+exact H.
+Qed.
+
+(*
+Lemma contains_not_empty_2 :
+  forall xi x, contains xi x ->
+ (exists v, forall y, contains xi y -> y = Xreal v) \/
+ (exists u, exists v, (u < v)%R /\ subset (Ibnd (Xreal u) (Xreal v)) xi).
+intros [|[u|l [|u]]] x H.
+(* NaI *)
+right.
+exists R0.
+exists R1.
+exact (conj Rlt_0_1 I).
+(* (-inf,?] *)
+right.
+destruct (contains_minf_not_empty u) as (v, Hv).
+exists (v + -1)%R.
+exists v.
+split.
+pattern v at 2 ; replace v with (v + -1 + 1)%R by ring.
+apply Rlt_plus_1.
+exact Hv.
+(* [l,+inf) *)
+right.
+destruct (contains_pinf_not_empty (Xreal l)) as (v, Hv).
+exists v.
+exists (v + 1)%R.
+split.
+apply Rlt_plus_1.
+split.
+exact (Ropp_le_contravar _ _ (proj1 Hv)).
+exact I.
+(* [l,u] *)
+destruct (contains_not_empty _ _ H) as (w, Hw).
+destruct (Rle_lt_or_eq_dec _ _ (Rle_trans _ _ _ (proj1 Hw) (proj2 Hw))) as [Hr|Hr].
+clear -Hr.
+right.
+exists l.
+exists u.
+split.
+exact Hr.
+split ; exact (Rle_refl _).
+left.
+exists l.
+intros [|y] Hy.
+elim Hy.
+apply f_equal.
+apply Rle_antisym.
+rewrite <- Hr in Hy.
+exact (proj2 Hy).
+exact (proj1 Hy).
+Qed.
+*)
+
 Definition overlap xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
@@ -367,14 +448,33 @@ Parameter subset_correct :
 
 Parameter join : type -> type -> type.
 Parameter meet : type -> type -> type.
-
 Parameter sign_large : type -> Xcomparison.
+
+Parameter sign_large_correct :
+  forall xi,
+  match sign_large xi with
+  | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
+  | Xlt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle v 0
+  | Xgt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle 0 v
+  | Xund => True
+  end.
+
+(*
+Parameter join_correct :
+  forall xi yi v,
+  contains xi v \/ contains yi v -> contains (join xi yi) v.
+*)
+
+Parameter meet_correct :
+  forall xi yi v,
+  contains (convert xi) v -> contains (convert yi) v ->
+  contains (convert (meet xi yi)) v.
 
 Parameter midpoint : type -> bound_type.
 
 Parameter midpoint_correct :
   forall xi,
-  (exists x, contains (convert xi) (Xreal x)) ->
+  (exists x, contains (convert xi) x) ->
   contains (convert xi) (convert_bound (midpoint xi)).
 
 Definition extension f fi := forall b x,
@@ -384,6 +484,10 @@ Definition extension_2 f fi := forall bx by x y,
   contains (convert bx) x ->
   contains (convert by) y ->
   contains (convert (fi bx by)) (f x y).
+
+Parameter mask : type -> type -> type.
+
+Parameter mask_correct : extension_2 Xmask mask.
 
 Parameter precision : Set.
 
@@ -423,8 +527,30 @@ Parameter lower_extent : type -> type.
 Parameter upper_extent : type -> type.
 Parameter whole : type.
 
+(*
+Parameter lower_extent_correct :
+  forall xi x,
+ (exists y, (x <= y)%R /\ contains (convert xi) (Xreal y)) ->
+  contains (convert (lower_extent xi)) (Xreal x).
+*)
+
 Parameter lower : type -> bound_type.
 Parameter upper : type -> bound_type.
+
+Parameter lower_bounded_correct :
+  forall xi,
+  lower_bounded xi = true ->
+  exists l, convert xi = Ibnd (Xreal l) (convert_bound (upper xi)).
+
+Parameter upper_bounded_correct :
+  forall xi,
+  upper_bounded xi = true ->
+  exists u, convert xi = Ibnd (convert_bound (lower xi)) (Xreal u).
+
+Parameter bounded_correct :
+  forall xi,
+  bounded xi = true ->
+  exists l, exists u, convert xi = Ibnd (Xreal l) (Xreal u).
 
 Parameter fromZ : Z -> type.
 

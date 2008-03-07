@@ -89,6 +89,108 @@ Definition lookup_1d fi l u extend steps :=
     lookup_1d_main fi l u output steps
   else output.
 
+Theorem diff_refining_aux_1 :
+  forall prec f f' xi yi yi' m mi ymi,
+  Xderive f f' ->
+  contains (I.convert mi) (Xreal m) ->
+  contains (I.convert xi) (Xreal m) ->
+  contains (I.convert ymi) (f (Xreal m)) ->
+ (forall x, contains (I.convert xi) x -> contains (I.convert yi) (f x)) ->
+ (forall x, contains (I.convert xi) x -> contains (I.convert yi') (f' x)) ->
+  forall x, contains (I.convert xi) x ->
+  contains (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))) (f x).
+intros prec f f' xi yi yi' m mi ymi Hd Hxm Hm Hym Hy Hy' x Hx.
+case_eq (I.convert yi').
+(* - yi' is NaI *)
+intro Hyn'.
+assert (contains (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))) Xnan).
+replace Xnan with (Xadd (f (Xreal m)) Xnan).
+change Xnan with (Xmul (Xsub (Xreal m) (Xreal m)) Xnan).
+apply I.add_correct.
+exact Hym.
+apply I.mul_correct.
+now apply I.sub_correct.
+rewrite Hyn'.
+exact I.
+exact (Xadd_comm _ _).
+generalize H.
+now induction (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))).
+(* - yi' is real ... *)
+intros yl' yu' Hyi'.
+destruct x as [|x].
+case_eq (I.convert xi).
+intros Hxi.
+rewrite Hxi in Hy.
+generalize (Hy' _ Hx).
+rewrite Hyi'.
+generalize (Hd Xnan).
+case (f' Xnan).
+intros _ H.
+elim H.
+intros _ H _.
+elim H.
+intros xl xu Hxi.
+rewrite Hxi in Hx.
+elim Hx.
+(* ... so x is real ... *)
+set (Pxi := fun x => contains (I.convert xi) (Xreal x)).
+assert (H': forall c, Pxi c -> f' (Xreal c) <> Xnan).
+intros c Hc H.
+generalize (Hy' (Xreal c) Hc).
+rewrite H, Hyi'.
+intro H0.
+elim H0.
+(* ... and we can apply the MVT *)
+destruct (Xderive_MVT _ _ Hd Pxi (contains_connected _) H' _ Hm _ Hx) as (c, (Hc1, Hc2)).
+rewrite Hc2.
+apply I.add_correct.
+exact Hym.
+rewrite Xmul_comm.
+apply I.mul_correct.
+now apply I.sub_correct.
+apply Hy'.
+exact Hc1.
+Qed.
+
+Theorem diff_refining_aux_2 :
+  forall f f' xi m ymi,
+  Xderive f f' ->
+  contains xi (Xreal m) ->
+  contains ymi (f (Xreal m)) ->
+ (forall x, contains xi x -> contains (Ibnd (Xreal 0) (Xreal 0)) (f' x)) ->
+  forall x, contains xi x ->
+  contains ymi (f x).
+intros f f' xi m ymi Hd Hm Hym Hy'.
+(* the derivative is zero ... *)
+destruct xi as [|xl xu].
+apply False_ind.
+generalize (Hy' Xnan I) (Hd Xnan).
+now case (f' (Xnan)).
+intros [|x] Hx.
+elim Hx.
+(* ... so x is real ... *)
+set (Pxi := fun x => contains (Ibnd xl xu) (Xreal x)).
+assert (H': forall c, Pxi c -> f' (Xreal c) <> Xnan).
+intros c Hc H.
+generalize (Hy' (Xreal c) Hc).
+now rewrite H.
+(* ... and we can apply the MVT *)
+destruct (Xderive_MVT _ _ Hd Pxi (contains_connected _) H' _ Hm _ Hx) as (c, (Hc1, Hc2)).
+rewrite Hc2.
+replace (f' (Xreal c)) with (Xreal 0).
+simpl.
+rewrite Rmult_0_l.
+rewrite Xadd_0_r.
+exact Hym.
+generalize (Hy' (Xreal c) Hc1).
+destruct (f' (Xreal c)) as [|y].
+intro H.
+elim H.
+intros (H3,H4).
+apply f_equal.
+now apply Rle_antisym.
+Qed.
+
 Definition diff_refining prec xi yi yi' fi :=
   match I.sign_large yi' with
   | Xund =>
@@ -122,6 +224,44 @@ Definition diff_refining prec xi yi yi' fi :=
       else I.whole)
   end.
 
+Lemma diff_refining_correct_aux_5 :
+  forall f f' fi',
+  I.extension f' fi' ->
+  Xderive f f' ->
+  forall xi,
+  I.convert (fi' xi) <> Inan ->
+ (exists x, contains (I.convert xi) x) ->
+  exists m, I.convert_bound (I.midpoint xi) = Xreal m.
+intros f f' fi' Hf' Hd xi Hyi'.
+case_eq (I.convert xi).
+(* - xi = NaI *)
+intros Hxi _.
+elim Hyi'.
+generalize (Hf' xi Xnan).
+rewrite Hxi.
+generalize (Hd Xnan).
+case (f' Xnan).
+destruct (I.convert (fi' xi)) as [|l u].
+now intros _ _.
+simpl.
+intros _ H0.
+simpl in H0.
+elim (H0 I).
+intros _ H0 _.
+elim H0.
+(* - xi = [l,u] *)
+intros xl xu Hxi Hx.
+rewrite <- Hxi in Hx.
+generalize (I.midpoint_correct _ Hx).
+rewrite Hxi.
+destruct (I.convert_bound (I.midpoint xi)) as [|m].
+intro H.
+elim H.
+intros _.
+exists m.
+apply refl_equal.
+Qed.
+
 Theorem diff_refining_correct :
   forall prec f f' fi fi',
   I.extension f fi ->
@@ -129,7 +269,91 @@ Theorem diff_refining_correct :
   Xderive f f' ->
   I.extension f (fun b => diff_refining prec b (fi b) (fi' b) fi).
 intros prec f f' fi fi' Hf Hf' Hd xi x Hx.
-Admitted.
+unfold diff_refining.
+generalize (I.sign_large_correct (fi' xi)).
+case (I.sign_large (fi' xi)) ; intro Hs.
+(* - sign is Xeq *)
+refine ((fun Hm => _) (diff_refining_correct_aux_5 _ _ _ Hf' Hd xi _ (ex_intro _ _ Hx))).
+destruct Hm as (m, Hm).
+eapply diff_refining_aux_2 with (1 := Hd).
+instantiate (1 := m).
+rewrite <- Hm.
+apply I.midpoint_correct.
+exists x.
+exact Hx.
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hm.
+split ; apply Rle_refl.
+intros.
+rewrite (Hs (f' x0)).
+split ; apply Rle_refl.
+apply Hf'.
+exact H.
+exact Hx.
+intro H.
+rewrite H in Hs.
+generalize (Hs Xnan I).
+discriminate.
+(* - sign is Xlt *)
+apply I.meet_correct.
+admit.
+admit.
+(*
+case_eq (I.lower_bounded xi) ; intro Hlb.
+destruct (I.lower_bounded_correct _ Hlb) as (xl,Hxi).
+case_eq (f x).
+intro Hy.
+apply False_ind.
+generalize (Hd x).
+destruct x as [|x].
+rewrite Hxi in Hx.
+elim Hx.
+destruct (Hs _ (Hf' _ _ Hx)) as (y', (Hy1', Hy2')).
+now rewrite Hy1', Hy.
+intros r Hy.
+apply I.lower_extent_correct.
+case_eq (I.convert (fi (I.bnd (I.lower xi) (I.lower xi)))).
+intros _.
+exists r.
+split.
+apply Rle_refl.
+exact I.
+intros yl yu Hyi.
+generalize (Hf _ _ Hx).
+rewrite Hy.
+intros Hyi yl [|yu] Hyi2.
+*)
+(* - sign is Xgt *)
+admit.
+(* - sign is Xund *)
+clear Hs.
+case_eq (I.bounded (fi' xi)) ; intro Hb.
+apply I.meet_correct.
+now apply Hf.
+refine ((fun Hm => _) (diff_refining_correct_aux_5 _ _ _ Hf' Hd xi _ (ex_intro _ _ Hx))).
+destruct Hm as (m, Hm).
+eapply diff_refining_aux_1 with (1 := Hd).
+instantiate (1 := m).
+rewrite I.bnd_correct.
+rewrite Hm.
+split ; apply Rle_refl.
+rewrite <- Hm.
+apply I.midpoint_correct.
+exists x.
+exact Hx.
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hm.
+split ; apply Rle_refl.
+apply Hf.
+apply Hf'.
+exact Hx.
+destruct (I.bounded_correct _ Hb) as (l, (u, H)).
+rewrite H.
+discriminate.
+now apply Hf.
+Qed.
 
 End IntervalAlgos.
 
@@ -285,8 +509,6 @@ admit.
 (* Xinv *)
 apply Xderive_eq_diff with (fun x => Xneg (Xdiv (f' x) (Xsqr (f x)))).
 intros.
-rewrite <- H.
-apply sym_eq.
 apply rewrite_inv_diff.
 apply Xderive_inv with (1 := Hf).
 (* Xsqr *)
@@ -334,8 +556,7 @@ apply Xderive_sub ; assumption.
 apply Xderive_mul ; assumption.
 (* Xdiv *)
 apply Xderive_eq_diff with (fun x => Xdiv (Xsub (Xmul (f' x) (g x)) (Xmul (g' x) (f x))) (Xmul (g x) (g x))).
-intros. rewrite <- H.
-apply sym_eq.
+intros.
 apply rewrite_div_diff.
 apply Xderive_div ; assumption.
 Qed.
@@ -465,11 +686,110 @@ intros.
 exact (eval_bnd_correct _ _ (Bproof x b H :: bounds) _).
 Qed.
 
+Theorem Xderive_eq :
+  forall g g' f f',
+ (forall x, f x = g x) ->
+ (forall x, f' x = g' x) ->
+  Xderive g g' ->
+  Xderive f f'.
+intros.
+apply Xderive_eq_fun with (1 := H).
+apply Xderive_eq_diff with (1 := H0).
+exact H1.
+Qed.
+
+(* Note: The derivative of default values is set to NaN, which is sub-optimal, but they are not supposed to be used anyway. *)
+Theorem eval_diff_correct_aux :
+  forall formula terms n,
+  let f x := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan) in
+  Xderive (fun x => fst (f x)) (fun x => snd (f x)).
+intros.
+pose (g := fun n x =>
+       nth n
+          (fold_right
+             (fun t l =>
+              eval_generic_body (Xreal 0, Xnan)
+                (diff_operations ExtendedR ext_operations) l t)
+             ((x, Xmask (Xreal 1) x)
+              :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms) (rev formula))
+          (Xreal 0, Xnan)).
+apply Xderive_eq with (fun x => fst (g n x)) (fun x => snd (g n x)) ;
+  try (intros ; unfold f ; now rewrite rev_formula).
+generalize n. clear.
+induction (rev formula).
+(* empty formula *)
+simpl in g.
+intros [|n].
+apply Xderive_identity.
+generalize n. clear n.
+induction terms.
+now intros [|n] [|x].
+intros [|n] ; simpl.
+apply Xderive_constant.
+apply IHterms.
+(* non-empty formulas *)
+intros [|n].
+unfold g. simpl. clear -IHl.
+induction a.
+eapply Xderive_eq.
+3: eexact (unary_diff_correct u _ _ (IHl n)).
+intros x. simpl.
+now match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+intros x. simpl.
+now match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+eapply Xderive_eq.
+3: eexact (binary_diff_correct b _ _ _ _ (IHl n) (IHl n0)).
+intros x. simpl.
+now do 2 match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+intros x. simpl.
+now do 2 match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+exact (IHl n).
+Qed.
+
+Theorem eval_diff_correct :
+  forall formula terms n,
+  Xderive
+    (fun x => nth n (eval_ext formula (x :: map (fun v => Xreal v) terms)) (Xreal R0))
+    (fun x => snd (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan))).
+intros.
+eapply Xderive_eq_fun.
+2: apply (eval_diff_correct_aux formula terms n).
+intros x.
+unfold eval_ext.
+do 2 rewrite rev_formula.
+generalize n. clear.
+induction (rev formula).
+(* empty formula *)
+simpl.
+intros [|n].
+apply refl_equal.
+generalize n. clear n.
+induction terms.
+now intros [|n].
+intros [|n].
+apply refl_equal.
+simpl.
+apply IHterms.
+(* non-empty formula *)
+intros [|n].
+induction a.
+simpl.
+rewrite IHl.
+match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+now case u.
+simpl.
+do 2 rewrite IHl.
+do 2 match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
+now case b.
+simpl.
+apply IHl.
+Qed.
+
 Module Algos := IntervalAlgos I.
 
 Definition eval_diff prec formula bounds n xi :=
   match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) formula
-    ((xi, I.fromZ 1) :: map (fun x => (x, I.fromZ 0)) bounds)) (I.nai, I.nai) with
+    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) b)) bounds)) (I.nai, I.nai) with
   | (yi, yi') =>
     Algos.diff_refining prec xi yi yi'
       (fun b => nth n (eval_bnd prec formula (b :: bounds)) I.nai)
@@ -478,33 +798,26 @@ Definition eval_diff prec formula bounds n xi :=
 Theorem eval_diff_correct_ext :
   forall prec formula bounds n,
   I.extension
-    (fun x => nth n (eval_ext formula (x :: map xreal_from_bp bounds)) (Xreal R0))
+    (fun x => nth n (eval_ext formula (x :: map xreal_from_bp bounds)) (Xreal 0))
     (fun b => eval_diff prec formula (map interval_from_bp bounds) n b).
 intros.
-set (f := fun x : ExtendedR => nth n (eval_ext formula (x :: map xreal_from_bp bounds)) (Xreal 0)).
-unfold I.extension.
-intros.
+set (f := fun x => nth n (eval_ext formula (x :: map xreal_from_bp bounds)) (Xreal 0)).
+set (fi := fun xi => nth n (eval_bnd prec formula (xi :: map interval_from_bp bounds)) I.nai).
+intros b x Hb.
 unfold eval_diff.
-set (fi := fun xi : I.type => nth n (eval_bnd prec formula (xi :: map interval_from_bp bounds)) I.nai).
 set (ff' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) formula
-    ((xi, I.fromZ 1) :: map (fun x => (x, I.fromZ 0)) (map interval_from_bp bounds))) (I.nai, I.nai)).
+    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) b)) (map interval_from_bp bounds))) (I.nai, I.nai)).
 set (fi' := fun xi => snd (ff' xi)).
-cutrewrite
- (nth n
-   (eval_generic (I.nai, I.nai)
-     (diff_operations I.type (bnd_operations prec)) formula
-      ((b, I.fromZ 1) :: map (fun x0 : I.type => (x0, I.fromZ 0)) (map interval_from_bp bounds)))
-   (I.nai, I.nai) = (fi b, fi' b)).
-set (f' := fun x : ExtendedR => snd (nth n (eval_generic (Xreal 0, Xreal 0)
-               (diff_operations _ ext_operations) formula
-               ((x, Xreal 1)
-                :: map (fun x => (x, Xreal 0))
-                     (map xreal_from_bp bounds))) (Xreal 0, Xreal 0))).
+match goal with |- context [match ?v with (yi, yi') => _ end] => replace v with (fi b, fi' b) end.
+(*
+set (f' := (fun x => snd (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula
+    ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map xreal_from_bp bounds))) (Xreal 0, Xnan)))).
 refine (Algos.diff_refining_correct prec f f' _ _ _ _ _ b x H).
 unfold f, fi.
 apply eval_bnd_correct_ext.
 admit.
 admit.
+*)
 Admitted.
 
 End Valuator.

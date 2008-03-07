@@ -546,7 +546,7 @@ Lemma Xmask_identity :
 intros [|x] ; now split.
 Qed.
 
-Lemma Xmask_involutive :
+Lemma Xmask_idempot :
   forall x y,
   Xmask (Xmask x y) y = Xmask x y.
 intros [|x] [|y] ; now split.
