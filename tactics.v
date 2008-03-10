@@ -282,22 +282,22 @@ Ltac get_bounds l :=
         | H: Rle ?a x /\ Rle x ?b |- _ =>
           let v := get_float a in
           let w := get_float b in
-          constr:(V.Bproof (Xreal x) (I.bnd v w) H)
+          constr:(V.Bproof x (I.bnd v w) H)
         | H: Rle ?a x |- _ =>
           let v := get_float a in
-          constr:(V.Bproof (Xreal x) (I.bnd v F.nan) (conj H I))
+          constr:(V.Bproof x (I.bnd v F.nan) (conj H I))
         | H: Rle x ?b |- _ =>
           let v := get_float b in
-          constr:(V.Bproof (Xreal x) (I.bnd F.nan v) (conj I H))
+          constr:(V.Bproof x (I.bnd F.nan v) (conj I H))
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
           match v with
           | Float ?m ?e =>
-            constr:(V.Bproof (Xreal x) (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
+            constr:(V.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
           end
         | _ =>
           let v := get_float x in
-          constr:(let f := v in V.Bproof (Xreal x) (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+          constr:(let f := v in V.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
         | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
         end in
       let m := aux l in
@@ -338,7 +338,7 @@ intros.
 clear bounds b xi.
 pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
 pose (fi := fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp l0)) I.nai).
-change (contains (I.convert output) (f x)).
+change (contains (I.convert output) (f (Xreal x))).
 refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
 exact (V.eval_bnd_correct_ext _ _ _ _).
 Qed.
@@ -365,7 +365,7 @@ intros.
 clear bounds b xi.
 pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
 pose (fi := fun b => V.eval_diff prec formula (map V.interval_from_bp l0) n b).
-change (contains (I.convert output) (f x)).
+change (contains (I.convert output) (f (Xreal x))).
 refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
 exact (V.eval_diff_correct_ext _ _ _ _).
 Qed.

@@ -109,16 +109,21 @@ Definition div_correct := I.div_correct.
 Definition bounded := I.bounded.
 Definition lower_bounded := I.lower_bounded.
 Definition upper_bounded := I.upper_bounded.
-Definition lower_extent := I.lower_extent.
-Definition upper_extent := I.upper_extent.
 Definition lower_bounded_correct := I.lower_bounded_correct.
 Definition upper_bounded_correct := I.upper_bounded_correct.
 Definition bounded_correct := I.bounded_correct.
+Definition lower_extent := I.lower_extent.
+Definition upper_extent := I.upper_extent.
 Definition whole := I.whole.
+Definition lower_extent_correct := I.lower_extent_correct.
+Definition upper_extent_correct := I.upper_extent_correct.
+Definition whole_correct := I.whole_correct.
 Definition lower := I.lower.
 Definition upper := I.upper.
 Definition fromZ := I.fromZ.
+Definition fromZ_correct := I.fromZ_correct.
 Definition extension := I.extension.
 Definition extension_2 := I.extension_2.
+Definition bounded_prop := I.bounded_prop.
 
 End FloatIntervalFull.

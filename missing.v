@@ -357,86 +357,6 @@ repeat rewrite Z2R_IZR.
 apply IZR_lt.
 Qed.
 
-Theorem derivable_bounded_pos:
-  forall f f' : R -> R, forall a b : R,
-  (forall c, (a <= c <= b)%R -> derivable_pt_lim f c (f' c) /\ (0 <= f' c)%R) ->
-  forall c, (a <= c <= b)%R -> (f a <= f c <= f b)%R.
-intros.
-split.
-(* left *)
-destruct (proj1 H0) as [H1|H1].
-apply Rplus_le_reg_r with (-f a)%R.
-rewrite Rplus_opp_r.
-fold (Rminus (f c) (f a)).
-assert (forall d, (a <= d <= c)%R -> derivable_pt_lim f d (f' d)).
-intros.
-refine (proj1 (H _ _)).
-split.
-exact (proj1 H2).
-apply Rle_trans with (1 := proj2 H2) (2 := proj2 H0).
-destruct (MVT_cor2 _ _ _ _ H1 H2) as (d, (H3, (H4, H5))).
-rewrite H3.
-apply Rmult_le_pos_pos.
-refine (proj2 (H _ _)).
-split.
-apply Rlt_le with (1 := H4).
-apply Rle_trans with (2 := proj2 H0).
-apply Rlt_le with (1 := H5).
-rewrite <- (Rplus_opp_r a).
-unfold Rminus.
-apply Rplus_le_compat_r.
-exact (proj1 H0).
-apply Req_le.
-apply f_equal.
-exact H1.
-(* right *)
-destruct (proj2 H0) as [H1|H1].
-apply Rplus_le_reg_r with (-f c)%R.
-rewrite Rplus_opp_r.
-fold (Rminus (f b) (f c)).
-assert (forall d, (c <= d <= b)%R -> derivable_pt_lim f d (f' d)).
-intros.
-refine (proj1 (H _ _)).
-split.
-apply Rle_trans with (1 := proj1 H0) (2 := proj1 H2).
-exact (proj2 H2).
-destruct (MVT_cor2 _ _ _ _ H1 H2) as (d, (H3, (H4, H5))).
-rewrite H3.
-apply Rmult_le_pos_pos.
-refine (proj2 (H _ _)).
-split.
-apply Rle_trans with (1 := proj1 H0).
-apply Rlt_le with (1 := H4).
-apply Rlt_le with (1 := H5).
-rewrite <- (Rplus_opp_r c).
-unfold Rminus.
-apply Rplus_le_compat_r.
-exact (proj2 H0).
-apply Req_le.
-apply f_equal.
-exact H1.
-Qed.
-
-Theorem derivable_bounded_neg:
-  forall f f' : R -> R, forall a b : R,
-  (forall c, (a <= c <= b)%R -> derivable_pt_lim f c (f' c) /\ (f' c <= 0)%R) ->
-  forall c, (a <= c <= b)%R -> (f b <= f c <= f a)%R.
-intros.
-cut ((opp_fct f) a <= (opp_fct f) c <= (opp_fct f) b)%R.
-unfold opp_fct.
-intros (H1, H2).
-split ; apply Ropp_le_cancel ; assumption.
-apply (derivable_bounded_pos (opp_fct f) (opp_fct f')) with (2 := H0).
-intros.
-unfold opp_fct at 2 3.
-split.
-apply derivable_pt_lim_opp.
-exact (proj1 (H _ H1)).
-rewrite <- Ropp_0.
-apply Ropp_le_contravar.
-exact (proj2 (H _ H1)).
-Qed.
-
 Theorem derivable_pt_lim_eq :
   forall f g,
  (forall x, f x = g x) ->
@@ -805,4 +725,77 @@ exists vb.
 refine (conj Hua (conj Hvb (conj _ _))).
 exact (Rle_trans _ _ _ Ha (proj1 Hc)).
 exact (Rle_trans _ _ _ (proj2 Hc) Hb).
+Qed.
+
+Theorem derivable_pos_imp_increasing :
+  forall f f' dom,
+  connected dom ->
+ (forall x, dom x -> derivable_pt_lim f x (f' x) /\ (0 <= f' x)%R) ->
+  forall u v, dom u -> dom v -> (u <= v)%R -> (f u <= f v)%R.
+intros f f' dom Hdom Hd u v Hu Hv [Huv|Huv].
+assert (forall w, (u <= w <= v)%R -> derivable_pt_lim f w (f' w)).
+intros w Hw.
+refine (proj1 (Hd _ _)).
+exact (Hdom _ _ Hu Hv _ Hw).
+destruct (MVT_cor2 _ _ _ _ Huv H) as (w, (Hw1, Hw2)).
+replace (f v) with (f u + (f v - f u))%R by ring.
+rewrite Hw1.
+pattern (f u) at 1 ; rewrite <- Rplus_0_r.
+apply Rplus_le_compat_l.
+apply Rmult_le_pos.
+refine (proj2 (Hd _ _)).
+refine (Hdom _ _ Hu Hv _ _).
+exact (conj (Rlt_le _ _ (proj1 Hw2)) (Rlt_le _ _ (proj2 Hw2))).
+rewrite <- (Rplus_opp_r u).
+unfold Rminus.
+apply Rplus_le_compat_r.
+exact (Rlt_le _ _ Huv).
+rewrite Huv.
+apply Rle_refl.
+Qed.
+
+Theorem derivable_neg_imp_decreasing :
+  forall f f' dom,
+  connected dom ->
+ (forall x, dom x -> derivable_pt_lim f x (f' x) /\ (f' x <= 0)%R) ->
+  forall u v, dom u -> dom v -> (u <= v)%R -> (f v <= f u)%R.
+intros f f' dom Hdom Hd u v Hu Hv Huv.
+apply Ropp_le_cancel.
+refine (derivable_pos_imp_increasing (opp_fct f) (opp_fct f') _ Hdom _ _ _ Hu Hv Huv).
+intros.
+destruct (Hd x H) as (H1, H2).
+split.
+apply derivable_pt_lim_opp with (1 := H1).
+rewrite <- Ropp_0.
+apply Ropp_le_contravar with (1 := H2).
+Qed.
+
+Theorem derivable_zero_imp_constant :
+  forall f dom,
+  connected dom ->
+ (forall x, dom x -> derivable_pt_lim f x R0) ->
+  forall u v, dom u -> dom v -> (f u = f v)%R.
+intros f dom Hdom Hd.
+(* generic case *)
+assert (forall u v, dom u -> dom v -> (u <= v)%R -> f u = f v).
+intros u v Hu Hv Huv.
+apply Rle_antisym.
+apply (derivable_pos_imp_increasing f (fct_cte R0)) with (1 := Hdom) ; try assumption.
+intros.
+split.
+now apply Hd.
+apply Rle_refl.
+apply (derivable_neg_imp_decreasing f (fct_cte R0)) with (1 := Hdom) ; try assumption.
+intros.
+split.
+now apply Hd.
+apply Rle_refl.
+(* . *)
+intros u v Hu Hv.
+destruct (Rle_or_lt u v) as [Huv|Huv].
+now apply H.
+generalize (Rlt_le _ _ Huv).
+intros Huv2.
+apply sym_eq.
+now apply H.
 Qed.

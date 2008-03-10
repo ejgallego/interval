@@ -486,72 +486,101 @@ simpl.
 now apply Rmin_best.
 Qed.
 
-Lemma lower_bounded_correct_aux :
-  forall xl xu,
-  F.real xl = true ->
-  exists l, convert (Ibnd xl xu) = interval.Ibnd (Xreal l) (convert_bound xu).
-intros.
-generalize (F.real_correct xl).
-rewrite H. clear H.
-unfold convert, convert_bound.
-case (F.toF xl).
-intro H. discriminate H.
-intros _.
-now exists R0.
-intros s m e _.
-now exists (FtoR F.radix s m e).
-Qed.
-
-Lemma upper_bounded_correct_aux :
-  forall xl xu,
-  F.real xu = true ->
-  exists u, convert (Ibnd xl xu) = interval.Ibnd (convert_bound xl) (Xreal u).
-intros.
-generalize (F.real_correct xu).
-rewrite H. clear H.
-unfold convert, convert_bound.
-case (F.toF xu).
-intro H. discriminate H.
-intros _.
-now exists R0.
-intros s m e _.
-now exists (FtoR F.radix s m e).
-Qed.
+Definition bounded_prop xi :=
+  convert xi = interval.Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
 
 Theorem lower_bounded_correct :
   forall xi,
   lower_bounded xi = true ->
-  exists l, convert xi = interval.Ibnd (Xreal l) (convert_bound (upper xi)).
-intros [|xl xu].
-intro H. discriminate H.
-exact (lower_bounded_correct_aux _ _).
+  convert_bound (lower xi) = Xreal (proj_val (convert_bound (lower xi))) /\
+  bounded_prop xi.
+unfold lower_bounded.
+intros [|xl xu] H.
+discriminate H.
+generalize (F.real_correct xl).
+rewrite H.
+clear H.
+unfold convert_bound.
+simpl.
+case (F.toF xl).
+intro H.
+discriminate H.
+repeat split.
+repeat split.
 Qed.
 
 Theorem upper_bounded_correct :
   forall xi,
   upper_bounded xi = true ->
-  exists u, convert xi = interval.Ibnd (convert_bound (lower xi)) (Xreal u).
-intros [|xl xu].
-intro H. discriminate H.
-exact (upper_bounded_correct_aux _ _).
+  convert_bound (upper xi) = Xreal (proj_val (convert_bound (upper xi))) /\
+  bounded_prop xi.
+unfold upper_bounded.
+intros [|xl xu] H.
+discriminate H.
+generalize (F.real_correct xu).
+rewrite H.
+clear H.
+unfold convert_bound.
+simpl.
+case (F.toF xu).
+intro H.
+discriminate H.
+repeat split.
+repeat split.
 Qed.
 
 Theorem bounded_correct :
   forall xi,
   bounded xi = true ->
-  exists l, exists u, convert xi = interval.Ibnd (Xreal l) (Xreal u).
-intros [|xl xu].
-intro H. discriminate H.
-intro H.
-destruct (andb_prop _ _ H) as (H1, H2).
-destruct (lower_bounded_correct_aux xl xu H1) as (l, Hl).
-exists l.
-destruct (upper_bounded_correct_aux xl xu H2) as (u, Hu).
-exists u.
+  lower_bounded xi = true /\ upper_bounded xi = true.
+unfold bounded.
+intros [|xl xu] H.
+discriminate H.
+now apply andb_prop.
+Qed.
+
+Theorem lower_extent_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal y) ->
+  (x <= y)%R ->
+  contains (convert (lower_extent xi)) (Xreal x).
+intros [|xl xu] x y Hy Hx.
+exact I.
+split.
+unfold convert_bound.
+rewrite F.nan_correct.
+exact I.
+simpl in Hy.
+xreal_tac xu.
+apply Rle_trans with (1 := Hx).
+exact (proj2 Hy).
+Qed.
+
+Theorem upper_extent_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal y) ->
+  (y <= x)%R ->
+  contains (convert (upper_extent xi)) (Xreal x).
+intros [|xl xu] x y Hy Hx.
+exact I.
+split.
+simpl in Hy.
+xreal_tac xl.
+apply Rle_trans with (2 := Hx).
+exact (proj1 Hy).
+unfold convert_bound.
+rewrite F.nan_correct.
+exact I.
+Qed.
+
+Theorem whole_correct :
+  forall x,
+  contains (convert whole) (Xreal x).
+intros x.
 simpl.
-inversion Hl.
-inversion Hu.
-apply refl_equal.
+unfold convert_bound.
+rewrite F.nan_correct.
+split ; split.
 Qed.
 
 Lemma sign_large_correct_ :
@@ -590,8 +619,8 @@ Theorem sign_large_correct :
   forall xi,
   match sign_large xi with
   | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
-  | Xlt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle v 0
-  | Xgt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle 0 v
+  | Xlt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle (proj_val x) 0
+  | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle 0 (proj_val x)
   | Xund => True
   end.
 intros [|xl xu].
@@ -640,6 +669,16 @@ apply FtoR_Rpos.
 apply Rle_lt_trans with (1 := Hxl).
 apply Rle_lt_trans with (1 := Hxu).
 apply FtoR_Rneg.
+Qed.
+
+Theorem fromZ_correct :
+  forall v,
+  contains (convert (fromZ v)) (Xreal (Z2R v)).
+intros.
+simpl.
+unfold convert_bound.
+rewrite F.fromZ_correct.
+split ; apply Rle_refl.
 Qed.
 
 Theorem midpoint_correct :

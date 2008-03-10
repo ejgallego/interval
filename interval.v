@@ -287,6 +287,34 @@ exists xr.
 exact H.
 Qed.
 
+Lemma contains_lower :
+  forall l u x,
+  contains (Ibnd (Xreal l) u) x ->
+  contains (Ibnd (Xreal l) u) (Xreal l).
+intros.
+split.
+apply Rle_refl.
+destruct x as [|x].
+elim H.
+destruct u as [|u].
+exact I.
+apply Rle_trans with (1 := proj1 H) (2 := proj2 H).
+Qed.
+
+Lemma contains_upper :
+  forall l u x,
+  contains (Ibnd l (Xreal u)) x ->
+  contains (Ibnd l (Xreal u)) (Xreal u).
+intros.
+split.
+destruct x as [|x].
+elim H.
+destruct l as [|l].
+exact I.
+apply Rle_trans with (1 := proj1 H) (2 := proj2 H).
+apply Rle_refl.
+Qed.
+
 (*
 Lemma contains_not_empty_2 :
   forall xi x, contains xi x ->
@@ -421,6 +449,9 @@ apply H.
 Qed.
 *)
 
+Definition proj_val x :=
+  match x with Xreal y => y | Xnan => R0 end.
+
 Module Type IntervalOps.
 
 Parameter bound_type : Set.
@@ -454,8 +485,8 @@ Parameter sign_large_correct :
   forall xi,
   match sign_large xi with
   | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
-  | Xlt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle v 0
-  | Xgt => forall x, contains (convert xi) x -> exists v, x = Xreal v /\ Rle 0 v
+  | Xlt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle (proj_val x) 0
+  | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle 0 (proj_val x)
   | Xund => True
   end.
 
@@ -527,31 +558,48 @@ Parameter lower_extent : type -> type.
 Parameter upper_extent : type -> type.
 Parameter whole : type.
 
-(*
 Parameter lower_extent_correct :
-  forall xi x,
- (exists y, (x <= y)%R /\ contains (convert xi) (Xreal y)) ->
+  forall xi x y,
+  contains (convert xi) (Xreal y) ->
+  (x <= y)%R ->
   contains (convert (lower_extent xi)) (Xreal x).
-*)
+
+Parameter upper_extent_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal y) ->
+  (y <= x)%R ->
+  contains (convert (upper_extent xi)) (Xreal x).
+
+Parameter whole_correct :
+  forall x,
+  contains (convert whole) (Xreal x).
 
 Parameter lower : type -> bound_type.
 Parameter upper : type -> bound_type.
 
+Definition bounded_prop xi :=
+  convert xi = Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
+
 Parameter lower_bounded_correct :
   forall xi,
   lower_bounded xi = true ->
-  exists l, convert xi = Ibnd (Xreal l) (convert_bound (upper xi)).
+  convert_bound (lower xi) = Xreal (proj_val (convert_bound (lower xi))) /\
+  bounded_prop xi.
 
 Parameter upper_bounded_correct :
   forall xi,
   upper_bounded xi = true ->
-  exists u, convert xi = Ibnd (convert_bound (lower xi)) (Xreal u).
+  convert_bound (upper xi) = Xreal (proj_val (convert_bound (upper xi))) /\
+  bounded_prop xi.
 
 Parameter bounded_correct :
   forall xi,
   bounded xi = true ->
-  exists l, exists u, convert xi = Ibnd (Xreal l) (Xreal u).
+  lower_bounded xi = true /\ upper_bounded xi = true.
 
 Parameter fromZ : Z -> type.
+
+Parameter fromZ_correct :
+  forall v, contains (convert (fromZ v)) (Xreal (Z2R v)).
 
 End IntervalOps.

@@ -89,7 +89,86 @@ Definition lookup_1d fi l u extend steps :=
     lookup_1d_main fi l u output steps
   else output.
 
-Theorem diff_refining_aux_1 :
+Definition diff_refining prec xi yi yi' fi :=
+  match I.sign_large yi' with
+  | Xund =>
+    if I.bounded yi' then
+      let m := I.midpoint xi in
+      let mi := I.bnd m m in
+      I.meet yi
+       (I.add prec (fi mi) (I.mul prec (I.sub prec xi mi) yi'))
+    else yi
+  | Xeq =>
+    let m := I.midpoint xi in fi (I.bnd m m)
+  | Xlt =>
+    I.meet
+     (if I.lower_bounded xi then
+        let l := I.lower xi in
+        I.lower_extent (fi (I.bnd l l))
+      else I.whole)
+     (if I.upper_bounded xi then
+        let u := I.upper xi in
+        I.upper_extent (fi (I.bnd u u))
+      else I.whole)
+  | Xgt =>
+    I.meet
+     (if I.lower_bounded xi then
+        let l := I.lower xi in
+        I.upper_extent (fi (I.bnd l l))
+      else I.whole)
+     (if I.upper_bounded xi then
+      let u := I.upper xi in
+        I.lower_extent (fi (I.bnd u u))
+      else I.whole)
+  end.
+
+Lemma diff_refining_aux_0 :
+  forall f f' xi yi yi',
+  Xderive f f' ->
+  I.sign_large yi' <> Xund ->
+ (forall x, contains xi x -> contains yi (f x)) ->
+ (forall x, contains xi x -> contains (I.convert yi') (f' x)) ->
+  forall x, contains xi x ->
+  x = Xreal (proj_val x) /\
+  forall v,
+  f x = Xreal (proj_fun v f (proj_val x)) /\
+  f' x = Xreal (proj_fun v f' (proj_val x)).
+intros f f' xi yi yi' Hd Hs Hy Hy' x Hx.
+case_eq (f' x).
+(* assuming f'(x) is NaN ... *)
+intros Hnf'.
+generalize (Hy' _ Hx).
+rewrite Hnf'.
+intros Hny'.
+apply False_ind.
+generalize (I.sign_large_correct yi').
+destruct (I.sign_large yi') ; intros H.
+generalize (H _ Hny').
+discriminate.
+destruct (H _ Hny') as (H0, _).
+discriminate H0.
+destruct (H _ Hny') as (H0, _).
+discriminate H0.
+now elim Hs.
+(* ... leads to a contradiction, so f'(x) is real ... *)
+intros ry' Hrf'.
+generalize (Hd x).
+destruct x as [|x].
+rewrite Hrf'.
+now intro H.
+(* ... so x is real too *)
+rewrite Hrf'.
+case_eq (f (Xreal x)).
+now intros _ H.
+intros ry Hrf _.
+refl_exists.
+unfold proj_fun, proj_val.
+now rewrite Hrf.
+unfold proj_fun, proj_val.
+now rewrite Hrf'.
+Qed.
+
+Lemma diff_refining_aux_1 :
   forall prec f f' xi yi yi' m mi ymi,
   Xderive f f' ->
   contains (I.convert mi) (Xreal m) ->
@@ -152,7 +231,7 @@ apply Hy'.
 exact Hc1.
 Qed.
 
-Theorem diff_refining_aux_2 :
+Lemma diff_refining_aux_2 :
   forall f f' xi m ymi,
   Xderive f f' ->
   contains xi (Xreal m) ->
@@ -190,39 +269,6 @@ intros (H3,H4).
 apply f_equal.
 now apply Rle_antisym.
 Qed.
-
-Definition diff_refining prec xi yi yi' fi :=
-  match I.sign_large yi' with
-  | Xund =>
-    if I.bounded yi' then
-      let m := I.midpoint xi in
-      let mi := I.bnd m m in
-      I.meet yi
-       (I.add prec (fi mi) (I.mul prec (I.sub prec xi mi) yi'))
-    else yi
-  | Xeq =>
-    let m := I.midpoint xi in fi (I.bnd m m)
-  | Xlt =>
-    I.meet
-     (if I.lower_bounded xi then
-        let l := I.lower xi in
-        I.lower_extent (fi (I.bnd l l))
-      else I.whole)
-     (if I.upper_bounded xi then
-        let u := I.upper xi in
-        I.upper_extent (fi (I.bnd u u))
-      else I.whole)
-  | Xgt =>
-    I.meet
-     (if I.lower_bounded xi then
-        let l := I.lower xi in
-        I.upper_extent (fi (I.bnd l l))
-      else I.whole)
-     (if I.upper_bounded xi then
-      let u := I.upper xi in
-        I.lower_extent (fi (I.bnd u u))
-      else I.whole)
-  end.
 
 Lemma diff_refining_correct_aux_5 :
   forall f f' fi',
@@ -271,7 +317,7 @@ Theorem diff_refining_correct :
 intros prec f f' fi fi' Hf Hf' Hd xi x Hx.
 unfold diff_refining.
 generalize (I.sign_large_correct (fi' xi)).
-case (I.sign_large (fi' xi)) ; intro Hs.
+case_eq (I.sign_large (fi' xi)) ; intros Hs1 Hs2.
 (* - sign is Xeq *)
 refine ((fun Hm => _) (diff_refining_correct_aux_5 _ _ _ Hf' Hd xi _ (ex_intro _ _ Hx))).
 destruct Hm as (m, Hm).
@@ -286,48 +332,207 @@ rewrite I.bnd_correct.
 rewrite Hm.
 split ; apply Rle_refl.
 intros.
-rewrite (Hs (f' x0)).
+rewrite (Hs2 (f' x0)).
 split ; apply Rle_refl.
 apply Hf'.
 exact H.
 exact Hx.
 intro H.
-rewrite H in Hs.
-generalize (Hs Xnan I).
+rewrite H in Hs2.
+generalize (Hs2 Xnan I).
 discriminate.
 (* - sign is Xlt *)
-apply I.meet_correct.
-admit.
-admit.
-(*
-case_eq (I.lower_bounded xi) ; intro Hlb.
-destruct (I.lower_bounded_correct _ Hlb) as (xl,Hxi).
-case_eq (f x).
-intro Hy.
-apply False_ind.
-generalize (Hd x).
-destruct x as [|x].
-rewrite Hxi in Hx.
-elim Hx.
-destruct (Hs _ (Hf' _ _ Hx)) as (y', (Hy1', Hy2')).
-now rewrite Hy1', Hy.
-intros r Hy.
-apply I.lower_extent_correct.
-case_eq (I.convert (fi (I.bnd (I.lower xi) (I.lower xi)))).
-intros _.
-exists r.
+assert (I.sign_large (fi' xi) <> Xund).
+now rewrite Hs1.
+clear Hs1. rename H into Hs1.
+assert (forall x, contains (I.convert xi) x -> forall v,
+  f x = Xreal (proj_fun v f (proj_val x)) /\
+  f' x = Xreal (proj_fun v f' (proj_val x)) /\
+  (proj_fun v f' (proj_val x) <= 0)%R).
+intros a Ha v.
+destruct (Hs2 _ (Hf' _ _ Ha)) as (Ha1, Ha2).
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Ha) as (Ha3, Ha4).
+destruct (Ha4 v) as (Ha5, Ha6).
 split.
-apply Rle_refl.
-exact I.
-intros yl yu Hyi.
-generalize (Hf _ _ Hx).
-rewrite Hy.
-intros Hyi yl [|yu] Hyi2.
-*)
+exact Ha5.
+split.
+exact Ha6.
+rewrite Ha1 in Ha6.
+inversion Ha6.
+exact Ha2.
+clear Hs2. rename H into Hs2.
+apply I.meet_correct.
+(*   lower part *)
+case_eq (I.lower_bounded xi).
+intros H.
+destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
+clear H.
+assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
+rewrite Hxi, Hxl.
+apply contains_lower with x.
+now rewrite <- Hxl, <- Hxi.
+rewrite (proj1 (Hs2 _ Hx R0)).
+apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
+rewrite <- (proj1 (Hs2 _ Hl R0)).
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hxl.
+split ; apply Rle_refl.
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Hx) as (Hx1, _).
+eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
+apply (contains_connected (I.convert xi)).
+intros a Ha.
+simpl in Ha.
+destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
+split.
+generalize (Hd (Xreal a)).
+rewrite Ha2, Ha1.
+intro H.
+exact (H R0).
+exact Ha3.
+simpl.
+now rewrite <- Hxl.
+simpl.
+now rewrite <- Hx1.
+rewrite Hxi, Hx1, Hxl in Hx.
+exact (proj1 Hx).
+intros _.
+rewrite (proj1 (Hs2 x Hx R0)).
+apply I.whole_correct.
+(*   upper part *)
+case_eq (I.upper_bounded xi).
+intros H.
+destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
+clear H.
+assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
+rewrite Hxi, Hxu.
+apply contains_upper with x.
+now rewrite <- Hxu, <- Hxi.
+rewrite (proj1 (Hs2 _ Hx R0)).
+apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
+rewrite <- (proj1 (Hs2 _ Hu R0)).
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hxu.
+split ; apply Rle_refl.
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Hx) as (Hx1, _).
+eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
+apply (contains_connected (I.convert xi)).
+intros a Ha.
+simpl in Ha.
+destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
+split.
+generalize (Hd (Xreal a)).
+rewrite Ha2, Ha1.
+intro H.
+exact (H R0).
+exact Ha3.
+simpl.
+now rewrite <- Hx1.
+simpl.
+now rewrite <- Hxu.
+rewrite Hxi, Hx1, Hxu in Hx.
+exact (proj2 Hx).
+intros _.
+rewrite (proj1 (Hs2 x Hx R0)).
+apply I.whole_correct.
 (* - sign is Xgt *)
-admit.
+assert (I.sign_large (fi' xi) <> Xund).
+now rewrite Hs1.
+clear Hs1. rename H into Hs1.
+assert (forall x, contains (I.convert xi) x -> forall v,
+  f x = Xreal (proj_fun v f (proj_val x)) /\
+  f' x = Xreal (proj_fun v f' (proj_val x)) /\
+  (0 <= proj_fun v f' (proj_val x))%R).
+intros a Ha v.
+destruct (Hs2 _ (Hf' _ _ Ha)) as (Ha1, Ha2).
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Ha) as (Ha3, Ha4).
+destruct (Ha4 v) as (Ha5, Ha6).
+split.
+exact Ha5.
+split.
+exact Ha6.
+rewrite Ha1 in Ha6.
+inversion Ha6.
+exact Ha2.
+clear Hs2. rename H into Hs2.
+apply I.meet_correct.
+(*   lower part *)
+case_eq (I.lower_bounded xi).
+intros H.
+destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
+clear H.
+assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
+rewrite Hxi, Hxl.
+apply contains_lower with x.
+now rewrite <- Hxl, <- Hxi.
+rewrite (proj1 (Hs2 _ Hx R0)).
+apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
+rewrite <- (proj1 (Hs2 _ Hl R0)).
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hxl.
+split ; apply Rle_refl.
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Hx) as (Hx1, _).
+eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
+apply (contains_connected (I.convert xi)).
+intros a Ha.
+simpl in Ha.
+destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
+split.
+generalize (Hd (Xreal a)).
+rewrite Ha2, Ha1.
+intro H.
+exact (H R0).
+exact Ha3.
+simpl.
+now rewrite <- Hxl.
+simpl.
+now rewrite <- Hx1.
+rewrite Hxi, Hx1, Hxl in Hx.
+exact (proj1 Hx).
+intros _.
+rewrite (proj1 (Hs2 x Hx R0)).
+apply I.whole_correct.
+(*   upper part *)
+case_eq (I.upper_bounded xi).
+intros H.
+destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
+clear H.
+assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
+rewrite Hxi, Hxu.
+apply contains_upper with x.
+now rewrite <- Hxu, <- Hxi.
+rewrite (proj1 (Hs2 _ Hx R0)).
+apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
+rewrite <- (proj1 (Hs2 _ Hu R0)).
+apply Hf.
+rewrite I.bnd_correct.
+rewrite Hxu.
+split ; apply Rle_refl.
+destruct (diff_refining_aux_0 _ _ _ _ _ Hd Hs1 (Hf _) (Hf' _) _ Hx) as (Hx1, _).
+eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
+apply (contains_connected (I.convert xi)).
+intros a Ha.
+simpl in Ha.
+destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
+split.
+generalize (Hd (Xreal a)).
+rewrite Ha2, Ha1.
+intro H.
+exact (H R0).
+exact Ha3.
+simpl.
+now rewrite <- Hx1.
+simpl.
+now rewrite <- Hxu.
+rewrite Hxi, Hx1, Hxu in Hx.
+exact (proj2 Hx).
+intros _.
+rewrite (proj1 (Hs2 x Hx R0)).
+apply I.whole_correct.
 (* - sign is Xund *)
-clear Hs.
+clear Hs1 Hs2.
 case_eq (I.bounded (fi' xi)) ; intro Hb.
 apply I.meet_correct.
 now apply Hf.
@@ -349,8 +554,9 @@ split ; apply Rle_refl.
 apply Hf.
 apply Hf'.
 exact Hx.
-destruct (I.bounded_correct _ Hb) as (l, (u, H)).
-rewrite H.
+destruct (I.bounded_correct _ Hb) as (Hbl, _).
+destruct (I.lower_bounded_correct _ Hbl) as (_, Hl).
+rewrite Hl.
 discriminate.
 now apply Hf.
 Qed.
@@ -626,9 +832,10 @@ exact H2.
 Qed.
 
 Inductive bound_proof :=
-  | Bproof : forall x xi, contains (I.convert xi) x -> bound_proof.
+  | Bproof : forall x xi, contains (I.convert xi) (Xreal x) -> bound_proof.
 
-Definition xreal_from_bp v := match v with Bproof x _ _ => x end.
+Definition real_from_bp v := match v with Bproof x _ _ => x end.
+Definition xreal_from_bp v := match v with Bproof x _ _ => Xreal x end.
 Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
 
 Lemma iterated_bnd_nth :
@@ -638,7 +845,7 @@ Lemma iterated_bnd_nth :
 intros.
 assert (contains (I.convert I.nai) (Xreal 0)).
 now rewrite I.nai_correct.
-pose (b := Bproof (Xreal R0) I.nai H).
+pose (b := Bproof R0 I.nai H).
 change (Xreal 0) with (xreal_from_bp b).
 change I.nai with (interval_from_bp b).
 do 2 rewrite map_nth.
@@ -682,7 +889,34 @@ Theorem eval_bnd_correct_ext :
     (fun x => nth n (eval_ext formula (x :: map xreal_from_bp bounds)) (Xreal R0))
     (fun b => nth n (eval_bnd prec formula (b :: map interval_from_bp bounds)) I.nai).
 unfold I.extension.
-intros.
+intros prec formula bounds n b [|x] H.
+unfold eval_bnd, eval_ext.
+do 2 rewrite rev_formula.
+generalize n. clear n.
+induction (rev formula).
+simpl.
+intros [|n].
+exact H.
+apply iterated_bnd_nth.
+intros [|n].
+rename b into c.
+case a ; intros ; simpl ;
+  [ case u ; [ apply I.neg_correct
+             | apply I.abs_correct
+             | apply I.inv_correct
+             | apply I.sqr_correct
+             | apply I.sqrt_correct
+             | apply I.cos_correct
+             | apply I.sin_correct
+             | apply I.tan_correct
+             | apply I.atan_correct ]
+  | case b ; [ apply I.add_correct
+             | apply I.sub_correct
+             | apply I.mul_correct
+             | apply I.div_correct ]
+  ] ; apply IHl.
+simpl.
+apply IHl.
 exact (eval_bnd_correct _ _ (Bproof x b H :: bounds) _).
 Qed.
 
@@ -789,7 +1023,7 @@ Module Algos := IntervalAlgos I.
 
 Definition eval_diff prec formula bounds n xi :=
   match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) formula
-    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) b)) bounds)) (I.nai, I.nai) with
+    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) bounds)) (I.nai, I.nai) with
   | (yi, yi') =>
     Algos.diff_refining prec xi yi yi'
       (fun b => nth n (eval_bnd prec formula (b :: bounds)) I.nai)
@@ -806,18 +1040,95 @@ set (fi := fun xi => nth n (eval_bnd prec formula (xi :: map interval_from_bp bo
 intros b x Hb.
 unfold eval_diff.
 set (ff' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) formula
-    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) b)) (map interval_from_bp bounds))) (I.nai, I.nai)).
+    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
 set (fi' := fun xi => snd (ff' xi)).
 match goal with |- context [match ?v with (yi, yi') => _ end] => replace v with (fi b, fi' b) end.
-(*
-set (f' := (fun x => snd (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula
-    ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map xreal_from_bp bounds))) (Xreal 0, Xnan)))).
-refine (Algos.diff_refining_correct prec f f' _ _ _ _ _ b x H).
+set (f' := fun x => snd (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula
+    ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan))).
+refine (Algos.diff_refining_correct prec f f' _ _ _ _ _ b x Hb).
 unfold f, fi.
 apply eval_bnd_correct_ext.
-admit.
-admit.
-*)
-Admitted.
+clear.
+intros xi x Hx.
+unfold f', fi', ff'.
+match goal with |- contains (I.convert (snd ?p1)) (snd (?p2)) =>
+  assert (contains (I.convert (fst p1)) (fst p2) /\ contains (I.convert (snd p1)) (snd p2)) end.
+do 2 rewrite rev_formula.
+generalize n. clear -Hx.
+induction (rev formula).
+intros [|n].
+simpl.
+split.
+exact Hx.
+apply I.mask_correct.
+exact (I.fromZ_correct _).
+exact Hx.
+simpl.
+generalize n. clear -Hx.
+induction bounds.
+intros [|n] ; simpl ; rewrite I.nai_correct ; do 2 split.
+intros [|n].
+simpl.
+split.
+now destruct a.
+apply I.mask_correct.
+exact (I.fromZ_correct _).
+exact Hx.
+simpl.
+apply IHbounds.
+case a ; intros ; simpl ;
+  destruct n0 ; try destruct n1 ; try apply IHl ;
+  repeat match goal with |- context [match ?p with (v, d) => _ end] => rewrite (surjective_pairing p) end ;
+  first [ case u | case b ] ;
+  split ;
+  repeat first
+    [ refine (I.neg_correct _ _ _)
+    | refine (I.abs_correct _ _ _)
+    | refine (I.inv_correct _ _ _ _)
+    | refine (I.sqr_correct _ _ _ _)
+    | refine (I.sqrt_correct _ _ _ _)
+    | refine (I.cos_correct _ _ _ _)
+    | refine (I.sin_correct _ _ _ _)
+    | refine (I.tan_correct _ _ _ _)
+    | refine (I.atan_correct _ _ _ _)
+    | refine (I.add_correct _ _ _ _ _ _ _)
+    | refine (I.sub_correct _ _ _ _ _ _ _)
+    | refine (I.mul_correct _ _ _ _ _ _ _)
+    | refine (I.div_correct _ _ _ _ _ _ _)
+    | refine (I.add_correct _ _ _ (Xreal R1) _ _ _)
+    | refine (I.fromZ_correct _) ] ;
+  try first
+    [ refine (proj1 (IHl _))
+    | refine (proj2 (IHl _)) ].
+exact (proj2 H).
+unfold f, f'.
+replace (map xreal_from_bp bounds) with (map (fun v => Xreal v) (map real_from_bp bounds)).
+apply eval_diff_correct.
+rewrite map_map.
+apply map_ext.
+now intros (v, vi, pi).
+unfold fi, fi', ff', eval_bnd.
+match goal with |- context [snd ?p] => pattern p at 2 ; rewrite (surjective_pairing p) end.
+apply f_equal2 ; [ idtac | apply refl_equal ].
+do 2 rewrite rev_formula.
+generalize n. clear.
+induction (rev formula).
+intros [|n].
+apply refl_equal.
+simpl.
+generalize n. clear.
+induction bounds.
+now intros [|n].
+intros [|n].
+apply refl_equal.
+simpl.
+apply IHbounds.
+case a ; intros ; simpl ;
+  destruct n0 ; try destruct n1 ; try apply IHl ;
+  repeat match goal with |- context [match ?p with (v, d) => _ end] => rewrite (surjective_pairing p) end ;
+  repeat rewrite <- IHl ;
+  try case u ; try case b0 ;
+  try apply refl_equal.
+Qed.
 
 End Valuator.
