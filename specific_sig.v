@@ -3,7 +3,7 @@ Require Import definitions.
 Require Import generic.
 Require Import generic_proof.
 
-Inductive signed_number (A : Set) :=
+Inductive signed_number (A : Type) :=
   | Mzero : signed_number A
   | Mnumber (s : bool) (m : A) : signed_number A.
 
@@ -14,9 +14,9 @@ Module Type FloatCarrier.
 
 Parameter radix : positive.
 Parameter radix_correct : (1 < Zpos radix)%Z.
-Parameter smantissa_type : Set.
-Parameter mantissa_type : Set.
-Parameter exponent_type : Set.
+Parameter smantissa_type : Type.
+Parameter mantissa_type : Type.
+Parameter exponent_type : Type.
 Parameter MtoP : mantissa_type -> positive.
 Parameter PtoM : positive -> mantissa_type.
 Parameter MtoZ : smantissa_type -> Z.

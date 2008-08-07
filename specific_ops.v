@@ -8,7 +8,7 @@ Require Import generic_proof.
 Require Import float_sig.
 Require Import specific_sig.
 
-Inductive s_float (smantissa_type exponent_type : Set) : Set :=
+Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
   | Float : smantissa_type -> exponent_type -> s_float smantissa_type exponent_type.
 

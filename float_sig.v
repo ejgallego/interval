@@ -11,11 +11,11 @@ Parameter radix : positive.
 Parameter even_radix : bool.
 Parameter radix_correct : (1 < Zpos radix)%Z.
 Parameter even_radix_correct : match radix with xO _ => true | _ => false end = even_radix.
-Parameter type : Set.
+Parameter type : Type.
 Parameter toF : type -> float radix.
 
-Parameter precision : Set.
-Parameter sfactor : Set.
+Parameter precision : Type.
+Parameter sfactor : Type.
 Parameter prec : precision -> positive.
 Parameter ZtoS : Z -> sfactor.
 Parameter PtoP : positive -> precision.

@@ -1,4 +1,5 @@
 Require Import Reals.
+Require Import Bool.
 Require Import missing.
 
 (*
@@ -6,13 +7,29 @@ Require Import missing.
  *)
 
 Definition Rcompare (x y : R) : comparison.
-intros.
+intros x y.
 destruct (total_order_T x y) as [[H | H0] | H].
 exact Lt.
 exact Eq.
 exact Gt.
 Defined.
 
+Inductive Rcompare_prop (x y : R) : comparison -> Prop :=
+  | Rcompare_Lt : (x < y)%R -> Rcompare_prop x y Lt
+  | Rcompare_Eq : (x = y)%R -> Rcompare_prop x y Eq
+  | Rcompare_Gt : (x > y)%R -> Rcompare_prop x y Gt.
+
+Lemma Rcompare_spec :
+  forall x y,
+  Rcompare_prop x y (Rcompare x y).
+intros x y.
+unfold Rcompare.
+destruct (total_order_T x y) as [[H|H]|H] ; now constructor.
+Qed.
+
+Opaque Rcompare.
+
+(*
 Lemma Rcompare_correct :
   forall x y,
   match Rcompare x y with
@@ -20,50 +37,104 @@ Lemma Rcompare_correct :
   | Eq => x = y
   | Gt => Rlt y x
   end.
-intros.
+intros x y.
 unfold Rcompare.
 destruct (total_order_T x y) as [[H|H]|H] ; exact H.
 Qed.
 
 Opaque Rcompare.
+*)
 
 Lemma Rcompare_correct_lt :
   forall x y,
   Rlt x y -> Rcompare x y = Lt.
 intros x y H.
-generalize (Rcompare_correct x y).
-case (Rcompare x y) ; intros.
-elim Rlt_not_eq with (1 := H) (2 := H0).
+destruct (Rcompare_spec x y).
 apply refl_equal.
-elim Rlt_asym with (1 := H) (2 := H0).
+rewrite H0 in H.
+elim (Rlt_irrefl _ H).
+elim (Rlt_not_le _ _ H).
+now left.
 Qed.
 
 Lemma Rcompare_correct_gt :
   forall x y,
   Rlt y x -> Rcompare x y = Gt.
 intros x y H.
-generalize (Rcompare_correct x y).
-case (Rcompare x y) ; intros.
-elim Rgt_not_eq with (1 := H) (2 := H0).
-elim Rlt_asym with (1 := H) (2 := H0).
+destruct (Rcompare_spec x y).
+elim (Rlt_not_le _ _ H).
+now left.
+rewrite H0 in H.
+elim (Rlt_irrefl _ H).
 apply refl_equal.
 Qed.
 
 Lemma Rcompare_refl :
   forall x, Rcompare x x = Eq.
 intros x.
-generalize (Rcompare_correct x x).
-case (Rcompare x x) ; intros.
+destruct (Rcompare_spec x x).
+elim (Rlt_irrefl _ H).
 apply refl_equal.
-elim Rlt_irrefl with (1 := H).
-elim Rlt_irrefl with (1 := H).
+elim (Rlt_irrefl _ H).
 Qed.
 
+Definition is_eq x y :=
+  match Rcompare x y with Eq => true | _ => false end.
 Definition is_le x y :=
   match Rcompare x y with Gt => false | _ => true end.
 Definition is_lt x y :=
   match Rcompare x y with Lt => true | _ => false end.
 
+Inductive is_eq_prop (x y : R) : bool -> Prop :=
+  | is_eq_true : (x = y)%R -> is_eq_prop x y true
+  | is_eq_false : (x <> y)%R -> is_eq_prop x y false.
+
+Inductive is_le_prop (x y : R) : bool -> Prop :=
+  | is_le_true : (x <= y)%R -> is_le_prop x y true
+  | is_le_false : (y < x)%R -> is_le_prop x y false.
+
+Inductive is_lt_prop (x y : R) : bool -> Prop :=
+  | is_lt_true : (x < y)%R -> is_lt_prop x y true
+  | is_lt_false : (y <= x)%R -> is_lt_prop x y false.
+
+Lemma is_eq_spec :
+  forall x y,
+  is_eq_prop x y (is_eq x y).
+intros.
+unfold is_eq.
+destruct (Rcompare_spec x y) ; constructor.
+now apply Rlt_not_eq.
+exact H.
+now apply Rgt_not_eq.
+Qed.
+
+Lemma is_le_spec :
+  forall x y,
+  is_le_prop x y (is_le x y).
+intros.
+unfold is_le.
+destruct (Rcompare_spec x y) ; constructor.
+now left.
+now right.
+exact H.
+Qed.
+
+Lemma is_lt_spec :
+  forall x y,
+  is_lt_prop x y (is_lt x y).
+intros.
+unfold is_lt.
+destruct (Rcompare_spec x y) ; constructor.
+exact H.
+now right.
+now left.
+Qed.
+
+Opaque is_eq.
+Opaque is_le.
+Opaque is_lt.
+
+(*
 Lemma is_le_correct :
   forall x y,
   if is_le x y then Rle x y else Rlt y x.
@@ -83,9 +154,40 @@ case (Rcompare x y) ; intros ; [ right | idtac | left ] ; try exact H.
 apply sym_eq.
 exact H.
 Qed.
+*)
 
 Definition Rsign x := Rcompare x 0.
 
+Definition is_positive x := is_lt 0 x.
+Definition is_zero x := is_eq x 0.
+Definition is_negative x := is_lt x 0.
+
+Lemma is_zero_spec :
+  forall x,
+  is_eq_prop x 0 (is_zero x).
+intros.
+apply is_eq_spec.
+Qed.
+
+Lemma is_positive_spec :
+  forall x,
+  is_lt_prop 0 x (is_positive x).
+intros.
+apply is_lt_spec.
+Qed.
+
+Lemma is_negative_spec :
+  forall x,
+  is_lt_prop x 0 (is_negative x).
+intros.
+apply is_lt_spec.
+Qed.
+
+Opaque is_zero.
+Opaque is_positive.
+Opaque is_negative.
+
+(*
 Definition is_positive x :=
   match Rsign x with Gt => true | _ => false end.
 Definition is_zero x :=
@@ -159,7 +261,7 @@ intro.
 elim (H H0).
 split.
 Qed.
-
+*)
 
 (*
  * Extended reals
@@ -459,24 +561,24 @@ Qed.
 Lemma Xinv_Xmul_distr :
   forall x y,
   Xinv (Xmul x y) = Xmul (Xinv x) (Xinv y).
-intros [|x] [|y] ; try split.
-simpl. case (is_zero x) ; now split.
-simpl.
-generalize (is_zero_correct x).
-case (is_zero x) ; intro Hx.
-rewrite Hx.
-rewrite Rmult_0_l.
-rewrite is_zero_true ; now split.
-generalize (is_zero_correct y).
-case (is_zero y) ; intro Hy.
-rewrite Hy.
-rewrite Rmult_0_r.
-rewrite is_zero_true ; now split.
-rewrite is_zero_false.
-simpl.
-apply f_equal.
-apply Rinv_mult_distr ; assumption.
-apply prod_neq_R0 ; assumption.
+intros [|x] [|y] ; try split ; simpl.
+now destruct (is_zero_spec x).
+destruct (is_zero_spec x).
+destruct (is_zero_spec (x * y)).
+apply refl_equal.
+elim H0.
+rewrite H.
+apply Rmult_0_l.
+destruct (is_zero_spec y).
+destruct (is_zero_spec (x * y)).
+apply refl_equal.
+elim H1.
+rewrite H0.
+apply Rmult_0_r.
+destruct (is_zero_spec (x * y)).
+elim (prod_neq_R0 _ _ H H0 H1).
+apply (f_equal Xreal).
+now apply Rinv_mult_distr.
 Qed.
 
 Definition Xmask x y :=
@@ -557,13 +659,11 @@ Lemma Xmul_Xinv :
   Xmul x (Xinv x) = Xmask (Xreal 1) (Xinv x).
 intros [|x] ; try split.
 simpl.
-generalize (is_zero_correct x).
-destruct (is_zero x) ; intro Hx.
+destruct (is_zero_spec x).
 apply refl_equal.
 simpl.
 apply f_equal.
-apply Rinv_r.
-exact Hx.
+now apply Rinv_r.
 Qed.
 
 Lemma Xadd_Xneg :

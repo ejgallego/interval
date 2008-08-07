@@ -387,15 +387,12 @@ repeat rewrite <- FtoR_neg.
 generalize (FtoR radix false p0 z0).
 generalize (FtoR radix false p z).
 intros.
-generalize (Rcompare_correct r0 r).
-case (Rcompare r0 r) ; intro H.
-rewrite H.
-rewrite Rcompare_refl.
-apply refl_equal.
+destruct (Rcompare_spec r0 r).
 rewrite Rcompare_correct_lt.
 apply refl_equal.
-apply Ropp_lt_contravar.
-exact H.
+now apply Ropp_lt_contravar.
+rewrite H.
+now rewrite Rcompare_refl.
 rewrite Rcompare_correct_gt.
 apply refl_equal.
 apply Ropp_lt_contravar.
@@ -1133,23 +1130,22 @@ Qed.
 
 Lemma is_zero_correct_zero :
   is_zero 0 = true.
-unfold is_zero, Rsign.
-rewrite Rcompare_refl.
+destruct (is_zero_spec 0).
 apply refl_equal.
+now elim H.
 Qed.
 
 Lemma is_zero_correct_float :
   forall radix s m e,
   is_zero (FtoR radix s m e) = false.
-intros.
-unfold is_zero, Rsign.
-case s ; simpl.
-rewrite Rcompare_correct_lt.
-apply refl_equal.
+intros radix s m e.
+destruct (is_zero_spec (FtoR radix s m e)).
+destruct s.
+refine (False_ind _ (Rlt_not_eq _ _ _ H)).
 apply FtoR_Rneg.
-rewrite Rcompare_correct_gt.
-apply refl_equal.
+refine (False_ind _ (Rgt_not_eq _ _ _ H)).
 apply FtoR_Rpos.
+apply refl_equal.
 Qed.
 
 Lemma count_digits_correct :

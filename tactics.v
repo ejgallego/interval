@@ -370,6 +370,35 @@ refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
 exact (V.eval_diff_correct_ext _ _ _ _).
 Qed.
 
+(*
+Lemma interval_helper_bisection_first_order :
+  forall bounds output formula prec depth n,
+  match bounds with
+  | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+    V.Algos.bisect_1d (fun b => V.eval_first_order_nth prec formula (map V.interval_from_bp tail) n b) l u output depth = true
+  | _ => False
+  end ->
+  contains (I.convert output) (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
+intro.
+case bounds.
+intros.
+elim H.
+intro.
+case b.
+intros x xi.
+case xi.
+intros.
+elim H.
+intros.
+clear bounds b xi.
+pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
+pose (fi := fun b => V.eval_first_order_nth prec formula (map V.interval_from_bp l0) n b).
+change (contains (I.convert output) (f (Xreal x))).
+refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
+exact (V.eval_first_order_correct_ext _ _ _ _).
+Qed.
+*)
+
 Ltac do_interval vars prec depth eval_tac check_tac :=
   match goal with
   | |- contains (I.convert _) (nth _ (V.eval_ext _ (map Xreal _)) (Xreal 0)) => idtac

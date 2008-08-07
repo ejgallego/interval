@@ -224,6 +224,14 @@ apply refl_equal.
 Qed.
 *)
 
+Definition Xderive_pt f x y' :=
+  match x, y', f x with
+  | Xreal r, Xreal d, Xreal _ => forall v, derivable_pt_lim (proj_fun v f) r d
+  | _, Xnan, _ => True
+  | _, _, _ => False
+  end.
+
+(*
 Definition Xderive f f' :=
   forall x,
   match x, f' x, f x with
@@ -231,70 +239,136 @@ Definition Xderive f f' :=
   | _, Xnan, _ => True
   | _, _, _ => False
   end.
+*)
+
+Definition Xderive f f' := forall x, Xderive_pt f x (f' x).
+
+Ltac xtotal_get_spec1 f :=
+  match f with
+  | is_eq => is_eq_spec
+  | is_le => is_le_spec
+  | is_lt => is_lt_spec
+  | is_zero => is_zero_spec
+  | is_positive => is_positive_spec
+  | is_negative => is_negative_spec
+  end.
+
+Ltac xtotal_destruct_xreal v :=
+  match v with
+  | context [?f ?x] =>
+    let r := fresh "r" in
+    let X := fresh "X" in
+    case_eq v ; [ intros X | intros r X ] ; try rewrite X in *
+  | _ =>
+    let r := fresh "r" in
+    destruct v as [|r]
+  end.
+
+(*
+Ltac xtotal_destruct_xreal_hyp v H :=
+  match v with
+  | context [?f ?x] =>
+    let r := fresh "r" in
+    let X := fresh "X" in
+    case_eq v ; [ intros X | intros r X ] ; rewrite X in H
+  | _ =>
+    let r := fresh "r" in
+    destruct v as [|r]
+  end.
+*)
 
 Ltac xtotal_aux :=
-  let r := fresh "r" in
-  let X := fresh "X" in
+  trivial ;
+  try discriminate ;
   match goal with
   | H: False |- _ => elim H
+  (*
+  | |- ?v = ?v => apply refl_equal
   | |- True => exact I
   | H: Xreal _ = Xnan |- _ => discriminate H
   | H: Xnan = Xreal _ |- _ => discriminate H
   | H: true = false |- _ => discriminate H
   | H: false = true |- _ => discriminate H
+  *)
   | H: ?v = ?v |- _ => clear H
   | H: Xreal _ = Xreal _ |- _ =>
     injection H ; clear H ; intro H
-  | |- match ?v with Xnan => _ | Xreal _ => _ end =>
-    case_eq v ; [ intros X | intros r X ]
-  | H: match ?v with Xnan => Xnan | Xreal _ => _ end = Xreal _ |- _ =>
-    case_eq v ; [ intros X ; rewrite X in H ; discriminate H |
-    intros r X ; rewrite X in H ]
-  | H: match ?v with Xnan => Xnan | Xreal _ => _ end = Xnan |- _ =>
-    case_eq v ; [ intros X ; clear H |
-    intros r X ; rewrite X in H ]
-  | H: match ?v with true => Xnan | false => Xreal _ end = Xreal _ |- _ =>
-    case_eq v ; intro X ; rewrite X in H ; [ discriminate H | idtac ]
+  | H: context [match ?v with Xnan => _ | Xreal _ => _ end] |- _ =>
+    xtotal_destruct_xreal v ; try discriminate H ; trivial
+  (*| H: match ?v with true => Xnan | false => Xreal _ end = Xreal _ |- _ =>
+    (*case_eq v ; intro X ; rewrite X in H ; [ discriminate H | idtac ]*)
+    xtotal_destruct_xreal v ; [ discriminate H | idtac ]
   | H: match ?v with true => Xnan | false => Xreal _ end = Xnan |- _ =>
-    case_eq v ; intro X ; rewrite X in H ; [ idtac | discriminate H ]
-  | H: match ?v with Xnan => _ | Xreal _ => False end |- _ =>
-    case_eq v ; [ intros X ; rewrite X in H |
-    intros r X ; rewrite X in H ; elim H ]
-  | H: match ?v with Xnan => False | Xreal _ => _ end |- _ =>
-    case_eq v ; [ intros X ; rewrite X in H ; elim H |
-    intros r X ; rewrite X in H ]
+    (*case_eq v ; intro X ; rewrite X in H ; [ idtac | discriminate H ]*)
+    xtotal_destruct_xreal v ; [ idtac | discriminate H ]*)
   | H1 : Xderive ?f1 ?f2 , H2 : context [?f2 ?v] |- _ =>
-    generalize (H1 v) ; clear H1 ; intro H1
+    generalize (H1 v) ; clear H1 ; intro H1 ; unfold Xderive_pt in H1
   | H: ?v = Xreal _ |- _ => rewrite H in *
   | H: ?v = Xnan |- _ => rewrite H in *
   | v: R, H: ?v = _ |- _ =>
     try rewrite H in * ; clear H v
   | v: R, H: _ = ?v |- _ =>
     try rewrite <- H in * ; clear H v
+  | H: context [?f ?v : bool] |- _ =>
+    let s := xtotal_get_spec1 f in
+    let Y := fresh "Y" in
+    destruct (s v) as [Y|Y]
+  | H: match ?v with true => Xnan | false => Xreal _ end = _ |- _ =>
+    let X := fresh "X" in
+    case_eq v ; intro X ; rewrite X in H ; try discriminate H
+  | |- match ?v with Xnan => _ | Xreal _ => _ end =>
+    xtotal_destruct_xreal v
+  | |- context [?f ?v : bool] =>
+    let s := xtotal_get_spec1 f in
+    let Y := fresh "Y" in
+    destruct (s v) as [Y|Y]
   end.
 
 Ltac xtotal :=
-  unfold Xtan, Xcos, Xsin, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xmask in * ;
+  unfold Xderive_pt, Xtan, Xcos, Xsin, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xmask in * ;
   repeat xtotal_aux.
+
+Theorem Xderive_pt_compose :
+  forall f f' g g' x,
+  Xderive_pt f x f' -> Xderive_pt g (f x) g' ->
+  Xderive_pt (fun x => g (f x)) x (Xmul f' g').
+intros f f' g g' x Hf Hg.
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp (proj_fun v g) (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X1 Hf).
+intros x (w, Hw).
+unfold comp, proj_fun.
+now rewrite Hw.
+rewrite (Rmult_comm r3).
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun at 2.
+rewrite X1.
+apply Hg.
+Qed.
 
 Theorem Xderive_compose :
   forall f f' g g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => g (f x)) (fun x => Xmul (f' x) (g' (f x))).
 intros f f' g g' Hf Hg x.
+now apply Xderive_pt_compose.
+Qed.
+
+Theorem Xderive_pt_add :
+  forall f g f' g' x,
+  Xderive_pt f x f' -> Xderive_pt g x g' ->
+  Xderive_pt (fun x => Xadd (f x) (g x)) x (Xadd f' g').
+intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
-apply derivable_pt_lim_eq_locally with (comp (proj_fun v g) (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X4 Hf).
-intros x (w, Hw).
-unfold comp, proj_fun.
-now rewrite Hw.
-rewrite (Rmult_comm r2).
-apply derivable_pt_lim_comp.
-apply Hf.
-unfold proj_fun at 2.
-rewrite X4.
-apply Hg.
+apply derivable_pt_lim_eq_locally with (plus_fct (proj_fun v f) (proj_fun v g)).
+apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X0 X Hf Hg).
+intros x ((w1, Hw1), (w2, Hw2)).
+unfold plus_fct, proj_fun.
+now rewrite Hw1, Hw2.
+now apply derivable_pt_lim_plus.
 Qed.
 
 Theorem Xderive_add :
@@ -302,14 +376,22 @@ Theorem Xderive_add :
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xadd (f x) (g x)) (fun x => Xadd (f' x) (g' x)).
 intros f g f' g' Hf Hg x.
+now apply Xderive_pt_add.
+Qed.
+
+Theorem Xderive_pt_sub :
+  forall f g f' g' x,
+  Xderive_pt f x f' -> Xderive_pt g x g' ->
+  Xderive_pt (fun x => Xsub (f x) (g x)) x (Xsub f' g').
+intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
-apply derivable_pt_lim_eq_locally with (plus_fct (proj_fun v f) (proj_fun v g)).
-apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X7 X6 Hf Hg).
+apply derivable_pt_lim_eq_locally with (minus_fct (proj_fun v f) (proj_fun v g)).
+apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X0 X Hf Hg).
 intros x ((w1, Hw1), (w2, Hw2)).
-unfold plus_fct, proj_fun.
+unfold minus_fct, proj_fun.
 now rewrite Hw1, Hw2.
-now apply derivable_pt_lim_plus.
+now apply derivable_pt_lim_minus.
 Qed.
 
 Theorem Xderive_sub :
@@ -317,14 +399,29 @@ Theorem Xderive_sub :
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xsub (f x) (g x)) (fun x => Xsub (f' x) (g' x)).
 intros f g f' g' Hf Hg x.
+now apply Xderive_pt_sub.
+Qed.
+
+Theorem Xderive_pt_mul :
+  forall f g f' g' x,
+  Xderive_pt f x f' -> Xderive_pt g x g' ->
+  Xderive_pt (fun x => Xmul (f x) (g x)) x (Xadd (Xmul f' (g x)) (Xmul g' (f x))).
+intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
-apply derivable_pt_lim_eq_locally with (minus_fct (proj_fun v f) (proj_fun v g)).
-apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X7 X6 Hf Hg).
+apply derivable_pt_lim_eq_locally with (mult_fct (proj_fun v f) (proj_fun v g)).
+apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X0 X Hf Hg).
 intros x ((w1, Hw1), (w2, Hw2)).
-unfold minus_fct, proj_fun.
+unfold mult_fct, proj_fun.
 now rewrite Hw1, Hw2.
-now apply derivable_pt_lim_minus.
+replace r1 with (proj_fun v g r).
+replace r3 with (proj_fun v f r).
+rewrite (Rmult_comm r0).
+now apply derivable_pt_lim_mult.
+unfold proj_fun.
+now rewrite X0.
+unfold proj_fun.
+now rewrite X.
 Qed.
 
 Theorem Xderive_mul :
@@ -332,21 +429,41 @@ Theorem Xderive_mul :
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xmul (f x) (g x)) (fun x => Xadd (Xmul (f' x) (g x)) (Xmul (g' x) (f x))).
 intros f g f' g' Hf Hg x.
+now apply Xderive_pt_mul.
+Qed.
+
+Theorem Xderive_pt_div :
+  forall f g f' g' x,
+  Xderive_pt f x f' -> Xderive_pt g x g' ->
+  Xderive_pt (fun x => Xdiv (f x) (g x)) x (Xdiv (Xsub (Xmul f' (g x)) (Xmul g' (f x))) (Xmul (g x) (g x))).
+intros f g f' g' x Hf Hg.
 xtotal.
+elim Y.
+apply Rmult_0_l.
 intro v.
-apply derivable_pt_lim_eq_locally with (mult_fct (proj_fun v f) (proj_fun v g)).
-apply locally_true_imp with (2 := derivable_imp_defined_any_2 _ _ _ _ _ _ _ X10 X9 Hf Hg).
-intros x ((w1, Hw1), (w2, Hw2)).
-unfold mult_fct, proj_fun.
-now rewrite Hw1, Hw2.
-replace r3 with (proj_fun v g r).
-replace r2 with (proj_fun v f r).
-rewrite (Rmult_comm r6).
-now apply derivable_pt_lim_mult.
+apply derivable_pt_lim_eq_locally with (div_fct (proj_fun v f) (proj_fun v g)).
+generalize (derivable_imp_defined_any _ _ _ _ X0 Hf).
+generalize (derivable_imp_defined_ne _ _ _ _ _ X Y0 Hg).
+intros H2 H1.
+apply locally_true_imp with (2 := locally_true_and _ _ _ H1 H2).
+intros x ((w1, Hw1), (w2, (Hw2a, Hw2b))).
+unfold div_fct, proj_fun.
+rewrite Hw1, Hw2b.
+destruct (is_zero_spec w2).
+now elim Hw2a.
+apply refl_equal.
+replace r1 with (proj_fun v g r).
+replace r3 with (proj_fun v f r).
+fold (Rsqr (proj_fun v g r)).
+apply derivable_pt_lim_div.
+apply Hf.
+apply Hg.
 unfold proj_fun.
-now rewrite X10.
+now rewrite X.
 unfold proj_fun.
-now rewrite X9.
+now rewrite X0.
+unfold proj_fun.
+now rewrite X.
 Qed.
 
 Theorem Xderive_div :
@@ -354,38 +471,25 @@ Theorem Xderive_div :
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xdiv (f x) (g x)) (fun x => Xdiv (Xsub (Xmul (f' x) (g x)) (Xmul (g' x) (f x))) (Xmul (g x) (g x))).
 intros f g f' g' Hf Hg x.
-xtotal.
-generalize (is_zero_eq _ X14).
-generalize (is_zero_ne _ X13).
-intros.
-elim H.
-rewrite H0.
-apply Rmult_0_r.
-intro v.
-apply derivable_pt_lim_eq_locally with (div_fct (proj_fun v f) (proj_fun v g)).
-generalize (derivable_imp_defined_any _ _ _ _ X15 Hf).
-generalize (derivable_imp_defined_ne _ _ _ _ _ X12 (is_zero_ne _ X14) Hg).
-intros H2 H1.
-apply locally_true_imp with (2 := locally_true_and _ _ _ H1 H2).
-intros x ((w1, Hw1), (w2, (Hw2a, Hw2b))).
-unfold div_fct, proj_fun.
-rewrite Hw1, Hw2b.
-now rewrite (is_zero_false _ Hw2a).
-replace r3 with (proj_fun v g r).
-replace r2 with (proj_fun v f r).
-fold (Rsqr (proj_fun v g r)).
-apply derivable_pt_lim_div.
-apply Hf.
-apply Hg.
-unfold proj_fun.
-rewrite X12.
-exact (is_zero_ne _ X14).
-unfold proj_fun.
-now rewrite X15.
-unfold proj_fun.
-now rewrite X12.
+now apply Xderive_pt_div.
 Qed.
 
+Theorem Xderive_pt_neg :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xneg (f x)) x (Xneg f').
+intros f f' x Hf.
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (opp_fct (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
+intros x (w, Hw).
+unfold opp_fct, proj_fun.
+now rewrite Hw.
+now apply derivable_pt_lim_opp.
+Qed.
+
+(*
 Theorem Xderive_neg :
   forall f f',
   Xderive f f' ->
@@ -400,87 +504,80 @@ unfold opp_fct, proj_fun.
 now rewrite Hw.
 now apply derivable_pt_lim_opp.
 Qed.
+*)
 
-Theorem Xderive_inv :
-  forall f f',
-  Xderive f f' ->
-  Xderive (fun x => Xinv (f x)) (fun x => Xneg (Xdiv (f' x) (Xsqr (f x)))).
-intros f f' Hf x.
+Theorem Xderive_pt_inv :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xinv (f x)) x (Xneg (Xdiv f' (Xsqr (f x)))).
+intros f f' x Hf.
 xtotal.
-generalize (is_zero_eq _ X8).
-generalize (is_zero_ne _ X7).
-intros.
-elim H.
-rewrite H0.
-apply Rmult_0_r.
+elim Y.
+apply Rmult_0_l.
 intro v.
 apply derivable_pt_lim_eq_locally with (inv_fct (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_ne _ _ _ _ _ X6 (is_zero_ne _ X8) Hf).
+apply locally_true_imp with (2 := derivable_imp_defined_ne _ _ _ _ _ X Y0 Hf).
 intros x (w, (Hw1, Hw2)).
 unfold inv_fct, proj_fun.
 rewrite Hw2.
-now rewrite (is_zero_false _ Hw1).
+destruct (is_zero_spec w).
+now elim Hw1.
+apply refl_equal.
 apply derivable_pt_lim_eq with (div_fct (fct_cte 1) (proj_fun v f)).
 intro x.
 unfold div_fct, fct_cte, Rdiv.
 apply Rmult_1_l.
-replace (- (r4 / (r2 * r2)))%R with ((0 * proj_fun v f r - r4 * fct_cte 1 r) / Rsqr (proj_fun v f r))%R.
+replace (- (r0 / (r1 * r1)))%R with ((0 * proj_fun v f r - r0 * fct_cte 1 r) / Rsqr (proj_fun v f r))%R.
 apply (derivable_pt_lim_div (fct_cte 1)).
 apply derivable_pt_lim_const.
 apply Hf.
 unfold proj_fun.
-rewrite X6.
-exact (is_zero_ne _ X8).
+now rewrite X.
 unfold proj_fun, fct_cte, Rsqr.
-rewrite X6.
-field.
-exact (is_zero_ne _ X8).
+rewrite X.
+now field.
 Qed.
 
-Theorem Xderive_sqrt :
-  forall f f',
-  Xderive f f' ->
-  Xderive (fun x => Xsqrt (f x)) (fun x => Xdiv (f' x) (Xadd (Xsqrt (f x)) (Xsqrt (f x)))).
-intros f f' Hf x.
+Theorem Xderive_pt_sqrt :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xsqrt (f x)) x (Xdiv f' (Xadd (Xsqrt (f x)) (Xsqrt (f x)))).
+intros f f' x Hf.
 xtotal.
-rewrite X7 in X9.
-discriminate X9.
 intro v.
-assert (Hx: (0 < r2)%R).
-destruct (total_order_T R0 r2) as [[H|H]|H].
+assert (Hx: (0 < r1)%R).
+destruct Y.
 exact H.
-elim (is_zero_ne _ X8).
-rewrite <- H, sqrt_0, Rplus_0_l.
-apply refl_equal.
-elim Rgt_not_le with (1 := H).
-generalize (is_negative_correct r2).
-now rewrite X9.
+elim Y0.
+now rewrite <- H, sqrt_0, Rplus_0_l.
 apply derivable_pt_lim_eq_locally with (comp sqrt (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ R0 X6 Hx Hf).
+apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ R0 X Hx Hf).
 intros x (w, (Hw1, Hw2)).
 unfold comp, proj_fun.
 rewrite Hw2.
-unfold is_negative, Rsign.
-now rewrite (Rcompare_correct_gt _ _ Hw1).
+destruct (is_negative_spec w).
+elim (Rlt_not_le _ _ Hw1).
+now left.
+apply refl_equal.
 unfold Rdiv.
 rewrite Rmult_comm.
 apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
-rewrite X6.
-replace (sqrt r2 + sqrt r2)%R with (2 * sqrt r2)%R by ring.
+rewrite X.
+replace (sqrt r1 + sqrt r1)%R with (2 * sqrt r1)%R by ring.
 now apply derivable_pt_lim_sqrt.
 Qed.
 
-Theorem Xderive_sin :
-  forall f f',
-  Xderive f f' ->
-  Xderive (fun x => Xsin (f x)) (fun x => Xmul (f' x) (Xcos (f x))).
-intros f f' Hf x.
+Theorem Xderive_pt_sin :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xsin (f x)) x (Xmul f' (Xcos (f x))).
+intros f f' x Hf.
 xtotal.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp sin (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X5 Hf).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
 intros x (w, Hw).
 unfold comp, proj_fun.
 now rewrite Hw.
@@ -488,19 +585,19 @@ rewrite Rmult_comm.
 apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
-rewrite X5.
+rewrite X.
 apply derivable_pt_lim_sin.
 Qed.
 
-Theorem Xderive_cos :
-  forall f f',
-  Xderive f f' ->
-  Xderive (fun x => Xcos (f x)) (fun x => Xmul (f' x) (Xneg (Xsin (f x)))).
-intros f f' Hf x.
+Theorem Xderive_pt_cos :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xcos (f x)) x (Xmul f' (Xneg (Xsin (f x)))).
+intros f f' x Hf.
 xtotal.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp cos (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X6 Hf).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
 intros x (w, Hw).
 unfold comp, proj_fun.
 now rewrite Hw.
@@ -508,47 +605,46 @@ rewrite Rmult_comm.
 apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
-rewrite X6.
+rewrite X.
 apply derivable_pt_lim_cos.
 Qed.
 
-Theorem Xderive_tan :
-  forall f f',
-  Xderive f f' ->
-  Xderive (fun x => Xtan (f x)) (fun x => Xmul (f' x) (Xadd (Xreal 1) (Xsqr (Xtan (f x))))).
-intros f f' Hf x.
+Theorem Xderive_pt_tan :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xtan (f x)) x (Xmul f' (Xadd (Xreal 1) (Xsqr (Xtan (f x))))).
+intros f f' x Hf.
 xtotal.
-rewrite X14 in X15.
-discriminate X15.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp tan (proj_fun v f)).
 assert (continuity_pt (comp cos (proj_fun v f)) r).
 apply derivable_continuous_pt.
-exists (- sin (proj_fun v f r) * r6)%R.
+exists (- sin (proj_fun v f r) * r0)%R.
 unfold derivable_pt_abs.
 apply derivable_pt_lim_comp.
 apply Hf.
 apply derivable_pt_lim_cos.
-replace (cos r4) with (comp cos (proj_fun v f) r) in X14.
-generalize (derivable_imp_defined_any _ _ _ _ X13 Hf).
-generalize (continuity_pt_ne _ _ R0 (is_zero_ne _ X14) H).
+replace (cos r1) with (comp cos (proj_fun v f) r) in Y.
+generalize (derivable_imp_defined_any _ _ _ _ X Hf).
+generalize (continuity_pt_ne _ _ R0 Y H).
 intros H2 H1.
 apply locally_true_imp with (2 := locally_true_and _ _ _ H1 H2).
 unfold comp, proj_fun.
 intros x ((w, Hw1), Hw2).
 rewrite Hw1.
 rewrite Hw1 in Hw2.
-now rewrite (is_zero_false _ Hw2).
+destruct (is_zero_spec (cos w)).
+now elim Hw2.
+apply refl_equal.
 unfold comp, proj_fun.
-now rewrite X13.
+now rewrite X.
 rewrite Rmult_comm.
 apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
-rewrite X13.
-change (sin r4 / cos r4 * (sin r4 / cos r4))%R with (Rsqr (tan r4))%R.
-apply derivable_pt_lim_tan.
-now apply is_zero_ne.
+rewrite X.
+change (sin r1 / cos r1 * (sin r1 / cos r1))%R with (Rsqr (tan r1))%R.
+now apply derivable_pt_lim_tan.
 Qed.
 
 Theorem Xderive_partial_diff :
@@ -560,14 +656,12 @@ intros g' f f' Heq Hf x.
 generalize (Heq x).
 clear Heq. intro Heq.
 xtotal.
-generalize (Heq _ (refl_equal _)).
-intro.
-discriminate H.
-generalize (Heq _ (refl_equal _)).
-intro.
-discriminate H.
-rewrite (Heq _ (refl_equal _)) in Hf.
-exact Hf.
+discriminate (Heq _ (refl_equal _)).
+discriminate (Heq _ (refl_equal _)).
+discriminate (Heq _ (refl_equal _)).
+injection (Heq _ (refl_equal _)).
+intro H.
+now rewrite <- H.
 Qed.
 
 Theorem Xderive_eq_diff :
@@ -581,25 +675,44 @@ intros.
 now rewrite <- H.
 Qed.
 
+Theorem Xderive_pt_partial_fun :
+  forall g f f',
+ (forall x y, g x = Xreal y -> f x = Xreal y) ->
+  forall x,
+  Xderive_pt g x f' ->
+  Xderive_pt f x f'.
+intros g f f' Heq x Hg.
+assert (Heqx := Heq x).
+xtotal.
+now assert (H := Heqx _ (refl_equal _)).
+intro v.
+apply derivable_pt_lim_eq_locally with (2 := Hg v).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hg).
+intros x (w, Hw).
+unfold proj_fun.
+rewrite Hw.
+now rewrite (Heq _ _ Hw).
+Qed.
+
 Theorem Xderive_partial_fun :
   forall g f f',
  (forall x y, g x = Xreal y -> f x = Xreal y) ->
   Xderive g f' ->
   Xderive f f'.
 intros g f f' Heq Hg x.
-generalize (Heq x).
-intro Heqx.
-xtotal.
-generalize (Heqx _ (refl_equal _)).
-intro.
-discriminate H.
-intro v.
-apply derivable_pt_lim_eq_locally with (2 := Hg v).
-apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X2 Hg).
-intros x (w, Hw).
-unfold proj_fun.
-rewrite Hw.
-now rewrite (Heq _ _ Hw).
+now apply Xderive_pt_partial_fun with (1 := Heq).
+Qed.
+
+Theorem Xderive_pt_eq_fun :
+  forall g f f',
+ (forall x, f x = g x) ->
+  forall x,
+  Xderive_pt g x f' ->
+  Xderive_pt f x f'.
+intros g f f' Heq x Hg.
+apply Xderive_pt_partial_fun with (2 := Hg).
+intros.
+now rewrite Heq.
 Qed.
 
 Theorem Xderive_eq_fun :
@@ -607,27 +720,25 @@ Theorem Xderive_eq_fun :
  (forall x, f x = g x) ->
   Xderive g f' ->
   Xderive f f'.
-intros.
-apply Xderive_partial_fun with (2 := H0).
-intros.
-now rewrite H.
+intros g f f' Heq Hg x.
+now apply Xderive_pt_eq_fun with (1 := Heq).
 Qed.
 
-Theorem Xderive_identity :
-  Xderive (fun x => x) (fun x => Xmask (Xreal 1) x).
+Theorem Xderive_pt_identity :
+  forall x, Xderive_pt (fun x => x) x (Xmask (Xreal 1) x).
 intros [|x].
 exact I.
 intro.
 apply derivable_pt_lim_id.
 Qed.
 
-Theorem Xderive_constant :
-  forall v,
-  Xderive (fun _ => Xreal v) (fun x => Xmask (Xreal 0) x).
+Theorem Xderive_pt_constant :
+  forall v x,
+  Xderive_pt (fun _ => Xreal v) x (Xmask (Xreal 0) x).
 intros v [|x].
 exact I.
 unfold proj_fun.
-intros _.
+intros w.
 apply (derivable_pt_lim_const v).
 Qed.
 
@@ -644,6 +755,7 @@ Theorem Xderive_MVT :
 intros f f' Hd dom Hdom Hf'.
 set (fr := proj_fun 0 f).
 set (fr' := proj_fun 0 f').
+unfold Xderive, Xderive_pt in Hd.
 (* f defined on [a,b] *)
 assert (R1: forall x, dom x -> f (Xreal x) = Xreal (fr x)).
 intros x Hx.

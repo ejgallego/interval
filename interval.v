@@ -454,9 +454,9 @@ Definition proj_val x :=
 
 Module Type IntervalOps.
 
-Parameter bound_type : Set.
+Parameter bound_type : Type.
 Parameter convert_bound : bound_type -> ExtendedR.
-Parameter type : Set.
+Parameter type : Type.
 Parameter convert : type -> interval.
 Parameter nai : type.
 Parameter bnd : bound_type -> bound_type -> type.
@@ -506,6 +506,7 @@ Parameter midpoint : type -> bound_type.
 Parameter midpoint_correct :
   forall xi,
   (exists x, contains (convert xi) x) ->
+  convert_bound (midpoint xi) = Xreal (proj_val (convert_bound (midpoint xi))) /\
   contains (convert xi) (convert_bound (midpoint xi)).
 
 Definition extension f fi := forall b x,
@@ -520,7 +521,7 @@ Parameter mask : type -> type -> type.
 
 Parameter mask_correct : extension_2 Xmask mask.
 
-Parameter precision : Set.
+Parameter precision : Type.
 
 Parameter neg : type -> type.
 Parameter abs : type -> type.

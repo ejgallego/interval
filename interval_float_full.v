@@ -33,8 +33,8 @@ Axiom cos_correct : forall prec, I.extension Xcos (cos prec).
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
-    let pi4 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
-    match Fle (F.neg pi4) xl, Fle xu pi4 with
+    let pi2 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    match Fle (F.neg pi2) xl, Fle xu pi2 with
     | true, true =>
       I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
     | _, _ => Inan
@@ -48,8 +48,8 @@ Axiom sin_correct : forall prec, I.extension Xsin (sin prec).
 Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
-    let pi4 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
-    match Fle (F.neg pi4) xl, Fle xu pi4 with
+    let pi2 := F.scale (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    match Fle (F.neg pi2) xl, Fle xu pi2 with
     | true, true =>
       I.bnd (I.lower (T.tan_fast prec xl)) (I.upper (T.tan_fast prec xu))
     | _, _ => Inan

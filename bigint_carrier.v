@@ -255,7 +255,7 @@ apply refl_equal.
 split.
 exact H0.
 exists (MtoP t).
-exact (Zopp_inj _ (Zpos _) H0).
+exact (BinInt.Zopp_inj _ (Zpos _) H0).
 Qed.
 
 End BigIntRadix2.
