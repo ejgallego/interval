@@ -354,8 +354,6 @@ Lemma Fcmp_aux2_correct :
 intros.
 Admitted.
 
-Ltac refl_exists := repeat eapply ex_intro ; repeat split ; try (simpl ; apply refl_equal).
-
 Theorem Fcmp_correct :
   forall radix (x y : float radix),
   Fcmp x y = Xcmp (FtoX x) (FtoX y).
@@ -730,6 +728,13 @@ intros.
 split ; trivial.
 Qed.
 
+Ltac refl_exists :=
+  repeat eapply ex_intro
+  (*match goal with
+  | |- ex ?P => eapply ex_intro
+  end*) ;
+  repeat split.
+
 Lemma bounded_is_correctly_rounded :
   forall radix mode prec (f : float radix),
   is_bounded prec f = true ->
@@ -758,8 +763,8 @@ intros b.
 case b ; simpl ; intros.
 split.
 right.
-exists true.
 refl_exists.
+repeat split.
 apply Zle_bool_imp_le.
 exact H.
 split.
@@ -777,7 +782,6 @@ apply Rabs_pos_lt.
 auto with real.
 split.
 right.
-exists false.
 refl_exists.
 apply Zle_bool_imp_le.
 exact H.
@@ -1271,7 +1275,8 @@ omega.
 discriminate.
 (* . *)
 cut (0 < q)%Z.
-case_eq q ; intros ; try discriminate H1 ; refl_exists.
+case_eq q ; intros ; try discriminate H1.
+refl_exists.
 apply count_digits_correct_inf.
 exact Hr.
 rewrite <- H0.

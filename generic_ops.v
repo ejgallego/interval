@@ -33,9 +33,12 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition sfactor := Z.
   Definition prec := fun x : positive => x.
   Definition ZtoS := fun x : Z => x.
+  Definition StoZ := fun x : Z => x.
   Definition PtoP := fun x : positive => x.
+  Definition incr_prec := Pplus.
   Definition zero := Fzero radix.
   Definition nan := Fnan radix.
+  Definition mag := @Fmag radix.
   Definition cmp := @Fcmp radix.
   Definition min := @Fmin radix.
   Definition max := @Fmax radix.

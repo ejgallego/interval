@@ -182,7 +182,7 @@ unfold Xderive_pt.
 case_eq (f (Xreal x)).
 now intros _ H.
 intros ry Hrf _.
-refl_exists.
+repeat split.
 unfold proj_fun, proj_val.
 now rewrite Hrf.
 unfold proj_fun, proj_val.
@@ -887,7 +887,7 @@ End IntervalAlgos.
 Module Valuator (I : IntervalOps).
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan.
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp.
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -960,16 +960,52 @@ Qed.
 
 Definition bnd_operations prec :=
   Build_operations I.fromZ
-    (fun o => match o with Neg => I.neg | Abs => I.abs | Inv => I.inv prec | Sqr => I.sqr prec | Sqrt => I.sqrt prec | Cos => I.cos prec | Sin => I.sin prec | Tan => I.tan prec | Atan => I.atan prec end)
-    (fun o => match o with Add => I.add prec | Sub => I.sub prec | Mul => I.mul prec | Div => I.div prec end).
+   (fun o =>
+    match o with
+    | Neg => I.neg
+    | Abs => I.abs
+    | Inv => I.inv prec
+    | Sqr => I.sqr prec
+    | Sqrt => I.sqrt prec
+    | Cos => I.cos prec
+    | Sin => I.sin prec
+    | Tan => I.tan prec
+    | Atan => I.atan prec
+    | Exp => I.exp prec
+    end)
+   (fun o =>
+    match o with
+    | Add => I.add prec
+    | Sub => I.sub prec
+    | Mul => I.mul prec
+    | Div => I.div prec
+    end).
 
 Definition eval_bnd prec :=
   eval_generic I.nai (bnd_operations prec).
 
 Definition ext_operations :=
   Build_operations (fun x => Xreal (Z2R x))
-    (fun o => match o with Neg => Xneg | Abs => Xabs | Inv => Xinv | Sqr => Xsqr | Sqrt => Xsqrt | Cos => Xcos | Sin => Xsin | Tan => Xtan | Atan => Xatan end)
-    (fun o => match o with Add => Xadd | Sub => Xsub | Mul => Xmul | Div => Xdiv end).
+   (fun o =>
+    match o with
+    | Neg => Xneg
+    | Abs => Xabs
+    | Inv => Xinv
+    | Sqr => Xsqr
+    | Sqrt => Xsqrt
+    | Cos => Xcos
+    | Sin => Xsin
+    | Tan => Xtan
+    | Atan => Xatan
+    | Exp => Xexp
+    end)
+   (fun o =>
+    match o with
+    | Add => Xadd
+    | Sub => Xsub
+    | Mul => Xmul
+    | Div => Xdiv
+    end).
 
 Definition eval_ext :=
   eval_generic (Xreal 0) ext_operations.
@@ -1008,8 +1044,26 @@ Qed.
 
 Definition real_operations :=
   Build_operations Z2R
-    (fun o => match o with Neg => Ropp | Abs => Rabs | Inv => Rinv | Sqr => Rsqr | Sqrt => R_sqrt.sqrt | Cos => cos | Sin => sin | Tan => tan | Atan => atan end)
-    (fun o => match o with Add => Rplus | Sub => Rminus | Mul => Rmult | Div => Rdiv end).
+   (fun o =>
+    match o with
+    | Neg => Ropp
+    | Abs => Rabs
+    | Inv => Rinv
+    | Sqr => Rsqr
+    | Sqrt => R_sqrt.sqrt
+    | Cos => cos
+    | Sin => sin
+    | Tan => tan
+    | Atan => atan
+    | Exp => exp
+    end)
+   (fun o =>
+    match o with
+    | Add => Rplus
+    | Sub => Rminus
+    | Mul => Rmult
+    | Div => Rdiv
+    end).
 
 Definition eval_real :=
   eval_generic R0 real_operations.
@@ -1037,6 +1091,8 @@ Definition diff_operations A (ops : @operations A) :=
         binary ops Mul d (binary ops Add (constant ops 1) (unary ops Sqr w)))
       | Atan => (unary ops Atan v,
         binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
+      | Exp => let w := unary ops Exp v in (w,
+        binary ops Mul d w)
       end
     end)
    (fun o x y =>
@@ -1254,7 +1310,8 @@ destruct o ; simpl ;
   | apply I.cos_correct
   | apply I.sin_correct
   | apply I.tan_correct
-  | apply I.atan_correct ].
+  | apply I.atan_correct
+  | apply I.exp_correct ].
 (* binary *)
 destruct o ; simpl ;
   [ apply I.add_correct
@@ -1344,6 +1401,7 @@ now apply Xderive_pt_cos.
 now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 admit.
+now apply Xderive_pt_exp.
 Qed.
 
 Lemma binary_diff_correct :
@@ -1438,6 +1496,7 @@ destruct o ; simpl ;
   | apply I.sin_correct
   | apply I.tan_correct
   | apply I.atan_correct
+  | apply I.exp_correct
   | apply I.add_correct
   | apply I.mul_correct
   | apply I.div_correct
@@ -1521,7 +1580,8 @@ destruct o ; simpl ;
   | apply I.cos_correct
   | apply I.sin_correct
   | apply I.tan_correct
-  | apply I.atan_correct ] ;
+  | apply I.atan_correct
+  | apply I.exp_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
 exact (fun x Hx => proj1 (H x Hx)).

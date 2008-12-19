@@ -532,6 +532,7 @@ Parameter cos : precision -> type -> type.
 Parameter sin : precision -> type -> type.
 Parameter tan : precision -> type -> type.
 Parameter atan : precision -> type -> type.
+Parameter exp : precision -> type -> type.
 Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
@@ -546,6 +547,7 @@ Parameter cos_correct : forall prec, extension Xcos (cos prec).
 Parameter sin_correct : forall prec, extension Xsin (sin prec).
 Parameter tan_correct : forall prec, extension Xtan (tan prec).
 Parameter atan_correct : forall prec, extension Xatan (atan prec).
+Parameter exp_correct : forall prec, extension Xexp (exp prec).
 Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).

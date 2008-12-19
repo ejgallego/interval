@@ -455,6 +455,12 @@ Definition Xatan x :=
   | Xnan => Xnan
   end.
 
+Definition Xexp x :=
+  match x with
+  | Xreal u => Xreal (exp u)
+  | Xnan => Xnan
+  end.
+
 (*
  * "Field" structure
  *)

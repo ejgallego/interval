@@ -841,3 +841,13 @@ Definition Fsqrt radix mode prec (x : float radix) :=
   Fround_at_prec mode prec (Fsqrt_aux prec x).
 
 Implicit Arguments Fsqrt.
+
+(*
+ * Fmag
+ *)
+
+Definition Fmag radix (x : float radix) :=
+  match x with
+  | Float _ m e => Zplus e (Zpos (count_digits radix m))
+  | _ => Z0
+  end.

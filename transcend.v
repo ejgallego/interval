@@ -12,24 +12,48 @@ Module TranscendentalFloatFast (F : FloatOps with Definition even_radix := true)
 
 Module I := FloatInterval F.
 
-CoInductive constant : Type :=
-  | Consts: I.type -> constant -> constant.
+CoInductive hidden_constant : Type :=
+  | HConst : I.type -> hidden_constant.
+
+CoInductive constants : Type :=
+  | Consts: hidden_constant -> constants -> constants.
 
 Fixpoint constant_getter_aux n cst :=
-  match cst, n with
-  | Consts xi _, O => xi
-  | Consts _ c, S p => constant_getter_aux p c
+  match n, cst with
+  | O, Consts (HConst xi) _ => xi
+  | S p, Consts _ c => constant_getter_aux p c
   end.
 
 Definition constant_getter cst prec :=
   let nb := Zabs_nat (Zpred (fst (Zdiv.Zdiv_eucl_POS (F.prec prec + 30)%positive 31%Z))) in
   constant_getter_aux nb cst.
 
+CoFixpoint hidden_constant_generator gen n :=
+  HConst (gen (F.PtoP (n * 31)%positive)).
+
 CoFixpoint constant_generator_aux gen n :=
-  Consts (gen (F.PtoP (n * 31)%positive)) (constant_generator_aux gen (Psucc n)).
+  Consts (hidden_constant_generator gen n) (constant_generator_aux gen (Psucc n)).
 
 Definition constant_generator gen :=
   constant_generator_aux gen 1.
+
+Definition Z2Zp x :=
+  match x with
+  | Zpos p => x
+  | _ => Z0
+  end.
+
+Definition Z2nat x :=
+  match x with
+  | Zpos p => nat_of_P p
+  | _ => O
+  end.
+
+Definition Z2P x :=
+  match x with
+  | Zpos p => p
+  | _ => xH
+  end.
 
 (* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru two div (nb : nat) { struct nb } :=
@@ -94,6 +118,7 @@ Definition atan_fastP prec x :=
   let c1 := F.fromZ 1 in
   match F.cmp x (F.scale2 c1 (F.ZtoS (-1)%Z)) with
   | Xgt =>
+    let prec := F.incr_prec prec 2 in
     let pi4i := pi4 prec in
     let s1 := F.ZtoS 1%Z in
     match F.cmp x (F.scale2 c1 s1) with
@@ -107,7 +132,7 @@ Definition atan_fastP prec x :=
       I.add prec pi4i
        (atan_fast0i prec (I.bnd (F.div rnd_DN prec xm1 xp1) (F.div rnd_UP prec xm1 xp1)))
     end
-  | _ => atan_fast0 prec x
+  | _ => atan_fast0 (F.incr_prec prec 1) x
   end.
 
 Definition atan_fast prec x :=
@@ -117,6 +142,104 @@ Definition atan_fast prec x :=
   | Xgt => atan_fastP prec x
   | Xund => I.nai
   end.
+
+Definition le x y :=
+  match F.cmp x y with
+  | Xlt | Xeq => true
+  | Xgt | Xund => false
+  end.
+
+Definition toR x := proj_val (FtoX (F.toF x)).
+
+Inductive le_prop x y : bool -> Prop :=
+  | le_true
+    (Hx : FtoX (F.toF x) = Xreal (toR x))
+    (Hy : FtoX (F.toF y) = Xreal (toR y))
+    (Hxy : (toR x <= toR y)%R) : le_prop x y true
+  | le_false : le_prop x y false.
+
+Lemma le_spec :
+  forall x y,
+  le_prop x y (le x y).
+Proof.
+intros.
+unfold le.
+rewrite F.cmp_correct, Fcmp_correct.
+case_eq (FtoX (F.toF x)).
+intros _. apply le_false.
+intros xr Hx.
+case_eq (FtoX (F.toF y)).
+intros _. apply le_false.
+intros yr Hy.
+simpl.
+destruct (Rcompare_spec xr yr) ;
+  constructor ;
+  unfold toR ;
+  try rewrite Hx ;
+  try rewrite Hy ;
+  try apply refl_equal.
+now apply Rlt_le.
+now apply Req_le.
+Qed.
+
+(*
+(* 0 <= inputs *)
+Fixpoint umc_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
+  let npwu := F.mul rnd_UP prec powu sqru in
+  let valu := F.div rnd_UP prec npwu div in
+  match F.cmp valu thre, nb with
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
+  | _, S n =>
+    let npwl := F.mul rnd_DN prec powl sqrl in
+    let vall := F.div rnd_DN prec npwl div in
+    let one := F.fromZ 1 in
+    let nfact := F.add_exact fact (F.add_exact one one) in
+    let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact one)) in
+    I.sub prec (I.bnd vall valu)
+      (umc_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
+  end.
+
+Definition umc_fast0 prec x :=
+  let x2l := F.mul rnd_DN prec x x in
+  let x2u := F.mul rnd_UP prec x x in
+  let c1 := F.fromZ 1 in
+  let p := F.prec prec in
+  let thre := F.scale c1 (F.ZtoS (Zneg p)) in
+  I.scale2
+   (I.mul prec
+     (I.bnd x2l x2u)
+     (I.sub prec
+       (I.bnd c1 c1)
+       (umc_fast0_aux prec thre c1 c1 x2l x2u (F.fromZ 5) (F.fromZ 12) (nat_of_P p))))
+   (F.ZtoS (-1)%Z).
+
+Definition umc_reduce prec x :=
+  let c1 := F.fromZ 1 in
+  let th := F.scale2 c1 (F.ZtoS (-4)%Z) in
+  (*let prec := F.incr_prec prec 1 in*)
+  let c2 := F.fromZ 2 in
+  let i2 := I.bnd c2 c2 in
+  let s1 := F.ZtoS 1 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let fix reduce x (nb : nat) {struct nb} :=
+    match le x th, nb with
+    | true, _ => umc_fast0 prec x
+    | _, O => umc_fast0 prec x
+    | _, S n =>
+      (*match reduce (F.scale2 x sm1) n with
+      | Ibnd yl yu => I.scale2 (Ibnd (F.mul rnd_DN prec yl (F.sub rnd_DN prec c2 yl)) (F.mul rnd_UP prec yu (F.sub rnd_UP prec c2 yu))) s1
+      | Inan => Inan
+      end*)
+      let u := reduce (F.scale2 x sm1) n in
+      I.scale2 (I.mul prec u (I.sub prec i2 u)) s1
+    end in
+  reduce x 10.
+
+Definition cos_fast0 prec x :=
+  let c1 := F.fromZ 1 in
+  I.sub prec (I.bnd c1 c1) (umc_reduce prec x).
+*)
 
 (* 0 <= inputs *)
 Fixpoint cos_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
@@ -144,44 +267,6 @@ Definition cos_fast0 prec x :=
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
   let rem := cos_fast0_aux prec thre c1 c1 x2l x2u (F.fromZ 3) (F.fromZ 2) (nat_of_P p) in
   I.sub prec (I.bnd c1 c1) rem.
-
-Definition le x y :=
-  match F.cmp x y with
-  | Xlt | Xeq => true
-  | Xgt | Xund => false
-  end.
-
-Definition toR x := proj_val (FtoX (F.toF x)).
-
-Inductive le_prop x y : bool -> Prop :=
-  | le_true
-    (Hx : FtoX (F.toF x) = Xreal (toR x))
-    (Hy : FtoX (F.toF y) = Xreal (toR y))
-    (Hxy : (toR x <= toR y)%R) : le_prop x y true
-  | le_false : le_prop x y false.
-
-Lemma le_spec :
-  forall x y,
-  le_prop x y (le x y).
-intros.
-unfold le.
-rewrite F.cmp_correct, Fcmp_correct.
-case_eq (FtoX (F.toF x)).
-intros _. apply le_false.
-intros xr Hx.
-case_eq (FtoX (F.toF y)).
-intros _. apply le_false.
-intros yr Hy.
-simpl.
-destruct (Rcompare_spec xr yr) ;
-  constructor ;
-  unfold toR ;
-  try rewrite Hx ;
-  try rewrite Hy ;
-  try apply refl_equal.
-now apply Rlt_le.
-now apply Req_le.
-Qed.
 
 (* 0 <= input *)
 Definition sin_cos_reduce prec x :=
@@ -220,6 +305,7 @@ Axiom cos_fast0_correct :
 Lemma scale2_correct :
   forall x d,
   FtoX (F.toF (F.scale2 x (F.ZtoS d))) = Xmul (FtoX (F.toF x)) (Xreal (exp_factor 2 d)).
+Proof.
 intros x d.
 rewrite F.scale2_correct. 2: apply refl_equal.
 rewrite Fscale2_correct. 2: exact F.even_radix_correct.
@@ -239,6 +325,7 @@ Lemma sin_cos_reduce_correct :
     | _ => True
     end
   end.
+Proof.
 intros prec.
 (* . *)
 assert (forall x, FtoX (F.toF x) = Xreal (toR x) -> (0 < toR x)%R ->
@@ -372,7 +459,16 @@ Qed.
 
 (* 0 <= input *)
 Definition cos_fastP prec x :=
-  snd (sin_cos_reduce prec x 20).
+  let c1 := F.fromZ 1 in
+  let sm1 := F.ZtoS (-1)%Z in
+  let th := F.scale2 c1 sm1 in
+  match le x th with
+  | true => cos_fast0 prec x
+  | _ =>
+    let m := F.StoZ (F.mag x) in
+    let prec := F.incr_prec prec (Z2P (m + 6)) in
+    snd (sin_cos_reduce prec x (S (Z2nat m)))
+  end.
 
 Definition cos_fast prec x :=
   match F.cmp x F.zero with
@@ -385,6 +481,7 @@ Definition cos_fast prec x :=
 Theorem cos_fast_correct :
   forall prec x,
   contains (I.convert (cos_fast prec x)) (Xcos (FtoX (F.toF x))).
+Proof.
 intros prec x.
 unfold cos_fast.
 rewrite F.cmp_correct.
@@ -397,21 +494,73 @@ rewrite F.fromZ_correct.
 rewrite cos_0.
 split ; apply Rle_refl.
 unfold cos_fastP.
+assert (H12: (/2)%R = toR (F.scale2 (F.fromZ 1) (F.ZtoS (-1)))).
+unfold toR.
+rewrite F.scale2_correct, Fscale2_correct.
+rewrite F.fromZ_correct.
+apply sym_eq.
+simpl.
+apply Rmult_1_l.
+apply F.even_radix_correct.
+apply refl_equal.
 destruct b.
 (* neg *)
 change true with (negb false).
 rewrite <- FtoR_neg.
 rewrite cos_neg.
-generalize (sin_cos_reduce_correct prec 20 (F.neg x)).
-destruct (sin_cos_reduce prec (F.neg x) 20).
+destruct (le_spec (F.neg x) (F.scale2 (F.fromZ 1) (F.ZtoS (-1)))).
+(* . no reduction *)
+replace (FtoR F.radix false p z) with (toR (F.neg x)).
+apply cos_fast0_correct.
+unfold toR.
+rewrite F.neg_correct.
+now rewrite H.
+rewrite Rabs_right.
+now rewrite H12.
+unfold toR.
+rewrite F.neg_correct.
+rewrite H.
+simpl.
+apply Rgt_ge.
+apply FtoR_Rpos.
+unfold toR.
+rewrite F.neg_correct.
+now rewrite H.
+(* . reduction *)
+generalize (F.incr_prec prec (Z2P (F.StoZ (F.mag (F.neg x)) + 6))).
+clear prec. intros prec.
+generalize (S (Z2nat (F.StoZ (F.mag (F.neg x))))).
+intros nb.
+generalize (sin_cos_reduce_correct prec nb (F.neg x)).
+destruct (sin_cos_reduce prec (F.neg x) nb).
 unfold toR.
 rewrite F.neg_correct.
 rewrite H.
 intros H0.
 exact (proj1 (H0 (refl_equal _) (FtoR_Rpos _ _ _))).
 (* pos *)
-generalize (sin_cos_reduce_correct prec 20 x).
-destruct (sin_cos_reduce prec x 20).
+destruct (le_spec x (F.scale2 (F.fromZ 1) (F.ZtoS (-1)))).
+(* . no reduction *)
+replace (FtoR F.radix false p z) with (toR x).
+apply cos_fast0_correct.
+unfold toR.
+now rewrite H.
+rewrite Rabs_right.
+now rewrite H12.
+unfold toR.
+rewrite H.
+simpl.
+apply Rgt_ge.
+apply FtoR_Rpos.
+unfold toR.
+now rewrite H.
+(* . reduction *)
+generalize (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
+clear prec. intros prec.
+generalize (S (Z2nat (F.StoZ (F.mag x)))).
+intros nb.
+generalize (sin_cos_reduce_correct prec nb x).
+destruct (sin_cos_reduce prec x).
 unfold toR.
 rewrite H.
 intros H0.
@@ -457,9 +606,11 @@ Definition sin_fastP prec x :=
   let sm1 := F.ZtoS (-1)%Z in
   let th := F.scale2 c1 sm1 in
   match le x th with
-  | true => sin_fast0 prec x
+  | true => sin_fast0 (F.incr_prec prec 1) x
   | _ =>
-    match sin_cos_reduce prec x 20 with
+    let m := F.StoZ (F.mag x) in
+    let prec := F.incr_prec prec (Z2P (m + 6)) in
+    match sin_cos_reduce prec x (S (Z2nat m)) with
     | (s, c) =>
       let v := I.sqrt prec (I.sub prec (I.bnd c1 c1) (I.sqr prec c)) in
       match s with
@@ -481,6 +632,7 @@ Definition sin_fast prec x :=
 Theorem sin_fast_correct :
   forall prec x,
   contains (I.convert (sin_fast prec x)) (Xsin (FtoX (F.toF x))).
+Proof.
 intros prec x.
 unfold sin_fast.
 rewrite F.cmp_correct.
@@ -528,8 +680,11 @@ unfold toR.
 rewrite F.neg_correct.
 now rewrite H.
 (* . big *)
-generalize (sin_cos_reduce_correct prec 20 (F.neg x)).
-destruct (sin_cos_reduce prec (F.neg x) 20).
+generalize (F.incr_prec prec (Z2P (F.StoZ (F.mag (F.neg x)) + 6))).
+clear prec. intro prec.
+set (nb := S (Z2nat (F.StoZ (F.mag (F.neg x))))).
+generalize (sin_cos_reduce_correct prec nb (F.neg x)).
+destruct (sin_cos_reduce prec (F.neg x) nb).
 unfold toR.
 rewrite F.neg_correct.
 rewrite H.
@@ -611,8 +766,11 @@ apply FtoR_Rpos.
 unfold toR.
 now rewrite H.
 (* . big *)
-generalize (sin_cos_reduce_correct prec 20 x).
-destruct (sin_cos_reduce prec x 20).
+generalize (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
+clear prec. intro prec.
+set (nb := S (Z2nat (F.StoZ (F.mag x)))).
+generalize (sin_cos_reduce_correct prec nb x).
+destruct (sin_cos_reduce prec x).
 unfold toR.
 rewrite H.
 intros H0.
@@ -677,10 +835,13 @@ Definition tan_fastP prec x :=
   let th := F.scale2 c1 sm1 in
   match le x th with
   | true =>
+    let prec := F.incr_prec prec 2 in
     let s := sin_fast0 prec x in
     I.div prec s (I.sqrt prec (I.sub prec i1 (I.sqr prec s)))
   | _ =>
-    match sin_cos_reduce prec x 20 with
+    let m := F.StoZ (F.mag x) in
+    let prec := F.incr_prec prec (Z2P (m + 7)) in
+    match sin_cos_reduce prec x (S (Z2nat m)) with
     | (s, c) =>
       let v := I.sqrt prec (I.sub prec (I.div prec i1 (I.sqr prec c)) i1) in
       match s, I.sign_large c with
@@ -710,6 +871,231 @@ Definition sin_correct : forall prec, semi_extension Xsin (sin_fast prec) := sin
 Axiom tan_correct : forall prec, semi_extension Xtan (tan_fast prec).
 Axiom atan_correct : forall prec, semi_extension Xatan (atan_fast prec).
 
+(* 0 <= inputs *)
+Fixpoint expn_fast0_aux prec thre powl powu x fact div (nb : nat) { struct nb } :=
+  let npwu := F.mul rnd_UP prec powu x in
+  let valu := F.div rnd_UP prec npwu div in
+  match F.cmp valu thre, nb with
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
+  | _, S n =>
+    let npwl := F.mul rnd_DN prec powl x in
+    let vall := F.div rnd_DN prec npwl div in
+    let nfact := F.add_exact fact (F.fromZ 1) in
+    let ndiv := F.mul_exact div fact in
+    I.sub prec (I.bnd vall valu)
+      (expn_fast0_aux prec thre npwl npwu x nfact ndiv n)
+  end.
+
+(* 0 <= input <= 1/2 *)
+Definition expn_fast0 prec x :=
+  let c1 := F.fromZ 1 in
+  let p := F.prec prec in
+  let thre := F.scale c1 (F.ZtoS (Zneg p)) in
+  let rem := expn_fast0_aux prec thre x x x (F.fromZ 3) (F.fromZ 2) (nat_of_P p) in
+  I.sub prec (I.bnd c1 c1) (I.sub prec (I.bnd x x) rem).
+
+(* 0 <= input *)
+Definition expn_reduce prec x :=
+  let c1 := F.fromZ 1 in
+  let th := F.scale2 c1 (F.ZtoS (-8)%Z) in
+  match le x th with
+  | true => expn_fast0 (F.incr_prec prec 1) x
+  | false =>
+    let m := F.StoZ (F.mag x) in
+    let prec := F.incr_prec prec (Z2P (9 + m)) in
+    let sm1 := F.ZtoS (-1)%Z in
+    let fix reduce x (nb : nat) {struct nb} :=
+      match le x th, nb with
+      | true, _ => expn_fast0 prec x
+      | _, O => I.bnd F.zero c1
+      | _, S n => I.sqr prec (reduce (F.scale2 x sm1) n)
+      end in
+    reduce x (8 + Z2nat m)
+  end.
+
+Definition exp_fast prec x :=
+  match F.cmp x F.zero with
+  | Xeq => let c1 := F.fromZ 1 in I.bnd c1 c1
+  | Xlt => expn_reduce prec (F.neg x)
+  | Xgt =>
+    let prec := F.incr_prec prec 1 in
+    match I.inv prec (expn_reduce prec x) with
+    | Ibnd _ _ as b => b
+    | Inai => I.bnd (F.fromZ 1) F.nan
+    end
+  | Xund => I.nai
+  end.
+
+Axiom expn_fast0_correct :
+  forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (0 <= toR x <= /2)%R ->
+  contains (I.convert (expn_fast0 prec x)) (Xreal (exp (- toR x))).
+
+Lemma expn_reduce_correct :
+  forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (0 < toR x)%R ->
+  contains (I.convert (expn_reduce prec x)) (Xreal (exp (- toR x))).
+Proof.
+assert (forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (0 < toR x <= toR (F.scale2 (F.fromZ 1) (F.ZtoS (-8))))%R ->
+  contains (I.convert (expn_fast0 prec x)) (Xreal (exp (- toR x)))).
+intros prec x Hx1 (Hx2, Hx3).
+apply expn_fast0_correct.
+exact Hx1.
+split.
+now apply Rlt_le.
+apply Rle_trans with (1 := Hx3).
+unfold toR.
+rewrite F.scale2_correct ; trivial.
+rewrite Fscale2_correct ; try apply F.even_radix_correct.
+rewrite F.fromZ_correct.
+simpl.
+rewrite Rmult_1_l.
+apply Rle_Rinv_pos.
+now apply (Z2R_lt 0 2).
+now apply (Z2R_le 2 256).
+(* . *)
+intros prec x Hx H0.
+unfold expn_reduce.
+destruct (le_spec x (F.scale2 (F.fromZ 1) (F.ZtoS (-8)))).
+(* . no reduction *)
+clear Hx0.
+apply H ; now try split.
+(* . reduction *)
+generalize (F.incr_prec prec (Z2P (9 + F.StoZ (F.mag x)))).
+clear prec. intro prec.
+generalize (8 + Z2nat (F.StoZ (F.mag x))).
+intro nb.
+revert x Hx H0.
+induction nb ; intros ; simpl.
+(* nb = 0 *)
+destruct (le_spec x (F.scale2 (F.fromZ 1) (F.ZtoS (-8)))).
+apply H ; now try split.
+simpl.
+unfold I.convert_bound.
+rewrite F.zero_correct, F.fromZ_correct.
+simpl.
+split.
+apply Rlt_le.
+apply exp_pos.
+rewrite <- exp_0.
+apply Rlt_le.
+apply exp_increasing.
+rewrite <- Ropp_0.
+now apply Ropp_lt_contravar.
+(* nb > 0 *)
+destruct (le_spec x (F.scale2 (F.fromZ 1) (F.ZtoS (-8)))).
+apply H ; now try split.
+assert (toR (F.scale2 x (F.ZtoS (-1))) = toR x * /2)%R.
+unfold toR.
+rewrite F.scale2_correct, Fscale2_correct.
+now rewrite Hx.
+exact F.even_radix_correct.
+apply refl_equal.
+replace (toR x) with (toR (F.scale2 x (F.ZtoS (-1))) + toR (F.scale2 x (F.ZtoS (-1))))%R.
+rewrite Ropp_plus_distr.
+rewrite exp_plus.
+change (Xreal (exp (- toR (F.scale2 x (F.ZtoS (-1)))) * exp (- toR (F.scale2 x (F.ZtoS (-1))))))
+  with (Xsqr (Xreal (exp (- toR (F.scale2 x (F.ZtoS (-1))))))).
+apply I.sqr_correct.
+apply IHnb.
+unfold toR.
+rewrite F.scale2_correct , Fscale2_correct.
+now rewrite Hx.
+exact F.even_radix_correct.
+apply refl_equal.
+rewrite H1.
+apply Rmult_lt_0_compat.
+exact H0.
+auto with real.
+rewrite H1.
+clear.
+field.
+Qed.
+
+Theorem exp_fast_correct :
+  forall prec x,
+  contains (I.convert (exp_fast prec x)) (Xexp (FtoX (F.toF x))).
+Proof.
+intros prec x.
+unfold exp_fast.
+rewrite F.cmp_correct.
+rewrite F.zero_correct.
+case_eq (F.toF x) ; intros ; unfold Fcmp.
+exact I.
+(* zero *)
+simpl.
+unfold I.convert_bound.
+rewrite F.fromZ_correct.
+rewrite exp_0.
+split ; apply Rle_refl.
+replace (Xexp  (FtoX (Float F.radix b p z)))
+  with (Xreal (exp (- toR (F.neg x)))).
+destruct b.
+(* neg *)
+apply expn_reduce_correct.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+now rewrite H.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+rewrite H.
+simpl.
+rewrite FtoR_neg.
+apply FtoR_Rpos.
+(* pos *)
+generalize (F.incr_prec prec 1).
+clear prec. intro prec.
+case_eq (I.inv prec (expn_reduce prec x)) ; intros.
+(* pos too big *)
+split ; unfold I.convert_bound.
+rewrite F.fromZ_correct.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+rewrite H.
+simpl.
+rewrite Ropp_involutive.
+rewrite <- exp_0.
+apply Rlt_le.
+apply exp_increasing.
+apply FtoR_Rpos.
+now rewrite F.nan_correct.
+(* pos fine *)
+rewrite <- H0.
+rewrite exp_Ropp.
+replace (Xreal (/ exp (toR (F.neg x)))) with (Xinv (Xreal (exp (toR (F.neg x))))).
+apply I.inv_correct.
+replace (toR (F.neg x)) with (- toR x)%R.
+apply expn_reduce_correct.
+unfold toR.
+now rewrite H.
+unfold toR.
+rewrite H.
+simpl.
+apply FtoR_Rpos.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+now rewrite H.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+rewrite H.
+simpl.
+destruct (is_zero_spec (exp (- FtoR F.radix false p z))).
+elim Rgt_not_eq with (2 := H1).
+apply exp_pos.
+apply refl_equal.
+(* . *)
+unfold toR.
+rewrite F.neg_correct, Fneg_correct.
+rewrite H.
+simpl.
+now rewrite Ropp_involutive.
+Qed.
+
 End TranscendentalFloatFast.
 
 (*
@@ -717,6 +1103,7 @@ Require Import specific_ops.
 Require Import stdz_carrier.
 Module F := SpecificFloat StdZRadix2.
 Module A := TranscendentalFloatFast F.
+Time Eval vm_compute in (A.exp_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.atan_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.cos_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.tan_fast 50%Z (Float 3619%Z (-8)%Z)).

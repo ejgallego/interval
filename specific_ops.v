@@ -48,7 +48,9 @@ Definition precision := exponent_type.
 Definition sfactor := exponent_type.
 Definition prec p := match EtoZ p with Zpos q => q | _ => xH end.
 Definition ZtoS := ZtoE.
+Definition StoZ := EtoZ.
 Definition PtoP n := ZtoE (Zpos n).
+Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 
 Definition zero := Float mantissa_zero exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
@@ -64,6 +66,16 @@ rewrite mantissa_zero_correct.
 intros s p.
 case s ; intros (H, _) ; discriminate H.
 Qed.
+
+Definition mag (x : type) :=
+  match x with
+  | Fnan => exponent_zero
+  | Float m e =>
+    match mantissa_sign m with
+    | Mzero => e
+    | Mnumber _ m => exponent_add e (mantissa_digits m)
+    end
+  end.
 
 Definition real (f : type) := match f with Fnan => false | _ => true end.
 Lemma real_correct :

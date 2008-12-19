@@ -325,7 +325,7 @@ Ltac xtotal_aux :=
   end.
 
 Ltac xtotal :=
-  unfold Xderive_pt, Xtan, Xcos, Xsin, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xmask in * ;
+  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xmask in * ;
   repeat xtotal_aux.
 
 Theorem Xderive_pt_compose :
@@ -645,6 +645,26 @@ unfold proj_fun.
 rewrite X.
 change (sin r1 / cos r1 * (sin r1 / cos r1))%R with (Rsqr (tan r1))%R.
 now apply derivable_pt_lim_tan.
+Qed.
+
+Theorem Xderive_pt_exp :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xexp (f x)) x (Xmul f' (Xexp (f x))).
+intros f f' x Hf.
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp exp (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
+intros x (w, Hw).
+unfold comp, proj_fun.
+now rewrite Hw.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X.
+apply (derivable_pt_lim_exp r1).
 Qed.
 
 Theorem Xderive_partial_diff :

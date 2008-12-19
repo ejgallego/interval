@@ -17,14 +17,18 @@ Parameter toF : type -> float radix.
 Parameter precision : Type.
 Parameter sfactor : Type.
 Parameter prec : precision -> positive.
-Parameter ZtoS : Z -> sfactor.
 Parameter PtoP : positive -> precision.
+Parameter ZtoS : Z -> sfactor.
+Parameter StoZ : sfactor -> Z.
+
+Parameter incr_prec : precision -> positive -> precision.
 
 Parameter zero : type.
 Parameter nan : type.
 Parameter fromZ : Z -> type.
 Parameter fromF : float radix -> type.
 Parameter real : type -> bool.
+Parameter mag : type -> sfactor.
 
 Parameter cmp : type -> type -> Xcomparison.
 Parameter min : type -> type -> type.

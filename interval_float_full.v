@@ -17,19 +17,20 @@ Definition Fle x y :=
   | Xgt | Xund => false
   end.
 
-(* meaningful only for |xi| <= pi *)
+(* useful only for |xi| <= pi *)
 Definition cos prec xi :=
   match I.abs xi with
   | Ibnd xl xu =>
     if Fle xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2%Z)) then
       I.bnd (I.lower (T.cos_fast prec xu)) (I.upper (T.cos_fast prec xl))
-    else Inan
+    else
+      I.bnd (F.fromZ (-1)) (F.fromZ 1)
   | Inan => Inan
   end.
 
 Axiom cos_correct : forall prec, I.extension Xcos (cos prec).
 
-(* meaningful only for |xi| <= pi/2 *)
+(* useful only for |xi| <= pi/2 *)
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
@@ -37,14 +38,14 @@ Definition sin prec xi :=
     match Fle (F.neg pi2) xl, Fle xu pi2 with
     | true, true =>
       I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
-    | _, _ => Inan
+    | _, _ => I.bnd (F.fromZ (-1)) (F.fromZ 1)
     end
   | Inan => Inan
   end.
 
 Axiom sin_correct : forall prec, I.extension Xsin (sin prec).
 
-(* assumption |xi| <= pi/2 *)
+(* meaningful only for |xi| <= pi/2 *)
 Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
@@ -61,11 +62,41 @@ Axiom tan_correct : forall prec, I.extension Xtan (tan prec).
 
 Definition atan prec xi :=
   match xi with
-  | Ibnd xl xu => Ibnd (I.lower (T.atan_fast prec xl)) (I.upper (T.atan_fast prec xu))
+  | Ibnd xl xu =>
+    Ibnd
+     (if F.real xl then I.lower (T.atan_fast prec xl)
+      else F.neg (F.scale (I.upper (T.pi4 prec)) (F.ZtoS 1%Z)))
+     (if F.real xu then I.upper (T.atan_fast prec xu)
+      else F.scale (I.upper (T.pi4 prec)) (F.ZtoS 1%Z))
   | Inan => Inan
   end.
 
 Axiom atan_correct : forall prec, I.extension Xatan (atan prec).
+
+Definition exp prec xi :=
+  match xi with
+  | Ibnd xl xu =>
+    Ibnd
+     (if F.real xl then I.lower (T.exp_fast prec xl) else F.nan)
+     (if F.real xu then I.upper (T.exp_fast prec xu) else F.nan)
+  | Inan => Inan
+  end.
+
+Theorem exp_correct :
+  forall prec, I.extension Xexp (exp prec).
+intros prec [|xl xu].
+trivial.
+intros [|x].
+trivial.
+intros (Hxl, Hxu).
+split.
+(* lower *)
+clear Hxu.
+case_eq (I.convert_bound (if F.real xl then I.lower (T.exp_fast prec xl) else F.nan)).
+trivial.
+intros rl Hrl.
+generalize (T.exp_fast_correct prec xl).
+Admitted.
 
 Definition bound_type := I.bound_type.
 Definition convert_bound := I.convert_bound.
