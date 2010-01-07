@@ -1458,7 +1458,7 @@ repeat split.
 apply Xderive_pt_identity.
 simpl.
 split.
-rewrite <- map_nth.
+rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
 rewrite map_map.
 apply (f_equal (fun v => nth n v (Xreal 0))).
 now apply map_ext.
@@ -1549,7 +1549,7 @@ clear.
 intros [|n].
 apply refl_equal.
 simpl.
-rewrite <- map_nth.
+rewrite <- (map_nth (@fst I.type I.type)).
 rewrite map_map.
 simpl.
 apply sym_eq.

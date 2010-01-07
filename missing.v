@@ -169,12 +169,6 @@ apply (IZR_lt 0).
 exact H.
 Qed.
 
-(*
-Lemma Zlt_0_Zpower_pos_le :
-  forall a b, (0 <= a)%Z -> (0 <= b)%Z ->
-  (0 < Zpowe a b)%Z.
-*)
-
 Lemma Zlt_0_Zpower :
   forall a b, (0 < a)%Z -> (0 <= b)%Z ->
   (0 < Zpower a b)%Z.
@@ -531,7 +525,7 @@ Theorem derivable_pt_lim_tan :
   (cos x <> 0)%R ->
   derivable_pt_lim tan x (1 + Rsqr (tan x))%R.
 intros x Hx.
-change tan at 1 with (div_fct sin cos).
+change (derivable_pt_lim (sin/cos) x (1 + Rsqr (tan x))%R).
 replace (1 + Rsqr (tan x))%R with ((cos x * cos x - (-sin x) * sin x) / Rsqr (cos x))%R.
 apply derivable_pt_lim_div.
 apply derivable_pt_lim_sin.
