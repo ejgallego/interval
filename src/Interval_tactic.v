@@ -400,30 +400,24 @@ exact (V.eval_first_order_correct_ext _ _ _ _).
 Qed.
 *)
 
-Ltac do_interval vars prec depth eval_tac check_tac :=
-  match goal with
-  | |- contains (I.convert _) (nth _ (V.eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
-  | _ => xalgorithm vars
-  end ;
-  match goal with
-  | |- contains (I.convert ?output) (nth ?n
-      (V.eval_ext ?formula (map Xreal ?constants)) (Xreal 0)) =>
-    let bounds_ := get_bounds constants in
-    let bounds := fresh "bounds" in
-    pose (bounds := bounds_) ;
-    let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
-    change (map Xreal constants) with (map V.xreal_from_bp bounds) ;
-    eval_tac bounds output formula prec depth n ;
-    check_tac
-  end.
-
-Ltac do_interval_check :=
-  vm_compute ;
-  try exact (refl_equal true) ;
+Ltac do_interval vars prec depth eval_tac :=
+  abstract (
+    match goal with
+    | |- contains (I.convert _) (nth _ (V.eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
+    | _ => xalgorithm vars
+    end ;
+    match goal with
+    | |- contains (I.convert ?output) (nth ?n
+        (V.eval_ext ?formula (map Xreal ?constants)) (Xreal 0)) =>
+      let bounds_ := get_bounds constants in
+      let bounds := fresh "bounds" in
+      pose (bounds := bounds_) ;
+      let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
+      change (map Xreal constants) with (map V.xreal_from_bp bounds) ;
+      eval_tac bounds output formula prec depth n ;
+      vm_cast_no_check (refl_equal true)
+    end) ;
   fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
-
-Ltac do_interval_nocheck :=
-  vm_cast_no_check (refl_equal true).
 
 Ltac do_interval_eval bounds output formula prec depth n :=
   refine (interval_helper_evaluate bounds output formula prec n _).
@@ -436,7 +430,6 @@ Ltac do_interval_bisect_diff bounds output formula prec depth n :=
 
 Inductive interval_tac_parameters :=
   | i_prec : nat -> interval_tac_parameters
-  | i_nocheck : interval_tac_parameters
   | i_bisect : R -> interval_tac_parameters
   | i_bisect_diff : R -> interval_tac_parameters
   | i_depth : nat -> interval_tac_parameters.
@@ -448,17 +441,16 @@ Ltac tuple_to_list params l :=
   end.
 
 Ltac do_interval_parse params :=
-  let rec aux vars prec depth eval_tac check_tac params :=
+  let rec aux vars prec depth eval_tac params :=
     match params with
-    | nil => do_interval vars prec depth eval_tac check_tac
-    | cons (i_prec ?p) ?t => aux vars p depth eval_tac check_tac t
-    | cons i_nocheck ?t => aux vars prec depth eval_tac do_interval_nocheck t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_bisect check_tac t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_bisect_diff check_tac t
-    | cons (i_depth ?d) ?t => aux vars prec d eval_tac check_tac t
+    | nil => do_interval vars prec depth eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_bisect_diff t
+    | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
-  aux (@nil R) 30%nat 15%nat do_interval_eval do_interval_check params.
+  aux (@nil R) 30%nat 15%nat do_interval_eval params.
 
 Tactic Notation "interval" :=
   do_interval_parse (@nil interval_tac_parameters).
@@ -521,7 +513,6 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     match params with
     | nil => do_interval_intro t_ extend params_ vars prec depth eval_tac
     | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
-    | cons i_nocheck ?t => aux vars prec depth eval_tac t
     | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect t
     | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect_diff t
     | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
@@ -530,22 +521,22 @@ Ltac do_interval_intro_parse t_ extend params_ :=
   aux (@nil R) 30%nat 5%nat do_interval_intro_eval params_.
 
 Tactic Notation "interval_intro" constr(t) :=
-  do_interval_intro_parse t (fun v : I.type => v) (cons i_nocheck nil).
+  do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters).
 
 Tactic Notation "interval_intro" constr(t) "lower" :=
-  do_interval_intro_parse t I.upper_extent (cons i_nocheck nil).
+  do_interval_intro_parse t I.upper_extent (@nil interval_tac_parameters).
 
 Tactic Notation "interval_intro" constr(t) "upper"  :=
-  do_interval_intro_parse t I.lower_extent (cons i_nocheck nil).
+  do_interval_intro_parse t I.lower_extent (@nil interval_tac_parameters).
 
 Tactic Notation "interval_intro" constr(t) "with" constr(params) :=
-  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (cons i_nocheck nil)).
+  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) :=
-  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (cons i_nocheck nil)).
+  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) :=
-  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (cons i_nocheck nil)).
+  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 (*
 Lemma blo1 :

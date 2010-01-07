@@ -1,0 +1,2 @@
+Version 0.11:
+ - removed i_nocheck parameter as computations are no longer done at Qed time.
