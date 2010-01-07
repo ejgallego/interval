@@ -1,2 +1,2 @@
-SUBDIRS = src
+SUBDIRS = src testsuite
 EXTRA_DIST = autogen.sh
