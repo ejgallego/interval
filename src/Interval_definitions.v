@@ -1,7 +1,7 @@
 Require Import Reals.
 Require Import ZArith.
-Require Import xreal.
-Require Import missing.
+Require Import Interval_xreal.
+Require Import Interval_missing.
 
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.

@@ -1,12 +1,12 @@
 Require Import Bool.
 Require Import Reals.
-Require Import missing.
-Require Import xreal.
-Require Import definitions.
-Require Import generic.
-Require Import generic_proof.
-Require Import float_sig.
-Require Import interval.
+Require Import Interval_missing.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
+Require Import Interval_float_sig.
+Require Import Interval_interval.
 
 Inductive f_interval (A : Type) : Type :=
   | Inan : f_interval A
@@ -24,8 +24,8 @@ Definition precision := F.precision.
 Definition convert_bound x := FtoX (F.toF x).
 Definition convert xi :=
   match xi with
-  | Inan => interval.Inan
-  | Ibnd l u => interval.Ibnd (convert_bound l) (convert_bound u)
+  | Inan => Interval_interval.Inan
+  | Ibnd l u => Interval_interval.Ibnd (convert_bound l) (convert_bound u)
   end.
 
 Definition nai := @Inan F.type.
@@ -33,12 +33,12 @@ Definition bnd := @Ibnd F.type.
 
 Lemma bnd_correct :
   forall l u,
-  convert (bnd l u) = interval.Ibnd (convert_bound l) (convert_bound u).
+  convert (bnd l u) = Interval_interval.Ibnd (convert_bound l) (convert_bound u).
 split.
 Qed.
 
 Lemma nai_correct :
-  convert nai = interval.Inan.
+  convert nai = Interval_interval.Inan.
 split.
 Qed.
 
@@ -416,7 +416,7 @@ Qed.
 
 Theorem subset_correct :
   forall xi yi : type,
-  subset xi yi = true -> interval.subset (convert xi) (convert yi).
+  subset xi yi = true -> Interval_interval.subset (convert xi) (convert yi).
 intros xi yi.
 case xi ; case yi ; try (simpl ; intros ; try exact I ; discriminate).
 intros yl yu xl xu H.
@@ -493,7 +493,7 @@ now apply Rmin_best.
 Qed.
 
 Definition bounded_prop xi :=
-  convert xi = interval.Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
+  convert xi = Interval_interval.Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
 
 Theorem lower_bounded_correct :
   forall xi,

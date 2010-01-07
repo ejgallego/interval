@@ -1,6 +1,6 @@
 Require Import Reals.
 Require Import Bool.
-Require Import missing.
+Require Import Interval_missing.
 
 (*
  * Rcompare

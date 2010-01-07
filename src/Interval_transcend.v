@@ -1,12 +1,12 @@
 Require Import Reals.
-Require Import missing.
-Require Import xreal.
-Require Import definitions.
-Require Import float_sig.
-Require Import generic.
-Require Import generic_proof.
-Require Import interval.
-Require Import interval_float.
+Require Import Interval_missing.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_float_sig.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
+Require Import Interval_interval.
+Require Import Interval_interval_float.
 
 Module TranscendentalFloatFast (F : FloatOps with Definition even_radix := true).
 
@@ -863,9 +863,9 @@ Definition tan_fast prec x :=
   end.
 
 Definition semi_extension f fi :=
-  forall x, interval.contains (I.convert (fi x)) (f (FtoX (F.toF x))).
+  forall x, contains (I.convert (fi x)) (f (FtoX (F.toF x))).
 
-Axiom pi4_correct : forall prec, interval.contains (I.convert (pi4 prec)) (Xreal (PI/4)).
+Axiom pi4_correct : forall prec, contains (I.convert (pi4 prec)) (Xreal (PI/4)).
 Definition cos_correct : forall prec, semi_extension Xcos (cos_fast prec) := cos_fast_correct.
 Definition sin_correct : forall prec, semi_extension Xsin (sin_fast prec) := sin_fast_correct.
 Axiom tan_correct : forall prec, semi_extension Xtan (tan_fast prec).
@@ -1099,8 +1099,8 @@ Qed.
 End TranscendentalFloatFast.
 
 (*
-Require Import specific_ops.
-Require Import stdz_carrier.
+Require Import Interval_specific_ops.
+Require Import Interval_stdz_carrier.
 Module F := SpecificFloat StdZRadix2.
 Module A := TranscendentalFloatFast F.
 Time Eval vm_compute in (A.exp_fast 50%Z (Float 201%Z (-8)%Z)).

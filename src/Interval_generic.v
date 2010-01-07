@@ -1,8 +1,8 @@
 Require Import Reals.
 Require Import Bool.
 Require Import ZArith.
-Require Import xreal.
-Require Import definitions.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
 
 Inductive float (radix : positive) : Set :=
   | Fnan : float radix

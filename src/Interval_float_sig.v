@@ -1,9 +1,9 @@
 Require Import ZArith.
-Require Import missing.
-Require Import xreal.
-Require Import definitions.
-Require Import generic.
-Require Import generic_proof.
+Require Import Interval_missing.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
 
 Module Type FloatOps.
 

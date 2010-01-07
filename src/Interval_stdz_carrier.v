@@ -1,8 +1,8 @@
 Require Import ZArith.
 Require Import Bool.
-Require Import definitions.
-Require Import generic.
-Require Import specific_sig.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_specific_sig.
 
 Module StdZRadix2 <: FloatCarrier.
 

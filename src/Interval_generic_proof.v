@@ -1,10 +1,10 @@
 Require Import Reals.
-Require Import missing.
+Require Import Interval_missing.
 Require Import Bool.
 Require Import ZArith.
-Require Import xreal.
-Require Import definitions.
-Require Import generic.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_generic.
 
 Definition exp_factor radix e :=
   match e with

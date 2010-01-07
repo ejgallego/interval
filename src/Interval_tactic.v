@@ -1,19 +1,19 @@
 Require Import Reals.
 Require Import List.
-Require Import missing.
+Require Import Interval_missing.
 Require Import ZArith.
 Require Import BigN.
 Require Import BigZ.
-Require Import xreal.
-Require Import definitions.
-Require Import generic.
-Require Import generic_proof.
-(*Require Import stdz_carrier.*)
-Require Import bigint_carrier.
-Require Import specific_ops.
-Require Import interval.
-Require Import interval_float_full.
-Require Import bisect.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
+(*Require Import Interval_stdz_carrier.*)
+Require Import Interval_bigint_carrier.
+Require Import Interval_specific_ops.
+Require Import Interval_interval.
+Require Import Interval_interval_float_full.
+Require Import Interval_bisect.
 
 (*Module C := StdZRadix2.*)
 Module C := BigIntRadix2.
@@ -44,7 +44,7 @@ Ltac get_float t :=
       end in
     let e := aux d in
     let m := get_mantissa n in
-    eval vm_compute in (F.fromF (generic.Float 2 s m (Zneg e))) in
+    eval vm_compute in (F.fromF (Interval_generic.Float 2 s m (Zneg e))) in
   let get_float_integer s t :=
     let rec aux m e :=
       match m with
@@ -56,7 +56,7 @@ Ltac get_float t :=
     let m := get_mantissa t in
     let v := aux m Z0 in
     match v with
-    | (?m, ?e) => eval vm_compute in (F.fromF (generic.Float 2 s m e))
+    | (?m, ?e) => eval vm_compute in (F.fromF (Interval_generic.Float 2 s m e))
     end in
   match t with
   | 0%R => F.zero
@@ -73,7 +73,7 @@ Lemma Rabs_contains :
   forall f v,
   contains (I.convert (I.bnd (F.neg f) f)) (Xreal v) ->
   match F.toF f with
-  | generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
+  | Interval_generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
   | _ => True
   end.
 intros [|m e] v (H1, H2).
@@ -96,7 +96,7 @@ Qed.
 Lemma Rabs_contains_rev :
   forall f v,
   match F.toF f with
-  | generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
+  | Interval_generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
   | _ => False
   end ->
   contains (I.convert (I.bnd (F.neg f) f)) (Xreal v).
@@ -320,7 +320,7 @@ Qed.
 Lemma interval_helper_bisection :
   forall bounds output formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+  | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
     V.Algos.bisect_1d (fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u output depth = true
   | _ => False
   end ->
@@ -347,7 +347,7 @@ Qed.
 Lemma interval_helper_bisection_diff :
   forall bounds output formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+  | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
     V.Algos.bisect_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) n b) l u output depth = true
   | _ => False
   end ->
@@ -493,7 +493,7 @@ Ltac do_interval_intro_eval extend bounds formula prec depth :=
 Ltac do_interval_intro_bisect extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+    | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
       V.Algos.lookup_1d (fun b => nth 0 (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u extend depth
     | _ => I.nai
     end).
@@ -501,7 +501,7 @@ Ltac do_interval_intro_bisect extend bounds formula prec depth :=
 Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (interval_float.Ibnd l u) _) tail =>
+    | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
       V.Algos.lookup_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) 0 b) l u extend depth
     | _ => I.nai
     end).

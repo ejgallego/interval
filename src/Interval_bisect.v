@@ -1,12 +1,12 @@
 Require Import Bool.
 Require Import List.
 Require Import Reals.
-Require Import missing.
-Require Import xreal.
-Require Import xreal_derive.
-Require Import definitions.
-Require Import generic_proof.
-Require Import interval.
+Require Import Interval_missing.
+Require Import Interval_xreal.
+Require Import Interval_xreal_derive.
+Require Import Interval_definitions.
+Require Import Interval_generic_proof.
+Require Import Interval_interval.
 
 Module IntervalAlgos (I : IntervalOps).
 

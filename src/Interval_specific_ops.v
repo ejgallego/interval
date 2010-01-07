@@ -1,12 +1,12 @@
 Require Import ZArith.
 Require Import Bool.
-Require Import missing.
-Require Import xreal.
-Require Import definitions.
-Require Import generic.
-Require Import generic_proof.
-Require Import float_sig.
-Require Import specific_sig.
+Require Import Interval_missing.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
+Require Import Interval_float_sig.
+Require Import Interval_specific_sig.
 
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
@@ -28,20 +28,20 @@ Definition type := s_float smantissa_type exponent_type.
 
 Definition toF (x : type) :=
   match x with
-  | Fnan => generic.Fnan radix
+  | Fnan => Interval_generic.Fnan radix
   | Float m e =>
     match mantissa_sign m with
-    | Mzero => generic.Fzero radix
-    | Mnumber s p => generic.Float radix s (MtoP p) (EtoZ e)
+    | Mzero => Interval_generic.Fzero radix
+    | Mnumber s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)
     end
   end.
 
-Definition fromF (f : generic.float radix) :=
+Definition fromF (f : Interval_generic.float radix) :=
   match f with
-  | generic.Fnan => Fnan
-  | generic.Fzero => Float mantissa_zero exponent_zero
-  | generic.Float false m e => Float (ZtoM (Zpos m)) (ZtoE e)
-  | generic.Float true m e => Float (ZtoM (Zneg m)) (ZtoE e)
+  | Interval_generic.Fnan => Fnan
+  | Interval_generic.Fzero => Float mantissa_zero exponent_zero
+  | Interval_generic.Float false m e => Float (ZtoM (Zpos m)) (ZtoE e)
+  | Interval_generic.Float true m e => Float (ZtoM (Zneg m)) (ZtoE e)
   end.
 
 Definition precision := exponent_type.
@@ -54,10 +54,10 @@ Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 
 Definition zero := Float mantissa_zero exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
-Definition nan_correct := refl_equal (generic.Fnan radix).
+Definition nan_correct := refl_equal (Interval_generic.Fnan radix).
 
 Lemma zero_correct :
-  toF zero = generic.Fzero radix.
+  toF zero = Interval_generic.Fzero radix.
 generalize (mantissa_sign_correct mantissa_zero).
 simpl.
 case (mantissa_sign mantissa_zero).
@@ -79,7 +79,7 @@ Definition mag (x : type) :=
 
 Definition real (f : type) := match f with Fnan => false | _ => true end.
 Lemma real_correct :
-  forall f, match toF f with generic.Fnan => real f = false | _ => real f = true end.
+  forall f, match toF f with Interval_generic.Fnan => real f = false | _ => real f = true end.
 intros.
 case f ; simpl.
 apply refl_equal.
@@ -149,7 +149,7 @@ Definition float_aux s m e : type :=
 
 Lemma toF_float :
   forall s p e, valid_mantissa p ->
-  toF (float_aux s p e) = generic.Float radix s (MtoP p) (EtoZ e).
+  toF (float_aux s p e) = Interval_generic.Float radix s (MtoP p) (EtoZ e).
 intros.
 simpl.
 generalize (mantissa_sign_correct ((if s then mantissa_neg else mantissa_pos) p)).
@@ -196,7 +196,7 @@ destruct x as [| m e].
 apply refl_equal.
 simpl.
 rewrite (match_helper_1 _ _ (fun (s : bool) p => Float ((if s then mantissa_pos else mantissa_neg) p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fneg a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fneg a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
@@ -231,7 +231,7 @@ destruct x as [| m e].
 apply refl_equal.
 simpl.
 rewrite (match_helper_1 _ _ (fun (s : bool) p => Float (mantissa_pos p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fabs a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fabs a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
@@ -479,7 +479,7 @@ Axiom round_aux_correct :
   forall mode p sign m1 e1 pos,
   valid_mantissa m1 ->
   FtoX (toF (round_aux mode p sign m1 e1 pos)) =
-  FtoX (Fround_at_prec mode (prec p) (generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
+  FtoX (Fround_at_prec mode (prec p) (Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
 
 Definition round mode prec (f : type) :=
   match f with
@@ -599,8 +599,8 @@ now case (mantissa_sign my).
 intros sx px Hx (Hx1, Hx2).
 rewrite (match_helper_1 _ _ (fun s py => round_aux mode p (Datatypes.xorb sx s) (mantissa_mul px py)
   (exponent_add ex ey) pos_Eq) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => generic.Float radix s (MtoP p) (EtoZ ey))
-  (fun a => FtoX (Fmul mode (prec p) (generic.Float radix sx (MtoP px) (EtoZ ex)) a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ ey))
+  (fun a => FtoX (Fmul mode (prec p) (Interval_generic.Float radix sx (MtoP px) (EtoZ ex)) a))).
 simpl.
 generalize (mantissa_sign_correct my).
 case (mantissa_sign my).

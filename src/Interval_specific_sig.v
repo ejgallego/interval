@@ -1,7 +1,7 @@
 Require Import ZArith.
-Require Import definitions.
-Require Import generic.
-Require Import generic_proof.
+Require Import Interval_definitions.
+Require Import Interval_generic.
+Require Import Interval_generic_proof.
 
 Inductive signed_number (A : Type) :=
   | Mzero : signed_number A

@@ -1,6 +1,6 @@
 Require Import Reals.
-Require Import missing.
-Require Import xreal.
+Require Import Interval_missing.
+Require Import Interval_xreal.
 
 Definition proj_fun v f x :=
   match f (Xreal x) with Xreal y => y | Xnan => v end.

@@ -1,10 +1,10 @@
 Require Import Reals.
-Require Import xreal.
-Require Import definitions.
-Require Import float_sig.
-Require Import interval.
-Require Import interval_float.
-Require Import transcend.
+Require Import Interval_xreal.
+Require Import Interval_definitions.
+Require Import Interval_float_sig.
+Require Import Interval_interval.
+Require Import Interval_interval_float.
+Require Import Interval_transcend.
 
 Module FloatIntervalFull (F : FloatOps with Definition even_radix := true) <: IntervalOps.
 
