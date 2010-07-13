@@ -3,6 +3,7 @@ Require Import Bool.
 Require Import ZArith.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
+Require Import Fcalc_sqrt.
 
 Inductive float (radix : positive) : Set :=
   | Fnan : float radix
@@ -771,6 +772,18 @@ Definition Frem radix mode prec (x y : float radix) :=
 
 Implicit Arguments Frem.
 
+Definition validate_radix (radix : positive) (f : Fcore_Raux.radix -> ufloat radix) : ufloat radix.
+intros r f.
+generalize (Zle_bool_imp_le 2 (Zpos r)).
+case Zle_bool.
+intros H.
+apply f.
+apply (Fcore_Raux.Build_radix (Zpos r)).
+now apply H.
+intros _.
+exact (Unan r).
+Defined.
+
 (*
  * Fsqrt
  *
@@ -786,50 +799,17 @@ Implicit Arguments Frem.
  * Complexity is fine as long as p1 <= 2p-1.
  *)
 
-Definition Fsqrt_aux1 n :=
-  match n with
-  | Z0 => (true, Z0)
-  | Zpos xH => (false, Z0)
-  | Zneg xH => (false, Zneg xH)
-  | Zpos (xO p) => (true, Zpos p)
-  | Zneg (xO p) => (true, Zneg p)
-  | Zpos (xI p) => (false, Zpos p)
-  | Zneg (xI p) => (false, Zneg (Psucc p))
-  end.
-
-Definition Fsqrt_aux2 radix (m : positive) (e : Z) : ufloat radix.
-intros.
-refine
- (match Zsqrt (Zpos m) _ with
-  | existT (Zpos p) (exist (Zpos p0) _) =>
-    Ufloat radix false p e
-     (match Zcompare (Zpos p0) (Zpos p) with
-      | Gt => pos_Up
-      | _ => pos_Lo
-      end)
-  | existT (Zpos p) (exist Z0 _) =>
-    Ufloat radix false p e pos_Eq
-  | _ => Unan radix (* dummy *)
-  end).
-compute.
-discriminate.
-Defined.
-
-Definition Fsqrt_aux radix prec (f : float radix) :=
+Definition Fsqrt_aux radix prec (f : float radix) : ufloat radix :=
   match f with
   | Float false m e =>
-    let d := count_digits radix m in
-    match (Zpos (xO prec) + Zneg (Psucc d))%Z with
-    | Zpos n =>
-      let (nb, e2) :=
-        let (b, ee) := Fsqrt_aux1 (e + Zneg n)%Z in
-        if b then (n, ee) else (Psucc n, ee) in
-      Fsqrt_aux2 radix (shift radix m nb) e2
-    | _ =>
-      let (b, e2) := Fsqrt_aux1 e in
-      if b then Fsqrt_aux2 radix m e2
-      else Fsqrt_aux2 radix (shift radix m 1) e2
-    end
+    validate_radix radix (fun rdx =>
+      match Fsqrt_aux rdx (Zpos prec) (Zpos m) e with
+      | (Zpos m, e, l) =>
+        Ufloat radix false m e
+         (match l with Fcalc_bracket.loc_Exact => pos_Eq | Fcalc_bracket.loc_Inexact l =>
+          match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end end)
+      | _ => Unan radix (* dummy *)
+      end)
   | Float true _ _ => Unan radix
   | Fzero => Uzero radix
   | Fnan => Unan radix
