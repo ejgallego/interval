@@ -1,14 +1,4 @@
-Require Import Reals.
-Require Import ZArith.
-
-Lemma Rplus_le_reg_r :
-  forall r r1 r2 : R,
-  (r1 + r <= r2 + r)%R -> (r1 <= r2)%R.
-intros.
-apply Rplus_le_reg_l with r.
-do 2 rewrite (Rplus_comm r).
-exact H.
-Qed.
+Require Export Fcore_Raux.
 
 Lemma Rmult_le_compat_neg_r :
   forall r r1 r2 : R,
@@ -38,16 +28,6 @@ intros.
 apply Rmult_eq_reg_l with (2 := H0).
 do 2 rewrite (Rmult_comm r).
 exact H.
-Qed.
-
-Lemma minus_IZR :
-  forall n m : Z,
-  IZR (n - m) = (IZR n - IZR m)%R.
-intros.
-unfold Zminus.
-rewrite plus_IZR.
-rewrite Ropp_Ropp_IZR.
-apply refl_equal.
 Qed.
 
 Lemma Rmin_Rle :
@@ -158,16 +138,7 @@ apply Rmult_eq_compat_l.
 exact IHn0.
 Qed.
 
-Lemma Zlt_0_Zpower_pos :
-  forall a b, (0 < a)%Z ->
-  (0 < Zpower_pos a b)%Z.
-intros.
-apply lt_IZR.
-rewrite Zpower_pos_powerRZ.
-apply powerRZ_lt.
-apply (IZR_lt 0).
-exact H.
-Qed.
+Definition Zlt_0_Zpower_pos := Zpower_pos_gt_0.
 
 Lemma Zlt_0_Zpower :
   forall a b, (0 < a)%Z -> (0 <= b)%Z ->
@@ -253,102 +224,6 @@ rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 exact H0.
 exact H.
-Qed.
-
-Fixpoint P2R (p : positive) :=
-  match p with
-  | xH => 1%R
-  | xO xH => 2%R
-  | xO t => (2 * P2R t)%R
-  | xI xH => 3%R
-  | xI t => (1 + 2 * P2R t)%R
-  end.
-
-Definition Z2R n :=
-  match n with
-  | Zpos p => P2R p
-  | Zneg p => Ropp (P2R p)
-  | Z0 => R0
-  end.
-
-Lemma P2R_INR :
-  forall n, P2R n = INR (nat_of_P n).
-induction n ; simpl ; try (
-  rewrite IHn ;
-  rewrite <- (mult_INR 2) ;
-  rewrite <- (nat_of_P_mult_morphism 2) ;
-  change (2 * n)%positive with (xO n)).
-(* xI *)
-rewrite (Rplus_comm 1).
-change (nat_of_P (xO n)) with (Pmult_nat n 2).
-case n ; intros ; simpl ; try apply refl_equal.
-case (Pmult_nat p 4) ; intros ; try apply refl_equal.
-rewrite Rplus_0_l.
-apply refl_equal.
-apply Rplus_comm.
-(* xO *)
-case n ; intros ; apply refl_equal.
-(* xH *)
-apply refl_equal.
-Qed.
-
-Lemma Z2R_IZR :
-  forall n, Z2R n = IZR n.
-intro.
-case n ; intros ; simpl.
-apply refl_equal.
-apply P2R_INR.
-apply Ropp_eq_compat.
-apply P2R_INR.
-Qed.
-
-Lemma plus_Z2R :
-  forall m n, (Z2R (m + n) = Z2R m + Z2R n)%R.
-intros.
-repeat rewrite Z2R_IZR.
-apply plus_IZR.
-Qed.
-
-Lemma minus_Z2R :
-  forall m n, (Z2R (m - n) = Z2R m - Z2R n)%R.
-intros.
-repeat rewrite Z2R_IZR.
-apply minus_IZR.
-Qed.
-
-Lemma mult_Z2R :
-  forall m n, (Z2R (m * n) = Z2R m * Z2R n)%R.
-intros.
-repeat rewrite Z2R_IZR.
-apply mult_IZR.
-Qed.
-
-Lemma le_Z2R :
-  forall m n, (Z2R m <= Z2R n)%R -> (m <= n)%Z.
-intros m n.
-repeat rewrite Z2R_IZR.
-apply le_IZR.
-Qed.
-
-Lemma Z2R_le :
-  forall m n, (m <= n)%Z -> (Z2R m <= Z2R n)%R.
-intros m n.
-repeat rewrite Z2R_IZR.
-apply IZR_le.
-Qed.
-
-Lemma lt_Z2R :
-  forall m n, (Z2R m < Z2R n)%R -> (m < n)%Z.
-intros m n.
-repeat rewrite Z2R_IZR.
-apply lt_IZR.
-Qed.
-
-Lemma Z2R_lt :
-  forall m n, (m < n)%Z -> (Z2R m < Z2R n)%R.
-intros m n.
-repeat rewrite Z2R_IZR.
-apply IZR_lt.
 Qed.
 
 Theorem derivable_pt_lim_eq :
