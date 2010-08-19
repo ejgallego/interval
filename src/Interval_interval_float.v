@@ -1033,7 +1033,7 @@ rewrite Rcompare_correct_lt.
 exact I.
 apply Rle_lt_trans with (1 := Hxl) (2 := H).
 destruct (Rcompare_spec rl 0) ; simpl ; unfold convert_bound ;
-  repeat ( rewrite F.sqrt_correct ; rewrite Fsqrt_correct ).
+  repeat ( rewrite F.sqrt_correct ; rewrite Fsqrt_correct with (1 := F.radix_correct) ).
 exact I.
 (* xl zero *)
 rewrite F.zero_correct.

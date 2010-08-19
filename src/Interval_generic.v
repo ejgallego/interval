@@ -774,15 +774,20 @@ Implicit Arguments Frem.
 
 Definition validate_radix (radix : positive) (f : Fcore_Raux.radix -> ufloat radix) : ufloat radix.
 intros r f.
-generalize (Zle_bool_imp_le 2 (Zpos r)).
-case Zle_bool.
+case_eq (Zle_bool 2 (Zpos r)).
 intros H.
 apply f.
-apply (Fcore_Raux.Build_radix (Zpos r)).
-now apply H.
+exact (Fcore_Raux.Build_radix _ H).
 intros _.
 exact (Unan r).
 Defined.
+
+Definition convert_location l :=
+  match l with
+  | Fcalc_bracket.loc_Exact => pos_Eq
+  | Fcalc_bracket.loc_Inexact l =>
+    match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
+  end.
 
 (*
  * Fsqrt
@@ -805,9 +810,7 @@ Definition Fsqrt_aux radix prec (f : float radix) : ufloat radix :=
     validate_radix radix (fun rdx =>
       match Fsqrt_aux rdx (Zpos prec) (Zpos m) e with
       | (Zpos m, e, l) =>
-        Ufloat radix false m e
-         (match l with Fcalc_bracket.loc_Exact => pos_Eq | Fcalc_bracket.loc_Inexact l =>
-          match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end end)
+        Ufloat radix false m e (convert_location l)
       | _ => Unan radix (* dummy *)
       end)
   | Float true _ _ => Unan radix

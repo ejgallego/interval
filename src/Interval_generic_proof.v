@@ -1317,10 +1317,11 @@ case s ; simpl ; try rewrite Ropp_mult_distr_l_reverse ; apply refl_equal.
 Qed.
 
 Theorem Fdiv_correct :
-  forall radix mode prec (x y : float radix),
-  (1 < Zpos radix)%Z ->
+  forall radix, (1 < Zpos radix)%Z ->
+  forall mode prec (x y : float radix),
   FtoX (Fdiv mode prec x y) = FtoX (round radix mode prec (Xdiv (FtoX x) (FtoX y))).
-intros radix mode prec [ | | sx mx ex] [ | | sy my ey] Hr;
+Proof.
+intros radix Hr mode prec [ | | sx mx ex] [ | | sy my ey] ;
   simpl ;
   try rewrite is_zero_correct_zero ;
   try apply refl_equal ;
@@ -1364,10 +1365,118 @@ case sx ; case sy ; simpl ; field ;
   exact (conj (exp_factor_not_R0 _ _) (Zpos_not_R0 _)).
 Qed.
 
-Lemma Fsqrt_correct :
-  forall radix mode prec (x : float radix),
-  FtoX (Fsqrt mode prec x) = FtoX (round radix mode prec (Xsqrt (FtoX x))).
+Lemma validate_radix_correct :
+  forall radix, (1 < Zpos radix)%Z ->
+  exists beta : Fcore_Raux.radix,
+  Fcore_Raux.radix_val beta = Zpos radix /\
+  forall f, validate_radix radix f = f beta.
+Proof.
+intros radix Hr.
+assert (Zle_bool 2 (Zpos radix) = true).
+apply Zle_imp_le_bool.
+now apply (Zlt_le_succ 1).
+exists (Fcore_Raux.Build_radix _ H).
+repeat split.
+intros f.
+unfold validate_radix.
+generalize (refl_equal (Zle_bool 2 (Zpos radix))).
+generalize (Zle_bool 2 (Zpos radix)) at 2 3.
+intros [|] H1.
+apply f_equal.
+now apply Fcore_Raux.radix_val_inj.
+now rewrite H in H1.
+Qed.
+
+Lemma FtoR_conversion_pos :
+  forall beta radix, Fcore_Raux.radix_val beta = Zpos radix ->
+  forall m e,
+  Fcore_defs.F2R (Fcore_defs.Float beta (Zpos m) e) = FtoR radix false m e.
+Proof.
+intros beta radix Hr m e.
+unfold Fcore_defs.F2R. simpl.
+unfold Fcore_Raux.bpow.
+rewrite Hr.
+unfold FtoR.
+destruct e.
+now rewrite Rmult_1_r.
+now rewrite mult_Z2R.
+easy.
+Qed.
+
+Lemma convert_location_correct :
+  forall beta radix, Fcore_Raux.radix_val beta = Zpos radix ->
+  forall m e x l,
+  Fcalc_bracket.inbetween_float beta m e x l ->
+  correctly_located (exp_factor radix e) x m (convert_location l).
+Proof.
+intros beta radix Hr m e x l H.
+inversion_clear H ; simpl.
+rewrite H0.
+unfold Fcore_defs.F2R. simpl.
+apply f_equal.
+unfold Fcore_Raux.bpow.
+now rewrite Hr.
+destruct l0 ; simpl.
 Admitted.
+
+Lemma digits_conversion :
+  forall beta radix, Fcore_Raux.radix_val beta = Zpos radix ->
+  forall p,
+  Fcalc_digits.digits beta (Zpos p) = Zpos (count_digits radix p).
+Proof.
+intros beta radix Hr p.
+Admitted.
+
+Lemma Fsqrt_correct :
+  forall radix, (1 < Zpos radix)%Z ->
+  forall mode prec (x : float radix),
+  FtoX (Fsqrt mode prec x) = FtoX (round radix mode prec (Xsqrt (FtoX x))).
+Proof.
+intros radix Hr mode prec [ | | sx mx ex] ; simpl ; try easy.
+(* *)
+case is_negative_spec.
+intros H.
+elim (Rlt_irrefl _ H).
+intros _.
+rewrite sqrt_0.
+now rewrite round_correct_zero.
+(* *)
+unfold Fsqrt, Fsqrt_aux.
+case is_negative_spec.
+case sx ; simpl.
+easy.
+intros H.
+elim (Rlt_not_le _ _ H).
+apply Rlt_le.
+apply FtoR_Rpos.
+case sx.
+intros H.
+elim (Rle_not_lt _ _ H).
+apply FtoR_Rneg.
+intros _.
+rewrite round_correct_real.
+destruct (validate_radix_correct _ Hr) as (beta, (H1, H2)).
+rewrite H2.
+generalize (Fcalc_sqrt.Fsqrt_aux_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
+destruct (Fcalc_sqrt.Fsqrt_aux beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
+intros (H3, H4).
+destruct m' as [|p|p].
+now elim H3.
+apply (Fround_at_prec_correct radix mode prec false p e').
+apply sqrt_lt_R0.
+apply FtoR_Rpos.
+rewrite normalize_identity.
+apply (convert_location_correct _ _ H1).
+now rewrite (FtoR_conversion_pos _ _ H1) in H4.
+now rewrite <- (digits_conversion _ _ H1).
+destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
+elim (Rlt_not_le _ _ H5).
+apply Rle_trans with R0.
+apply Fcore_float_prop.F2R_le_0_compat.
+unfold Fcore_defs.Fnum.
+now apply (Zlt_le_succ (Zneg p)).
+apply Fcore_Raux.sqrt_ge_0.
+Qed.
 
 Lemma correctly_rounded_lower :
   forall radix prec f x,
