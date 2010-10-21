@@ -1,4 +1,4 @@
-AC_INIT([Interval], [0.10],
+AC_INIT([Interval], [0.11],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 AM_INIT_AUTOMAKE
