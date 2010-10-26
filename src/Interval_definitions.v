@@ -33,39 +33,4 @@ Definition FtoR (s : bool) m e :=
   | Zneg p => (Z2R sm / Z2R (Zpower_pos beta p))%R
   end.
 
-Definition is_float (prec : positive) (x : R) :=
-  x = R0 \/
-  exists s : bool, exists m : positive, exists e : Z,
-  (Zpos (count_digits m) <= Zpos prec)%Z /\
-  x = FtoR s m e.
-
-Definition is_even_float (prec : positive) (x : R) :=
-  x = R0 \/
-  exists s : bool, exists m : positive, exists e : Z,
-  (Zpos (count_digits (xO m)) <= Zpos prec)%Z /\
-  x = FtoR s (xO m) e.
-
-Definition is_around prec f x :=
-  forall g, is_float prec g ->
-  (Rle g x -> Rle g f) /\ (Rle x g -> Rle f g).
-
-Definition is_correctly_rounded mode prec f' x' :=
-  match x', f' with
-  | Xnan, Xnan => True
-  | Xreal x, Xreal f =>
-    is_float prec f /\
-    is_around prec f x /\
-    match mode with
-    | rnd_UP => Rle x f
-    | rnd_DN => Rle f x
-    | rnd_ZR => Rle (Rabs f) (Rabs x)
-    | rnd_NE =>
-      (forall g, is_float prec g ->
-       f = g \/
-       (Rabs (x - f) < Rabs (x - g))%R \/
-       ((Rabs (x - f) = Rabs (x - g))%R /\ is_even_float prec f))
-    end
-  | _, _ => False
-  end.
-
 End Definitions.

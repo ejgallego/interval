@@ -2,6 +2,7 @@ Require Import Reals.
 Require Import Interval_missing.
 Require Import Bool.
 Require Import ZArith.
+Require Import Fcore.
 Require Import Fcalc_digits.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -379,14 +380,6 @@ Definition is_bounded beta prec (f : float beta) :=
 
 Implicit Arguments is_bounded.
 
-Lemma identity_is_around :
-  forall beta prec x,
-  is_around beta prec x x.
-unfold is_around.
-intros.
-split ; trivial.
-Qed.
-
 Ltac refl_exists :=
   repeat eapply ex_intro
   (*match goal with
@@ -450,6 +443,21 @@ unfold Rsign.
 rewrite Rcompare_refl.
 apply refl_equal.
 Qed.
+
+Definition rnd_of_mode mode :=
+  match mode with
+  | rnd_UP => rndUP
+  | rnd_DN => rndDN
+  | rnd_ZR => rndZR
+  | rnd_NE => rndNE
+  end.
+
+Definition is_correctly_rounded beta mode prec f' x' :=
+  match x', f' with
+  | Xnan, Xnan => True
+  | Xreal x, Xreal f => f = Fcore_generic_fmt.round beta (FLX_exp (Zpos prec)) (rnd_of_mode mode) x
+  | _, _ => False
+  end.
 
 Axiom round_correctly :
   forall beta mode prec x,
@@ -844,13 +852,19 @@ Qed.
 Lemma correctly_rounded_lower :
   forall beta prec f x,
   is_correctly_rounded beta rnd_DN prec (Xreal f) (Xreal x) -> Rle f x.
+Proof.
 intros.
-exact (proj2 (proj2 H)).
+rewrite H.
+eapply round_DN_pt.
+now apply FLX_exp_correct.
 Qed.
 
 Lemma correctly_rounded_upper :
   forall beta prec f x,
   is_correctly_rounded beta rnd_UP prec (Xreal f) (Xreal x) -> Rle x f.
+Proof.
 intros.
-exact (proj2 (proj2 H)).
+rewrite H.
+eapply round_UP_pt.
+now apply FLX_exp_correct.
 Qed.
