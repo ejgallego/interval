@@ -7,10 +7,9 @@ Require Import Interval_generic_proof.
 
 Module Type FloatOps.
 
-Parameter radix : positive.
+Parameter radix : Fcore_Raux.radix.
 Parameter even_radix : bool.
-Parameter radix_correct : (1 < Zpos radix)%Z.
-Parameter even_radix_correct : match radix with xO _ => true | _ => false end = even_radix.
+Parameter even_radix_correct : match radix_val radix with Zpos (xO _) => true | _ => false end = even_radix.
 Parameter type : Type.
 Parameter toF : type -> float radix.
 

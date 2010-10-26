@@ -702,11 +702,10 @@ intros (x, Hx).
 destruct x as [|x].
 elim Hx.
 destruct Hx as (Hx1,Hx2).
-assert (Hr: (1 <= P2R (F.radix * 1))%R).
-rewrite P2R_INR.
-apply (le_INR 1).
-apply lt_le_S.
-apply lt_O_nat_of_P.
+assert (Hr: (1 <= Z2R (Zpower_pos F.radix 1))%R).
+rewrite Z2R_Zpower_pos.
+rewrite <- bpow_powerRZ.
+now apply (bpow_le F.radix 0).
 (* . *)
 simpl.
 repeat rewrite F.cmp_correct.
@@ -856,7 +855,7 @@ Qed.
 Theorem scale2_correct :
   forall xi x d,
   contains (convert xi) x ->
-  contains (convert (scale2 xi (F.ZtoS d))) (Xmul x (Xreal (exp_factor 2 d))).
+  contains (convert (scale2 xi (F.ZtoS d))) (Xmul x (Xreal (bpow radix2 d))).
 intros [ | xl xu].
 split.
 intros [ | x] d Hx.
@@ -868,7 +867,7 @@ do 2 ( rewrite F.scale2_correct ; [ idtac | apply refl_equal ] ).
 do 2 ( rewrite Fscale2_correct ; [ idtac | apply F.even_radix_correct ]).
 split ; xreal_tac2 ; simpl ;
   ( apply Rmult_le_compat_r ;
-    [ (apply Rlt_le ; apply exp_factor_Rpos) | assumption ] ).
+    [ (apply Rlt_le ; apply bpow_gt_0) | assumption ] ).
 Qed.
 
 Theorem add_correct :
@@ -1033,7 +1032,7 @@ rewrite Rcompare_correct_lt.
 exact I.
 apply Rle_lt_trans with (1 := Hxl) (2 := H).
 destruct (Rcompare_spec rl 0) ; simpl ; unfold convert_bound ;
-  repeat ( rewrite F.sqrt_correct ; rewrite Fsqrt_correct with (1 := F.radix_correct) ).
+  repeat ( rewrite F.sqrt_correct ; rewrite Fsqrt_correct ).
 exact I.
 (* xl zero *)
 rewrite F.zero_correct.
@@ -1238,7 +1237,7 @@ case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
   split ;
   (* remove rounding operators *)
   try ( rewrite F.div_correct ;
-        rewrite Fdiv_correct with (1 := F.radix_correct) ;
+        rewrite Fdiv_correct ;
         do 2 xreal_tac2 ; unfold Xdiv, Rdiv ;
         match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
         bound_tac ) ;

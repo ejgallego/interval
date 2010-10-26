@@ -44,7 +44,7 @@ Ltac get_float t :=
       end in
     let e := aux d in
     let m := get_mantissa n in
-    eval vm_compute in (F.fromF (Interval_generic.Float 2 s m (Zneg e))) in
+    eval vm_compute in (F.fromF (Interval_generic.Float radix2 s m (Zneg e))) in
   let get_float_integer s t :=
     let rec aux m e :=
       match m with
@@ -56,7 +56,7 @@ Ltac get_float t :=
     let m := get_mantissa t in
     let v := aux m Z0 in
     match v with
-    | (?m, ?e) => eval vm_compute in (F.fromF (Interval_generic.Float 2 s m e))
+    | (?m, ?e) => eval vm_compute in (F.fromF (Interval_generic.Float radix2 s m e))
     end in
   match t with
   | 0%R => F.zero

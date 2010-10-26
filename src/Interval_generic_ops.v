@@ -7,24 +7,20 @@ Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 
 Module Type Radix.
-  Parameter val : positive.
-  Parameter spec : (1 < Zpos val)%Z.
+  Parameter val : Fcore_Raux.radix.
 End Radix.
 
 Module Radix2 <: Radix.
-  Definition val := 2%positive.
-  Definition spec := refl_equal Lt.
+  Definition val := radix2.
 End Radix2.
 
 Module Radix10 <: Radix.
-  Definition val := 10%positive.
-  Definition spec := refl_equal Lt.
+  Definition val := Fcore_Raux.Build_radix 10 (refl_equal _).
 End Radix10.
 
 Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition radix := Rad.val.
-  Definition even_radix := match radix with xO _ => true | _ => false end.
-  Definition radix_correct := Rad.spec.
+  Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
   Definition even_radix_correct := refl_equal even_radix.
   Definition type := float radix.
   Definition toF := fun x : float radix => x.

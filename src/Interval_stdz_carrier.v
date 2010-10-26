@@ -6,7 +6,7 @@ Require Import Interval_specific_sig.
 
 Module StdZRadix2 <: FloatCarrier.
 
-Definition radix := 2%positive.
+Definition radix := radix2.
 Definition radix_correct := refl_equal Lt.
 Definition smantissa_type := Z.
 Definition mantissa_type := positive.

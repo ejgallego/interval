@@ -7,7 +7,7 @@ Require Import Interval_specific_sig.
 
 Module BigIntRadix2 <: FloatCarrier.
 
-Definition radix := 2%positive.
+Definition radix := radix2.
 Definition radix_correct := refl_equal Lt.
 Definition smantissa_type := BigZ.t.
 Definition mantissa_type := BigN.t.

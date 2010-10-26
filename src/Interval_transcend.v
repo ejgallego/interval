@@ -304,7 +304,7 @@ Axiom cos_fast0_correct :
 
 Lemma scale2_correct :
   forall x d,
-  FtoX (F.toF (F.scale2 x (F.ZtoS d))) = Xmul (FtoX (F.toF x)) (Xreal (exp_factor 2 d)).
+  FtoX (F.toF (F.scale2 x (F.ZtoS d))) = Xmul (FtoX (F.toF x)) (Xreal (bpow radix2 d)).
 Proof.
 intros x d.
 rewrite F.scale2_correct. 2: apply refl_equal.

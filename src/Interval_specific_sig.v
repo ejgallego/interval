@@ -12,8 +12,7 @@ Implicit Arguments Mnumber [A].
 
 Module Type FloatCarrier.
 
-Parameter radix : positive.
-Parameter radix_correct : (1 < Zpos radix)%Z.
+Parameter radix : Fcore_Raux.radix.
 Parameter smantissa_type : Type.
 Parameter mantissa_type : Type.
 Parameter exponent_type : Type.
