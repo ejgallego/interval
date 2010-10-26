@@ -2,6 +2,7 @@ Require Import Reals.
 Require Import Interval_missing.
 Require Import Bool.
 Require Import ZArith.
+Require Import Fcalc_digits.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -772,29 +773,6 @@ apply FtoR_Rpos.
 apply refl_equal.
 Qed.
 
-Lemma count_digits_correct :
-  forall beta m,
-  let c := count_digits beta m in
-  (Zpower beta (Zpos c - 1) <= Zpos m < Zpower beta (Zpos c))%Z.
-Admitted.
-
-Lemma count_digits_correct_inf :
-  forall beta m c,
-  (Zpower (radix_val beta) (Zpos c - 1) <= Zpos m)%Z ->
-  (Zpos c <= Zpos (count_digits beta m))%Z.
-Admitted.
-
-Lemma count_digits_correct_sup :
-  forall beta m c,
-  (Zpos m < Zpower (radix_val beta) (Zpos c))%Z ->
-  (Zpos (count_digits beta m) <= Zpos c)%Z.
-Admitted.
-
-Lemma count_digits_shift :
-  forall beta m k,
-  Zpos (count_digits beta (shift beta m k)) = (Zpos (count_digits beta m) + Zpos k)%Z.
-Admitted.
-
 Lemma FtoR_conversion_pos :
   forall beta m e,
   Fcore_defs.F2R (Fcore_defs.Float beta (Zpos m) e) = FtoR beta false m e.
@@ -820,10 +798,22 @@ Admitted.
 
 Lemma digits_conversion :
   forall beta p,
-  Fcalc_digits.digits beta (Zpos p) = Zpos (count_digits beta p).
+  digits beta (Zpos p) = Zpos (count_digits beta p).
 Proof.
 intros beta p.
-Admitted.
+unfold digits, count_digits.
+generalize xH, (radix_val beta), p at 1 3.
+induction p ; simpl ; intros.
+case (Zlt_bool (Zpos p1) z).
+apply refl_equal.
+rewrite <- IHp.
+now rewrite Pplus_one_succ_r.
+case (Zlt_bool (Zpos p1) z).
+apply refl_equal.
+rewrite <- IHp.
+now rewrite Pplus_one_succ_r.
+now case (Zlt_bool (Zpos p0) z).
+Qed.
 
 Theorem Fdiv_correct :
   forall beta mode prec (x y : float beta),

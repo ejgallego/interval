@@ -17,7 +17,7 @@ Fixpoint count_digits_aux nb pow (p q : positive) { struct q } : positive :=
   if Zlt_bool (Zpos p) pow then nb
   else
     match q with
-    | xH => xH
+    | xH => nb
     | xI r => count_digits_aux (Psucc nb) (Zmult beta pow) p r
     | xO r => count_digits_aux (Psucc nb) (Zmult beta pow) p r
     end.
