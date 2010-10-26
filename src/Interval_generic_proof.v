@@ -468,14 +468,6 @@ apply bounded_is_correctly_rounded.
 apply refl_equal.
 Qed.
 
-Lemma correctly_rounded_uniq :
-  forall beta mode prec a b x,
-  is_correctly_rounded beta mode prec a x ->
-  is_correctly_rounded beta mode prec b x ->
-  a = b.
-intros beta mode prec a b x Ha Hb.
-Admitted.
-
 Definition locate (beta : radix) (prec : positive) (x : R) : positive * Z * position.
 Admitted.
 
@@ -554,7 +546,16 @@ Lemma normalize_identity :
   forall beta prec m e,
   (Zpos prec <= Zpos (count_digits beta m))%Z ->
   normalize beta prec m e = (m, e).
-Admitted.
+Proof.
+intros beta prec m e.
+unfold Zle, normalize.
+rewrite <- (Zcompare_plus_compat _ _ (- Zpos prec)).
+rewrite Zplus_opp_l, Zplus_comm.
+unfold Zminus.
+case Zplus ; try easy.
+intros p H.
+now elim H.
+Qed.
 
 Lemma Fround_at_prec_correct :
   forall beta mode prec s m1 e1 pos x,
