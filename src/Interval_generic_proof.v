@@ -27,9 +27,15 @@ Lemma FtoR_split :
     if s then Ropp (Z2R (Zpos m) * exp_factor radix e)%R
     else (Z2R (Zpos m) * exp_factor radix e)%R.
 intros.
-unfold FtoR, exp_factor.
-case s ; case e ; intros ; try (simpl ; ring) ;
-  unfold Rdiv ; try rewrite mult_Z2R ; simpl ; ring.
+unfold FtoR.
+case s.
+rewrite <- Ropp_mult_distr_l_reverse, <- Z2R_opp.
+case e ; try rewrite Rmult_1_r ; try easy.
+intros p.
+now rewrite Z2R_mult.
+case e ; try rewrite Rmult_1_r ; try easy.
+intros p.
+now rewrite Z2R_mult.
 Qed.
 
 Lemma Zpos_not_R0 :
@@ -159,7 +165,7 @@ Lemma FtoR_add :
 intros.
 repeat rewrite FtoR_split.
 change (Zpos (m1 + m2)) with (Zpos m1 + Zpos m2)%Z.
-rewrite plus_Z2R.
+rewrite Z2R_plus.
 rewrite Rmult_plus_distr_r.
 case s ; simpl ; try rewrite Ropp_plus_distr ; apply refl_equal.
 Qed.
@@ -171,7 +177,7 @@ Lemma FtoR_sub :
 intros.
 repeat rewrite FtoR_split.
 replace (Zpos (m1 - m2)) with (Zpos m1 - Zpos m2)%Z.
-rewrite minus_Z2R.
+rewrite Z2R_minus.
 unfold Rminus.
 rewrite Rmult_plus_distr_r.
 case s ; simpl.
@@ -195,7 +201,7 @@ Lemma FtoR_mul :
 intros.
 repeat rewrite FtoR_split.
 change (Zpos (m1 * m2)) with (Zpos m1 * Zpos m2)%Z.
-rewrite mult_Z2R.
+rewrite Z2R_mult.
 rewrite exp_factor_mul.
 case s1 ; case s2 ; simpl ; ring.
 Qed.
@@ -217,7 +223,7 @@ rewrite exp_factor_mul.
 rewrite <- Rmult_assoc.
 apply Rmult_eq_compat_r.
 unfold exp_factor.
-rewrite <- mult_Z2R.
+rewrite <- Z2R_mult.
 rewrite shift_correct.
 apply refl_equal.
 Qed.
@@ -476,8 +482,8 @@ Lemma adjust_pos_correct :
   correctly_located (Z2R (Zpos d) * scale)%R x (Zpos m) (adjust_pos r d pos1).
 intros scale x pos1 m d r H0.
 unfold correctly_located.
-repeat rewrite plus_Z2R.
-repeat rewrite mult_Z2R.
+repeat rewrite Z2R_plus.
+repeat rewrite Z2R_mult.
 repeat rewrite Rmult_plus_distr_r.
 rewrite Rmult_assoc.
 assert (Hd: (1 <= Zpos d)%Z).
@@ -593,7 +599,7 @@ rewrite Rmult_1_l.
 rewrite <- Rmult_assoc.
 apply Rmult_lt_compat_r.
 exact H0.
-rewrite <- (mult_Z2R 2).
+rewrite <- (Z2R_mult 2).
 apply Z2R_lt.
 rewrite H.
 rewrite Zpos_xI.
@@ -627,7 +633,7 @@ auto with real.
 rewrite <- Rmult_assoc.
 rewrite Rinv_r.
 rewrite Rmult_1_l.
-rewrite <- (mult_Z2R 2).
+rewrite <- (Z2R_mult 2).
 apply Z2R_lt.
 rewrite H.
 rewrite Zpos_xI.
@@ -646,7 +652,7 @@ rewrite H1.
 apply Rplus_eq_compat_l.
 rewrite H.
 rewrite Zpos_xO.
-rewrite mult_Z2R.
+rewrite Z2R_mult.
 repeat rewrite <- Rmult_assoc.
 rewrite Rinv_l.
 rewrite Rmult_1_l.
@@ -671,7 +677,7 @@ auto with real.
 rewrite <- Rmult_assoc.
 rewrite Rinv_r.
 rewrite Rmult_1_l.
-rewrite <- (mult_Z2R 2).
+rewrite <- (Z2R_mult 2).
 apply Z2R_lt.
 rewrite H.
 rewrite (Zpos_xO p0).
@@ -686,7 +692,7 @@ split.
 apply Rplus_lt_compat_l.
 rewrite H.
 rewrite Zpos_xO.
-rewrite mult_Z2R.
+rewrite Z2R_mult.
 repeat rewrite <- Rmult_assoc.
 rewrite Rinv_l.
 rewrite Rmult_1_l.
@@ -1399,7 +1405,7 @@ rewrite Hr.
 unfold FtoR.
 destruct e.
 now rewrite Rmult_1_r.
-now rewrite mult_Z2R.
+now rewrite Z2R_mult.
 easy.
 Qed.
 
@@ -1457,8 +1463,8 @@ intros _.
 rewrite round_correct_real.
 destruct (validate_radix_correct _ Hr) as (beta, (H1, H2)).
 rewrite H2.
-generalize (Fcalc_sqrt.Fsqrt_aux_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
-destruct (Fcalc_sqrt.Fsqrt_aux beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
+generalize (Fcalc_sqrt.Fsqrt_core_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
+destruct (Fcalc_sqrt.Fsqrt_core beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
 intros (H3, H4).
 destruct m' as [|p|p].
 now elim H3.

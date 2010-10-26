@@ -808,7 +808,7 @@ Definition Fsqrt_aux radix prec (f : float radix) : ufloat radix :=
   match f with
   | Float false m e =>
     validate_radix radix (fun rdx =>
-      match Fsqrt_aux rdx (Zpos prec) (Zpos m) e with
+      match Fsqrt_core rdx (Zpos prec) (Zpos m) e with
       | (Zpos m, e, l) =>
         Ufloat radix false m e (convert_location l)
       | _ => Unan radix (* dummy *)
