@@ -20,6 +20,15 @@ AC_CHECK_TOOL(COQC, coqc)
 AC_ARG_VAR(COQDEP, [Coq dependency analyzer command [coqdep]])
 AC_CHECK_TOOL(COQDEP, coqdep)
 
+AC_MSG_CHECKING([for Flocq])
+AS_IF(
+  [ echo "Require Fcore Fcalc_digits." > conftest.v
+    "$COQC" conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find the Flocq library (http://flocq.gforge.inria.fr/)])])
+rm -f conftest.v conftest.vo conftest.err
+
 if test "$libdir" = '${exec_prefix}/lib'; then
   libdir='`$(COQC) -where`/user-contrib/Interval'
 fi

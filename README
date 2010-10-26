@@ -6,12 +6,6 @@ This package is free software; you can redistribute it and/or modify it
 under the terms of GNU Lesser General Public License (see the COPYING
 file). Author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
 
-As this library relies on the fast integer library, version 8.2 of Coq
-is expected for compiling it. By modifying the first lines of the
-tactics.v file and removing the offending files, the library might be
-usable with older versions of Coq. The library can be compiled by
-issuing the command "make".
-
 
 I. Invocation
 -------------
