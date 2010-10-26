@@ -583,15 +583,6 @@ Admitted.
 Definition locate (radix : positive) (prec : positive) (x : R) : positive * Z * position.
 Admitted.
 
-Lemma locate_correct :
-  forall radix prec x, (0 < x)%R ->
-  match locate radix prec x with
-  | (m, e, pos) =>
-    count_digits radix m = prec /\
-    correctly_located (powerRZ (IZR (Zpos radix)) e) x (Zpos m) pos
-  end.
-Admitted.
-
 Definition round_real radix mode prec x :=
   match Rsign x with
   | Lt =>
@@ -669,19 +660,6 @@ Lemma normalize_identity :
   normalize radix prec m e = (m, e).
 Admitted.
 
-Lemma normalize_stable :
-  forall radix prec s m1 e1,
-  FtoR radix s m1 e1 = (let (m2, e2) := normalize radix prec m1 e1 in FtoR radix s m2 e2).
-intros.
-unfold normalize.
-case_eq (Zpos (count_digits radix m1) - Zpos prec)%Z ; trivial.
-intros.
-pattern e1 at 1 ; replace e1 with (e1 + Zneg p + Zpos p)%Z.
-apply FtoR_shift.
-change (Zneg p) with (- Zpos p)%Z.
-ring.
-Qed.
-
 Lemma Fround_at_prec_correct :
   forall radix mode prec s m1 e1 pos x,
   (0 < x)%R ->
@@ -690,22 +668,6 @@ Lemma Fround_at_prec_correct :
   FtoX (Fround_at_prec mode prec (Ufloat radix s m1 e1 pos)) =
     Xreal (round_real radix mode prec (if s then Ropp x else x)).
 Admitted.
-
-(*
-Lemma Fround_at_prec_correct_pos_Eq :
-  forall radix mode prec s m e,
-  FtoX (Fround_at_prec mode prec (Ufloat radix s m e pos_Eq)) =
-  Xreal (round_real radix mode prec (FtoR radix s m e)).
-intros.
-unfold FtoR.
-apply Fround_at_prec_correct.
-apply HtoR_pos.
-unfold correctly_located.
-rewrite (normalize_stable radix prec).
-destruct (normalize radix prec m e) as (a, b).
-apply refl_equal.
-Qed.
-*)
 
 Lemma Fround_at_prec_correct_pos_Eq :
   forall radix mode prec (x : ufloat radix),
