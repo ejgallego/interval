@@ -1,7 +1,7 @@
 EXTRA_DIST = $(wildcard *.v)
 
 check:
-	logfile="failures-$$(date -Idate).log"; \
+	@logfile="failures-$$(date -Idate).log"; \
 	cat /dev/null > log.tmp; \
 	cat /dev/null > "$$logfile"; \
 	for f in $(EXTRA_DIST); do \
@@ -14,11 +14,13 @@ check:
 	  fi; \
 	  rm -f check_tmp.v check_tmp.vo check_tmp.glob output.tmp; \
 	done; \
-	nb=$$(cat log.tmp | wc -l); \
-	if [ $$nb -gt 0 ]; then \
+	return_code=0; \
+	if [ -s log.tmp ]; then \
 	  echo "*** Failures:"; \
 	  cat log.tmp; \
+	  return_code=1; \
 	else \
 	  rm "$$logfile"; \
 	fi; \
-	rm log.tmp
+	rm log.tmp; \
+	exit $${return_code}
