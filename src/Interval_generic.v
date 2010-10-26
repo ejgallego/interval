@@ -3,6 +3,7 @@ Require Import Bool.
 Require Import ZArith.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
+Require Import Fcalc_div.
 Require Import Fcalc_sqrt.
 
 Inductive float (radix : positive) : Set :=
@@ -173,6 +174,23 @@ Definition UtoX radix (f : ufloat radix) :=
   end.
 
 Implicit Arguments UtoX.
+
+Definition validate_radix (radix : positive) (f : Fcore_Raux.radix -> ufloat radix) : ufloat radix.
+intros r f.
+case_eq (Zle_bool 2 (Zpos r)).
+intros H.
+apply f.
+exact (Fcore_Raux.Build_radix _ H).
+intros _.
+exact (Unan r).
+Defined.
+
+Definition convert_location l :=
+  match l with
+  | Fcalc_bracket.loc_Exact => pos_Eq
+  | Fcalc_bracket.loc_Inexact l =>
+    match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
+  end.
 
 Definition float_to_ufloat radix (x : float radix) :=
   match x with
@@ -672,25 +690,19 @@ Implicit Arguments Fsub_exact.
  * Complexity is fine as long as px <= 2p and py <= p.
  *)
 
-Definition Fdiv_aux radix prec (x y : float radix) :=
+Definition Fdiv_aux radix prec (x y : float radix) : ufloat radix :=
   match x, y with
   | Fnan, _ => Unan radix
   | _, Fnan => Unan radix
   | _, Fzero => Unan radix
   | Fzero, _ => Uzero radix
   | Float sx mx ex, Float sy my ey =>
-    let dx := count_digits radix mx in
-    let dy := count_digits radix my in
-    let e := (ex - ey)%Z in
-    let (m2, e2) :=
-      match (Zpos dy + Zpos prec + Zneg dx)%Z with
-      | Zpos nb => (shift radix mx nb, (e + Zneg nb)%Z)
-      | _ => (mx, e)
-      end in
-    match Zdiv_eucl (Zpos m2) (Zpos my) with
-    | (Zpos q, r) => Ufloat radix (xorb sx sy) q e2 (adjust_pos r my pos_Eq)
-    | _ => Unan radix (* dummy *)
-    end
+    validate_radix radix (fun rdx =>
+      match Fdiv_core rdx (Zpos prec) (Zpos mx) ex (Zpos my) ey with
+      | (Zpos m, e, l) =>
+        Ufloat radix (xorb sx sy) m e (convert_location l)
+      | _ => Unan radix (* dummy *)
+      end)
   end.
 
 Implicit Arguments Fdiv_aux.
@@ -771,23 +783,6 @@ Definition Frem radix mode prec (x y : float radix) :=
   (q, Fround_at_prec mode prec r).
 
 Implicit Arguments Frem.
-
-Definition validate_radix (radix : positive) (f : Fcore_Raux.radix -> ufloat radix) : ufloat radix.
-intros r f.
-case_eq (Zle_bool 2 (Zpos r)).
-intros H.
-apply f.
-exact (Fcore_Raux.Build_radix _ H).
-intros _.
-exact (Unan r).
-Defined.
-
-Definition convert_location l :=
-  match l with
-  | Fcalc_bracket.loc_Exact => pos_Eq
-  | Fcalc_bracket.loc_Inexact l =>
-    match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
-  end.
 
 (*
  * Fsqrt

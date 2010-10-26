@@ -1222,155 +1222,6 @@ case (count_digits radix m) ; simpl ; intros ; try apply Zle_refl ; discriminate
 discriminate.
 Qed.
 
-Lemma Fdiv_correct_aux :
-  forall radix mode prec s mx my e,
-  (1 < Zpos radix)%Z ->
-  (Zpos (count_digits radix my) + Zpos prec <= Zpos (count_digits radix mx))%Z ->
-  FtoX (Fround_at_prec mode prec
-    match Zdiv_eucl (Zpos mx) (Zpos my) with
-    | (Zpos q, r) => Ufloat radix s q e (adjust_pos r my pos_Eq)
-    | _ => Unan radix (* dummy *)
-    end) = Xreal (round_real radix mode prec (FtoR radix s mx e / Z2R (Zpos my))%R).
-intros radix mode prec s mx my e Hr Hc.
-generalize (Z_div_mod (Zpos mx) (Zpos my) (Zgt_pos_0 my)).
-destruct (Zdiv_eucl (Zpos mx) (Zpos my)) as (q, r).
-intros (He1, He2).
-(* prove the quotient has enough digits *)
-assert (exists p, q = Zpos p /\ Zpos prec <= Zpos (count_digits radix p))%Z.
-(* . *)
-assert (Zpower (Zpos radix) (Zpos prec - 1) <= q)%Z.
-apply Zle_trans with (Zpower (Zpos radix) (Zpos (count_digits radix mx) - Zpos (count_digits radix my) - 1)).
-(* .. *)
-cut (Zpos prec - 1 <= Zpos (count_digits radix mx) - Zpos (count_digits radix my) - 1)%Z.
-generalize (Zpos prec - 1)%Z (Zpos (count_digits radix mx) - Zpos (count_digits radix my) - 1)%Z.
-clear. intros a b.
-apply Zpower_le_exp_compat.
-apply Zgt_lt.
-apply Zgt_pos_0.
-omega.
-(* .. *)
-apply Zlt_succ_le.
-apply Zmult_lt_reg_r with (Zpower_pos (Zpos radix) (count_digits radix my)).
-apply Zlt_0_Zpower_pos.
-exact (refl_equal _).
-fold (Zpower (Zpos radix) (Zpos (count_digits radix my))).
-rewrite <- Zpower_exp.
-apply Zle_lt_trans with (Zpos mx).
-replace (Zpos (count_digits radix mx) - Zpos (count_digits radix my) - 1 + Zpos (count_digits radix my))%Z
-  with (Zpos (count_digits radix mx) - 1)%Z.
-2: ring.
-exact (proj1 (count_digits_correct _ _ Hr)).
-apply Zle_lt_trans with (Zsucc q * Zpos my)%Z.
-unfold Zsucc.
-rewrite He1.
-rewrite Zmult_plus_distr_l.
-rewrite Zmult_comm.
-omega.
-apply Zmult_lt_compat_l.
-apply Zle_lt_succ.
-apply Zmult_le_approx with (2 := Zlt_gt _ _ (proj2 He2)).
-apply Zgt_pos_0.
-rewrite Zmult_comm.
-rewrite <- He1.
-apply Zlt_le_weak.
-apply Zgt_lt.
-apply Zgt_pos_0.
-exact (proj2 (count_digits_correct _ _ Hr)).
-generalize (Zgt_pos_0 prec).
-omega.
-discriminate.
-(* . *)
-cut (0 < q)%Z.
-case_eq q ; intros ; try discriminate H1.
-refl_exists.
-apply count_digits_correct_inf.
-exact Hr.
-rewrite <- H0.
-exact H.
-apply Zlt_le_trans with (2 := H).
-apply Zlt_0_Zpower.
-split.
-generalize (Zgt_pos_0 prec).
-omega.
-(* verify rounding *)
-destruct H as (p, (Hp, Hq)).
-rewrite Hp.
-replace (FtoR radix s mx e / Z2R (Zpos my))%R with
-  (if s then - (FtoR radix false mx e * / Z2R (Zpos my)) else FtoR radix false mx e * / Z2R (Zpos my))%R.
-apply Fround_at_prec_correct.
-apply Fourier_util.Rlt_mult_inv_pos.
-apply FtoR_Rpos.
-apply Zpos_Rpos.
-rewrite normalize_identity with (1 := Hq).
-replace (exp_factor radix e) with
-  (Z2R (Zpos my) * (exp_factor radix e * / Z2R (Zpos my)))%R.
-apply adjust_pos_correct.
-apply Fourier_util.Rlt_mult_inv_pos.
-apply exp_factor_Rpos.
-apply Zpos_Rpos.
-exact He2.
-unfold correctly_located.
-rewrite FtoR_split.
-rewrite He1.
-rewrite Hp.
-rewrite Zmult_comm.
-apply Rmult_assoc.
-field.
-apply Zpos_not_R0.
-repeat rewrite FtoR_split.
-unfold Rdiv.
-case s ; simpl ; try rewrite Ropp_mult_distr_l_reverse ; apply refl_equal.
-Qed.
-
-Theorem Fdiv_correct :
-  forall radix, (1 < Zpos radix)%Z ->
-  forall mode prec (x y : float radix),
-  FtoX (Fdiv mode prec x y) = FtoX (round radix mode prec (Xdiv (FtoX x) (FtoX y))).
-Proof.
-intros radix Hr mode prec [ | | sx mx ex] [ | | sy my ey] ;
-  simpl ;
-  try rewrite is_zero_correct_zero ;
-  try apply refl_equal ;
-  rewrite is_zero_correct_float.
-unfold Rdiv.
-rewrite Rmult_0_l.
-apply sym_eq.
-apply round_correct_zero.
-rewrite round_correct_real.
-cutrewrite (FtoR radix sx mx ex / FtoR radix sy my ey = FtoR radix (xorb sx sy) mx (ex - ey) / Z2R (Zpos my))%R.
-unfold Fdiv, Fdiv_aux.
-simpl Zplus at 1 2.
-generalize (xorb sx sy). intro s.
-case_eq ((count_digits radix my + prec ?= count_digits radix mx)%positive Eq) ; intro ;
-  try ( apply Fdiv_correct_aux with (1 := Hr) ;
-        unfold Zle ; simpl ; rewrite H ;
-        discriminate ).
-(* deal with short mx *)
-rewrite Fdiv_correct_aux with (1 := Hr).
-rewrite <- FtoR_shift.
-assert (forall m n, m + Zneg n + Zpos n = m)%Z.
-intros.
-change (Zneg n) with (- Zpos n)%Z.
-ring.
-rewrite H0.
-apply refl_equal.
-rewrite count_digits_shift with (1 := Hr).
-replace (Zpos (count_digits radix my) + Zpos prec)%Z with
-  (Zpos (count_digits radix mx) + (Zpos (count_digits radix my) + Zpos prec - Zpos (count_digits radix mx)))%Z.
-2: ring.
-apply Zplus_le_compat_l.
-simpl.
-rewrite H.
-apply Zle_refl.
-(* simplify signs *)
-repeat rewrite FtoR_split.
-unfold Zminus.
-rewrite exp_factor_mul.
-rewrite exp_factor_inv.
-case sx ; case sy ; simpl ; field ;
-  exact (conj (exp_factor_not_R0 _ _) (Zpos_not_R0 _)).
-Qed.
-
 Lemma validate_radix_correct :
   forall radix, (1 < Zpos radix)%Z ->
   exists beta : Fcore_Raux.radix,
@@ -1432,6 +1283,56 @@ Lemma digits_conversion :
 Proof.
 intros beta radix Hr p.
 Admitted.
+
+Theorem Fdiv_correct :
+  forall radix, (1 < Zpos radix)%Z ->
+  forall mode prec (x y : float radix),
+  FtoX (Fdiv mode prec x y) = FtoX (round radix mode prec (Xdiv (FtoX x) (FtoX y))).
+Proof.
+intros radix Hr mode prec [ | | sx mx ex] [ | | sy my ey] ;
+  simpl ;
+  try rewrite is_zero_correct_zero ;
+  try apply refl_equal ;
+  rewrite is_zero_correct_float.
+unfold Rdiv.
+rewrite Rmult_0_l.
+apply sym_eq.
+apply round_correct_zero.
+rewrite round_correct_real.
+unfold Fdiv, Fdiv_aux.
+destruct (validate_radix_correct _ Hr) as (beta, (H1, H2)).
+rewrite H2.
+generalize (Fcalc_div.Fdiv_core_correct beta (Zpos prec) (Zpos mx) ex (Zpos my) ey (refl_equal Lt)).
+destruct (Fcalc_div.Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey) as ((m', e'), l).
+intros (H3, H4) ; try easy.
+destruct m' as [|p|p].
+now elim H3.
+replace (FtoR radix sx mx ex / FtoR radix sy my ey)%R with
+  (if xorb sx sy then - (FtoR radix false mx ex / FtoR radix false my ey) else (FtoR radix false mx ex / FtoR radix false my ey))%R.
+apply (Fround_at_prec_correct radix mode prec _ p e').
+apply Rmult_lt_0_compat.
+apply FtoR_Rpos.
+apply Rinv_0_lt_compat.
+apply FtoR_Rpos.
+rewrite normalize_identity.
+apply (convert_location_correct _ _ H1).
+now rewrite 2!(FtoR_conversion_pos _ _ H1) in H4.
+now rewrite <- (digits_conversion _ _ H1).
+rewrite 4!FtoR_split.
+case sx ; case sy ; simpl ; field ;
+  exact (conj (exp_factor_not_R0 _ _) (Zpos_not_R0 _)).
+destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
+elim (Rlt_not_le _ _ H5).
+apply Rle_trans with R0.
+apply Fcore_float_prop.F2R_le_0_compat.
+unfold Fcore_defs.Fnum.
+now apply (Zlt_le_succ (Zneg p)).
+apply Rlt_le.
+apply Rmult_lt_0_compat.
+now apply Fcore_float_prop.F2R_gt_0_compat.
+apply Rinv_0_lt_compat.
+now apply Fcore_float_prop.F2R_gt_0_compat.
+Qed.
 
 Lemma Fsqrt_correct :
   forall radix, (1 < Zpos radix)%Z ->
