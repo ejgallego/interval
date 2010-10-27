@@ -95,7 +95,8 @@ Implicit Arguments Fscale2.
  *)
 
 Definition shift beta m nb :=
-  iter_pos nb _ (fun x => Pmult (match radix_val beta with Zpos r => r | _ => xH end) x) m.
+  let r := match radix_val beta with Zpos r => r | _ => xH end in
+  iter_pos nb _ (Pmult r) m.
 
 Definition Fcmp_aux1 m1 m2 :=
   match Zcompare (Zpos m1) (Zpos m2) with

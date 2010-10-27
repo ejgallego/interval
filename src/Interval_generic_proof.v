@@ -140,8 +140,26 @@ Qed.
 Lemma shift_correct :
   forall beta m e,
   Zpos (shift beta m e) = (Zpos m * Zpower_pos beta e)%Z.
-intros.
-Admitted.
+Proof.
+intros beta m e.
+unfold shift, Zpower_pos.
+set (r := match radix_val beta with Zpos r => r | _ => xH end).
+rewrite 2!iter_nat_of_P.
+induction (nat_of_P e).
+simpl.
+now rewrite Pmult_comm.
+simpl iter_nat.
+rewrite Zmult_assoc.
+rewrite (Zmult_comm (Zpos m)).
+rewrite <- Zmult_assoc.
+rewrite <- IHn.
+rewrite Zpos_mult_morphism.
+apply (f_equal (fun v => v * _)%Z).
+unfold r.
+generalize (radix_val beta) (radix_prop beta).
+clear.
+now intros [|p|p].
+Qed.
 
 Lemma FtoR_shift :
   forall beta s m e p,
