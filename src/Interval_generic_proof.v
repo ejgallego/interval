@@ -281,21 +281,20 @@ Theorem Fcmp_correct :
 intros.
 case x ; intros ; simpl ; try apply refl_equal ;
   case y ; intros ; simpl ; try apply refl_equal ; clear.
-rewrite Rcompare_refl.
-apply refl_equal.
+now rewrite Rcompare_Eq.
 case b.
-rewrite Rcompare_correct_gt.
+rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rneg.
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rpos.
 case b ; apply refl_equal.
 case b.
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rneg.
-rewrite Rcompare_correct_gt.
+rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rpos.
 case b ; case b0.
@@ -307,21 +306,21 @@ generalize (FtoR beta false p0 z0).
 generalize (FtoR beta false p z).
 intros.
 destruct (Rcompare_spec r0 r).
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 apply refl_equal.
 now apply Ropp_lt_contravar.
 rewrite H.
-now rewrite Rcompare_refl.
-rewrite Rcompare_correct_gt.
+now rewrite Rcompare_Eq.
+rewrite Rcompare_Gt.
 apply refl_equal.
 apply Ropp_lt_contravar.
 exact H.
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 apply refl_equal.
 apply Rlt_trans with R0.
 apply FtoR_Rneg.
 apply FtoR_Rpos.
-rewrite Rcompare_correct_gt.
+rewrite Rcompare_Gt.
 apply refl_equal.
 apply Rlt_trans with R0.
 apply FtoR_Rneg.
@@ -344,14 +343,11 @@ case_eq (FtoX x) ; [ split | intros xr Hx ].
 case_eq (FtoX y) ; [ split | intros yr Hy ].
 simpl.
 destruct (Rle_dec xr yr) as [[H|H]|H].
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 exact Hx.
 exact H.
-rewrite H.
-rewrite Rcompare_refl.
-rewrite Hx.
-apply f_equal with (1 := H).
-rewrite Rcompare_correct_gt.
+now rewrite Rcompare_Eq.
+rewrite Rcompare_Gt.
 exact Hy.
 apply Rnot_le_lt with (1 := H).
 Qed.
@@ -370,13 +366,11 @@ case_eq (FtoX x) ; [ split | intros xr Hx ].
 case_eq (FtoX y) ; [ split | intros yr Hy ].
 simpl.
 destruct (Rle_dec xr yr) as [[H|H]|H].
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 exact Hy.
 exact H.
-rewrite H.
-rewrite Rcompare_refl.
-exact Hy.
-rewrite Rcompare_correct_gt.
+now rewrite Rcompare_Eq.
+rewrite Rcompare_Gt.
 exact Hx.
 apply Rnot_le_lt with (1 := H).
 Qed.
@@ -458,8 +452,7 @@ Lemma round_correct_zero :
 intros.
 simpl.
 unfold Rsign.
-rewrite Rcompare_refl.
-apply refl_equal.
+now rewrite Rcompare_Eq.
 Qed.
 
 Definition rnd_of_mode mode :=

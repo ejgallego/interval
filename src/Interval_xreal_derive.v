@@ -245,9 +245,9 @@ Definition Xderive f f' := forall x, Xderive_pt f x (f' x).
 
 Ltac xtotal_get_spec1 f :=
   match f with
-  | is_eq => is_eq_spec
-  | is_le => is_le_spec
-  | is_lt => is_lt_spec
+  | Req_bool => Req_bool_spec
+  | Rle_bool => Rle_bool_spec
+  | Rlt_bool => Rlt_bool_spec
   | is_zero => is_zero_spec
   | is_positive => is_positive_spec
   | is_negative => is_negative_spec

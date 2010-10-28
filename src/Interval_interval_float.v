@@ -410,8 +410,7 @@ refine (Rnot_lt_le _ _ _).
 intro H0.
 simpl in H.
 elim H.
-rewrite (Rcompare_correct_gt _ _ H0).
-apply refl_equal.
+now rewrite Rcompare_Gt.
 Qed.
 
 Theorem subset_correct :
@@ -1028,7 +1027,7 @@ case_eq (FtoX (F.toF xl)) ; [ split | idtac ].
 intros rl Hrl Hxl.
 simpl.
 destruct (is_negative_spec x).
-rewrite Rcompare_correct_lt.
+rewrite Rcompare_Lt.
 exact I.
 apply Rle_lt_trans with (1 := Hxl) (2 := H).
 destruct (Rcompare_spec rl 0) ; simpl ; unfold convert_bound ;
