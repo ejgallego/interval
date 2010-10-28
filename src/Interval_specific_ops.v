@@ -772,8 +772,8 @@ Definition div mode prec (x y : type) :=
   | _, Fnan => y
   | Float mx ex, Float my ey =>
     match mantissa_sign mx, mantissa_sign my with
-    | Mzero, _ => x
     | _, Mzero => Fnan
+    | Mzero, _ => x
     | Mnumber sx px, Mnumber sy py =>
       let dx := mantissa_digits px in
       let dy := mantissa_digits py in
