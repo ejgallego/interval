@@ -4,6 +4,8 @@ Require Import Bool.
 Require Import ZArith.
 Require Import Fcore.
 Require Import Fcalc_digits.
+Require Import Fcalc_bracket.
+Require Import Fcalc_round.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -375,23 +377,6 @@ exact Hx.
 apply Rnot_le_lt with (1 := H).
 Qed.
 
-Definition correctly_located scale x m pos :=
-  match pos with
-  | pos_Eq => (x = Z2R m * scale)%R
-  | pos_Lo => (Z2R m * scale < x < (Z2R m + /2) * scale)%R
-  | pos_Mi => (x = (Z2R m + /2) * scale)%R
-  | pos_Up => ((Z2R m + /2) * scale < x < Z2R (m + 1) * scale)%R
-  end.
-
-Definition is_bounded beta prec (f : float beta) :=
-  match f with
-  | Fzero => true
-  | Fnan => false
-  | Float _ m _ => Zle_bool (Zpos (count_digits beta m)) (Zpos prec)
-  end.
-
-Implicit Arguments is_bounded.
-
 Ltac refl_exists :=
   repeat eapply ex_intro
   (*match goal with
@@ -461,13 +446,29 @@ intros p H.
 now elim H.
 Qed.
 
+Definition convert_location_inv l :=
+  match l with
+  | pos_Eq => loc_Exact
+  | pos_Lo => loc_Inexact Lt
+  | pos_Mi => loc_Inexact Eq
+  | pos_Up => loc_Inexact Gt
+  end.
+
+Lemma convert_location_bij :
+  forall l, convert_location_inv (convert_location l) = l.
+Proof.
+now destruct l as [|[| |]].
+Qed.
+
 Lemma Fround_at_prec_correct :
   forall beta mode prec s m1 e1 pos x,
   (0 < x)%R ->
-  (let (m2, e2) := normalize beta prec m1 e1 in
-  correctly_located (bpow beta e2) x (Zpos m2) pos) ->
+  ( let (m2, e2) := normalize beta prec m1 e1 in
+    inbetween_float beta (Zpos m2) e2 x (convert_location_inv pos) ) ->
   FtoX (Fround_at_prec mode prec (Ufloat beta s m1 e1 pos)) =
     Xreal (round beta mode prec (if s then Ropp x else x)).
+Proof.
+intros beta mode prec s m1 e1 pos x Hx Hl.
 Admitted.
 
 Lemma Fround_at_prec_correct_pos_Eq :
@@ -475,6 +476,10 @@ Lemma Fround_at_prec_correct_pos_Eq :
   FtoX (Fround_at_prec mode prec x) =
   xround beta mode prec (UtoX x).
 Admitted.
+
+(*
+ * Fadd
+ *)
 
 Lemma Fadd_slow_aux1_correct :
   forall beta sx sy mx my e,
@@ -690,17 +695,6 @@ now rewrite Z2R_mult.
 easy.
 Qed.
 
-Lemma convert_location_correct :
-  forall beta m e x l,
-  Fcalc_bracket.inbetween_float beta m e x l ->
-  correctly_located (bpow beta e) x m (convert_location l).
-Proof.
-intros beta m e x l H.
-inversion_clear H ; simpl.
-exact H0.
-destruct l0 ; simpl.
-Admitted.
-
 Lemma digits_conversion :
   forall beta p,
   digits beta (Zpos p) = Zpos (count_digits beta p).
@@ -748,7 +742,7 @@ apply FtoR_Rpos.
 apply Rinv_0_lt_compat.
 apply FtoR_Rpos.
 rewrite normalize_identity.
-apply convert_location_correct.
+rewrite convert_location_bij.
 now rewrite 2!FtoR_conversion_pos in H4.
 now rewrite <- digits_conversion.
 rewrite 4!FtoR_split.
@@ -809,7 +803,7 @@ apply (Fround_at_prec_correct beta mode prec false p e').
 apply sqrt_lt_R0.
 apply FtoR_Rpos.
 rewrite normalize_identity.
-apply convert_location_correct.
+rewrite convert_location_bij.
 now rewrite FtoR_conversion_pos in H4.
 now rewrite <- digits_conversion.
 destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
