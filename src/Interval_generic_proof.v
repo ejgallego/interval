@@ -399,62 +399,6 @@ Ltac refl_exists :=
   end*) ;
   repeat split.
 
-Definition locate (beta : radix) (prec : positive) (x : R) : positive * Z * position.
-Admitted.
-
-Definition round_real beta mode prec x :=
-  match Rsign x with
-  | Lt =>
-    match locate beta prec (-x) with
-    | (m, e, pos) => FtoR beta true (adjust_mantissa mode m pos true) e
-    end
-  | Eq => R0
-  | Gt =>
-    match locate beta prec x with
-    | (m, e, pos) => FtoR beta false (adjust_mantissa mode m pos false) e
-    end
-  end.
-
-Definition round beta mode prec x :=
-  match x with
-  | Xreal v =>
-    match Rsign v with
-    | Lt =>
-      match locate beta prec (-v) with
-      | (m, e, pos) => Float beta true (adjust_mantissa mode m pos true) e
-      end
-    | Eq => Fzero beta
-    | Gt =>
-      match locate beta prec v with
-      | (m, e, pos) => Float beta false (adjust_mantissa mode m pos false) e
-      end
-    end
-  | Xnan => Fnan beta
-  end.
-
-Lemma round_correct_real :
-  forall beta mode prec x,
-  FtoX (round beta mode prec (Xreal x)) = Xreal (round_real beta mode prec x).
-intros.
-unfold round, round_real.
-simpl.
-case (Rsign x) ; simpl.
-apply refl_equal.
-destruct (locate beta prec (-x)) as ((m, e), pos).
-apply refl_equal.
-destruct (locate beta prec x) as ((m, e), pos).
-apply refl_equal.
-Qed.
-
-Lemma round_correct_zero :
-  forall beta mode prec,
-  FtoX (round beta mode prec (Xreal R0)) = Xreal R0.
-intros.
-simpl.
-unfold Rsign.
-now rewrite Rcompare_Eq.
-Qed.
-
 Definition rnd_of_mode mode :=
   match mode with
   | rnd_UP => rndUP
@@ -463,23 +407,38 @@ Definition rnd_of_mode mode :=
   | rnd_NE => rndNE
   end.
 
-Definition is_correctly_rounded beta mode prec f' x' :=
-  match x', f' with
-  | Xnan, Xnan => True
-  | Xreal x, Xreal f => f = Fcore_generic_fmt.round beta (FLX_exp (Zpos prec)) (rnd_of_mode mode) x
-  | _, _ => False
+Definition round beta mode prec :=
+  round beta (FLX_exp (Zpos prec)) (rnd_of_mode mode).
+
+Definition xround beta mode prec x :=
+  match x with
+  | Xreal v => Xreal (round beta mode prec v)
+  | Xnan => Xnan
   end.
 
-Axiom round_correctly :
-  forall beta mode prec x,
-  is_correctly_rounded beta mode prec (FtoX (round beta mode prec x)) x.
-
-Axiom round_monotone :
+Lemma round_monotone :
   forall beta mode prec x y,
-  match Xcmp (FtoX (round beta mode prec x)) (FtoX (round beta mode prec y)) with
+  match Xcmp (xround beta mode prec x) (xround beta mode prec y) with
   | Xeq => True
   | c => Xcmp x y = c
   end.
+Proof.
+intros beta mode prec [|x] [|y] ; try easy.
+simpl.
+case Rcompare_spec ; intros H1 ; try exact I ;
+  case Rcompare_spec ; try easy ; intros H2 ;
+  elim Rlt_not_le with (1 := H1) ; clear -H2.
+rewrite H2.
+apply Rle_refl.
+apply round_monotone.
+now apply FLX_exp_correct.
+now apply Rlt_le.
+apply round_monotone.
+now apply FLX_exp_correct.
+now apply Rlt_le.
+rewrite H2.
+apply Rle_refl.
+Qed.
 
 Definition normalize beta prec m e :=
   match (Zpos (count_digits beta m) - Zpos prec)%Z with
@@ -508,13 +467,13 @@ Lemma Fround_at_prec_correct :
   (let (m2, e2) := normalize beta prec m1 e1 in
   correctly_located (bpow beta e2) x (Zpos m2) pos) ->
   FtoX (Fround_at_prec mode prec (Ufloat beta s m1 e1 pos)) =
-    Xreal (round_real beta mode prec (if s then Ropp x else x)).
+    Xreal (round beta mode prec (if s then Ropp x else x)).
 Admitted.
 
 Lemma Fround_at_prec_correct_pos_Eq :
   forall beta mode prec (x : ufloat beta),
   FtoX (Fround_at_prec mode prec x) =
-  FtoX (round beta mode prec (UtoX x)).
+  xround beta mode prec (UtoX x).
 Admitted.
 
 Lemma Fadd_slow_aux1_correct :
@@ -624,7 +583,7 @@ Qed.
 
 Theorem Fadd_slow_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fadd_slow mode prec x y) = FtoX (round beta mode prec (Xadd (FtoX x) (FtoX y))).
+  FtoX (Fadd_slow mode prec x y) = xround beta mode prec (Xadd (FtoX x) (FtoX y)).
 intros.
 unfold Fadd_slow.
 rewrite Fround_at_prec_correct_pos_Eq.
@@ -663,7 +622,7 @@ Qed.
 
 Theorem Fsub_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fsub mode prec x y) = FtoX (round beta mode prec (Xsub (FtoX x) (FtoX y))).
+  FtoX (Fsub mode prec x y) = xround beta mode prec (Xsub (FtoX x) (FtoX y)).
 intros.
 rewrite Fsub_split.
 rewrite Xsub_split.
@@ -691,7 +650,7 @@ Qed.
 
 Theorem Fmul_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fmul mode prec x y) = FtoX (round beta mode prec (Xmul (FtoX x) (FtoX y))).
+  FtoX (Fmul mode prec x y) = xround beta mode prec (Xmul (FtoX x) (FtoX y)).
 intros.
 unfold Fmul.
 rewrite Fround_at_prec_correct_pos_Eq.
@@ -763,7 +722,7 @@ Qed.
 
 Theorem Fdiv_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fdiv mode prec x y) = FtoX (round beta mode prec (Xdiv (FtoX x) (FtoX y))).
+  FtoX (Fdiv mode prec x y) = xround beta mode prec (Xdiv (FtoX x) (FtoX y)).
 Proof.
 intros beta mode prec [ | | sx mx ex] [ | | sy my ey] ;
   simpl ;
@@ -773,9 +732,9 @@ intros beta mode prec [ | | sx mx ex] [ | | sy my ey] ;
 unfold Rdiv.
 rewrite Rmult_0_l.
 apply sym_eq.
-apply round_correct_zero.
-rewrite round_correct_real.
-unfold Fdiv, Fdiv_aux.
+apply (f_equal Xreal).
+apply round_0.
+unfold xround, Fdiv, Fdiv_aux.
 generalize (Fcalc_div.Fdiv_core_correct beta (Zpos prec) (Zpos mx) ex (Zpos my) ey (refl_equal Lt)).
 destruct (Fcalc_div.Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey) as ((m', e'), l).
 intros (H3, H4) ; try easy.
@@ -814,7 +773,7 @@ Qed.
 
 Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),
-  FtoX (Fsqrt mode prec x) = FtoX (round beta mode prec (Xsqrt (FtoX x))).
+  FtoX (Fsqrt mode prec x) = xround beta mode prec (Xsqrt (FtoX x)).
 Proof.
 intros beta mode prec [ | | sx mx ex] ; simpl ; try easy.
 (* *)
@@ -822,8 +781,10 @@ case is_negative_spec.
 intros H.
 elim (Rlt_irrefl _ H).
 intros _.
+apply sym_eq.
+apply (f_equal Xreal).
 rewrite sqrt_0.
-now rewrite round_correct_zero.
+apply round_0.
 (* *)
 unfold Fsqrt, Fsqrt_aux.
 case is_negative_spec.
@@ -838,7 +799,7 @@ intros H.
 elim (Rle_not_lt _ _ H).
 apply FtoR_Rneg.
 intros _.
-rewrite round_correct_real.
+unfold xround.
 generalize (Fcalc_sqrt.Fsqrt_core_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
 destruct (Fcalc_sqrt.Fsqrt_core beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
 intros (H3, H4).
@@ -858,24 +819,4 @@ apply Fcore_float_prop.F2R_le_0_compat.
 unfold Fcore_defs.Fnum.
 now apply (Zlt_le_succ (Zneg p)).
 apply Fcore_Raux.sqrt_ge_0.
-Qed.
-
-Lemma correctly_rounded_lower :
-  forall beta prec f x,
-  is_correctly_rounded beta rnd_DN prec (Xreal f) (Xreal x) -> Rle f x.
-Proof.
-intros.
-rewrite H.
-eapply round_DN_pt.
-now apply FLX_exp_correct.
-Qed.
-
-Lemma correctly_rounded_upper :
-  forall beta prec f x,
-  is_correctly_rounded beta rnd_UP prec (Xreal f) (Xreal x) -> Rle x f.
-Proof.
-intros.
-rewrite H.
-eapply round_UP_pt.
-now apply FLX_exp_correct.
 Qed.

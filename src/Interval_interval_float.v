@@ -373,20 +373,18 @@ Ltac xreal_tac2 :=
   end.
 
 Ltac bound_tac :=
-  try rewrite round_correct_real ;
+  unfold xround ;
   match goal with
-  | |- (round_real ?r rnd_DN ?p ?v <= ?w)%R =>
+  | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
     apply Rle_trans with v ;
-    [ apply (correctly_rounded_lower r p) ;
-      rewrite <- round_correct_real ;
-      apply round_correctly
+    [ refine (proj1 (proj2 (Fcore_generic_fmt.round_DN_pt r (Fcore_FLX.FLX_exp (Zpos p)) _ v))) ;
+      now apply Fcore_FLX.FLX_exp_correct
     | idtac ]
-  | |- (?w <= round_real ?r rnd_UP ?p ?v)%R =>
+  | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
     apply Rle_trans with v ;
     [ idtac
-    | apply (correctly_rounded_upper r p) ;
-      rewrite <- round_correct_real ;
-      apply round_correctly ]
+    | refine (proj1 (proj2 (Fcore_generic_fmt.round_UP_pt r (Fcore_FLX.FLX_exp (Zpos p)) _ v))) ;
+      now apply Fcore_FLX.FLX_exp_correct ]
   end.
 
 Lemma real_correct :
@@ -1156,7 +1154,7 @@ do 4 xreal_tac2 ;
   try rewrite Xmin_swap_nan ;
   try rewrite Xmax_swap_nan ;
   try ( split ; simpl ; exact I ).
-do 4 rewrite round_correct_real.
+unfold xround.
 simpl.
 clear_complex.
 destruct (Rle_or_lt x 0) as [Hx|Hx].
