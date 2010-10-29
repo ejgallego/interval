@@ -179,6 +179,25 @@ rewrite Z2R_Zpower_pos.
 now rewrite <- bpow_powerRZ.
 Qed.
 
+Lemma digits_conversion :
+  forall beta p,
+  digits beta (Zpos p) = Zpos (count_digits beta p).
+Proof.
+intros beta p.
+unfold digits, count_digits.
+generalize xH, (radix_val beta), p at 1 3.
+induction p ; simpl ; intros.
+case (Zlt_bool (Zpos p1) z).
+apply refl_equal.
+rewrite <- IHp.
+now rewrite Pplus_one_succ_r.
+case (Zlt_bool (Zpos p1) z).
+apply refl_equal.
+rewrite <- IHp.
+now rewrite Pplus_one_succ_r.
+now case (Zlt_bool (Zpos p0) z).
+Qed.
+
 (*
  * Fneg
  *)
@@ -487,8 +506,53 @@ Lemma Fround_at_prec_correct :
   FtoX (Fround_at_prec mode prec (Ufloat beta s m1 e1 pos)) =
     Xreal (round beta mode prec (if s then Ropp x else x)).
 Proof.
-intros beta mode prec s m1 e1 pos x Hx Hl.
-Admitted.
+intros beta mode prec s m1 e1 pos x Hx.
+case_eq (normalize beta prec m1 e1).
+intros m2 e2 Hn Hl.
+unfold round.
+rewrite round_trunc_sign_any_correct with (choice := mode_choice mode) (m := Zpos m2) (e := e2) (l := convert_location_inv pos).
+(* *)
+admit.
+(* *)
+now apply FLX_exp_correct.
+(* *)
+clear.
+intros x m l Hx.
+case mode ; simpl.
+now apply inbetween_int_UP_sign.
+now apply inbetween_int_DN_sign.
+now apply inbetween_int_ZR_sign with (l := l).
+now apply inbetween_int_NE_sign with (x := x).
+(* *)
+case s.
+rewrite Rabs_Ropp, Rabs_pos_eq.
+exact Hl.
+now apply Rlt_le.
+rewrite Rabs_pos_eq.
+exact Hl.
+now apply Rlt_le.
+(* *)
+left.
+unfold FLX_exp.
+cut (0 <= digits beta (Zpos m2) - Zpos prec)%Z. clear. omega.
+change m2 with (fst (m2, e2)).
+rewrite <- (f_equal (@fst _ _) Hn).
+clear.
+unfold normalize.
+rewrite <- digits_conversion.
+case_eq (digits beta (Zpos m1) - Zpos prec)%Z ; unfold fst.
+intros H.
+now rewrite H.
+intros p H.
+now rewrite H.
+intros p H.
+rewrite shift_correct.
+fold (Zpower beta (Zpos p)).
+rewrite digits_shift ; try easy.
+fold (Zopp (Zneg p)).
+rewrite <- H.
+now ring_simplify.
+Qed.
 
 Lemma Fround_at_prec_correct_pos_Eq :
   forall beta mode prec (x : ufloat beta),
@@ -712,25 +776,6 @@ destruct e.
 apply Rmult_1_r.
 now rewrite Z2R_mult.
 easy.
-Qed.
-
-Lemma digits_conversion :
-  forall beta p,
-  digits beta (Zpos p) = Zpos (count_digits beta p).
-Proof.
-intros beta p.
-unfold digits, count_digits.
-generalize xH, (radix_val beta), p at 1 3.
-induction p ; simpl ; intros.
-case (Zlt_bool (Zpos p1) z).
-apply refl_equal.
-rewrite <- IHp.
-now rewrite Pplus_one_succ_r.
-case (Zlt_bool (Zpos p1) z).
-apply refl_equal.
-rewrite <- IHp.
-now rewrite Pplus_one_succ_r.
-now case (Zlt_bool (Zpos p0) z).
 Qed.
 
 Theorem Fdiv_correct :
