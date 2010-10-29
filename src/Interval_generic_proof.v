@@ -460,6 +460,25 @@ Proof.
 now destruct l as [|[| |]].
 Qed.
 
+Definition mode_choice mode s m l :=
+  match mode with
+  | rnd_UP => cond_incr (round_sign_UP s l) m
+  | rnd_DN => cond_incr (round_sign_DN s l) m
+  | rnd_ZR => m
+  | rnd_NE => cond_incr (round_NE (Zeven m) l) m
+  end.
+
+Lemma need_change_correct :
+  forall mode s m pos,
+  Zpos (adjust_mantissa mode m pos s) = mode_choice mode s (Zpos m) (convert_location_inv pos).
+Proof.
+intros mode s m pos.
+unfold adjust_mantissa, need_change, mode_choice.
+case mode ; case s ; case pos ; simpl ; try apply Zpos_succ_morphism ; try apply refl_equal.
+destruct m ;  try apply Zpos_succ_morphism ; try apply refl_equal.
+destruct m ;  try apply Zpos_succ_morphism ; try apply refl_equal.
+Qed.
+
 Lemma Fround_at_prec_correct :
   forall beta mode prec s m1 e1 pos x,
   (0 < x)%R ->
