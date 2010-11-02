@@ -17,7 +17,7 @@ I. Invocation
 -------------
 
 In order to use the tactics of the library, one has to import the
-"tactics" file into a Coq proof script. The main tactic is named
+"Interval_tactic" file into a Coq proof script. The main tactic is named
 "interval".
 
 The tactic can be applied on a goal of the form "(f1 <= e <= f2)%R" with
