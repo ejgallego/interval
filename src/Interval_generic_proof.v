@@ -12,131 +12,110 @@ Require Import Interval_generic.
 
 Lemma FtoR_split :
   forall beta s m e,
-  FtoR beta s m e =
-    if s then Ropp (Z2R (Zpos m) * bpow beta e)%R
-    else (Z2R (Zpos m) * bpow beta e)%R.
+  FtoR beta s m e = F2R (Fcore_defs.Float beta (cond_Zopp s (Zpos m)) e).
+Proof.
 intros.
-unfold FtoR.
-case s.
-rewrite <- Ropp_mult_distr_l_reverse, <- Z2R_opp.
-case e ; try rewrite Rmult_1_r ; try easy.
+unfold FtoR, F2R, cond_Zopp. simpl.
+case e.
+now rewrite Rmult_1_r.
 intros p.
 now rewrite Z2R_mult.
-case e ; try rewrite Rmult_1_r ; try easy.
-intros p.
-now rewrite Z2R_mult.
+now intros p.
 Qed.
 
 Lemma Zpos_not_R0 :
   forall n,
   Z2R (Zpos n) <> R0.
-intros.
-rewrite Z2R_IZR.
-apply not_O_IZR.
-discriminate.
+Proof.
+intros n.
+now apply (Z2R_neq _ 0).
 Qed.
 
 Lemma Zpos_Rpos :
   forall n,
   (0 < Z2R (Zpos n))%R.
-intros.
-rewrite Z2R_IZR.
-unfold IZR.
-apply INR_pos.
+Proof.
+intros n.
+now apply (Z2R_lt 0 _).
 Qed.
 
 Lemma FtoR_Rpos :
   forall beta m e,
   (0 < FtoR beta false m e)%R.
-intros.
+Proof.
+intros beta m e.
 rewrite FtoR_split.
-simpl.
-apply Rmult_lt_0_compat.
-exact (Zpos_Rpos _).
-apply bpow_gt_0.
+now apply F2R_gt_0_compat.
 Qed.
 
 Lemma FtoR_neg :
   forall beta s m e,
   (- FtoR beta s m e = FtoR beta (negb s) m e)%R.
-intros.
-repeat rewrite FtoR_split.
-case s ; simpl.
-apply Ropp_involutive.
-apply refl_equal.
+Proof.
+intros beta s m e.
+rewrite 2!FtoR_split.
+rewrite opp_F2R.
+now case s.
 Qed.
 
 Lemma FtoR_Rneg :
   forall beta m e,
   (FtoR beta true m e < 0)%R.
-intros.
-change true with (negb false).
-rewrite <- FtoR_neg.
-apply Ropp_lt_gt_0_contravar.
-unfold Rgt.
-apply FtoR_Rpos.
+Proof.
+intros beta m e.
+rewrite FtoR_split.
+now apply F2R_lt_0_compat.
 Qed.
 
 Lemma FtoR_abs :
   forall beta s m e,
   (Rabs (FtoR beta s m e) = FtoR beta false m e)%R.
-intros.
-case s.
-rewrite Rabs_left.
-rewrite FtoR_neg.
-apply refl_equal.
-apply FtoR_Rneg.
-apply Rabs_right.
-left.
-unfold Rgt.
-apply FtoR_Rpos.
+Proof.
+intros beta s m e.
+rewrite 2!FtoR_split, abs_F2R.
+now case s.
 Qed.
 
 Lemma FtoR_add :
   forall beta s m1 m2 e,
   (FtoR beta s m1 e + FtoR beta s m2 e)%R = FtoR beta s (m1 + m2) e.
-intros.
-repeat rewrite FtoR_split.
-change (Zpos (m1 + m2)) with (Zpos m1 + Zpos m2)%Z.
-rewrite Z2R_plus.
-rewrite Rmult_plus_distr_r.
-case s ; simpl ; try rewrite Ropp_plus_distr ; apply refl_equal.
+Proof.
+intros beta s m1 m2 e.
+rewrite 3!FtoR_split.
+unfold F2R. simpl.
+rewrite <- Rmult_plus_distr_r.
+rewrite <- Z2R_plus.
+now case s.
 Qed.
 
 Lemma FtoR_sub :
   forall beta s m1 m2 e,
   (Zpos m2 < Zpos m1)%Z ->
   (FtoR beta s m1 e + FtoR beta (negb s) m2 e)%R = FtoR beta s (m1 - m2) e.
-intros.
-repeat rewrite FtoR_split.
-replace (Zpos (m1 - m2)) with (Zpos m1 - Zpos m2)%Z.
-rewrite Z2R_minus.
-unfold Rminus.
-rewrite Rmult_plus_distr_r.
-case s ; simpl.
-rewrite Ropp_plus_distr.
-rewrite Ropp_mult_distr_l_reverse.
-rewrite Ropp_involutive.
-apply refl_equal.
-rewrite Ropp_mult_distr_l_reverse.
-apply refl_equal.
-replace (Zpos m1 - Zpos m2)%Z with (-(Zpos m2 - Zpos m1))%Z by ring.
-unfold Zlt in H.
-simpl in *.
-rewrite H.
-apply refl_equal.
+Proof.
+intros beta s m1 m2 e Hm.
+rewrite 3!FtoR_split.
+unfold F2R. simpl.
+rewrite <- Rmult_plus_distr_r.
+rewrite <- Z2R_plus.
+generalize (Zlt_gt _ _ Hm).
+unfold Zgt. simpl.
+intros H.
+now case s ; simpl ; rewrite H.
 Qed.
 
 Lemma FtoR_mul :
   forall beta s1 s2 m1 m2 e1 e2,
   (FtoR beta s1 m1 e1 * FtoR beta s2 m2 e2)%R =
   FtoR beta (xorb s1 s2) (m1 * m2) (e1 + e2).
-intros.
-repeat rewrite FtoR_split.
-change (Zpos (m1 * m2)) with (Zpos m1 * Zpos m2)%Z.
-rewrite Z2R_mult.
+Proof.
+intros beta s1 s2 m1 m2 e1 e2.
+rewrite 3!FtoR_split.
+unfold F2R. simpl.
 rewrite bpow_plus.
-case s1 ; case s2 ; simpl ; ring.
+case s1 ; case s2 ; simpl ;
+  change (P2R (m1 * m2)) with (Z2R (Zpos m1 * Zpos m2)) ;
+  rewrite Z2R_mult ; simpl ; ring.
 Qed.
 
 Lemma shift_correct :
@@ -166,17 +145,17 @@ Qed.
 Lemma FtoR_shift :
   forall beta s m e p,
   FtoR beta s m (e + Zpos p) = FtoR beta s (shift beta m p) e.
-intros.
-repeat rewrite FtoR_split.
-apply (f_equal (fun v => if s then Ropp v else v)).
-rewrite Zplus_comm.
-rewrite bpow_plus.
-rewrite <- Rmult_assoc.
-apply Rmult_eq_compat_r.
+Proof.
+intros beta s m e p.
+rewrite 2!FtoR_split.
 rewrite shift_correct.
-rewrite Z2R_mult.
-rewrite Z2R_Zpower_pos.
-now rewrite <- bpow_powerRZ.
+rewrite F2R_change_exp with (e' := e).
+ring_simplify (e + Zpos p - e)%Z.
+case s ; unfold cond_Zopp.
+now rewrite Zopp_mult_distr_l_reverse.
+apply refl_equal.
+pattern e at 1 ; rewrite <- Zplus_0_r.
+now apply Zplus_le_compat_l.
 Qed.
 
 Lemma digits_conversion :
@@ -241,15 +220,14 @@ Qed.
 Theorem Fscale_correct :
   forall beta (f : float beta) d,
   FtoX (Fscale f d) = Xmul (FtoX f) (Xreal (bpow beta d)).
-intros.
-case f ; simpl ; intros.
+Proof.
+intros beta [| |s m e] d ; simpl.
 apply refl_equal.
-rewrite Rmult_0_l.
-apply refl_equal.
-apply f_equal.
-repeat rewrite FtoR_split.
-rewrite bpow_plus.
-case b ; simpl ; ring.
+now rewrite Rmult_0_l.
+rewrite 2!FtoR_split.
+unfold F2R. simpl.
+rewrite Rmult_assoc.
+now rewrite bpow_plus.
 Qed.
 
 (*
@@ -810,12 +788,11 @@ rewrite convert_location_bij.
 now rewrite 2!FtoR_conversion_pos in H4.
 now rewrite <- digits_conversion.
 rewrite 4!FtoR_split.
-assert (bpow beta ey <> 0 /\ P2R my <> 0)%R.
-split.
+assert (F2R (Fcore_defs.Float beta (Zpos my) ey) <> R0).
 apply Rgt_not_eq.
-apply bpow_gt_0.
-apply Zpos_not_R0.
-now case sx ; case sy ; simpl ; field.
+now apply F2R_gt_0_compat.
+unfold cond_Zopp.
+now case sx ; case sy ; repeat rewrite <- opp_F2R ; simpl ; field.
 destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.
