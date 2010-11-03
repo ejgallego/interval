@@ -667,11 +667,58 @@ rewrite <- H.
 now ring_simplify.
 Qed.
 
-Lemma Fround_at_prec_correct_pos_Eq :
+Lemma normalize_correct :
+  forall beta prec m e,
+  F2R (Fcore_defs.Float beta (Zpos m) e) =
+    let (m', e') := normalize beta prec m e in F2R (Fcore_defs.Float beta (Zpos m') e').
+Proof.
+intros beta prec m e.
+unfold normalize.
+case (Zpos (count_digits beta m) - Zpos prec)%Z ; intros ; try apply refl_equal.
+rewrite shift_correct.
+unfold F2R, Fnum, Fexp.
+rewrite Z2R_mult, Rmult_assoc.
+apply f_equal.
+rewrite Z2R_Zpower_pos, <- bpow_powerRZ.
+rewrite <- bpow_plus.
+apply f_equal.
+change (Zneg p) with (Zopp (Zpos p)).
+ring.
+Qed.
+
+Definition ufloat_pos_Eq beta (x : ufloat beta) :=
+  match x with Ufloat _ _ _ pos_Eq => True | Ufloat _ _ _ _ => False | _ => True end.
+
+Lemma UtoX_pos_Eq :
+  forall beta (x : ufloat beta),
+  (UtoX x = Xnan -> x = Unan beta) ->
+  ufloat_pos_Eq beta x.
+Proof.
+now intros beta [| |s m e [| | |]] H ; try exact I ; specialize (H (refl_equal _)).
+Qed.
+
+Lemma Fround_at_prec_pos_Eq :
   forall beta mode prec (x : ufloat beta),
-  FtoX (Fround_at_prec mode prec x) =
-  xround beta mode prec (UtoX x).
-Admitted.
+  ufloat_pos_Eq beta x ->
+  FtoX (Fround_at_prec mode prec x) = xround beta mode prec (UtoX x).
+Proof.
+intros beta mode prec [| |s m e [| | |]] H ; try elim H ; clear H.
+apply refl_equal.
+simpl. unfold round.
+now rewrite round_0.
+unfold xround, UtoX.
+rewrite FtoR_split.
+replace (F2R (Fcore_defs.Float beta (cond_Zopp s (Zpos m)) e)) with
+  (if s then Ropp (F2R (Fcore_defs.Float beta (Zpos m) e)) else F2R (Fcore_defs.Float beta (Zpos m) e)).
+apply Fround_at_prec_correct.
+now apply F2R_gt_0_compat.
+unfold inbetween_float.
+rewrite (normalize_correct beta prec m e).
+destruct (normalize beta prec m e) as (m', e').
+now constructor.
+rewrite opp_F2R.
+now case s.
+Qed.
 
 (*
  * Fadd
@@ -785,11 +832,17 @@ Qed.
 Theorem Fadd_slow_correct :
   forall beta mode prec (x y : float beta),
   FtoX (Fadd_slow mode prec x y) = xround beta mode prec (Xadd (FtoX x) (FtoX y)).
-intros.
+Proof.
+intros beta mode prec x y.
 unfold Fadd_slow.
-rewrite Fround_at_prec_correct_pos_Eq.
+rewrite Fround_at_prec_pos_Eq.
+now rewrite Fadd_slow_aux_correct.
+apply UtoX_pos_Eq.
 rewrite Fadd_slow_aux_correct.
-apply refl_equal.
+destruct x as [| |sx mx ex].
+easy.
+now case y.
+now case y.
 Qed.
 
 Definition Fadd_correct := Fadd_slow_correct.
@@ -852,11 +905,17 @@ Qed.
 Theorem Fmul_correct :
   forall beta mode prec (x y : float beta),
   FtoX (Fmul mode prec x y) = xround beta mode prec (Xmul (FtoX x) (FtoX y)).
-intros.
+Proof.
+intros beta mode prec x y.
 unfold Fmul.
-rewrite Fround_at_prec_correct_pos_Eq.
+rewrite Fround_at_prec_pos_Eq.
+now rewrite Fmul_aux_correct.
+apply UtoX_pos_Eq.
 rewrite Fmul_aux_correct.
-apply refl_equal.
+destruct x as [| |sx mx ex].
+easy.
+now case y.
+now case y.
 Qed.
 
 Lemma is_zero_correct_zero :
