@@ -465,7 +465,7 @@ Definition mode_choice mode s m l :=
   | rnd_NE => cond_incr (round_NE (Zeven m) l) m
   end.
 
-Lemma need_change_correct :
+Lemma adjust_mantissa_correct :
   forall mode s m pos,
   Zpos (adjust_mantissa mode m pos s) = mode_choice mode s (Zpos m) (convert_location_inv pos).
 Proof.
@@ -474,6 +474,25 @@ unfold adjust_mantissa, need_change, mode_choice.
 case mode ; case s ; case pos ; simpl ; try apply Zpos_succ_morphism ; try apply refl_equal.
 destruct m ;  try apply Zpos_succ_morphism ; try apply refl_equal.
 destruct m ;  try apply Zpos_succ_morphism ; try apply refl_equal.
+Qed.
+
+Lemma adjust_pos_correct :
+  forall q r pos,
+  (1 < Zpos q)%Z ->
+  (0 <= r < Zpos q)%Z ->
+  convert_location_inv (adjust_pos r q pos) = new_location (Zpos q) r (convert_location_inv pos).
+Proof.
+unfold adjust_pos, new_location, new_location_even, new_location_odd.
+intros [q|q|] r pos Hq (Hr1, Hr2).
+destruct r as [|r|r] ; simpl.
+now case pos.
+now case ((r ?= q)%positive Eq) ; case pos ; simpl.
+now elim Hr1.
+destruct r as [|r|r] ; simpl.
+now case pos.
+now case ((r ?= q)%positive Eq) ; case pos.
+now elim Hr1.
+discriminate Hq.
 Qed.
 
 Lemma Fround_at_prec_correct :
