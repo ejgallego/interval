@@ -271,8 +271,67 @@ Lemma Fcmp_aux2_correct :
   forall beta m1 m2 e1 e2,
   Fcmp_aux2 beta m1 e1 m2 e2 =
   Xcmp (Xreal (FtoR beta false m1 e1)) (Xreal (FtoR beta false m2 e2)).
-intros.
-Admitted.
+Proof.
+intros beta m1 m2 e1 e2.
+rewrite 2!FtoR_split.
+simpl cond_Zopp.
+unfold  Fcmp_aux2, Xcmp.
+rewrite <- 2!digits_conversion.
+rewrite (Zplus_comm e1), (Zplus_comm e2).
+rewrite <- 2!ln_beta_F2R_digits ; [|easy..].
+destruct (ln_beta beta (F2R (Fcore_defs.Float beta (Zpos m1) e1))) as (b1, B1).
+destruct (ln_beta beta (F2R (Fcore_defs.Float beta (Zpos m2) e2))) as (b2, B2).
+simpl.
+assert (Z: forall m e, (0 < F2R (Fcore_defs.Float beta (Zpos m) e))%R).
+intros m e.
+now apply F2R_gt_0_compat.
+specialize (B1 (Rgt_not_eq _ _ (Z _ _))).
+specialize (B2 (Rgt_not_eq _ _ (Z _ _))).
+rewrite Rabs_pos_eq with (1 := Rlt_le _ _ (Z _ _)) in B1.
+rewrite Rabs_pos_eq with (1 := Rlt_le _ _ (Z _ _)) in B2.
+clear Z.
+case Zcompare_spec ; intros Hed.
+(* *)
+rewrite Rcompare_Lt.
+apply refl_equal.
+apply Rlt_le_trans with (1 := proj2 B1).
+apply Rle_trans with (2 := proj1 B2).
+apply bpow_le.
+clear -Hed. omega.
+(* *)
+clear.
+unfold Fcmp_aux1.
+case_eq (e1 - e2)%Z.
+(* . *)
+intros He.
+rewrite Zminus_eq with (1 := He).
+now rewrite Rcompare_F2R.
+(* . *)
+intros d He.
+rewrite F2R_change_exp with (e' := e2).
+rewrite shift_correct, He.
+now rewrite Rcompare_F2R.
+generalize (Zgt_pos_0 d).
+omega.
+(* . *)
+intros d He.
+rewrite F2R_change_exp with (e := e2) (e' := e1).
+replace (e2 - e1)%Z with (Zpos d).
+rewrite shift_correct.
+now rewrite Rcompare_F2R.
+apply Zopp_inj.
+simpl. rewrite <- He.
+ring.
+generalize (Zlt_neg_0 d).
+omega.
+(* *)
+rewrite Rcompare_Gt.
+apply refl_equal.
+apply Rlt_le_trans with (1 := proj2 B2).
+apply Rle_trans with (2 := proj1 B1).
+apply bpow_le.
+clear -Hed. omega.
+Qed.
 
 Theorem Fcmp_correct :
   forall beta (x y : float beta),
