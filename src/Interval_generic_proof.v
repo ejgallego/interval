@@ -6,6 +6,7 @@ Require Import Fcore.
 Require Import Fcalc_digits.
 Require Import Fcalc_bracket.
 Require Import Fcalc_round.
+Require Import Fcalc_ops.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -234,34 +235,119 @@ Qed.
  * Fscale2
  *)
 
+Lemma cond_Zopp_mult :
+  forall s u v,
+  cond_Zopp s (u * v) = (cond_Zopp s u * v)%Z.
+Proof.
+intros s u v.
+case s.
+apply sym_eq.
+apply Zopp_mult_distr_l_reverse.
+apply refl_equal.
+Qed.
+
 Theorem Fscale2_correct :
   forall beta (f : float beta) d,
   match radix_val beta with Zpos (xO _) => true | _ => false end = true ->
   FtoX (Fscale2 f d) = Xmul (FtoX f) (Xreal (bpow radix2 d)).
-intros.
-case f ; simpl ; intros.
+Proof.
+intros beta [| |s m e] d Hb ; simpl.
 apply refl_equal.
-rewrite Rmult_0_l.
-apply refl_equal.
-case_eq (radix_val beta) ; intros ; rewrite H0 in H ; try discriminate H.
-case_eq p0 ; intros ; rewrite H1 in H ; try discriminate H.
-rewrite H1 in H0.
-clear H H1 p0.
-rename p1 into p0.
+now rewrite Rmult_0_l.
+revert Hb.
+destruct beta as (beta, Hb). simpl.
+destruct beta as [|[p|p|]|p] ; try easy.
+intros _.
+set (beta := Build_radix (Zpos p~0) Hb).
 cut (FtoX
   match d with
-  | 0%Z => Float beta b p z
+  | 0%Z => Float beta s m e
   | Zpos nb =>
-      Float beta b
-        (iter_pos nb positive (fun x : positive => xO x) p) z
+      Float beta s (iter_pos nb positive (fun x : positive => xO x) m) e
   | Zneg nb =>
-      Float beta b
-        (iter_pos nb positive
-           (fun x : positive => Pmult p0 x) p) (z + d)
-  end = Xreal (FtoR beta b p z * bpow radix2 d)).
+      Float beta s (iter_pos nb positive (fun x : positive => Pmult p x) m) (e + d)
+  end = Xreal (FtoR beta s m e * bpow radix2 d)).
+(* *)
 intro H.
-case_eq p0 ; intros ; rewrite H1 in H ; try exact H.
-Admitted.
+destruct p as [p|p|] ; try exact H.
+unfold FtoX.
+rewrite 2!FtoR_split.
+unfold F2R. simpl.
+now rewrite bpow_plus, Rmult_assoc.
+(* *)
+destruct d as [|nb|nb].
+now rewrite Rmult_1_r.
+(* . *)
+unfold FtoX.
+apply f_equal.
+rewrite 2!FtoR_split.
+simpl.
+replace (Z2R (Zpower_pos 2 nb)) with (F2R (Fcore_defs.Float beta (Zpower_pos 2 nb) 0)).
+2: apply Rmult_1_r.
+rewrite <- mult_F2R.
+simpl.
+rewrite Zplus_0_r.
+rewrite <- cond_Zopp_mult.
+apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) e))).
+clear.
+rewrite Zpower_pos_nat.
+rewrite iter_nat_of_P.
+rewrite Zmult_comm.
+apply sym_eq.
+revert m.
+induction (nat_of_P nb).
+now intros m.
+intros m.
+simpl.
+apply sym_eq.
+rewrite Zpos_xO, <- IHn.
+now rewrite Zmult_assoc.
+(* . *)
+unfold FtoX.
+apply f_equal.
+rewrite 2!FtoR_split.
+apply Rmult_eq_reg_r with (bpow radix2 (Zpos nb)).
+2: apply Rgt_not_eq ; apply bpow_gt_0.
+rewrite Rmult_assoc, <- bpow_plus.
+change (Zneg nb) with (Zopp (Zpos nb)).
+rewrite Zplus_opp_l, Rmult_1_r.
+fold (e - Zpos nb)%Z.
+simpl.
+replace (Z2R (Zpower_pos 2 nb)) with (F2R (Fcore_defs.Float beta (Zpower_pos 2 nb) 0)).
+2: apply Rmult_1_r.
+rewrite <- mult_F2R.
+simpl.
+rewrite Zplus_0_r.
+rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
+2: generalize (Zgt_pos_0 nb) ; omega.
+ring_simplify (e - (e - Zpos nb))%Z.
+rewrite <- 2!cond_Zopp_mult.
+apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) _))).
+unfold Zpower, beta.
+simpl radix_val.
+clear.
+rewrite 2!Zpower_pos_nat.
+rewrite iter_nat_of_P.
+rewrite Zmult_comm.
+apply sym_eq.
+revert m.
+induction (nat_of_P nb).
+intros m.
+simpl.
+now rewrite Pmult_1_r.
+intros m.
+simpl iter_nat.
+rewrite Zpos_mult_morphism.
+change (S n) with (1 + n).
+rewrite 2!Zpower_nat_is_exp.
+rewrite Zmult_assoc, (Zmult_comm (Zpos m)), <- Zmult_assoc.
+rewrite IHn.
+replace (Zpower_nat (Zpos p~0) 1) with (Zpower_nat 2 1 * Zpos p)%Z.
+ring.
+unfold Zpower_nat, iter_nat.
+simpl.
+now rewrite Pmult_1_r.
+Qed.
 
 (*
  * Fcmp
