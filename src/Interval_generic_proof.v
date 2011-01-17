@@ -607,7 +607,7 @@ Definition mode_choice mode s m l :=
   | rnd_UP => cond_incr (round_sign_UP s l) m
   | rnd_DN => cond_incr (round_sign_DN s l) m
   | rnd_ZR => m
-  | rnd_NE => cond_incr (round_NE (Zeven m) l) m
+  | rnd_NE => cond_incr (round_N (negb (Zeven m)) l) m
   end.
 
 Lemma adjust_mantissa_correct :
