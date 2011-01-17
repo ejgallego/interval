@@ -1,3 +1,6 @@
+Version 0.12.1:
+ - fixed an incompatibility with Flocq 1.2
+
 Version 0.12:
  - added a dependency on the Flocq library
 
