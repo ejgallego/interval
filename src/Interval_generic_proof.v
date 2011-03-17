@@ -520,10 +520,9 @@ apply Rnot_le_lt with (1 := H).
 Qed.
 
 Ltac refl_exists :=
-  repeat eapply ex_intro
-  (*match goal with
+  repeat match goal with
   | |- ex ?P => eapply ex_intro
-  end*) ;
+  end ;
   repeat split.
 
 Definition rnd_of_mode mode :=
@@ -664,7 +663,7 @@ intros m2 e2 Hn Hl.
 unfold round.
 rewrite round_trunc_sign_any_correct with (choice := mode_choice mode) (m := Zpos m2) (e := e2) (l := convert_location_inv pos).
 (* *)
-unfold Fcalc_round.truncate, FLX_exp.
+unfold Fcalc_round.truncate, Fcalc_round.truncate_aux, FLX_exp.
 replace (digits beta (Zpos m2) + e2 - Zpos prec - e2)%Z with (digits beta (Zpos m2) - Zpos prec)%Z by ring.
 replace (Rlt_bool (if s then (-x)%R else x) 0) with s.
 revert Hn.

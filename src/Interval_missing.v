@@ -558,7 +558,7 @@ exact Hx.
 exact r.
 Defined.
 
-Definition atan (x : R) : R.
+Definition atan : R -> R.
 intros x.
 destruct (total_order_T x 0) as [[H|H]|H].
 refine (Ratan_pos (-x) _).

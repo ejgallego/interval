@@ -431,9 +431,9 @@ Definition interval_extension
 Definition interval_extension_2
   (f : ExtendedR -> ExtendedR -> ExtendedR)
   (fi : interval -> interval -> interval) :=
-  forall bx by : interval, forall x y : ExtendedR,
-  contains bx x -> contains by y ->
-  contains (fi bx by) (f x y).
+  forall ix iy : interval, forall x y : ExtendedR,
+  contains ix x -> contains iy y ->
+  contains (fi ix iy) (f x y).
 
 
 (*
@@ -512,10 +512,10 @@ Parameter midpoint_correct :
 Definition extension f fi := forall b x,
   contains (convert b) x -> contains (convert (fi b)) (f x).
 
-Definition extension_2 f fi := forall bx by x y,
-  contains (convert bx) x ->
-  contains (convert by) y ->
-  contains (convert (fi bx by)) (f x y).
+Definition extension_2 f fi := forall ix iy x y,
+  contains (convert ix) x ->
+  contains (convert iy) y ->
+  contains (convert (fi ix iy)) (f x y).
 
 Parameter mask : type -> type -> type.
 

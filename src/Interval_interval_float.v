@@ -174,10 +174,10 @@ Definition midpoint xi :=
 Definition extension f fi := forall b x,
   contains (convert b) x -> contains (convert (fi b)) (f x).
 
-Definition extension_2 f fi := forall bx by x y,
-  contains (convert bx) x ->
-  contains (convert by) y ->
-  contains (convert (fi bx by)) (f x y).
+Definition extension_2 f fi := forall ix iy x y,
+  contains (convert ix) x ->
+  contains (convert iy) y ->
+  contains (convert (fi ix iy)) (f x y).
 
 Definition sign_large_ xl xu :=
   match F.cmp xl F.zero, F.cmp xu F.zero with

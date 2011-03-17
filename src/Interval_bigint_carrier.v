@@ -46,7 +46,7 @@ Definition mantissa_sign m :=
     end.
 
 Definition mantissa_shl m d :=
-  BigN.safe_shiftl (BigZ.to_N d) m.
+  BigN.shiftl (BigZ.to_N d) m. (* safe_shiftl for 8.2 *)
 
 Definition mantissa_scale2 (m : mantissa_type) (d : exponent_type) := (m, d).
 
@@ -60,7 +60,7 @@ Definition mantissa_split_div m d pos :=
   if BigN.eq_bool r 0%bigN then
     match pos with pos_Eq => pos_Eq | _ => pos_Lo end
   else
-    match BigN.compare (BigN.safe_shiftl 1%bigN r) d with
+    match BigN.compare (BigN.shiftl 1%bigN r) d with
     | Lt => pos_Lo
     | Eq => match pos with pos_Eq => pos_Mi | _ => pos_Up end
     | Gt => pos_Up
@@ -108,9 +108,9 @@ Definition mantissa_shr m d pos :=
 Definition exponent_div2_floor e :=
   match e with
   | BigZ.Pos p =>
-    (BigZ.Pos (BigN.safe_shiftr 1%bigN p), negb (BigN.is_even p))
+    (BigZ.Pos (BigN.shiftr 1%bigN p), negb (BigN.is_even p))
   | BigZ.Neg p =>
-    let q := BigN.safe_shiftr 1%bigN p in
+    let q := BigN.shiftr 1%bigN p in
     if BigN.is_even p then (BigZ.Neg q, false)
     else (BigZ.Neg (BigN.succ q), true)
   end.
@@ -179,17 +179,8 @@ Lemma mantissa_cmp_correct :
   mantissa_cmp x y = Zcompare (Zpos (MtoP x)) (Zpos (MtoP y)).
 intros x y (px, Hx) (py, Hy).
 unfold mantissa_cmp, MtoP.
-generalize (BigN.spec_compare x y).
-case (x ?= y)%bigN ; intros ; apply sym_eq.
-apply <- Zcompare_Eq_iff_eq.
 rewrite Hx, Hy, <- Hx, <- Hy.
-exact H.
-rewrite <- H.
-rewrite Hx, Hy.
-apply refl_equal.
-rewrite <- H.
-rewrite Hx, Hy.
-apply refl_equal.
+apply BigN.spec_compare.
 Qed.
 
 Lemma exponent_cmp_correct :
@@ -220,11 +211,10 @@ Lemma mantissa_sign_correct :
   end.
 intros.
 unfold mantissa_sign.
-generalize (BigZ.spec_eq_bool x 0%bigZ).
-case (BigZ.eq_bool x 0%bigZ).
-trivial.
-change 0%bigZ with BigZ.zero.
-rewrite BigZ.spec_0.
+rewrite BigZ.spec_eq_bool.
+case Fcore_Raux.Zeq_bool_spec.
+easy.
+change (BigZ.to_Z 0%bigZ) with Z0.
 case x ; unfold valid_mantissa ; simpl ; intros.
 (* + *)
 assert (BigN.to_Z t = Zpos (MtoP t)).
