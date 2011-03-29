@@ -1,3 +1,4 @@
+Require Import Fcore_Raux.
 Require Import ZArith.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -57,6 +58,7 @@ Parameter ZtoM_correct : forall n, MtoZ (ZtoM n) = n.
 Parameter ZtoE_correct : forall n, EtoZ (ZtoE n) = n.
 
 Parameter exponent_zero_correct : EtoZ exponent_zero = Z0.
+Parameter exponent_one_correct : EtoZ exponent_one = 1%Z.
 
 Parameter exponent_neg_correct :
   forall x, EtoZ (exponent_neg x) = (- EtoZ x)%Z.
@@ -104,5 +106,13 @@ Parameter mantissa_shl_correct :
   forall x y z, valid_mantissa y -> EtoZ z = Zpos x ->
   MtoP (mantissa_shl y z) = shift radix (MtoP y) x /\
   valid_mantissa (mantissa_shl y z).
+
+Parameter mantissa_div_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
+  let (q,l) := mantissa_div x y in
+  Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
+  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  valid_mantissa q.
 
 End FloatCarrier.

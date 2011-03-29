@@ -1,8 +1,10 @@
+Require Import Fcore_Raux.
 Require Import BigN.
 Require Import BigZ.
 Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.
+Require Import Interval_generic_proof.
 Require Import Interval_specific_sig.
 
 Module BigIntRadix2 <: FloatCarrier.
@@ -122,6 +124,7 @@ Definition mantissa_sqrt m :=
   else match BigN.compare r s with Gt => pos_Up | _ => pos_Lo end).
 
 Definition exponent_zero_correct := refl_equal Z0.
+Definition exponent_one_correct := refl_equal 1%Z.
 Definition mantissa_zero_correct := refl_equal Z0.
 
 Definition ZtoM_correct := BigZ.spec_of_Z.
@@ -247,5 +250,13 @@ exact H0.
 exists (MtoP t).
 exact (BinInt.Zopp_inj _ (Zpos _) H0).
 Qed.
+
+Axiom mantissa_div_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
+  let (q,l) := mantissa_div x y in
+  Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
+  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  valid_mantissa q.
 
 End BigIntRadix2.

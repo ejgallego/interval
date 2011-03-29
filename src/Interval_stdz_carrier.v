@@ -1,7 +1,9 @@
+Require Import Fcore_Raux.
 Require Import ZArith.
 Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.
+Require Import Interval_generic_proof.
 Require Import Interval_specific_sig.
 
 Module StdZRadix2 <: FloatCarrier.
@@ -125,6 +127,7 @@ Definition PtoM_correct := fun x : positive => refl_equal x.
 Definition ZtoM_correct := fun x : Z => refl_equal x.
 Definition ZtoE_correct := fun x : Z => refl_equal x.
 Definition exponent_zero_correct := refl_equal Z0.
+Definition exponent_one_correct := refl_equal 1%Z.
 Definition exponent_neg_correct := fun x => refl_equal (- EtoZ x)%Z.
 Definition exponent_add_correct := fun x y => refl_equal (EtoZ x + EtoZ y)%Z.
 Definition exponent_sub_correct := fun x y => refl_equal (EtoZ x - EtoZ y)%Z.
@@ -163,5 +166,13 @@ unfold EtoZ in H0.
 rewrite H0.
 apply refl_equal.
 Qed.
+
+Axiom mantissa_div_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
+  let (q,l) := mantissa_div x y in
+  Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
+  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  valid_mantissa q.
 
 End StdZRadix2.

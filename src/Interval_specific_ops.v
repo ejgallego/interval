@@ -1,5 +1,7 @@
 Require Import ZArith.
 Require Import Bool.
+Require Import Fcalc_digits.
+Require Import Fcalc_bracket.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -771,6 +773,7 @@ Definition div mode prec (x y : type) :=
   | Fnan, _ => x
   | _, Fnan => y
   | Float mx ex, Float my ey =>
+    let prec := match exponent_cmp prec exponent_zero with Gt => prec | _ => exponent_one end in
     match mantissa_sign mx, mantissa_sign my with
     | _, Mzero => Fnan
     | Mzero, _ => x
@@ -787,7 +790,148 @@ Definition div mode prec (x y : type) :=
     end
   end.
 
-Axiom div_correct : forall mode p x y, FtoX (toF (div mode p x y)) = FtoX (Fdiv mode (prec p) (toF x) (toF y)).
+Theorem div_correct :
+  forall mode p x y,
+  FtoX (toF (div mode p x y)) = FtoX (Fdiv mode (prec p) (toF x) (toF y)).
+Proof.
+intros mode p [|mx ex] [|my ey] ; try easy.
+simpl.
+now case (mantissa_sign mx).
+simpl.
+generalize (mantissa_sign_correct mx).
+case_eq (mantissa_sign mx) ; [ intros Hx Mx | intros sx nx Hx (Mx, Vmx) ].
+destruct (mantissa_sign my) as [|sy ny].
+apply refl_equal.
+simpl.
+now rewrite Hx.
+generalize (mantissa_sign_correct my).
+case_eq (mantissa_sign my) ; [ intros Hy My | intros sy ny Hy (My, Vmy) ].
+apply refl_equal.
+rewrite exponent_cmp_correct.
+rewrite exponent_sub_correct, exponent_add_correct, exponent_zero_correct.
+rewrite 2!mantissa_digits_correct ; try easy.
+rewrite <- 2!digits_conversion.
+unfold Fdiv, Fdiv_aux, Fcalc_div.Fdiv_core.
+set (p' := match exponent_cmp p exponent_zero with Gt => p | _ => exponent_one end).
+assert (Hp: EtoZ p' = Zpos (prec p)).
+unfold p', prec.
+rewrite exponent_cmp_correct, exponent_zero_correct.
+case_eq (EtoZ p) ; try (intros ; apply exponent_one_correct).
+easy.
+rewrite Hp.
+unfold radix.
+set (d := (digits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - digits Carrier.radix (Zpos (MtoP nx)))%Z).
+set (nd := exponent_sub (exponent_add (mantissa_digits ny) p') (mantissa_digits nx)).
+assert (Hs := fun d' (H : EtoZ nd = Zpos d') => mantissa_shl_correct d' nx nd Vmx H).
+assert (Hs': forall d', d = Zpos d' -> MtoP (mantissa_shl nx nd) = shift Carrier.radix (MtoP nx) d' /\ valid_mantissa (mantissa_shl nx nd)).
+intros d' H.
+apply Hs.
+unfold nd.
+rewrite exponent_sub_correct, exponent_add_correct, 2!mantissa_digits_correct, <- 2!digits_conversion ; trivial.
+now rewrite Hp.
+replace (match (d ?= 0)%Z with
+  | Gt => div_aux mode p' (xorb sx sy) (mantissa_shl nx nd) ny (exponent_sub (exponent_sub ex ey) nd)
+  | _ => div_aux mode p' (xorb sx sy) nx ny (exponent_sub ex ey)
+  end) with (div_aux mode p' (xorb sx sy) (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)
+    ny (match d with Zpos _ => exponent_sub (exponent_sub ex ey) nd | _ => exponent_sub ex ey end))
+  by now case d.
+unfold div_aux.
+(* *)
+refine (let Hmd := mantissa_div_correct (match d with Zpos _ => mantissa_shl nx nd | _ => nx end) ny _ Vmy _ in _ Hmd).
+destruct d as [|pd|pd] ; trivial.
+now apply (Hs' pd).
+apply Zlt_le_weak.
+apply (lt_digits Carrier.radix).
+easy.
+case_eq d.
+unfold d.
+clear ; zify ; omega.
+intros p0 Hp0.
+specialize (Hs' p0 Hp0).
+rewrite (proj1 Hs').
+rewrite shift_correct.
+fold (Zpower Carrier.radix (Zpos p0)).
+rewrite digits_shift ; try easy.
+rewrite <- Hp0.
+unfold d.
+clear ; zify ; omega.
+intros p0.
+unfold d.
+clear ; zify ; omega.
+(* *)
+clear Hs.
+destruct (mantissa_div (match d with Zpos _ => mantissa_shl nx nd | _ => nx end) ny) as (nq, nl).
+assert (H: Zpos (MtoP (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)) =
+  match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end).
+destruct d as [|pd|pd] ; trivial.
+rewrite <- shift_correct.
+apply f_equal.
+now apply Hs'.
+rewrite H. clear H.
+intros (H1, (H2, H3)).
+rewrite round_aux_correct with (1 := H3).
+apply (f_equal2 (fun v w => FtoX (Fround_at_prec mode v w))).
+unfold prec.
+now rewrite Hp.
+replace (match d with Zpos p0 => ((Zpos (MtoP nx) * Zpower_pos Carrier.radix p0), (EtoZ ex - EtoZ ey + Zneg p0))%Z | _ => (Zpos (MtoP nx), (EtoZ ex - EtoZ ey)%Z) end)
+  with (match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end, match d with Zpos p0 => (EtoZ ex - EtoZ ey + Zneg p0)%Z | _ => (EtoZ ex - EtoZ ey)%Z end)
+  by now case d.
+revert H1.
+unfold Zdiv.
+generalize (Z_div_mod (match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end) (Zpos (MtoP ny)) (refl_equal _)).
+case Zdiv_eucl.
+intros q r (Hq,Hr) H1.
+rewrite <- H1.
+apply f_equal2.
+case_eq d ; try (intros ; apply exponent_sub_correct).
+intros p0 Hp0.
+rewrite 2!exponent_sub_correct.
+unfold Zminus.
+apply f_equal.
+change (Zneg p0) with (-Zpos p0)%Z.
+rewrite <- Hp0.
+unfold nd.
+rewrite exponent_sub_correct, exponent_add_correct, 2!mantissa_digits_correct, <- 2!digits_conversion ; trivial.
+now rewrite Hp.
+replace nl with (convert_location (convert_location_inv nl)) by now case nl.
+apply f_equal.
+destruct (Zle_or_lt (Zpos (MtoP ny)) 1) as [Ky|Ky].
+(* . *)
+assert (Zpos (MtoP ny) = 1%Z /\ r = Z0).
+clear -Hr Ky ;zify ; omega.
+rewrite (proj1 H), (proj2 H).
+inversion_clear H2.
+easy.
+apply False_ind.
+revert H0.
+rewrite (proj1 H).
+unfold Rdiv.
+simpl (Z2R 1).
+rewrite Rinv_1, Rmult_1_r.
+intros (H0, H2).
+generalize (lt_Z2R _ _ H0) (lt_Z2R _ _ H2).
+clear ; omega.
+(* . *)
+apply Fcalc_bracket.inbetween_unique with (1 := H2).
+rewrite Z2R_plus.
+replace (Z2R 1) with (Z2R (Zpos (MtoP ny)) * /Z2R (Zpos (MtoP ny)))%R.
+apply Fcalc_bracket.new_location_correct ; trivial.
+apply Rinv_0_lt_compat.
+now apply (Z2R_lt 0).
+constructor.
+rewrite Hq, H1.
+rewrite Z2R_plus.
+unfold Rdiv.
+rewrite Rmult_plus_distr_r.
+rewrite Z2R_mult, <- (Rmult_comm (Z2R q)), Rmult_assoc.
+rewrite Rinv_r.
+now rewrite Rmult_1_r.
+apply Rgt_not_eq.
+now apply (Z2R_lt 0).
+apply Rinv_r.
+apply Rgt_not_eq.
+now apply (Z2R_lt 0).
+Qed.
 
 (*
  * sqrt
