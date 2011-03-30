@@ -98,30 +98,22 @@ Definition exponent_div2_floor n :=
   | Zneg (xI p) => (Zneg (Psucc p), true)
   end.
 
-Definition mantissa_sqrt (m : positive) : positive * position.
-intros.
-refine
-  (match Zsqrt (Zpos m) _ with
-  | existT s (exist r _) =>
-    match s with
-    | Zpos p =>
-      let pos :=
-        match r with
-        | Z0 => pos_Eq
-        | Zpos p0 =>
-          match Pcompare p0 p Eq with
-          | Gt => pos_Up
-          | _ => pos_Lo
-          end
-        | Zneg _ => pos_Eq (* dummy *)
-        end in
-      (p, pos)
-    | _ => (xH, pos_Eq) (* dummy *)
-    end
-  end).
-compute.
-discriminate.
-Defined.
+Definition mantissa_sqrt m :=
+  match Fcalc_sqrt.Zsqrt (Zpos m) with
+  | (Zpos s, r) =>
+    let pos :=
+      match r with
+      | Z0 => pos_Eq
+      | Zpos r =>
+        match Pcompare r s Eq with
+        | Gt => pos_Up
+        | _ => pos_Lo
+        end
+      | Zneg _ => pos_Eq (* dummy *)
+      end in
+    (s, pos)
+  | _ => (xH, pos_Eq) (* dummy *)
+  end.
 
 Definition PtoM_correct := fun x : positive => refl_equal x.
 Definition ZtoM_correct := fun x : Z => refl_equal x.
