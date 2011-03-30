@@ -201,10 +201,23 @@ Axiom mantissa_digits_correct :
   forall x, valid_mantissa x ->
   EtoZ (mantissa_digits x) = Zpos (count_digits radix (MtoP x)).
 
-Axiom mantissa_shl_correct :
+Lemma mantissa_shl_correct :
   forall x y z, valid_mantissa y ->
   EtoZ z = Zpos x ->
   MtoP (mantissa_shl y z) = shift radix (MtoP y) x /\ valid_mantissa (mantissa_shl y z).
+Proof.
+intros x y z (py, Vy) Hz.
+unfold mantissa_shl, MtoP, valid_mantissa.
+rewrite BigN.spec_shiftl, Vy.
+cut (Zpos py * 2 ^ [BigZ.to_N z]%bigN = Zpos (shift radix py x))%Z.
+intro H.
+rewrite H.
+repeat split.
+refl_exists.
+rewrite shift_correct.
+unfold EtoZ in Hz.
+now rewrite spec_to_Z, Hz.
+Qed.
 
 Lemma mantissa_sign_correct :
   forall x,
