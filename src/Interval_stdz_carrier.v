@@ -144,9 +144,32 @@ intros.
 case x ; repeat split.
 Qed.
 
-Axiom mantissa_digits_correct :
+Lemma mantissa_digits_correct :
   forall x, valid_mantissa x ->
   EtoZ (mantissa_digits x) = Zpos (count_digits radix (MtoP x)).
+Proof.
+intros x _.
+rewrite <- digits_conversion.
+rewrite <- Fcalc_digits.Z_of_nat_S_digits2_Pnat.
+unfold EtoZ, mantissa_digits, MtoP.
+rewrite inj_S.
+unfold Zsucc.
+generalize xH.
+induction x ; intros p.
+simpl digits_aux.
+simpl Fcalc_digits.digits2_Pnat.
+rewrite inj_S.
+unfold Zsucc.
+rewrite <- Zplus_assoc.
+now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
+simpl digits_aux.
+simpl Fcalc_digits.digits2_Pnat.
+rewrite inj_S.
+unfold Zsucc.
+rewrite <- Zplus_assoc.
+now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
+apply refl_equal.
+Qed.
 
 Lemma mantissa_shl_correct :
   forall x y z, valid_mantissa y ->
