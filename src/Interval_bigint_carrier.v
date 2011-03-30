@@ -197,9 +197,46 @@ case (x ?= y)%bigZ ; intro H ; rewrite H ;
  first [ apply Zcompare_refl | apply refl_equal ].
 Qed.
 
-Axiom mantissa_digits_correct :
+Lemma mantissa_digits_correct :
   forall x, valid_mantissa x ->
   EtoZ (mantissa_digits x) = Zpos (count_digits radix (MtoP x)).
+Proof.
+intros x (px, Vx).
+unfold mantissa_digits, EtoZ.
+simpl.
+rewrite BigN.spec_sub_pos.
+rewrite BigN.spec_Ndigits.
+rewrite <- digits_conversion.
+rewrite <- Zplus_0_r.
+rewrite <- (Zplus_opp_r [BigN.head0 x]%bigN)%Z.
+rewrite Zplus_assoc.
+apply (f_equal (fun v => v + _)%Z).
+rewrite <- Fcalc_digits.digits_shift.
+2: now apply Zgt_not_eq.
+2: apply BigN.spec_pos.
+refine (_ (BigN.spec_head0 x _)).
+2: now rewrite Vx.
+intros (H1,H2).
+unfold MtoP.
+rewrite Vx.
+set (d := Fcalc_digits.digits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
+cut (d <= Zpos (BigN.digits x) /\ Zpos (BigN.digits x) - 1 < d)%Z. omega.
+unfold d ; clear d.
+split.
+apply Fcalc_digits.digits_le_Zpower.
+rewrite Zabs_Zmult, Zmult_comm.
+rewrite Zabs_eq.
+simpl Zabs.
+now rewrite <- Vx.
+apply Zpower_ge_0.
+apply Fcalc_digits.digits_gt_Zpower.
+rewrite Zabs_Zmult, Zmult_comm.
+rewrite Zabs_eq.
+simpl Zabs.
+now rewrite <- Vx.
+apply Zpower_ge_0.
+admit.
+Qed.
 
 Lemma mantissa_shl_correct :
   forall x y z, valid_mantissa y ->
