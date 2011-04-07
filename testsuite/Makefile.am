@@ -1,7 +1,7 @@
 EXTRA_DIST = $(wildcard *.v)
 
 check:
-	@logfile="failures-$$(date -Idate).log"; \
+	@logfile="failures-$$(date '+%Y-%m-%d').log"; \
 	cat /dev/null > log.tmp; \
 	cat /dev/null > "$$logfile"; \
 	for f in $(EXTRA_DIST); do \
