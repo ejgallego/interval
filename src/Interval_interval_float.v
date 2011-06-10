@@ -1246,6 +1246,59 @@ case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
 Qed.
 
 Axiom inv_correct : forall prec, extension Xinv (inv prec).
-Axiom sqr_correct : forall prec, extension Xsqr (sqr prec).
+
+Theorem sqr_correct :
+  forall prec,
+  extension Xsqr (sqr prec).
+Proof.
+intros prec [ | xl xu] [ | x] ;
+  try ( intros ; exact I ) ;
+  try ( intros H1 ; elim H1 ; fail ).
+intros (Hxl, Hxu).
+simpl.
+unfold bnd, contains, convert, convert_bound.
+(* case study on sign of xi *)
+generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
+case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
+  (* remove trivial comparisons with zero *)
+  try ( rewrite F.zero_correct ; simpl ;
+        try ( rewrite (proj1 Hx0) ; rewrite Rmult_0_l ) ;
+        split ; apply Rle_refl ) ;
+  (* remove rounding operators *)
+  try ( split ; rewrite F.mul_correct ; rewrite Fmul_correct  ;
+        xreal_tac2 ; unfold Xmul ; bound_tac ;
+        clear_complex ) ;
+  (* solve by transivity *)
+  try ( eauto with mulauto ; fail ).
+(* multiplication around zero *)
+split.
+rewrite F.zero_correct ; simpl.
+apply Rle_0_sqr.
+rewrite F.mul_correct, Fmul_correct.
+rewrite F.max_correct, Fmax_correct.
+do 2 rewrite F.abs_correct, Fabs_correct.
+do 2 xreal_tac2.
+simpl.
+bound_tac.
+clear_complex.
+apply Rsqr_le_abs_1.
+rewrite Rabs_pos_eq with (1 := Hx0).
+rewrite Rabs_left1 with (1 := H).
+unfold Rmax.
+case Rle_dec ; intros H0.
+rewrite Rabs_pos_eq with (1 := Hx0).
+apply Rabs_le.
+refine (conj _ Hxu).
+apply Rle_trans with (2 := Hxl).
+rewrite <- (Ropp_involutive r).
+now apply Ropp_le_contravar.
+rewrite Rabs_Ropp, Rabs_left1 with (1 := H).
+apply Rabs_le.
+rewrite Ropp_involutive.
+refine (conj Hxl _).
+apply Rle_trans with (1 := Hxu).
+apply Rlt_le.
+now apply Rnot_le_lt.
+Qed.
 
 End FloatInterval.
