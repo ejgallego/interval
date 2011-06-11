@@ -77,13 +77,14 @@ Definition exp prec xi :=
   match xi with
   | Ibnd xl xu =>
     Ibnd
-     (if F.real xl then I.lower (T.exp_fast prec xl) else F.nan)
+     (if F.real xl then I.lower (T.exp_fast prec xl) else F.zero)
      (if F.real xu then I.upper (T.exp_fast prec xu) else F.nan)
   | Inan => Inan
   end.
 
 Theorem exp_correct :
   forall prec, I.extension Xexp (exp prec).
+Proof.
 intros prec [|xl xu].
 trivial.
 intros [|x].
@@ -92,11 +93,44 @@ intros (Hxl, Hxu).
 split.
 (* lower *)
 clear Hxu.
-case_eq (I.convert_bound (if F.real xl then I.lower (T.exp_fast prec xl) else F.nan)).
-trivial.
-intros rl Hrl.
+rewrite I.real_correct.
+I.xreal_tac xl.
+unfold I.convert_bound.
+rewrite F.zero_correct.
+simpl.
+apply Rlt_le.
+apply exp_pos.
 generalize (T.exp_fast_correct prec xl).
-Admitted.
+destruct (T.exp_fast prec xl) as [|yl yu].
+unfold I.convert_bound, I.lower.
+now rewrite F.nan_correct.
+unfold I.convert_bound in X.
+rewrite X.
+intros (H, _).
+simpl.
+unfold T.I.convert_bound in H.
+I.xreal_tac2.
+apply Rle_trans with (1 := H).
+now apply Fcore_Raux.exp_increasing_weak.
+(* upper *)
+clear Hxl.
+rewrite I.real_correct.
+I.xreal_tac xu.
+unfold I.convert_bound.
+now rewrite F.nan_correct.
+generalize (T.exp_fast_correct prec xu).
+destruct (T.exp_fast prec xu) as [|yl yu].
+unfold I.convert_bound, I.upper.
+now rewrite F.nan_correct.
+unfold I.convert_bound in X.
+rewrite X.
+intros (_, H).
+simpl.
+unfold T.I.convert_bound in H.
+I.xreal_tac2.
+apply Rle_trans with (2 := H).
+now apply Fcore_Raux.exp_increasing_weak.
+Qed.
 
 Definition bound_type := I.bound_type.
 Definition convert_bound := I.convert_bound.
