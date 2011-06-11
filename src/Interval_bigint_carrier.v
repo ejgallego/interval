@@ -162,6 +162,22 @@ rewrite H.
 apply refl_equal.
 Qed.
 
+Lemma mantissa_even_correct :
+  forall x, valid_mantissa x ->
+  mantissa_even x = Zeven (Zpos (MtoP x)).
+Proof.
+intros x (px, Hx).
+unfold mantissa_even, Zeven, MtoP.
+generalize (BigN.spec_is_even x).
+rewrite Hx.
+case (BigN.is_even x) ;
+  destruct px as [px|px|] ; try easy.
+rewrite Zpos_xI.
+now rewrite Zplus_comm, Zmult_comm, Z_mod_plus_full.
+rewrite Zpos_xO.
+now rewrite Zmult_comm, Z_mod_mult.
+Qed.
+
 Lemma mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\

@@ -89,6 +89,10 @@ Parameter mantissa_sign_correct :
   | Mnumber s p => MtoZ x = (if s then Zneg else Zpos) (MtoP p) /\ valid_mantissa p
   end.
 
+Parameter mantissa_even_correct :
+  forall x, valid_mantissa x ->
+  mantissa_even x = Zeven (Zpos (MtoP x)).
+
 Parameter mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\
