@@ -465,6 +465,7 @@ now apply mantissa_add_correct.
 Qed.
 
 Definition round_aux mode prec sign m1 e1 pos :=
+  let prec := match exponent_cmp prec exponent_zero with Gt => prec | _ => exponent_one end in
   let nb := exponent_sub (mantissa_digits m1) prec in
   let e2 := exponent_add e1 nb in
   match exponent_cmp nb exponent_zero with
@@ -474,16 +475,83 @@ Definition round_aux mode prec sign m1 e1 pos :=
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
     if need_change_radix even_radix mode (mantissa_even m1) pos sign then
-      let m2 := mantissa_add (mantissa_shl m1 nb) mantissa_one in
+      let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
       float_aux sign m2 e2
     else float_aux sign m1 e1
   end.
 
-Axiom round_aux_correct :
+Theorem round_aux_correct :
   forall mode p sign m1 e1 pos,
   valid_mantissa m1 ->
   FtoX (toF (round_aux mode p sign m1 e1 pos)) =
   FtoX (Fround_at_prec mode (prec p) (Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
+Proof.
+intros mode p' sign m1 e1 pos Hm1.
+apply f_equal.
+unfold round_aux.
+set (p := match exponent_cmp p' exponent_zero with Gt => p' | _ => exponent_one end).
+assert (Hp: Zpos (prec p') = EtoZ p).
+unfold p.
+rewrite exponent_cmp_correct, exponent_zero_correct.
+unfold prec.
+case_eq (EtoZ p') ; try easy ; intros ; apply sym_eq ;
+  apply exponent_one_correct.
+clearbody p.
+rewrite exponent_cmp_correct.
+rewrite exponent_sub_correct.
+rewrite exponent_zero_correct.
+rewrite mantissa_digits_correct with (1 := Hm1).
+unfold Fround_at_prec.
+rewrite Hp.
+unfold radix.
+case_eq (Zpos (count_digits Carrier.radix (MtoP m1)) - EtoZ p)%Z ;
+  unfold Zcompare.
+(* *)
+intros Hd.
+destruct (adjust_mantissa_correct mode m1 pos sign Hm1) as (H1,H2).
+rewrite toF_float with (1 := H2).
+now rewrite H1.
+(* *)
+intros dp Hd.
+refine (_ (mantissa_shr_correct dp m1 (exponent_sub (mantissa_digits m1) p) pos Hm1 _ _)).
+case mantissa_shr.
+intros sq sl.
+case Zdiv_eucl.
+intros q r (Hq, (Hl, Vq)).
+rewrite <- Hq.
+destruct (adjust_mantissa_correct mode sq sl sign Vq) as (Ha, Va).
+rewrite toF_float with (1 := Va).
+rewrite Ha.
+rewrite exponent_add_correct, exponent_sub_correct, mantissa_digits_correct with (1 := Hm1).
+now rewrite Hd, Hl.
+now rewrite exponent_sub_correct, mantissa_digits_correct.
+rewrite shift_correct, Zmult_1_l.
+change (Zpower Carrier.radix (Zpos dp) <= Zabs (Zpos (MtoP m1)))%Z.
+apply Zpower_le_digits.
+rewrite <- Hd, <- Hp.
+rewrite <- digits_conversion.
+clear ; zify ; omega.
+(* *)
+intros dp Hd.
+rewrite mantissa_even_correct with (1 := Hm1).
+unfold need_change_radix2, even_radix, radix, Zeven.
+case need_change_radix.
+2: now apply toF_float.
+generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub (mantissa_digits m1) p)) Hm1).
+rewrite exponent_neg_correct, exponent_sub_correct, mantissa_digits_correct with (1 := Hm1).
+rewrite Hd.
+intros H1.
+specialize (H1 (refl_equal _)).
+assert (H2 := mantissa_add_correct (mantissa_shl m1 (exponent_neg (exponent_sub (mantissa_digits m1) p)))
+  mantissa_one (proj2 H1) (proj2 mantissa_one_correct)).
+rewrite toF_float. 2: easy.
+rewrite (proj1 H2).
+rewrite (proj1 H1).
+rewrite (proj1 (mantissa_one_correct)).
+rewrite Pplus_one_succ_r.
+rewrite exponent_add_correct, exponent_sub_correct, mantissa_digits_correct with (1 := Hm1).
+now rewrite Hd.
+Qed.
 
 Definition round mode prec (f : type) :=
   match f with

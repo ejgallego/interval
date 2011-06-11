@@ -337,6 +337,15 @@ exists (MtoP t).
 exact (BinInt.Zopp_inj _ (Zpos _) H0).
 Qed.
 
+Axiom mantissa_shr_correct :
+  forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
+  (Zpos (shift radix 1 x) <= Zpos (MtoP y))%Z ->
+  let (sq,l) := mantissa_shr y z k in
+  let (q,r) := Zdiv_eucl (Zpos (MtoP y)) (Zpos (shift radix 1 x)) in
+  Zpos (MtoP sq) = q /\
+  l = adjust_pos r (shift radix 1 x) k /\
+  valid_mantissa sq.
+
 Axiom mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
