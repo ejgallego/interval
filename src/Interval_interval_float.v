@@ -642,12 +642,12 @@ Lemma sign_strict_correct :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_strict xl xu with
-  | Xeq => x = R0 /\ FtoX (F.toF xl) = Xreal R0 /\ FtoX (F.toF xu) = Xreal R0
-  | Xlt => (x < 0)%R /\ (match FtoX (F.toF xl) with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, FtoX (F.toF xu) = Xreal ru /\ (ru < 0)%R)
-  | Xgt => (0 < x)%R /\ (match FtoX (F.toF xu) with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, FtoX (F.toF xl) = Xreal rl /\ (0 < rl)%R)
+  | Xeq => x = R0 /\ convert_bound xl = Xreal R0 /\ convert_bound xu = Xreal R0
+  | Xlt => (x < 0)%R /\ (match convert_bound xl with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, convert_bound xu = Xreal ru /\ (ru < 0)%R)
+  | Xgt => (0 < x)%R /\ (match convert_bound xu with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, convert_bound xl = Xreal rl /\ (0 < rl)%R)
   | Xund =>
-    match FtoX (F.toF xl) with Xreal rl => (rl <= 0)%R | _=> True end /\
-    match FtoX (F.toF xu) with Xreal ru => (0 <= ru)%R | _=> True end
+    match convert_bound xl with Xreal rl => (rl <= 0)%R | _=> True end /\
+    match convert_bound xu with Xreal ru => (0 <= ru)%R | _=> True end
   end.
 intros xl xu x (Hxl, Hxu).
 unfold sign_strict.
@@ -1245,7 +1245,38 @@ case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
   eauto 8 with mulauto.
 Qed.
 
-Axiom inv_correct : forall prec, extension Xinv (inv prec).
+Theorem inv_correct :
+  forall prec,
+  extension Xinv (inv prec).
+Proof.
+intros prec [ | xl xu] [ | x] ;
+  try ( intros ; exact I ) ;
+  try ( intros H1 ; elim H1 ; fail ).
+intros (Hxl, Hxu).
+simpl.
+unfold bnd, contains, convert, convert_bound.
+generalize (sign_strict_correct xl xu x (conj Hxl Hxu)).
+(* case study on sign of xi *)
+case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
+  (* case study on sign of yi *)
+  try exact I ; try simpl_is_zero ;
+  (* simplify Fdivz *)
+  unfold Fdivz ; rewrite 2!real_correct ;
+  destruct Hx0 as (Hx0, (Hx1, (r, (Hx2, Hx3)))) ;
+  rewrite Hx2 in * ;
+  split ;
+  [ idtac | xreal_tac xl | xreal_tac xu | idtac ] ;
+  try ( unfold convert_bound ; rewrite F.zero_correct ;
+        simpl ; auto with mulauto ; fail ) ;
+  (* remove rounding operators *)
+  unfold convert_bound ;
+  rewrite F.div_correct, Fdiv_correct, F.fromZ_correct ;
+  try ( unfold convert_bound in X0 ; rewrite X0 ) ;
+  try ( unfold convert_bound in Hx2 ; rewrite Hx2 ) ;
+  unfold Xdiv, Rdiv ;
+  match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
+  bound_tac ; rewrite Rmult_1_l ; auto with mulauto.
+Qed.
 
 Theorem sqr_correct :
   forall prec,
