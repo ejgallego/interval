@@ -446,6 +446,24 @@ Qed.
 Definition adjust_mantissa mode m pos sign :=
   if need_change mode (mantissa_even m) pos sign then mantissa_add m mantissa_one else m.
 
+Lemma adjust_mantissa_correct :
+  forall mode m pos sign,
+  valid_mantissa m ->
+  MtoP (adjust_mantissa mode m pos sign) = Interval_generic.adjust_mantissa mode (MtoP m) pos sign /\
+  valid_mantissa (adjust_mantissa mode m pos sign).
+Proof.
+intros mode m pos sign Hm.
+unfold adjust_mantissa, Interval_generic.adjust_mantissa.
+rewrite mantissa_even_correct with (1 := Hm).
+unfold Zeven.
+case need_change.
+2: now split.
+destruct mantissa_one_correct as (Oe, Ov).
+rewrite Pplus_one_succ_r.
+rewrite <- Oe.
+now apply mantissa_add_correct.
+Qed.
+
 Definition round_aux mode prec sign m1 e1 pos :=
   let nb := exponent_sub (mantissa_digits m1) prec in
   let e2 := exponent_add e1 nb in
