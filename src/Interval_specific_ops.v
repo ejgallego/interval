@@ -443,23 +443,8 @@ Qed.
  * round
  *)
 
-Definition need_change radix_ mode m pos sign :=
-  match mode with
-  | rnd_ZR => false
-  | rnd_UP => match pos with pos_Eq => false | _ => negb sign end
-  | rnd_DN => match pos with pos_Eq => false | _ => sign end
-  | rnd_NE =>
-    match pos with
-    | pos_Up => true
-    | pos_Mi =>
-      if mantissa_even m then false
-      else match radix_ with Zpos (xO _) => false | _ => true end
-    | _ => false
-    end
-  end.
-
 Definition adjust_mantissa mode m pos sign :=
-  if need_change Z0 mode m pos sign then mantissa_add m mantissa_one else m.
+  if need_change mode (mantissa_even m) pos sign then mantissa_add m mantissa_one else m.
 
 Definition round_aux mode prec sign m1 e1 pos :=
   let nb := exponent_sub (mantissa_digits m1) prec in
@@ -470,7 +455,7 @@ Definition round_aux mode prec sign m1 e1 pos :=
     float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
-    if need_change (radix_val radix) mode m1 pos sign then
+    if need_change_radix even_radix mode (mantissa_even m1) pos sign then
       let m2 := mantissa_add (mantissa_shl m1 nb) mantissa_one in
       float_aux sign m2 e2
     else float_aux sign m1 e1

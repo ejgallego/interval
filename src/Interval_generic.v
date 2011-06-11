@@ -230,7 +230,7 @@ Implicit Arguments Fround_none.
  * Assume the position is scaled at exponent ex + min(0, px - p).
  *)
 
-Definition need_change mode m pos sign :=
+Definition need_change mode even_m pos sign :=
   match mode with
   | rnd_ZR => false
   | rnd_UP => match pos with pos_Eq => false | _ => negb sign end
@@ -238,16 +238,12 @@ Definition need_change mode m pos sign :=
   | rnd_NE =>
     match pos with
     | pos_Up => true
-    | pos_Mi =>
-      match m with
-      | xO _ => false
-      | _ => true
-      end
+    | pos_Mi => negb even_m
     | _ => false
     end
   end.
 
-Definition need_change_radix beta mode m pos sign :=
+Definition need_change_radix even_r mode (even_m : bool) pos sign :=
   match mode with
   | rnd_ZR => false
   | rnd_UP => match pos with pos_Eq => false | _ => negb sign end
@@ -255,17 +251,17 @@ Definition need_change_radix beta mode m pos sign :=
   | rnd_NE =>
     match pos with
     | pos_Up => true
-    | pos_Mi =>
-      match m with
-      | xO _ => false
-      | _ => match radix_val beta with Zpos (xO _) => false | _ => true end
-      end
+    | pos_Mi => if even_m then false else negb even_r
     | _ => false
     end
   end.
 
 Definition adjust_mantissa mode m pos sign :=
-  if need_change mode m pos sign then Psucc m else m.
+  if need_change mode (match m with xO _ => true | _ => false end) pos sign then Psucc m else m.
+
+Definition need_change_radix2 beta mode m :=
+  need_change_radix (match radix_val beta with Zpos (xO _) => true | _ => false end)
+    mode (match m with xO _ => true | _ => false end).
 
 Definition Fround_at_prec beta mode prec (uf : ufloat beta) :=
   match uf with
@@ -284,7 +280,7 @@ Definition Fround_at_prec beta mode prec (uf : ufloat beta) :=
       end
     | Z0 => Float beta sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
-      if need_change_radix beta mode m1 pos sign then
+      if need_change_radix2 beta mode m1 pos sign then
         Float beta sign (Psucc (shift beta m1 nb)) (e1 + Zneg nb)
       else Float beta sign m1 e1
     end
@@ -340,7 +336,7 @@ Definition Fround_at_exp beta mode e2 (uf : ufloat beta) :=
       end
     | Z0 => Float beta sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
-      if need_change_radix beta mode m1 pos sign then
+      if need_change_radix2 beta mode m1 pos sign then
         Float beta sign (Psucc (shift beta m1 nb)) e2
       else Float beta sign m1 e1
     end

@@ -639,6 +639,15 @@ now elim Hr1.
 discriminate Hq.
 Qed.
 
+Lemma even_radix_correct :
+  forall beta,
+  match radix_val beta with Zpos (xO _) => true | _ => false end = Zeven beta.
+Proof.
+intros (beta, Hb).
+revert Hb.
+case beta ; try easy.
+Qed.
+
 Lemma odd_radix_correct :
   forall beta,
   match radix_val beta with Zpos (xO _) => false | _ => true end = negb (Zeven beta).
@@ -750,7 +759,8 @@ clear.
 unfold mode_choice, need_change_radix.
 case mode ; case pos ; try easy.
 rewrite Zeven_mult, Zeven_Zpower. 2: easy.
-rewrite odd_radix_correct.
+unfold need_change_radix2.
+rewrite even_radix_correct.
 now case m1.
 unfold cond_Zopp.
 rewrite <- Zopp_mult_distr_l_reverse.
