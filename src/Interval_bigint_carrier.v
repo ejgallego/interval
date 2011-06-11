@@ -178,6 +178,26 @@ rewrite Zpos_xO.
 now rewrite Zmult_comm, Z_mod_mult.
 Qed.
 
+Lemma mantissa_one_correct :
+  MtoP mantissa_one = xH /\ valid_mantissa mantissa_one.
+Proof.
+repeat split.
+now exists xH.
+Qed.
+
+Lemma mantissa_add_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  MtoP (mantissa_add x y) = (MtoP x + MtoP y)%positive /\
+  valid_mantissa (mantissa_add x y).
+Proof.
+intros x y (px, Hx) (py, Hy).
+unfold mantissa_add, valid_mantissa, MtoP.
+rewrite BigN.spec_add.
+rewrite Hx, Hy.
+repeat split.
+now exists (px + py)%positive.
+Qed.
+
 Lemma mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\

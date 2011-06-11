@@ -93,6 +93,14 @@ Parameter mantissa_even_correct :
   forall x, valid_mantissa x ->
   mantissa_even x = Zeven (Zpos (MtoP x)).
 
+Parameter mantissa_one_correct :
+  MtoP mantissa_one = xH /\ valid_mantissa mantissa_one.
+
+Parameter mantissa_add_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  MtoP (mantissa_add x y) = (MtoP x + MtoP y)%positive /\
+  valid_mantissa (mantissa_add x y).
+
 Parameter mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\
