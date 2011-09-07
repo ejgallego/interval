@@ -894,44 +894,6 @@ split ;
   try apply Ropp_le_contravar ; assumption.
 Qed.
 
-(*
-Theorem mul_mixed_correct :
-  forall prec xi yf x,
-  bnd xi x ->
-  bnd (mul_mixed prec xi yf) (Xmul x (FtoX (F.toF yf))).
-intros prec [ | xl xu] yf [x | ] ; trivial.
-2: intro H ; elim H.
-intros (Hxl, Hxu).
-unfold mul_mixed.
-rewrite F.cmp_correct.
-rewrite F.zero_correct.
-case_eq (F.toF yf) ; simpl.
-trivial.
-intros _.
-rewrite F.zero_correct.
-simpl.
-rewrite Rmult_0_r.
-split ; apply Rle_refl.
-intros s m e.
-case s ; simpl ; intros Hy ;
-  do 2 rewrite F.mul_correct ;
-  do 2 rewrite Fmul_correct ;
-  rewrite Hy ; simpl ; clear Hy ;
-  [ (* y negative *)
-    split ; xreal_tac2 ;
-    unfold Xmul ; bound_tac ;
-    ( apply Rmult_le_compat_neg_r ;
-      [ apply Rlt_le ; apply FtoR_Rneg
-      | assumption ] )
-  | (* y positive *)
-    split ; xreal_tac2 ;
-    unfold Xmul ; bound_tac ;
-    ( apply Rmult_le_compat_r ;
-      [ apply Rlt_le ; apply FtoR_Rpos
-      | assumption ] ) ].
-Qed.
-*)
-
 Lemma is_zero_float :
   forall r s m e,
   is_zero (FtoR r s m e) = false.
@@ -1110,11 +1072,35 @@ Ltac clear_complex_aux :=
 Ltac clear_complex :=
   clear_complex_aux ; clear ; intros.
 
+Hint Local Resolve Rlt_le : mulauto.
 Hint Local Resolve Rle_trans : mulauto.
 Hint Local Resolve Rmult_le_compat_l : mulauto.
 Hint Local Resolve Rmult_le_compat_r : mulauto.
 Hint Local Resolve Rmult_le_compat_neg_l : mulauto.
 Hint Local Resolve Rmult_le_compat_neg_r : mulauto.
+
+Theorem mul_mixed_correct :
+  forall prec yf,
+  extension (fun x => Xmul x (FtoX (F.toF yf))) (fun xi => mul_mixed prec xi yf).
+Proof.
+intros prec yf [ | xl xu] [ | x] ; try easy.
+intros (Hxl, Hxu).
+simpl.
+rewrite F.cmp_correct, Fcmp_correct, F.zero_correct.
+xreal_tac2.
+simpl.
+case Rcompare_spec ; intros Hr ;
+  try ( simpl ; unfold convert_bound ;
+        rewrite 2!F.mul_correct, 2!Fmul_correct ;
+        xreal_tac2 ;
+        split ;
+          ( xreal_tac2 ; simpl ; bound_tac ; eauto with mulauto ; fail ) ).
+simpl.
+unfold convert_bound.
+rewrite F.zero_correct.
+rewrite Hr, Rmult_0_r.
+split ; simpl ; apply Rle_refl.
+Qed.
 
 Theorem mul_correct :
   forall prec,
@@ -1191,7 +1177,6 @@ Ltac simpl_is_zero :=
     (*rewrite (Rcompare_correct_gt _ _ (proj1 (proj2 H)))*)
   end.
 
-Hint Local Resolve Rlt_le : mulauto.
 Hint Local Resolve Rinv_lt_0_compat : mulauto.
 Hint Local Resolve Rinv_0_lt_compat : mulauto.
 Hint Local Resolve Rle_Rinv_pos : mulauto.
