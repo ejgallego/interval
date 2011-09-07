@@ -933,45 +933,6 @@ elim Rgt_not_le with (2 := H).
 apply FtoR_Rneg.
 Qed.
 
-(*
-Theorem div_mixed_r_correct :
-  forall prec xi yf x,
-  bnd xi x ->
-  bnd (div_mixed_r prec xi yf) (Xdiv x (FtoX (F.toF yf))).
-intros prec [ | xl xu] yf [x | ] ; trivial.
-2: intro H ; elim H.
-intros (Hxl, Hxu).
-unfold div_mixed_r.
-rewrite F.cmp_correct.
-rewrite F.zero_correct.
-case_eq (F.toF yf) ; simpl ; trivial.
-intros s m e.
-rewrite is_zero_float.
-case s ; unfold bnd ; intros Hy ;
-  do 2 rewrite F.div_correct ;
-  do 2 rewrite Fdiv_correct with (1 := F.radix_correct) ;
-  rewrite Hy ; unfold FtoX at 3 6, Xdiv ;
-  [ (* y negative *)
-    rewrite (is_zero_float F.radix true m e) ;
-    split ; xreal_tac2 ; bound_tac ;
-    unfold Rdiv ; simpl ;
-    ( apply Rmult_le_compat_neg_r ;
-      [ apply Rlt_le ;
-        apply Rinv_lt_0_compat ;
-        apply FtoR_Rneg
-      | assumption ] )
-  | (* y positive *)
-    rewrite (is_zero_float F.radix false m e) ;
-    split ; xreal_tac2 ; bound_tac ;
-    unfold Rdiv ; simpl ;
-    ( apply Rmult_le_compat_r ;
-      [ apply Rlt_le ;
-        apply Rinv_0_lt_compat ;
-        apply FtoR_Rpos
-      | assumption ] ) ].
-Qed.
-*)
-
 Theorem sqrt_correct :
   forall prec, extension Xsqrt (sqrt prec).
 intros prec [ | xl xu] [ | x] ; simpl ; trivial.
@@ -1159,6 +1120,12 @@ Qed.
 Ltac simpl_is_zero :=
   let X := fresh "X" in
   match goal with
+  | H: Rlt ?v R0 |- context [is_zero ?v] =>
+    destruct (is_zero_spec v) as [X|X] ;
+    [ rewrite X in H ; elim (Rlt_irrefl _ H) | idtac ]
+  | H: Rlt R0 ?v |- context [is_zero ?v] =>
+    destruct (is_zero_spec v) as [X|X] ;
+    [ rewrite X in H ; elim (Rlt_irrefl _ H) | idtac ]
   | H: Rlt ?v R0 /\ _ |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ (proj1 H)) | idtac ]
@@ -1189,6 +1156,28 @@ Hint Local Resolve Rmult_le_pos_pos : mulauto2.
 Hint Local Resolve Rmult_le_neg_pos : mulauto2.
 Hint Local Resolve Rmult_le_pos_neg : mulauto2.
 Hint Local Resolve Rmult_le_neg_neg : mulauto2.
+
+Theorem div_mixed_r_correct :
+  forall prec yf,
+  extension (fun x => Xdiv x (FtoX (F.toF yf))) (fun xi => div_mixed_r prec xi yf).
+Proof.
+intros prec yf [ | xl xu] [x | ] ; try easy.
+intros y (Hxl, Hxu).
+simpl.
+rewrite F.cmp_correct, Fcmp_correct, F.zero_correct.
+xreal_tac2.
+simpl.
+case Rcompare_spec ; intros Hy ; try exact I ;
+  simpl ; simpl_is_zero ;
+  unfold convert_bound ;
+  rewrite 2!F.div_correct, 2!Fdiv_correct ;
+  xreal_tac2 ;
+  split ;
+    xreal_tac2 ;
+    simpl ; simpl_is_zero; simpl ;
+    bound_tac ;
+    unfold Rdiv ; eauto with mulauto ; fail.
+Qed.
 
 Theorem div_correct :
   forall prec,
