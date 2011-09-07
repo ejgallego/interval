@@ -401,7 +401,7 @@ Qed.
 *)
 
 Ltac do_interval vars prec depth eval_tac :=
-  abstract (
+  (abstract (
     match goal with
     | |- contains (I.convert _) (nth _ (V.eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
     | _ => xalgorithm vars
@@ -416,7 +416,7 @@ Ltac do_interval vars prec depth eval_tac :=
       change (map Xreal constants) with (map V.xreal_from_bp bounds) ;
       eval_tac bounds output formula prec depth n ;
       vm_cast_no_check (refl_equal true)
-    end) ;
+    end)) ||
   fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
 
 Ltac do_interval_eval bounds output formula prec depth n :=
@@ -438,6 +438,7 @@ Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
   | ?b => constr:(b :: l)
+  | ?z => fail 100 "Unknown tactic parameter" z "."
   end.
 
 Ltac do_interval_parse params :=
