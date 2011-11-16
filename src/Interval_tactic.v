@@ -2,22 +2,17 @@ Require Import Reals.
 Require Import List.
 Require Import Interval_missing.
 Require Import ZArith.
-Require Import BigN.
-Require Import BigZ.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
-(*Require Import Interval_stdz_carrier.*)
-Require Import Interval_bigint_carrier.
-Require Import Interval_specific_ops.
+Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_bisect.
 
-(*Module C := StdZRadix2.*)
-Module C := BigIntRadix2.
-Module F := SpecificFloat C.
+Module IntervalTactic (F : FloatOps with Definition even_radix := true).
+
 Module I := FloatIntervalFull F.
 Module V := Valuator I.
 
@@ -76,21 +71,18 @@ Lemma Rabs_contains :
   | Interval_generic.Float false m e => (Rabs v <= FtoR F.radix false m e)%R
   | _ => True
   end.
-intros [|m e] v (H1, H2).
+Proof.
+intros f v (H1,H2).
+generalize (F.real_correct f).
+case_eq (F.toF f) ; try easy.
+intros [|] m e Hf _.
 exact I.
-case_eq (F.toF (Float m e)) ; trivial.
-intro b. case b ; trivial.
-clear b.
-intros.
-apply Rabs_def1_le.
-unfold I.I.convert_bound in H2.
-rewrite H in H2.
-exact H2.
-unfold I.I.convert_bound in H1.
+unfold I.I.convert_bound in H1, H2.
 rewrite F.neg_correct in H1.
 rewrite Fneg_correct in H1.
-rewrite H in H1.
-exact H1.
+rewrite Hf in H1, H2.
+simpl in H1, H2.
+now apply Rabs_def1_le.
 Qed.
 
 Lemma Rabs_contains_rev :
@@ -100,21 +92,18 @@ Lemma Rabs_contains_rev :
   | _ => False
   end ->
   contains (I.convert (I.bnd (F.neg f) f)) (Xreal v).
-intros [|m e] v.
-do 2 split.
-case_eq (F.toF (Float m e)) ; try (intros ; elim H0).
-intros b p z.
-case b ; intros.
-elim H0.
-generalize (Rabs_def2_le _ _ H0).
-clear H0. intros (H1, H2).
+Proof.
+intros f v.
+generalize (F.real_correct f).
+case_eq (F.toF f) ; try easy.
+intros [|] m e Hf _ H.
+easy.
+destruct (Rabs_def2_le _ _ H) as (H1,H2).
 split ; unfold I.I.convert_bound.
 rewrite F.neg_correct.
 rewrite Fneg_correct.
-rewrite H.
-exact H1.
-rewrite H.
-exact H2.
+now rewrite Hf.
+now rewrite Hf.
 Qed.
 
 Inductive expr :=
@@ -252,9 +241,7 @@ Ltac xalgorithm lx :=
     change (contains (I.convert (I.bnd v w)) (Xreal b))
   | |- Rle (Rabs ?a) ?b =>
     let v := get_float b in
-    match v with
-    | Float ?m ?e => refine (Rabs_contains v a _)
-    end
+    refine (Rabs_contains v a _)
   | |- Rle ?a ?b =>
     let v := get_float b in
     refine (proj2 (_ : contains (I.convert (I.bnd F.nan v)) (Xreal a)))
@@ -292,10 +279,7 @@ Ltac get_bounds l :=
           constr:(V.Bproof x (I.bnd F.nan v) (conj I H))
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
-          match v with
-          | Float ?m ?e =>
-            constr:(V.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
-          end
+          constr:(V.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
         | _ =>
           let v := get_float x in
           constr:(let f := v in V.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
@@ -400,6 +384,9 @@ exact (V.eval_first_order_correct_ext _ _ _ _).
 Qed.
 *)
 
+Definition prec_of_nat prec :=
+  match Z_of_nat prec with Zpos p => F.PtoP p | _ => F.PtoP xH end.
+
 Ltac do_interval vars prec depth eval_tac :=
   (abstract (
     match goal with
@@ -412,7 +399,7 @@ Ltac do_interval vars prec depth eval_tac :=
       let bounds_ := get_bounds constants in
       let bounds := fresh "bounds" in
       pose (bounds := bounds_) ;
-      let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
+      let prec := eval vm_compute in (prec_of_nat prec) in
       change (map Xreal constants) with (map V.xreal_from_bp bounds) ;
       eval_tac bounds output formula prec depth n ;
       vm_cast_no_check (refl_equal true)
@@ -500,7 +487,7 @@ Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
     end).
 
 Ltac do_interval_intro t extend params vars prec depth eval_tac :=
-  let prec := eval vm_compute in (C.ZtoE (Z_of_nat prec)) in
+  let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
     let bounds := get_bounds constants in
@@ -538,6 +525,22 @@ Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) :=
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) :=
   do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+
+End IntervalTactic.
+
+(*Require Import Interval_stdz_carrier.*)
+Require Import Interval_bigint_carrier.
+Require Import Interval_specific_ops.
+Module SFBI2 := SpecificFloat BigIntRadix2.
+Module ITSFBI2 := IntervalTactic SFBI2.
+Export ITSFBI2.
+
+(*
+Require Import Interval_generic_ops.
+Module GFSZ2 := GenericFloat Radix2.
+Module ITGFSZ2 := IntervalTactic GFSZ2.
+Export ITGFSZ2.
+*)
 
 (*
 Lemma blo1 :
