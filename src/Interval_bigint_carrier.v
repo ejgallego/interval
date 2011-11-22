@@ -40,7 +40,7 @@ Definition mantissa_pos := BigZ.Pos.
 Definition mantissa_neg := BigZ.Neg.
 
 Definition mantissa_sign m :=
-  if BigZ.eq_bool m 0%bigZ then Mzero
+  if BigZ.eqb m 0%bigZ then Mzero
   else
     match m with
     | BigZ.Pos p => Mnumber false p
@@ -48,21 +48,21 @@ Definition mantissa_sign m :=
     end.
 
 Definition mantissa_shl m d :=
-  BigN.shiftl (BigZ.to_N d) m. (* safe_shiftl for 8.2 *)
+  BigN.shiftl m (BigZ.to_N d).
 
 Definition mantissa_scale2 (m : mantissa_type) (d : exponent_type) := (m, d).
 
 Definition mantissa_digits m :=
   BigZ.Pos (BigN.Ndigits m - BigN.head0 m)%bigN.
 
-Definition mantissa_even m := BigN.is_even m.
+Definition mantissa_even m := BigN.even m.
 
 Definition mantissa_split_div m d pos :=
   let (q, r) := BigN.div_eucl m d in (q,
-  if BigN.eq_bool r 0%bigN then
+  if BigN.eqb r 0%bigN then
     match pos with pos_Eq => pos_Eq | _ => pos_Lo end
   else
-    match BigN.compare (BigN.shiftl 1%bigN r) d with
+    match BigN.compare (BigN.shiftl r 1%bigN) d with
     | Lt => pos_Lo
     | Eq => match pos with pos_Eq => pos_Mi | _ => pos_Up end
     | Gt => pos_Up
@@ -78,13 +78,13 @@ Definition mantissa_shr m d pos :=
 
 Definition mantissa_shr m d pos :=
   let dd := BigZ.to_N d in
-  (BigN.shiftr dd m,
+  (BigN.shiftr m dd,
   let d1 := BigN.pred dd in
   match BigN.compare (BigN.tail0 m) d1 with
   | Gt => match pos with pos_Eq => pos_Eq | _ => pos_Lo end
   | Eq => match pos with pos_Eq => pos_Mi | _ => pos_Up end
   | Lt =>
-    if BigN.is_even (BigN.shiftr d1 m) then pos_Lo
+    if BigN.even (BigN.shiftr m d1) then pos_Lo
     else pos_Up
   end).
 
@@ -110,17 +110,17 @@ Definition mantissa_shr m d pos :=
 Definition exponent_div2_floor e :=
   match e with
   | BigZ.Pos p =>
-    (BigZ.Pos (BigN.shiftr 1%bigN p), negb (BigN.is_even p))
+    (BigZ.Pos (BigN.shiftr p 1%bigN), negb (BigN.even p))
   | BigZ.Neg p =>
-    let q := BigN.shiftr 1%bigN p in
-    if BigN.is_even p then (BigZ.Neg q, false)
+    let q := BigN.shiftr p 1%bigN in
+    if BigN.even p then (BigZ.Neg q, false)
     else (BigZ.Neg (BigN.succ q), true)
   end.
 
 Definition mantissa_sqrt m :=
   let s := BigN.sqrt m in
   let r := BigN.sub m (BigN.square s) in (s,
-  if BigN.eq_bool r 0%bigN then pos_Eq
+  if BigN.eqb r 0%bigN then pos_Eq
   else match BigN.compare r s with Gt => pos_Up | _ => pos_Lo end).
 
 Definition exponent_zero_correct := refl_equal Z0.
@@ -168,14 +168,10 @@ Lemma mantissa_even_correct :
 Proof.
 intros x (px, Hx).
 unfold mantissa_even, Zeven, MtoP.
-generalize (BigN.spec_is_even x).
+generalize (BigN.spec_even x).
 rewrite Hx.
-case (BigN.is_even x) ;
+case (BigN.even x) ;
   destruct px as [px|px|] ; try easy.
-rewrite Zpos_xI.
-now rewrite Zplus_comm, Zmult_comm, Z_mod_plus_full.
-rewrite Zpos_xO.
-now rewrite Zmult_comm, Z_mod_mult.
 Qed.
 
 Lemma mantissa_one_correct :
@@ -282,14 +278,12 @@ Proof.
 intros x y z (py, Vy) Hz.
 unfold mantissa_shl, MtoP, valid_mantissa.
 rewrite BigN.spec_shiftl, Vy.
-cut (Zpos py * 2 ^ [BigZ.to_N z]%bigN = Zpos (shift radix py x))%Z.
-intro H.
-rewrite H.
+cutrewrite (Z.shiftl (Zpos py) [BigZ.to_N z]%bigN = Zpos (shift radix py x))%Z.
 repeat split.
 refl_exists.
-rewrite shift_correct.
 unfold EtoZ in Hz.
-now rewrite spec_to_Z, Hz.
+rewrite spec_to_Z, Hz.
+now rewrite <- shift_equiv.
 Qed.
 
 Lemma mantissa_sign_correct :
@@ -300,11 +294,11 @@ Lemma mantissa_sign_correct :
   end.
 intros.
 unfold mantissa_sign.
-rewrite BigZ.spec_eq_bool.
-case Fcore_Raux.Zeq_bool_spec.
+rewrite BigZ.spec_eqb.
+case Z.eqb_spec.
 easy.
 change (BigZ.to_Z 0%bigZ) with Z0.
-case x ; unfold valid_mantissa ; simpl ; intros.
+case x ; unfold valid_mantissa ; simpl ; intros ; rename n into H.
 (* + *)
 assert (BigN.to_Z t = Zpos (MtoP t)).
 generalize H. clear.

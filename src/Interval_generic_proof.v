@@ -99,10 +99,14 @@ rewrite 3!FtoR_split.
 unfold F2R. simpl.
 rewrite <- Rmult_plus_distr_r.
 rewrite <- Z2R_plus.
+case s ; simpl.
+rewrite (Z.pos_sub_spec m2 m1).
+unfold Zlt in Hm ; simpl in Hm.
+now rewrite Hm.
 generalize (Zlt_gt _ _ Hm).
 unfold Zgt. simpl.
 intros H.
-now case s ; simpl ; rewrite H.
+now rewrite (Z.pos_sub_spec m1 m2), H.
 Qed.
 
 Lemma FtoR_mul :
@@ -344,7 +348,7 @@ rewrite Zmult_assoc, (Zmult_comm (Zpos m)), <- Zmult_assoc.
 rewrite IHn.
 replace (Zpower_nat (Zpos p~0) 1) with (Zpower_nat 2 1 * Zpos p)%Z.
 ring.
-unfold Zpower_nat, iter_nat.
+unfold Zpower_nat, nat_iter.
 simpl.
 now rewrite Pmult_1_r.
 Qed.
@@ -630,11 +634,14 @@ unfold adjust_pos, new_location, new_location_even, new_location_odd.
 intros [q|q|] r pos Hq (Hr1, Hr2).
 destruct r as [|r|r] ; simpl.
 now case pos.
-now case ((r ?= q)%positive Eq) ; case pos ; simpl.
+change (r~1 ?= q~1)%positive with (r ?= q)%positive.
+now case ((r ?= q)%positive) ; case pos ; simpl.
+unfold Zeven.
 now elim Hr1.
 destruct r as [|r|r] ; simpl.
 now case pos.
-now case ((r ?= q)%positive Eq) ; case pos.
+change (r~0 ?= q~0)%positive with (r ?= q)%positive.
+now case ((r ?= q)%positive) ; case pos.
 now elim Hr1.
 discriminate Hq.
 Qed.
@@ -905,7 +912,8 @@ apply refl_equal.
 intro p.
 unfold Zminus, Zplus.
 simpl.
-case_eq ((mx ?= my)%positive Eq) ; intros ; try discriminate H0.
+rewrite Z.pos_sub_spec.
+case_eq (mx ?= my)%positive ; intros ; try discriminate H0.
 rewrite (FtoR_sub beta sx).
 now inversion H0.
 apply Zgt_lt.
@@ -913,7 +921,8 @@ exact H.
 intro p.
 unfold Zminus, Zplus.
 simpl.
-case_eq ((mx ?= my)%positive Eq) ; intros ; try discriminate H0.
+rewrite Z.pos_sub_spec.
+case_eq (mx ?= my)%positive ; intros ; try discriminate H0.
 pattern sx at 2 ; rewrite <- (negb_involutive sx).
 rewrite Rplus_comm.
 rewrite (FtoR_sub beta (negb sx)).

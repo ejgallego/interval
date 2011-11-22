@@ -336,7 +336,7 @@ intros f f' g g' x Hf Hg.
 xtotal.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp (proj_fun v g) (proj_fun v f)).
-apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X1 Hf).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
 intros x (w, Hw).
 unfold comp, proj_fun.
 now rewrite Hw.
@@ -344,7 +344,7 @@ rewrite (Rmult_comm r3).
 apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun at 2.
-rewrite X1.
+rewrite X.
 apply Hg.
 Qed.
 
