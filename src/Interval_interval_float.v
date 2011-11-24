@@ -376,15 +376,9 @@ Ltac bound_tac :=
   unfold xround ;
   match goal with
   | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
-    apply Rle_trans with v ;
-    [ refine (proj1 (proj2 (Fcore_generic_fmt.round_DN_pt r (Fcore_FLX.FLX_exp (Zpos p)) _ v))) ;
-      now apply Fcore_FLX.FLX_exp_correct
-    | idtac ]
+    apply Rle_trans with (1 := proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
-    apply Rle_trans with v ;
-    [ idtac
-    | refine (proj1 (proj2 (Fcore_generic_fmt.round_UP_pt r (Fcore_FLX.FLX_exp (Zpos p)) _ v))) ;
-      now apply Fcore_FLX.FLX_exp_correct ]
+    apply Rle_trans with (2 := proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   end.
 
 Lemma real_correct :

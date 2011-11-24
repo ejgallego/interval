@@ -301,7 +301,7 @@ Lemma mantissa_sign_correct :
 intros.
 unfold mantissa_sign.
 rewrite BigZ.spec_eq_bool.
-case Fcore_Raux.Zeq_bool_spec.
+case Zeq_bool_spec.
 easy.
 change (BigZ.to_Z 0%bigZ) with Z0.
 case x ; unfold valid_mantissa ; simpl ; intros.

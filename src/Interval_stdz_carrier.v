@@ -162,13 +162,13 @@ unfold Zsucc.
 generalize xH.
 induction x ; intros p.
 simpl digits_aux.
-simpl Fcalc_digits.digits2_Pnat.
+simpl Fcore_digits.digits2_Pnat.
 rewrite inj_S.
 unfold Zsucc.
 rewrite <- Zplus_assoc.
 now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
 simpl digits_aux.
-simpl Fcalc_digits.digits2_Pnat.
+simpl Fcore_digits.digits2_Pnat.
 rewrite inj_S.
 unfold Zsucc.
 rewrite <- Zplus_assoc.
