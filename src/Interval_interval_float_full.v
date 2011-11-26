@@ -225,7 +225,7 @@ simpl.
 unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (1 := H).
-now apply Fcore_Raux.exp_increasing_weak.
+now apply Fcore_Raux.exp_le.
 (* upper *)
 clear Hxl.
 rewrite I.real_correct.
@@ -243,7 +243,7 @@ simpl.
 unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (2 := H).
-now apply Fcore_Raux.exp_increasing_weak.
+now apply Fcore_Raux.exp_le.
 Qed.
 
 Definition bound_type := I.bound_type.

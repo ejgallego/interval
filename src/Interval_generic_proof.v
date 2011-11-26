@@ -55,7 +55,7 @@ Lemma FtoR_neg :
 Proof.
 intros beta s m e.
 rewrite 2!FtoR_split.
-rewrite opp_F2R.
+rewrite <- F2R_opp.
 now case s.
 Qed.
 
@@ -73,7 +73,7 @@ Lemma FtoR_abs :
   (Rabs (FtoR beta s m e) = FtoR beta false m e)%R.
 Proof.
 intros beta s m e.
-rewrite 2!FtoR_split, abs_F2R.
+rewrite 2!FtoR_split, <- F2R_abs.
 now case s.
 Qed.
 
@@ -564,9 +564,9 @@ case Rcompare_spec ; intros H1 ; try exact I ;
   elim Rlt_not_le with (1 := H1) ; clear -H2.
 rewrite H2.
 apply Rle_refl.
-apply round_monotone...
+apply round_le...
 now apply Rlt_le.
-apply round_monotone...
+apply round_le...
 now apply Rlt_le.
 rewrite H2.
 apply Rle_refl.
@@ -874,7 +874,7 @@ unfold inbetween_float.
 rewrite (normalize_correct beta prec m e).
 destruct (normalize beta prec m e) as (m', e').
 now constructor.
-rewrite opp_F2R.
+rewrite <- F2R_opp.
 now case s.
 Qed.
 
@@ -1144,7 +1144,7 @@ assert (F2R (Fcore_defs.Float beta (Zpos my) ey) <> R0).
 apply Rgt_not_eq.
 now apply F2R_gt_0_compat.
 unfold cond_Zopp.
-now case sx ; case sy ; repeat rewrite <- opp_F2R ; simpl ; field.
+now case sx ; case sy ; repeat rewrite F2R_opp ; simpl ; field.
 destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.
