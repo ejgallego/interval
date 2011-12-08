@@ -1,3 +1,9 @@
+Version 0.14.0:
+ - sped up square root for Z-based floating-point numbers
+ - improved readability of the error messages for the tactic
+ - modularized the tactic so that other specializations are available to user code
+ - moved to Flocq 2.0
+
 Version 0.13.0:
  - switched to Coq 8.3
 
