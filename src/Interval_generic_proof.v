@@ -3,6 +3,7 @@ Require Import Interval_missing.
 Require Import Bool.
 Require Import ZArith.
 Require Import Fcore.
+Require Import Fcore_digits.
 Require Import Fcalc_digits.
 Require Import Fcalc_bracket.
 Require Import Fcalc_round.
@@ -161,10 +162,10 @@ Qed.
 
 Lemma digits_conversion :
   forall beta p,
-  digits beta (Zpos p) = Zpos (count_digits beta p).
+  Zdigits beta (Zpos p) = Zpos (count_digits beta p).
 Proof.
 intros beta p.
-unfold digits, count_digits.
+unfold Zdigits, count_digits.
 generalize xH, (radix_val beta), p at 1 3.
 induction p ; simpl ; intros.
 case (Zlt_bool (Zpos p1) z).
@@ -284,7 +285,7 @@ rewrite 2!FtoR_split.
 simpl.
 replace (Z2R (Zpower_pos 2 nb)) with (F2R (Fcore_defs.Float beta (Zpower_pos 2 nb) 0)).
 2: apply Rmult_1_r.
-rewrite <- mult_F2R.
+rewrite <- F2R_mult.
 simpl.
 rewrite Zplus_0_r.
 rewrite <- cond_Zopp_mult.
@@ -315,7 +316,7 @@ fold (e - Zpos nb)%Z.
 simpl.
 replace (Z2R (Zpower_pos 2 nb)) with (F2R (Fcore_defs.Float beta (Zpower_pos 2 nb) 0)).
 2: apply Rmult_1_r.
-rewrite <- mult_F2R.
+rewrite <- F2R_mult.
 simpl.
 rewrite Zplus_0_r.
 rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
@@ -364,7 +365,7 @@ simpl cond_Zopp.
 unfold  Fcmp_aux2, Xcmp.
 rewrite <- 2!digits_conversion.
 rewrite (Zplus_comm e1), (Zplus_comm e2).
-rewrite <- 2!ln_beta_F2R_digits ; [|easy..].
+rewrite <- 2!ln_beta_F2R_Zdigits ; [|easy..].
 destruct (ln_beta beta (F2R (Fcore_defs.Float beta (Zpos m1) e1))) as (b1, B1).
 destruct (ln_beta beta (F2R (Fcore_defs.Float beta (Zpos m2) e2))) as (b2, B2).
 simpl.
@@ -679,7 +680,7 @@ unfold round.
 rewrite round_trunc_sign_any_correct with (choice := mode_choice mode) (m := Zpos m2) (e := e2) (l := convert_location_inv pos)...
 (* *)
 unfold Fcalc_round.truncate, Fcalc_round.truncate_aux, FLX_exp.
-replace (digits beta (Zpos m2) + e2 - Zpos prec - e2)%Z with (digits beta (Zpos m2) - Zpos prec)%Z by ring.
+replace (Zdigits beta (Zpos m2) + e2 - Zpos prec - e2)%Z with (Zdigits beta (Zpos m2) - Zpos prec)%Z by ring.
 replace (Rlt_bool (if s then (-x)%R else x) 0) with s.
 revert Hn.
 unfold Fround_at_prec, normalize.
@@ -733,7 +734,7 @@ simpl (0 * Zpower beta (Zpos d) + r)%Z.
 rewrite Zmult_comm, <- Hq.
 apply Zlt_le_trans with (1 := proj2 Hr).
 fold (Zabs (Zpos m1)).
-apply Zpower_le_digits.
+apply Zpower_le_Zdigits.
 rewrite <- Hd.
 rewrite <- digits_conversion.
 now apply Zlt_minus_simpl_swap.
@@ -744,8 +745,8 @@ intros He Hm. clear Heq.
 rewrite <- Hm.
 rewrite shift_correct.
 fold (Zpower beta (Zpos d)).
-rewrite digits_shift ; try easy.
-replace (digits beta (Zpos m1) + Zpos d - Zpos prec)%Z with Z0.
+rewrite Zdigits_mult_Zpower ; try easy.
+replace (Zdigits beta (Zpos m1) + Zpos d - Zpos prec)%Z with Z0.
 simpl.
 change (match Zpower_pos beta d with 0 => 0 | Zpos y' => Zpos (m1 * y') | Zneg y' => Zneg (m1 * y') end)%Z
   with (Zpos m1 * Zpower beta (Zpos d))%Z.
@@ -805,13 +806,13 @@ now apply Rlt_le.
 (* *)
 left.
 unfold FLX_exp.
-cut (0 <= digits beta (Zpos m2) - Zpos prec)%Z. clear. omega.
+cut (0 <= Zdigits beta (Zpos m2) - Zpos prec)%Z. clear. omega.
 change m2 with (fst (m2, e2)).
 rewrite <- (f_equal (@fst _ _) Hn).
 clear.
 unfold normalize.
 rewrite <- digits_conversion.
-case_eq (digits beta (Zpos m1) - Zpos prec)%Z ; unfold fst.
+case_eq (Zdigits beta (Zpos m1) - Zpos prec)%Z ; unfold fst.
 intros H.
 now rewrite H.
 intros p H.
@@ -819,7 +820,7 @@ now rewrite H.
 intros p H.
 rewrite shift_correct.
 fold (Zpower beta (Zpos p)).
-rewrite digits_shift ; try easy.
+rewrite Zdigits_mult_Zpower ; try easy.
 fold (Zopp (Zneg p)).
 rewrite <- H.
 now ring_simplify.
@@ -1144,7 +1145,7 @@ assert (F2R (Fcore_defs.Float beta (Zpos my) ey) <> R0).
 apply Rgt_not_eq.
 now apply F2R_gt_0_compat.
 unfold cond_Zopp.
-now case sx ; case sy ; repeat rewrite F2R_opp ; simpl ; field.
+now case sx ; case sy ; repeat rewrite F2R_Zopp ; simpl ; field.
 destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.

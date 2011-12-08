@@ -247,7 +247,7 @@ rewrite <- Zplus_0_r.
 rewrite <- (Zplus_opp_r [BigN.head0 x]%bigN)%Z.
 rewrite Zplus_assoc.
 apply (f_equal (fun v => v + _)%Z).
-rewrite <- Fcalc_digits.digits_shift.
+rewrite <- Fcalc_digits.Zdigits_mult_Zpower.
 2: now apply Zgt_not_eq.
 2: apply BigN.spec_pos.
 refine (_ (BigN.spec_head0 x _)).
@@ -255,17 +255,17 @@ refine (_ (BigN.spec_head0 x _)).
 intros (H1,H2).
 unfold MtoP.
 rewrite Vx.
-set (d := Fcalc_digits.digits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
+set (d := Fcore_digits.Zdigits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
 cut (d <= Zpos (BigN.digits x) /\ Zpos (BigN.digits x) - 1 < d)%Z. omega.
 unfold d ; clear d.
 split.
-apply Fcalc_digits.digits_le_Zpower.
+apply Fcalc_digits.Zdigits_le_Zpower.
 rewrite Zabs_Zmult, Zmult_comm.
 rewrite Zabs_eq.
 simpl Zabs.
 now rewrite <- Vx.
 apply Zpower_ge_0.
-apply Fcalc_digits.digits_gt_Zpower.
+apply Fcalc_digits.Zdigits_gt_Zpower.
 rewrite Zabs_Zmult, Zmult_comm.
 rewrite Zabs_eq.
 simpl Zabs.

@@ -527,7 +527,7 @@ now rewrite Hd, Hl.
 now rewrite exponent_sub_correct, mantissa_digits_correct.
 rewrite shift_correct, Zmult_1_l.
 change (Zpower Carrier.radix (Zpos dp) <= Zabs (Zpos (MtoP m1)))%Z.
-apply Zpower_le_digits.
+apply Zpower_le_Zdigits.
 rewrite <- Hd, <- Hp.
 rewrite <- digits_conversion.
 clear ; zify ; omega.
@@ -891,7 +891,7 @@ case_eq (EtoZ p) ; try (intros ; apply exponent_one_correct).
 easy.
 rewrite Hp.
 unfold radix.
-set (d := (digits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - digits Carrier.radix (Zpos (MtoP nx)))%Z).
+set (d := (Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP nx)))%Z).
 set (nd := exponent_sub (exponent_add (mantissa_digits ny) p') (mantissa_digits nx)).
 assert (Hs := fun d' (H : EtoZ nd = Zpos d') => mantissa_shl_correct d' nx nd Vmx H).
 assert (Hs': forall d', d = Zpos d' -> MtoP (mantissa_shl nx nd) = shift Carrier.radix (MtoP nx) d' /\ valid_mantissa (mantissa_shl nx nd)).
@@ -912,7 +912,7 @@ refine (let Hmd := mantissa_div_correct (match d with Zpos _ => mantissa_shl nx 
 destruct d as [|pd|pd] ; trivial.
 now apply (Hs' pd).
 apply Zlt_le_weak.
-apply (lt_digits Carrier.radix).
+apply (lt_Zdigits Carrier.radix).
 easy.
 case_eq d.
 unfold d.
@@ -922,7 +922,7 @@ specialize (Hs' p0 Hp0).
 rewrite (proj1 Hs').
 rewrite shift_correct.
 fold (Zpower Carrier.radix (Zpos p0)).
-rewrite digits_shift ; try easy.
+rewrite Zdigits_mult_Zpower ; try easy.
 rewrite <- Hp0.
 unfold d.
 clear ; zify ; omega.
