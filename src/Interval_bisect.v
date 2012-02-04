@@ -72,7 +72,7 @@ Definition lookup_1d_step fi l u output cont :=
     let m := I.midpoint (I.bnd l u) in
     let output := cont l m output in
     if I.lower_bounded output || I.upper_bounded output then cont m u output
-    else cont m u output.
+    else output.
 
 Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
   match steps with
