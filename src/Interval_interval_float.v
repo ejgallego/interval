@@ -195,12 +195,18 @@ Definition sign_large xi :=
   | Inan => Xund
   end.
 
-Definition sign_strict xl xu :=
+Definition sign_strict_ xl xu :=
   match F.cmp xl F.zero, F.cmp xu F.zero with
   | Xeq, Xeq => Xeq
   | _, Xlt => Xlt
   | Xgt, _ => Xgt
   | _, _ => Xund
+  end.
+
+Definition sign_strict xi :=
+  match xi with
+  | Ibnd xl xu => sign_strict_ xl xu
+  | Inan => Xund
   end.
 
 Definition neg xi :=
@@ -321,7 +327,7 @@ Definition Fdivz mode prec x y :=
 Definition inv prec xi :=
   match xi with
   | Ibnd xl xu =>
-    match sign_strict xl xu with
+    match sign_strict_ xl xu with
     | Xund => Inan
     | Xeq => Inan
     | _ => let one := F.fromZ 1 in
@@ -333,7 +339,7 @@ Definition inv prec xi :=
 Definition div prec xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
-    match sign_strict xl xu, sign_strict yl yu with
+    match sign_strict_ xl xu, sign_strict_ yl yu with
     | _, Xund => Inan
     | _, Xeq => Inan
     | Xeq, _ => Ibnd F.zero F.zero
@@ -632,10 +638,10 @@ case (sign_large_ xl xu) ;
   exact (proj1 (H _ Hx)).
 Qed.
 
-Lemma sign_strict_correct :
+Lemma sign_strict_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
-  match sign_strict xl xu with
+  match sign_strict_ xl xu with
   | Xeq => x = R0 /\ convert_bound xl = Xreal R0 /\ convert_bound xu = Xreal R0
   | Xlt => (x < 0)%R /\ (match convert_bound xl with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, convert_bound xu = Xreal ru /\ (ru < 0)%R)
   | Xgt => (0 < x)%R /\ (match convert_bound xu with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, convert_bound xl = Xreal rl /\ (0 < rl)%R)
@@ -644,7 +650,7 @@ Lemma sign_strict_correct :
     match convert_bound xu with Xreal ru => (0 <= ru)%R | _=> True end
   end.
 intros xl xu x (Hxl, Hxu).
-unfold sign_strict.
+unfold sign_strict_.
 do 2 rewrite F.cmp_correct.
 rewrite F.zero_correct.
 generalize Hxl Hxu.
@@ -666,6 +672,27 @@ apply FtoR_Rpos.
 apply Rle_lt_trans with (1 := Hxl).
 apply Rle_lt_trans with (1 := Hxu).
 apply FtoR_Rneg.
+Qed.
+
+Theorem sign_strict_correct :
+  forall xi,
+  match sign_strict xi with
+  | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
+  | Xlt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rlt (proj_val x) 0
+  | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rlt 0 (proj_val x)
+  | Xund => True
+  end.
+Proof.
+intros [|xl xu].
+exact I.
+generalize (sign_strict_correct_ xl xu).
+unfold sign_strict.
+case (sign_strict_ xl xu) ;
+  try intros H [|x] Hx ;
+  try (elim Hx ; fail) ;
+  try refl_exists ;
+  try apply f_equal ;
+  exact (proj1 (H _ Hx)).
 Qed.
 
 Theorem fromZ_correct :
@@ -1183,11 +1210,11 @@ intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 unfold bnd, contains, convert, convert_bound.
 (* case study on sign of xi *)
-generalize (sign_strict_correct xl xu x (conj Hxl Hxu)).
-case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
+generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
+case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
-  try ( generalize (sign_strict_correct yl yu y (conj Hyl Hyu)) ;
-        case (sign_strict yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
+  try ( generalize (sign_strict_correct_ yl yu y (conj Hyl Hyu)) ;
+        case (sign_strict_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   try exact I ; try simpl_is_zero ; unfold Rdiv ;
   (* remove trivial comparisons with zero *)
   try ( rewrite F.zero_correct ; simpl ;
@@ -1223,9 +1250,9 @@ intros prec [ | xl xu] [ | x] ;
 intros (Hxl, Hxu).
 simpl.
 unfold bnd, contains, convert, convert_bound.
-generalize (sign_strict_correct xl xu x (conj Hxl Hxu)).
+generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
 (* case study on sign of xi *)
-case (sign_strict xl xu) ; intros Hx0 ; simpl in Hx0 ;
+case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
   try exact I ; try simpl_is_zero ;
   (* simplify Fdivz *)
