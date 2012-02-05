@@ -9,9 +9,38 @@ Require Import Interval_generic_proof.
 Require Import Interval_interval.
 
 Module IntervalAlgos (I : IntervalOps).
+Record check := {
+  check_f : I.type -> bool;
+  check_p : ExtendedR -> Prop;
+  _ : forall y yi, contains (I.convert yi) y -> check_f yi = true -> check_p y
+}.
 
-Definition bisect_1d_step fi l u output cont :=
-  if I.subset (fi (I.bnd l u)) output then true
+Definition subset_check : I.type -> check.
+Proof.
+intros output.
+apply (Build_check (fun i => I.subset i output) (contains (I.convert output))).
+abstract (
+  intros y yi Hy Hb ;
+  assert (H := I.subset_correct yi output Hb) ;
+  now apply subset_contains with (1 := H)).
+Defined.
+
+Definition positive_check : check.
+Proof.
+apply (Build_check
+  (fun i => match I.sign_strict i with Xgt => true | _ => false end)
+  (fun y => match y with Xreal r => (0 < r)%R | _ => False end)).
+abstract (
+  intros y yi Hy Hb ;
+  generalize (I.sign_strict_correct yi) ;
+  destruct (I.sign_strict yi) ; try easy ;
+  intros H ;
+  destruct (H y Hy) as (H1,H2) ;
+  now rewrite H1).
+Defined.
+
+Definition bisect_1d_step fi l u (check : I.type -> bool) cont :=
+  if check (fi (I.bnd l u)) then true
   else
     let m := I.midpoint (I.bnd l u) in
     match cont l m with
@@ -19,51 +48,46 @@ Definition bisect_1d_step fi l u output cont :=
     | false => false
     end.
 
-Fixpoint bisect_1d fi l u output steps { struct steps } :=
+Fixpoint bisect_1d fi l u check steps { struct steps } :=
   match steps with
   | O => false
   | S n =>
-    bisect_1d_step fi l u output
-      (fun l u => bisect_1d fi l u output n)
+    bisect_1d_step fi l u check
+      (fun l u => bisect_1d fi l u check n)
   end.
 
 Theorem bisect_1d_correct :
-  forall steps f fi inpl inpu output,
+  forall steps f fi inpl inpu check,
   I.extension f fi ->
-  bisect_1d fi inpl inpu output steps = true ->
+  bisect_1d fi inpl inpu (check_f check) steps = true ->
   forall x,
-  contains (I.convert (I.bnd inpl inpu)) x -> contains (I.convert output) (f x).
-intros.
-generalize inpl inpu H0 x H1. clear inpl inpu H0 x H1.
+  contains (I.convert (I.bnd inpl inpu)) x -> check_p check (f x).
+Proof.
+intros steps f fi inpl inpu (check_f,check_p,check_th) Hf.
+revert inpl inpu.
 induction steps.
-intros.
-discriminate H0.
+intros inpl inpu Hb.
+discriminate Hb.
 intros inpl inpu.
 simpl.
-(*fold (I.bnd (I.Ibnd inpl inpu) x).*)
 unfold bisect_1d_step.
-case_eq (I.subset (fi (I.bnd inpl inpu)) output).
-intros H0 _ x H1.
-eapply subset_contains.
-apply I.subset_correct with (1 := H0).
-apply H.
-exact H1.
+case_eq (check_f (fi (I.bnd inpl inpu))).
+intros Hb _ x Hx.
+apply check_th with (2 := Hb).
+now apply Hf.
 intros _.
 set (inpm := I.midpoint (I.bnd inpl inpu)).
-case_eq (bisect_1d fi inpl inpm output steps).
-intros H0 H1 x H2.
-apply (bisect (fun x => contains (I.convert output) (f x))
+case_eq (bisect_1d fi inpl inpm check_f steps) ; try easy.
+intros Hl Hr x Hx.
+apply (bisect (fun x => check_p (f x))
               (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
 unfold domain.
 rewrite <- I.bnd_correct.
-apply IHsteps with (1 := H0).
+apply IHsteps with (1 := Hl).
 unfold domain.
 rewrite <- I.bnd_correct.
-apply IHsteps with (1 := H1).
-rewrite <- I.bnd_correct.
-exact H2.
-intros _ H0 x _.
-discriminate H0.
+apply IHsteps with (1 := Hr).
+now rewrite <- I.bnd_correct.
 Qed.
 
 Definition lookup_1d_step fi l u output cont :=
@@ -88,6 +112,25 @@ Definition lookup_1d fi l u extend steps :=
   if I.lower_bounded output || I.upper_bounded output then
     lookup_1d_main fi l u output steps
   else output.
+
+(*
+Theorem lookup_1d_correct :
+  forall steps f fi inpl inpu extend,
+  I.extension f fi ->
+  forall x,
+  contains (I.convert (I.bnd inpl inpu)) x -> contains (I.convert (lookup_1d fi inpl inpu extend steps)) (f x).
+Proof.
+intros steps f fi inpl inpu extend Hf x Hx.
+unfold lookup_1d.
+generalize (extend (fi (I.bnd inpl (iter_nat steps _ (fun u => I.midpoint (I.bnd inpl u)) inpu)))).
+intros t.
+case_eq (I.lower_bounded t || I.upper_bounded t).
+intros _.
+admit.
+intros H.
+destruct (orb_false_elim _ _ H) as (H1,H2).
+generalize (I.lower_bounded_correct t) (I.upper_bounded_correct t).
+*)
 
 Definition diff_refining_points prec xi di yi yi' ym yl yu :=
   match I.sign_large yi' with
@@ -1222,49 +1265,46 @@ Qed.
 *)
 
 Lemma xreal_to_real :
-  forall prog terms n xi,
-  contains xi (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
-  contains xi (Xreal (nth n (eval_real prog terms) R0)).
-assert (Heq : forall a b, (forall xi, contains xi (Xreal a) -> contains xi (Xreal b)) -> b = a).
-intros.
-assert (Hb := H (Ibnd (Xreal a) (Xreal a)) (conj (Rle_refl a) (Rle_refl a))).
-apply Rle_antisym.
-exact (proj2 Hb).
-exact (proj1 Hb).
-(* . *)
-intros prog terms.
+  forall (P1 : ExtendedR -> Prop) (P2 : R -> Prop),
+  (P1 Xnan -> forall r, P2 r) ->
+  (forall r, P1 (Xreal r) -> P2 r) ->
+  forall prog terms n,
+  P1 (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  P2 (nth n (eval_real prog terms) 0%R).
+Proof.
+intros P1 P2 HP1 HP2 prog terms n.
 unfold eval_ext, eval_real.
-apply (eval_inductive_prop _ _ (fun a b => forall xi, contains xi a -> contains xi (Xreal b))) ;
-  simpl ; intros.
-exact H.
+refine (_ (eval_inductive_prop _ _ (fun a b => match a with Xreal a => a = b | _ => True end)
+  (Xreal 0) R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
+case (nth n (eval_generic (Xreal 0) ext_operations prog (map Xreal terms)) (Xreal 0)).
+intros _ H.
+now apply HP1.
+intros y H.
+rewrite H.
+apply HP2.
+apply refl_equal.
 (* unary *)
-destruct xi.
-exact I.
 destruct a as [|a].
-destruct o ; exact (False_ind _ H0).
-rewrite (Heq _ _ H).
-destruct o ; try exact H0.
-unfold Xinv in H0.
-now destruct (is_zero a).
-unfold Xsqrt in H0.
-now destruct (is_negative a).
-unfold Xtan, Xdiv, Xsin, Xcos in H0.
-now destruct (is_zero (cos a)).
+now destruct o.
+intros b H.
+rewrite H.
+destruct o ; try easy ; simpl.
+now case (is_zero b).
+now case (is_negative b).
+unfold Xtan, Xdiv, Xsin, Xcos.
+now case (is_zero (cos b)).
 (* binary *)
-destruct xi.
-exact I.
 destruct a1 as [|a1].
-destruct o ; exact (False_ind _ H1).
+now destruct o.
 destruct a2 as [|a2].
-destruct o ; exact (False_ind _ H1).
-rewrite (Heq _ _ H).
-rewrite (Heq _ _ H0).
-destruct o ; try exact H1.
-unfold Xdiv in H1.
-now destruct (is_zero a2).
+now destruct o.
+intros b1 b2 H1 H2.
+rewrite H1, H2.
+destruct o ; try easy ; simpl.
+now destruct (is_zero b2).
 (* . *)
-rewrite map_nth in H.
-exact H.
+intros n0.
+now rewrite map_nth.
 Qed.
 
 Inductive bound_proof :=
