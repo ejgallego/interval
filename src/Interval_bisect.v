@@ -930,7 +930,7 @@ End IntervalAlgos.
 Module Valuator (I : IntervalOps).
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp.
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -1015,6 +1015,7 @@ Definition bnd_operations prec :=
     | Tan => I.tan prec
     | Atan => I.atan prec
     | Exp => I.exp prec
+    | PowerInt n => fun x => I.power_int prec x n
     end)
    (fun o =>
     match o with
@@ -1041,6 +1042,7 @@ Definition ext_operations :=
     | Tan => Xtan
     | Atan => Xatan
     | Exp => Xexp
+    | PowerInt n => fun x => Xpower_int x n
     end)
    (fun o =>
     match o with
@@ -1099,6 +1101,7 @@ Definition real_operations :=
     | Tan => tan
     | Atan => atan
     | Exp => exp
+    | PowerInt n => fun x => powerRZ x n
     end)
    (fun o =>
     match o with
@@ -1136,6 +1139,8 @@ Definition diff_operations A (ops : @operations A) :=
         binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       | Exp => let w := unary ops Exp v in (w,
         binary ops Mul d w)
+      | PowerInt n =>
+        (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
       end
     end)
    (fun o x y =>
@@ -1293,6 +1298,9 @@ now case (is_zero b).
 now case (is_negative b).
 unfold Xtan, Xdiv, Xsin, Xcos.
 now case (is_zero (cos b)).
+fold (Xpower_int (Xreal b) n0).
+generalize (Xpower_int_correct n0 (Xreal b)).
+now case Xpower_int.
 (* binary *)
 destruct a1 as [|a1].
 now destruct o.
@@ -1351,7 +1359,8 @@ destruct o ; simpl ;
   | apply I.sin_correct
   | apply I.tan_correct
   | apply I.atan_correct
-  | apply I.exp_correct ].
+  | apply I.exp_correct
+  | apply I.power_int_correct ].
 (* binary *)
 destruct o ; simpl ;
   [ apply I.add_correct
@@ -1442,6 +1451,7 @@ now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 admit.
 now apply Xderive_pt_exp.
+now apply Xderive_pt_power_int.
 Qed.
 
 Lemma binary_diff_correct :
@@ -1537,11 +1547,13 @@ destruct o ; simpl ;
   | apply I.tan_correct
   | apply I.atan_correct
   | apply I.exp_correct
+  | apply I.power_int_correct
   | apply I.add_correct
   | apply I.mul_correct
   | apply I.div_correct
   | apply I.fromZ_correct
-  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _) ] ;
+  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
+  | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
   now first [ apply Hf | apply Hf' ].
 Qed.
 
@@ -1621,7 +1633,8 @@ destruct o ; simpl ;
   | apply I.sin_correct
   | apply I.tan_correct
   | apply I.atan_correct
-  | apply I.exp_correct ] ;
+  | apply I.exp_correct
+  | apply I.power_int_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
 exact (fun x Hx => proj1 (H x Hx)).
