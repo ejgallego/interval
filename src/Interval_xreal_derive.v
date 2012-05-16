@@ -325,7 +325,7 @@ Ltac xtotal_aux :=
   end.
 
 Ltac xtotal :=
-  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xmask in * ;
+  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xpower_int, Xmask in * ;
   repeat xtotal_aux.
 
 Theorem Xderive_pt_compose :
@@ -665,6 +665,111 @@ apply Hf.
 unfold proj_fun.
 rewrite X.
 apply (derivable_pt_lim_exp r1).
+Qed.
+
+Theorem Xderive_pt_power_int :
+  forall n f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xpower_int (f x) n) x (Xmul f' (Xmul (Xreal (Z2R n)) (Xpower_int (f x) (Zpred n)))).
+Proof.
+intros n f f' x Hf.
+destruct n as [|n|n].
+(* *)
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp (fun x => powerRZ x 0) (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
+intros x (w, Hw).
+unfold comp, proj_fun.
+now rewrite Hw.
+rewrite Rmult_0_l, Rmult_0_r.
+unfold comp, proj_fun.
+simpl.
+apply derivable_pt_lim_const.
+(* *)
+replace (Xpower_int (f x) (Zpred (Zpos n))) with (match f x with Xnan => Xnan | Xreal r => Xreal (pow r (pred (nat_of_P n))) end).
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp (fun x => pow x (nat_of_P n)) (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
+intros x (w, Hw).
+unfold comp, proj_fun.
+now rewrite Hw.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X.
+rewrite Z2R_IZR.
+apply derivable_pt_lim_pow_pos.
+apply lt_O_nat_of_P.
+case (f x).
+easy.
+intros r.
+unfold Xpower_int.
+case_eq (Zpred (Zpos n))%Z.
+intros H.
+replace (nat_of_P n) with 1.
+easy.
+apply inj_eq_rev.
+rewrite <- Zpos_eq_Z_of_nat_o_nat_of_P.
+apply Zsucc_eq_compat in H.
+now rewrite <- Zsucc_pred in H.
+intros p H.
+apply f_equal.
+apply f_equal.
+apply inj_eq_rev.
+rewrite pred_of_minus.
+rewrite inj_minus1.
+now rewrite <- 2!Zpos_eq_Z_of_nat_o_nat_of_P.
+apply lt_le_S.
+apply lt_O_nat_of_P.
+now case n.
+(* *)
+rewrite Z2R_IZR.
+replace (Xpower_int (f x) (Zpred (Zneg n))) with (match f x with Xnan => Xnan | Xreal r => if is_zero r then Xnan else Xreal (/ (pow r (S (nat_of_P n)))) end).
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp (fun x => Rinv (pow x (nat_of_P n))) (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_ne _ _ _ _ _ X Y Hf).
+intros x (w, (Hw1, Hw2)).
+unfold comp, proj_fun.
+rewrite Hw2.
+now case is_zero_spec.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+change (fun x => (/ x ^ nat_of_P n)%R) with (comp Rinv (fun x => pow x (nat_of_P n))).
+unfold proj_fun.
+rewrite X.
+replace (- INR (nat_of_P n) * / (r1 * r1 ^ nat_of_P n))%R with
+  ((0 * r1 ^ (nat_of_P n) - 1 * fct_cte 1 r1) / Rsqr (r1 ^ (nat_of_P n)) * (INR (nat_of_P n) * (r1 ^ pred (nat_of_P n))))%R.
+apply derivable_pt_lim_comp.
+apply derivable_pt_lim_pow.
+apply derivable_pt_lim_eq with (div_fct (fct_cte 1) (fun x => x)).
+intros x.
+apply Rmult_1_l.
+apply derivable_pt_lim_div with (x := (r1 ^ nat_of_P n)%R).
+apply derivable_pt_lim_const.
+apply derivable_pt_lim_id.
+now apply pow_nonzero.
+unfold fct_cte.
+unfold Rsqr.
+pattern (nat_of_P n) at -5 ; replace (nat_of_P n) with (1 + pred (nat_of_P n))%nat.
+rewrite pow_add.
+field.
+refine (conj _ Y).
+now apply pow_nonzero.
+rewrite pred_of_minus.
+apply le_plus_minus_r.
+apply lt_le_S.
+apply lt_O_nat_of_P.
+case (f x).
+easy.
+intros r.
+simpl.
+rewrite <- Pplus_one_succ_r.
+now rewrite nat_of_P_succ_morphism.
 Qed.
 
 Theorem Xderive_partial_diff :
