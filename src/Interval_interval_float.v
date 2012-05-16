@@ -292,7 +292,7 @@ Definition sqr prec xi :=
   | Ibnd xl xu =>
     match sign_large_ xl xu with
     | Xund =>
-      let xm := F.max (F.abs xl) (F.abs xu) in
+      let xm := F.max (F.abs xl) xu in
       Ibnd F.zero (F.mul rnd_UP prec xm xm)
     | Xeq => Ibnd F.zero F.zero
     | Xlt => Ibnd (F.mul rnd_DN prec xu xu) (F.mul rnd_UP prec xl xl)
@@ -1302,13 +1302,12 @@ rewrite F.zero_correct ; simpl.
 apply Rle_0_sqr.
 rewrite F.mul_correct, Fmul_correct.
 rewrite F.max_correct, Fmax_correct.
-do 2 rewrite F.abs_correct, Fabs_correct.
+rewrite F.abs_correct, Fabs_correct.
 do 2 xreal_tac2.
 simpl.
 bound_tac.
 clear_complex.
 apply Rsqr_le_abs_1.
-rewrite Rabs_pos_eq with (1 := Hx0).
 rewrite Rabs_left1 with (1 := H).
 unfold Rmax.
 case Rle_dec ; intros H0.
