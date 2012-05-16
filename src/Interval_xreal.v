@@ -226,6 +226,23 @@ Definition Xexp x :=
   | Xnan => Xnan
   end.
 
+Definition Xpower_int x n :=
+  match x with
+  | Xreal u =>
+    match n with
+    | 0%Z => Xreal 1%R
+    | Zpos p => Xreal (pow u (nat_of_P p))
+    | Zneg p => if is_zero u then Xnan else Xreal (Rinv (pow u (nat_of_P p)))
+    end
+  | Xnan => Xnan
+  end.
+
+Lemma Xpower_int_correct : forall n, extension (fun x => powerRZ x n) (fun x => Xpower_int x n).
+intros [|n|n] [|x] ; try split.
+unfold Xpower_int.
+now case (is_zero x).
+Qed.
+
 (*
  * "Field" structure
  *)

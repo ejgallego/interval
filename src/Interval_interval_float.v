@@ -353,6 +353,44 @@ Definition div prec xi yi :=
   | _, _ => Inan
   end.
 
+Fixpoint Fpower_pos rnd prec x n :=
+  match n with
+  | xH => x
+  | xO p => Fpower_pos rnd prec (F.mul rnd prec x x) p
+  | xI p => F.mul rnd prec x (Fpower_pos rnd prec (F.mul rnd prec x x) p)
+  end.
+
+Definition power_pos prec xi n :=
+  match xi with
+  | Ibnd xl xu =>
+    match sign_large_ xl xu with
+    | Xund =>
+      match n with
+      | xH => xi
+      | xO _ =>
+        let xm := F.max (F.abs xl) xu in
+        Ibnd F.zero (Fpower_pos rnd_UP prec xm n)
+      | xI _ => Ibnd (F.neg (Fpower_pos rnd_UP prec (F.abs xl) n)) (Fpower_pos rnd_UP prec xu n)
+      end
+    | Xeq => Ibnd F.zero F.zero
+    | Xlt =>
+      match n with
+      | xH => xi
+      | xO _ => Ibnd (Fpower_pos rnd_DN prec (F.abs xu) n) (Fpower_pos rnd_UP prec (F.abs xl) n)
+      | xI _ => Ibnd (F.neg (Fpower_pos rnd_UP prec (F.abs xl) n)) (F.neg (Fpower_pos rnd_DN prec (F.abs xu) n))
+      end
+    | Xgt => Ibnd (Fpower_pos rnd_DN prec xl n) (Fpower_pos rnd_UP prec xu n)
+    end
+  | _ => Inan
+  end.
+
+Definition power_int prec xi n :=
+  match n with
+  | Zpos p => power_pos prec xi p
+  | Z0 => match xi with Inan => Inan | _ => fromZ 1 end
+  | Zneg p => inv prec (power_pos prec xi p)
+  end.
+
 Ltac convert_clean :=
   repeat
   match goal with
@@ -1324,6 +1362,482 @@ refine (conj Hxl _).
 apply Rle_trans with (1 := Hxu).
 apply Rlt_le.
 now apply Rnot_le_lt.
+Qed.
+
+Lemma Fpower_pos_up_correct :
+  forall prec x n,
+  le_upper (Xreal 0) (FtoX (F.toF x)) ->
+  le_upper (Xpower_int (FtoX (F.toF x)) (Zpos n)) (FtoX (F.toF (Fpower_pos rnd_UP prec x n))).
+Proof.
+intros prec x n.
+revert x.
+unfold le_upper, Xpower_int.
+induction n ; intros x Hx ; simpl.
+(* *)
+generalize (IHn (F.mul rnd_UP prec x x)).
+rewrite 2!F.mul_correct, 2!Fmul_correct.
+xreal_tac x ; simpl.
+easy.
+xreal_tac (Fpower_pos rnd_UP prec (F.mul rnd_UP prec x x) n) ; simpl.
+easy.
+intros H.
+bound_tac.
+apply Rmult_le_compat_l with (1 := Hx).
+refine (Rle_trans _ _ _ _ (H _)).
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO, pow_sqr.
+apply pow_incr.
+split.
+now apply Rmult_le_pos.
+bound_tac.
+apply Rle_refl.
+bound_tac.
+now apply Rmult_le_pos.
+(* *)
+generalize (IHn (F.mul rnd_UP prec x x)).
+rewrite F.mul_correct, Fmul_correct.
+xreal_tac x ; simpl.
+intros H.
+now apply H.
+xreal_tac (Fpower_pos rnd_UP prec (F.mul rnd_UP prec x x) n) ; simpl.
+easy.
+intros H.
+refine (Rle_trans _ _ _ _ (H _)).
+rewrite nat_of_P_xO, pow_sqr.
+apply pow_incr.
+split.
+now apply Rmult_le_pos.
+bound_tac.
+apply Rle_refl.
+bound_tac.
+now apply Rmult_le_pos.
+(* *)
+xreal_tac x.
+rewrite Rmult_1_r.
+apply Rle_refl.
+Qed.
+
+Definition le_lower' x y :=
+  match x with
+  | Xnan => True
+  | Xreal xr =>
+    match y with
+    | Xnan => False
+    | Xreal yr => Rle xr yr
+    end
+  end.
+
+Lemma Fpower_pos_dn_correct :
+  forall prec x n,
+  le_lower' (Xreal 0) (FtoX (F.toF x)) ->
+  le_lower' (FtoX (F.toF (Fpower_pos rnd_DN prec x n))) (Xpower_int (FtoX (F.toF x)) (Zpos n)).
+Proof.
+intros prec x n.
+revert x.
+unfold le_lower', Xpower_int.
+induction n ; intros x Hx ; simpl.
+(* *)
+generalize (IHn (F.mul rnd_DN prec x x)).
+rewrite 2!F.mul_correct, 2!Fmul_correct.
+xreal_tac x ; simpl.
+easy.
+xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
+easy.
+intros H.
+bound_tac.
+apply Rmult_le_compat_l with (1 := Hx).
+refine (Rle_trans _ _ _ (H _) _).
+apply (Fcore_generic_fmt.round_ge_generic _ _ _).
+apply Fcore_generic_fmt.generic_format_0.
+now apply Rmult_le_pos.
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO, pow_sqr.
+apply pow_incr.
+split.
+apply (Fcore_generic_fmt.round_ge_generic _ _ _).
+apply Fcore_generic_fmt.generic_format_0.
+now apply Rmult_le_pos.
+bound_tac.
+apply Rle_refl.
+(* *)
+generalize (IHn (F.mul rnd_DN prec x x)).
+rewrite F.mul_correct, Fmul_correct.
+xreal_tac x ; simpl.
+now rewrite X in Hx.
+xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
+easy.
+intros H.
+refine (Rle_trans _ _ _ (H _) _).
+apply (Fcore_generic_fmt.round_ge_generic _ _ _).
+apply Fcore_generic_fmt.generic_format_0.
+now apply Rmult_le_pos.
+rewrite nat_of_P_xO, pow_sqr.
+apply pow_incr.
+split.
+apply (Fcore_generic_fmt.round_ge_generic _ _ _).
+apply Fcore_generic_fmt.generic_format_0.
+now apply Rmult_le_pos.
+bound_tac.
+apply Rle_refl.
+(* *)
+xreal_tac x.
+rewrite Rmult_1_r.
+apply Rle_refl.
+Qed.
+
+Theorem power_pos_correct :
+  forall prec n,
+  extension (fun x => Xpower_int x (Zpos n)) (fun x => power_pos prec x n).
+Proof.
+intros prec n [ | xl xu] [ | x] ; try easy.
+unfold contains, convert, convert_bound, power_pos, Xpower_int.
+intros (Hxl,Hxu).
+generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
+case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0.
+(* *)
+rewrite F.zero_correct.
+simpl.
+rewrite (proj1 Hx0), pow_i.
+split ; apply Rle_refl.
+apply lt_O_nat_of_P.
+(* *)
+destruct n as [n|n|].
+(* . *)
+rewrite 2!F.neg_correct, 2!Fneg_correct.
+split.
+(* .. *)
+generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
+unfold le_upper.
+rewrite F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
+easy.
+xreal_tac xl ; simpl.
+intros H.
+now elim H.
+intros H.
+specialize (H (Rabs_pos _)).
+apply Ropp_le_contravar in H.
+apply Rle_trans with (1 := H).
+rewrite Rabs_left1.
+2: apply Hx0.
+rewrite Ropp_mult_distr_l_reverse, Ropp_involutive.
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 2.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply Rle_trans with (r0 * (-x) ^ nat_of_P (xO n))%R.
+apply Rmult_le_compat_neg_l.
+apply Hx0.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+now apply Ropp_le_contravar.
+apply Rmult_le_compat_r.
+apply pow_le.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+exact Hxl.
+(* .. *)
+generalize (Fpower_pos_dn_correct prec (F.abs xu) (xI n)).
+unfold le_lower'.
+rewrite F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~1).
+easy.
+xreal_tac xu ; simpl.
+destruct Hx0 as (_,(_,(ru,(H,_)))).
+now rewrite H in X0.
+intros H.
+specialize (H (Rabs_pos _)).
+apply Ropp_le_contravar in H.
+apply Rle_trans with (2 := H).
+assert (Hr0 : (r0 <= 0)%R).
+destruct Hx0 as (_,(_,(ru,(H1,H2)))).
+now inversion H1.
+rewrite Rabs_left1 with (1 := Hr0).
+rewrite Ropp_mult_distr_l_reverse, Ropp_involutive.
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 1.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply Rle_trans with (x * (-r0) ^ nat_of_P (xO n))%R.
+apply Rmult_le_compat_neg_l.
+apply Hx0.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+now apply Ropp_le_contravar.
+apply Rmult_le_compat_r.
+apply pow_le.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+exact Hxu.
+(* . *)
+split.
+(* .. *)
+generalize (Fpower_pos_dn_correct prec (F.abs xu) (xO n)).
+unfold le_lower'.
+rewrite F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~0).
+easy.
+xreal_tac xu ; simpl.
+intros _.
+destruct Hx0 as (_,(_,(ru,(H,_)))).
+now rewrite H in X0.
+intros H.
+specialize (H (Rabs_pos _)).
+apply Rle_trans with (1 := H).
+assert (Hr0 : (r0 <= 0)%R).
+destruct Hx0 as (_,(_,(ru,(H1,H2)))).
+now inversion H1.
+rewrite Rabs_left1 with (1 := Hr0).
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 2.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+now apply Ropp_le_contravar.
+(* .. *)
+generalize (Fpower_pos_up_correct prec (F.abs xl) (xO n)).
+unfold le_upper.
+rewrite F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~0).
+easy.
+xreal_tac xl ; simpl.
+intros H.
+now elim H.
+intros H.
+specialize (H (Rabs_pos _)).
+apply Rle_trans with (2 := H).
+rewrite Rabs_left1.
+2: apply Hx0.
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 1.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+now apply Ropp_le_contravar.
+(* . *)
+simpl.
+split.
+xreal_tac xl.
+now rewrite Rmult_1_r.
+xreal_tac xu.
+now rewrite Rmult_1_r.
+(* *)
+split.
+(* . *)
+generalize (Fpower_pos_dn_correct prec xl n).
+unfold le_lower'.
+xreal_tac (Fpower_pos rnd_DN prec xl n).
+easy.
+xreal_tac xl.
+intros _.
+destruct Hx0 as (_,(_,(rl,(H1,_)))).
+now rewrite H1 in X0.
+intros H.
+assert (Hr0: (0 <= r0)%R).
+destruct Hx0 as (_,(_,(rl,(H1,H2)))).
+now inversion H1.
+specialize (H Hr0).
+apply Rle_trans with (1 := H).
+apply pow_incr.
+now split.
+(* . *)
+generalize (Fpower_pos_up_correct prec xu n).
+unfold le_upper.
+xreal_tac (Fpower_pos rnd_UP prec xu n).
+easy.
+xreal_tac xu.
+intros H.
+now elim H.
+intros H.
+refine (Rle_trans _ _ _ _ (H _)).
+2: apply Hx0.
+apply pow_incr.
+now split.
+(* *)
+destruct n as [n|n|].
+(* . *)
+split.
+(* .. *)
+rewrite F.neg_correct, Fneg_correct.
+generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
+unfold le_upper.
+rewrite F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
+easy.
+xreal_tac xl ; simpl.
+intros H.
+now elim H.
+intros H.
+specialize (H (Rabs_pos _)).
+apply Ropp_le_contravar in H.
+apply Rle_trans with (1 := H).
+rewrite Rabs_left1.
+2: apply Hx0.
+rewrite Ropp_mult_distr_l_reverse, Ropp_involutive.
+destruct (Rle_or_lt x 0) as [Hx|Hx].
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 2.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply Rle_trans with (r0 * (-x) ^ nat_of_P (xO n))%R.
+apply Rmult_le_compat_neg_l.
+apply Hx0.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+now apply Ropp_le_contravar.
+apply Rmult_le_compat_r.
+apply pow_le.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+exact Hxl.
+apply Rlt_le in Hx.
+apply Rle_trans with R0.
+apply Ropp_le_cancel.
+rewrite Ropp_0, <- Ropp_mult_distr_l_reverse.
+apply Rmult_le_pos.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+apply pow_le.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+apply Rmult_le_pos with (1 := Hx).
+now apply pow_le.
+(* .. *)
+generalize (Fpower_pos_up_correct prec xu (xI n)).
+unfold le_upper.
+xreal_tac (Fpower_pos rnd_UP prec xu n~1).
+easy.
+xreal_tac xu ; simpl.
+intros H.
+now elim H.
+intros H.
+refine (Rle_trans _ _ _ _ (H _)).
+2: apply Hx0.
+destruct (Rle_or_lt x 0) as [Hx|Hx].
+apply Rle_trans with R0.
+apply Ropp_le_cancel.
+rewrite Ropp_0, <- Ropp_mult_distr_l_reverse.
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply Rmult_le_pos.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+apply pow_le.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+apply Rmult_le_pos.
+apply Hx0.
+now apply pow_le.
+apply Rlt_le in Hx.
+apply Rmult_le_compat with (1 := Hx).
+now apply pow_le.
+exact Hxu.
+apply pow_incr.
+now split.
+(* . *)
+split.
+(* .. *)
+rewrite F.zero_correct.
+rewrite nat_of_P_xO.
+rewrite pow_sqr.
+change (x * x)%R with (Rsqr x).
+simpl.
+apply pow_le.
+apply Rle_0_sqr.
+(* .. *)
+generalize (Fpower_pos_up_correct prec (F.max (F.abs xl) xu) (xO n)).
+unfold le_upper.
+rewrite F.max_correct, Fmax_correct, F.abs_correct, Fabs_correct.
+xreal_tac (Fpower_pos rnd_UP prec (F.max (F.abs xl) xu) n~0).
+easy.
+xreal_tac xl ; simpl.
+intros H.
+now elim H.
+xreal_tac xu ; simpl.
+intros H.
+now elim H.
+intros H.
+assert (Hr: (0 <= Rmax (Rabs r0) r1)%R).
+apply Rmax_case.
+apply Rabs_pos.
+apply Hx0.
+apply Rle_trans with (2 := H Hr).
+destruct (Rle_or_lt x 0) as [Hx|Hx].
+change (Pmult_nat n 2) with (nat_of_P (xO n)).
+rewrite nat_of_P_xO at 1.
+rewrite pow_sqr.
+rewrite <- (Rmult_opp_opp x x).
+rewrite <- pow_sqr, <- nat_of_P_xO.
+apply pow_incr.
+split.
+rewrite <- Ropp_0.
+now apply Ropp_le_contravar.
+apply Rle_trans with (2 := Rmax_l _ _).
+rewrite Rabs_left1.
+now apply Ropp_le_contravar.
+apply Hx0.
+apply pow_incr.
+split.
+now apply Rlt_le.
+now apply Rle_trans with (2 := Rmax_r _ _).
+(* . *)
+simpl.
+split.
+xreal_tac xl.
+now rewrite Rmult_1_r.
+xreal_tac xu.
+now rewrite Rmult_1_r.
+Qed.
+
+Theorem power_int_correct :
+  forall prec n,
+  extension (fun x => Xpower_int x n) (fun x => power_int prec x n).
+Proof.
+intros prec [|n|n].
+unfold power_int, Xpower_int.
+intros [ | xl xu] [ | x] ; try easy.
+intros _.
+simpl.
+unfold convert_bound.
+rewrite F.fromZ_correct.
+split ; apply Rle_refl.
+apply power_pos_correct.
+intros xi x Hx.
+generalize (power_pos_correct prec n _ _ Hx).
+intros Hp.
+generalize (inv_correct prec _ _ Hp).
+unfold Xpower_int, Xinv, power_int.
+destruct x as [ | x].
+easy.
+replace (is_zero x) with (is_zero (x ^ nat_of_P n)).
+easy.
+case (is_zero_spec x) ; intros Zx.
+rewrite Zx, pow_i.
+apply is_zero_correct_zero.
+apply lt_O_nat_of_P.
+case is_zero_spec ; try easy.
+intros H.
+elim (pow_nonzero _ _ Zx H).
 Qed.
 
 End FloatInterval.
