@@ -101,6 +101,12 @@ Parameter mantissa_add_correct :
   MtoP (mantissa_add x y) = (MtoP x + MtoP y)%positive /\
   valid_mantissa (mantissa_add x y).
 
+Parameter mantissa_sub_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (MtoP y < MtoP x)%positive ->
+  MtoP (mantissa_sub x y) = (MtoP x - MtoP y)%positive /\
+  valid_mantissa (mantissa_sub x y).
+
 Parameter mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\

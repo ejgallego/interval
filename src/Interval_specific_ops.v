@@ -723,14 +723,56 @@ Definition add_exact (x y : type) :=
 
 Lemma add_exact_aux_correct :
   forall sx mx ex sy my ey,
+  valid_mantissa mx -> valid_mantissa my ->
   FtoX (toF (add_exact_aux2 sx sy mx my ex ey)) =
   FtoX (Fround_none (Fadd_slow_aux2 radix sx sy (MtoP mx) (MtoP my) (EtoZ ex) (EtoZ ey))).
-intros.
-unfold add_exact_aux2, Fround_none, Fadd_slow_aux2.
+Proof.
+assert (Aux: forall sx mx sy my e,
+  valid_mantissa mx -> valid_mantissa my ->
+  toF (add_exact_aux1 sx sy mx my e) = Fround_none (Fadd_slow_aux1 radix sx sy (MtoP mx) (MtoP my) (EtoZ e))).
+intros sx mx sy my e Mx My.
+unfold add_exact_aux1, Fadd_slow_aux1.
+case eqb.
+destruct (mantissa_add_correct _ _ Mx My) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+rewrite (mantissa_cmp_correct _ _ Mx My).
+simpl.
+case Pcompare_spec.
+intros _.
+apply zero_correct.
+intros H.
+destruct (mantissa_sub_correct _ _ My Mx H) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+intros H.
+destruct (mantissa_sub_correct _ _ Mx My H) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+intros sx mx ex sy my ey Mx My.
+unfold add_exact_aux2, Fadd_slow_aux2.
 rewrite exponent_cmp_correct.
 rewrite exponent_zero_correct.
-rewrite exponent_sub_correct.
-Admitted.
+rewrite <- exponent_sub_correct.
+case_eq (EtoZ (exponent_sub ex ey)).
+simpl.
+intros H.
+apply f_equal.
+now apply Aux.
+simpl.
+intros p Hp.
+destruct (mantissa_shl_correct _ _ _ Mx Hp) as (Ep,Mp).
+rewrite Aux ; try easy.
+now rewrite Ep.
+simpl.
+intros p Hp.
+assert (Hn: EtoZ (exponent_neg (exponent_sub ex ey)) = Zpos p).
+rewrite exponent_neg_correct.
+now rewrite Hp.
+destruct (mantissa_shl_correct _ _ _ My Hn) as (Ep,Mp).
+rewrite Aux ; try easy.
+now rewrite Ep.
+Qed.
 
 Lemma add_exact_correct :
   forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).
@@ -751,7 +793,7 @@ simpl.
 now rewrite Hx.
 intros sy py (Hy1, Hy2).
 unfold Fadd_exact, Fadd_slow_aux.
-apply add_exact_aux_correct.
+now apply add_exact_aux_correct.
 Qed.
 
 (*

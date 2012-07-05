@@ -198,6 +198,29 @@ repeat split.
 now exists (px + py)%positive.
 Qed.
 
+Lemma mantissa_sub_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (MtoP y < MtoP x)%positive ->
+  MtoP (mantissa_sub x y) = (MtoP x - MtoP y)%positive /\
+  valid_mantissa (mantissa_sub x y).
+Proof.
+intros x y (px, Hx) (py, Hy).
+unfold mantissa_sub, valid_mantissa, MtoP.
+rewrite BigN.spec_sub.
+rewrite Hx, Hy.
+simpl.
+case Pcompare_spec.
+intros H1 H2.
+elim (Plt_irrefl py).
+now rewrite H1 in H2.
+intros H1 H2.
+elim (Plt_irrefl py).
+now apply Plt_trans with px.
+intros H _.
+repeat split.
+now exists (px - py)%positive.
+Qed.
+
 Lemma mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\
