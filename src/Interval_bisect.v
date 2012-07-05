@@ -639,7 +639,8 @@ Set Implicit Arguments.
 Record operations (A : Type) : Type :=
   { constant : Z -> A
   ; unary : unary_op -> A -> A
-  ; binary : binary_op -> A -> A -> A }.
+  ; binary : binary_op -> A -> A -> A
+  ; sign : A -> Xcomparison }.
 
 Unset Implicit Arguments.
 
@@ -718,7 +719,8 @@ Definition bnd_operations prec :=
     | Sub => I.sub prec
     | Mul => I.mul prec
     | Div => I.div prec
-    end).
+    end)
+    I.sign_strict.
 
 Definition eval_bnd prec :=
   eval_generic I.nai (bnd_operations prec).
@@ -745,7 +747,8 @@ Definition ext_operations :=
     | Sub => Xsub
     | Mul => Xmul
     | Div => Xdiv
-    end).
+    end)
+   (fun x => Xcmp x (Xreal 0)).
 
 Definition eval_ext :=
   eval_generic (Xreal 0) ext_operations.
@@ -804,7 +807,8 @@ Definition real_operations :=
     | Sub => Rminus
     | Mul => Rmult
     | Div => Rdiv
-    end).
+    end)
+   (fun x => Xcmp (Xreal x) (Xreal 0)).
 
 Definition eval_real :=
   eval_generic R0 real_operations.
@@ -818,7 +822,7 @@ Definition diff_operations A (ops : @operations A) :=
       match o with
       | Neg => let f := unary ops Neg in (f v, f d)
       | Abs => let w := unary ops Abs v in (w,
-        binary ops Mul d (binary ops Div v w))
+        match sign ops v with Xlt => unary ops Neg d | Xgt => d | _ => unary ops Inv (constant ops 0) end)
       | Inv => let w := unary ops Inv v in (w,
         binary ops Mul d (unary ops Neg (unary ops Sqr w)))
       | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
@@ -850,7 +854,8 @@ Definition diff_operations A (ops : @operations A) :=
         let w := f vx vy in
         (w, f (binary ops Sub dx (binary ops Mul dy w)) vy)
       end
-    end).
+    end)
+   (fun x => match x with (vx, _) => sign ops vx end).
 
 Lemma rewrite_inv_diff :
   forall u u',
@@ -1032,7 +1037,8 @@ Lemma unary_diff_correct :
 intros o f d x Hd.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_neg.
-admit.
+rewrite is_zero_correct_zero.
+now apply Xderive_pt_abs.
 rewrite rewrite_inv_diff.
 now apply Xderive_pt_inv.
 unfold Xsqr.
@@ -1126,6 +1132,7 @@ Lemma unary_diff_bnd_correct :
  (forall x, contains xi x -> contains (I.convert yi') (f' x)) ->
   let v := unary (diff_operations _ (bnd_operations prec)) o (yi, yi') in
  (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
+Proof.
 intros prec o f f' u yi yi' xi Hf Hf' v x Hx.
 destruct o ; simpl ;
   repeat first
@@ -1146,7 +1153,29 @@ destruct o ; simpl ;
   | apply I.fromZ_correct
   | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
   | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
-  now first [ apply Hf | apply Hf' ].
+  try now first [ apply Hf | apply Hf' ].
+(* abs *)
+generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+simpl.
+rewrite is_zero_correct_zero.
+specialize (Hf _ Hx).
+generalize (I.sign_strict_correct yi).
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Lt.
+apply I.neg_correct.
+now apply Hf'.
+apply H.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Gt.
+now apply Hf'.
+apply H.
 Qed.
 
 Lemma binary_diff_bnd_correct :

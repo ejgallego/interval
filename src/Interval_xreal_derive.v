@@ -156,6 +156,36 @@ exists d.
 apply H1.
 Qed.
 
+Theorem derivable_imp_defined_lt :
+  forall f r d u t,
+  f (Xreal r) = Xreal u -> (u < t)%R ->
+ (forall v, derivable_pt_lim (proj_fun v f) r d) ->
+  locally_true r (fun a => exists w, (w < t)%R /\ f (Xreal a) = Xreal w).
+Proof.
+intros.
+apply locally_true_imp with
+  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun R0 f a < t)%R).
+intros x ((w, H2), H3).
+exists w.
+split.
+replace (proj_fun 0 f x) with w in H3.
+exact H3.
+unfold proj_fun.
+now rewrite H2.
+exact H2.
+apply locally_true_and.
+eapply derivable_imp_defined_any ; eassumption.
+apply continuity_pt_lt.
+replace (proj_fun 0 f r) with u.
+exact H0.
+unfold proj_fun.
+rewrite H.
+apply refl_equal.
+apply derivable_continuous_pt.
+exists d.
+apply H1.
+Qed.
+
 Theorem derivable_imp_defined_ne :
   forall f r d u t,
   f (Xreal r) = Xreal u -> (u <> t)%R ->
@@ -505,6 +535,42 @@ now rewrite Hw.
 now apply derivable_pt_lim_opp.
 Qed.
 *)
+
+Theorem Xderive_pt_abs :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xabs (f x)) x (match Xcmp (f x) (Xreal 0) with Xlt => Xneg f' | Xgt => f' | _ => Xnan end).
+Proof.
+intros f f' x Hf.
+xtotal.
+revert X.
+now case Xcmp.
+revert X.
+now case Xcmp.
+simpl Xcmp in X0.
+destruct (Rcompare_spec r1 0) ; try easy.
+intro v.
+apply derivable_pt_lim_eq_locally with (fun x => Ropp (proj_fun v f x)).
+apply locally_true_imp with (2 := derivable_imp_defined_lt _ _ _ _ _ X H Hf).
+intros x (w, (Hw1, Hw2)).
+unfold proj_fun.
+rewrite Hw2.
+now rewrite Rabs_left.
+inversion X0.
+now apply derivable_pt_lim_opp.
+intro v.
+apply derivable_pt_lim_eq_locally with (proj_fun v f).
+apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ _ X H Hf).
+intros x (w, (Hw1, Hw2)).
+unfold proj_fun.
+rewrite Hw2.
+rewrite Rabs_right.
+apply refl_equal.
+apply Rle_ge.
+now apply Rlt_le.
+inversion X0.
+now rewrite <- H1.
+Qed.
 
 Theorem Xderive_pt_inv :
   forall f f' x,
