@@ -294,7 +294,22 @@ rewrite Zabs_eq.
 simpl Zabs.
 now rewrite <- Vx.
 apply Zpower_ge_0.
-admit.
+rewrite BigN.spec_Ndigits.
+assert (Zpower 2 [BigN.head0 x]%bigN * 1 < Zpower 2 (Zpos (BigN.digits x)))%Z.
+apply Zle_lt_trans with (Zpower 2 [BigN.head0 x]%bigN * Zpos px)%Z.
+apply Zmult_le_compat_l.
+now case px.
+apply (Zpower_ge_0 radix2).
+rewrite <- Vx.
+apply BigN.spec_head0.
+now rewrite Vx.
+change (~ ([BigN.head0 x]%bigN > Zpos (BigN.digits x))%Z).
+intros H'.
+apply (Zlt_not_le _ _ H).
+rewrite Zmult_1_r.
+apply (Zpower_le radix2).
+apply Zlt_le_weak.
+now apply Zgt_lt.
 Qed.
 
 Lemma mantissa_shl_correct :
