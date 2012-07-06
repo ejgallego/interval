@@ -27,11 +27,6 @@ also recognized:
   (f <= e)%R
   (Rabs e <= f)%R      handled as (-f <= e <= f)%R
 
-Hint: When trying to prove a proposition "(e1 <= e2)%R" where neither
-sides are floating-point numbers, applying Rminus_le will change the
-proposition to "(e1 - e2 <= 0)%R", hence bringing out a floating-point
-bound.
-
 A helper tactic "interval_intro e" is also available. Instead of proving
 the current goal, it computes an enclosure of the expression "e" passed
 as argument and it introduces the inequalities into the proof context.
@@ -90,7 +85,6 @@ Goal
   (sqrt (1 - x) <= 141422/100000)%R.
 Proof.
   intros.
-  apply Rminus_le.
   interval.
 Qed.
 
@@ -122,5 +116,12 @@ Goal
 Proof.
   intros.
   interval with (i_bisect_diff x).
+Qed.
+
+Goal
+  forall x, (-1 <= x)%R ->
+  (x < 1 + powerRZ x 3)%R.
+intros.
+interval with (i_bisect_diff x).
 Qed.
 (*** END ***)

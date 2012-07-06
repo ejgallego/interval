@@ -1,3 +1,9 @@
+Version 0.15.0:
+ - added support for strict inequalities to the tactic
+ - added support for integer power to the tactic
+ - improved support for absolute value in the tactic
+ - improved tactic so that it directly handles (e1 <= e2)
+
 Version 0.14.0:
  - sped up square root for Z-based floating-point numbers
  - improved readability of the error messages for the tactic
