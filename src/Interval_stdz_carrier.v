@@ -178,6 +178,15 @@ now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
 apply refl_equal.
 Qed.
 
+Lemma mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
+Proof.
+now intros x d Vx.
+Qed.
+
 Lemma mantissa_shl_correct :
   forall x y z, valid_mantissa y ->
   z = Zpos x ->

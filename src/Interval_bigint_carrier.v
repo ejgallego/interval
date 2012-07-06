@@ -312,6 +312,17 @@ apply Zlt_le_weak.
 now apply Zgt_lt.
 Qed.
 
+Lemma mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
+Proof.
+intros x d Vx.
+repeat split.
+exact Vx.
+Qed.
+
 Lemma mantissa_shl_correct :
   forall x y z, valid_mantissa y ->
   EtoZ z = Zpos x ->

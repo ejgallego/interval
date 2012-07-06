@@ -284,9 +284,40 @@ Definition scale2 (f : type) d :=
   | _ => f
   end.
 
-Axiom scale2_correct :
+Lemma scale2_correct :
   forall x d, even_radix = true ->
   FtoX (toF (scale2 x (ZtoE d))) = FtoX (Fscale2 (toF x) d).
+Proof.
+intros [|m e] d.
+easy.
+intros H.
+rewrite Fscale2_correct.
+2: easy.
+simpl.
+generalize (mantissa_sign_correct m).
+case_eq (mantissa_sign m).
+intros Hs _.
+simpl.
+rewrite Hs.
+now rewrite Rmult_0_l.
+intros s m' _ (Em,Vm).
+simpl.
+generalize (mantissa_scale2_correct m' (ZtoE d) Vm).
+case mantissa_scale2.
+intros p e' (Ep, Vp).
+rewrite ZtoE_correct in Ep.
+rewrite toF_float with (1 := Vp).
+rewrite exponent_add_correct.
+simpl.
+rewrite 2!FtoR_split.
+unfold Fcore_defs.F2R.
+simpl.
+rewrite Rmult_assoc, (Rmult_comm (bpow radix (EtoZ e))).
+rewrite 2!Z2R_cond_Zopp, <- 2!cond_Ropp_mult_l.
+apply (f_equal (fun v => Xreal (cond_Ropp s v))).
+rewrite Zplus_comm, bpow_plus, <- 2!Rmult_assoc.
+now rewrite <- Ep.
+Qed.
 
 (*
  * cmp

@@ -120,6 +120,12 @@ Parameter mantissa_digits_correct :
   forall x, valid_mantissa x ->
   EtoZ (mantissa_digits x) = Zpos (count_digits radix (MtoP x)).
 
+Parameter mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
+
 Parameter mantissa_shl_correct :
   forall x y z, valid_mantissa y -> EtoZ z = Zpos x ->
   MtoP (mantissa_shl y z) = shift radix (MtoP y) x /\
