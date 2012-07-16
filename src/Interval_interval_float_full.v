@@ -258,6 +258,7 @@ Definition subset := I.subset.
 Definition subset_correct := I.subset_correct.
 Definition overlap := I.overlap.
 Definition join := I.join.
+Definition join_correct := I.join_correct.
 Definition meet := I.meet.
 Definition mask := I.mask.
 Definition meet_correct := I.meet_correct.

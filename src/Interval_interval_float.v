@@ -491,6 +491,54 @@ now right.
 now right.
 Qed.
 
+Lemma Xmin_Rle : forall a b c,
+  Xreal c = Xmin (Xreal a) (Xreal b) -> (c <= a /\ c <= b)%R.
+Proof.
+unfold Xmin; intros a b c H.
+injection H; intros H'; rewrite H'.
+now split; [apply Rmin_l|apply Rmin_r].
+Qed.
+
+Lemma Xmax_Rle : forall a b c,
+  Xreal c = Xmax (Xreal a) (Xreal b) -> (a <= c /\ b <= c)%R.
+Proof.
+unfold Xmax; intros a b c H.
+injection H; intros H'; rewrite H'.
+now split; [apply Rmax_l|apply Rmax_r].
+Qed.
+
+Lemma join_correct :
+  forall xi yi v,
+  contains (convert xi) v \/ contains (convert yi) v ->
+  contains (convert (join xi yi)) v.
+Proof.
+intros [|xl xu] [|yl yu] [|v]; simpl; try tauto.
+pose proof F.min_correct xl yl as Hmin.
+pose proof F.max_correct xu yu as Hmax.
+rewrite Fmin_correct in Hmin.
+rewrite Fmax_correct in Hmax.
+intros [(Hx1,Hx2)|(Hx1,Hx2)]; split;
+  xreal_tac2;
+  convert_clean;
+  [xreal_tac xl;xreal_tac yl|
+    xreal_tac xu;xreal_tac yu|
+    xreal_tac xl;xreal_tac yl|
+    xreal_tac xu;xreal_tac yu];
+  try rewrite X0 in Hmin;
+  try rewrite X1 in Hmin;
+  try rewrite X0 in Hmax;
+  try rewrite X1 in Hmax;
+  try discriminate.
+apply Rle_trans with (r2 := r0); trivial.
+exact (proj1 (Xmin_Rle _ _ _ Hmin)).
+apply Rle_trans with (r2 := r0); trivial.
+exact (proj1 (Xmax_Rle _ _ _ Hmax)).
+apply Rle_trans with (r2 := r1); trivial.
+exact (proj2 (Xmin_Rle _ _ _ Hmin)).
+apply Rle_trans with (r2 := r1); trivial.
+exact (proj2 (Xmax_Rle _ _ _ Hmax)).
+Qed.
+
 Theorem meet_correct :
   forall xi yi v,
   contains (convert xi) v -> contains (convert yi) v ->

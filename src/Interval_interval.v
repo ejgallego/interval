@@ -500,11 +500,10 @@ Parameter sign_strict_correct :
   | Xund => True
   end.
 
-(*
 Parameter join_correct :
   forall xi yi v,
-  contains xi v \/ contains yi v -> contains (join xi yi) v.
-*)
+  contains (convert xi) v \/ contains (convert yi) v ->
+  contains (convert (join xi yi)) v.
 
 Parameter meet_correct :
   forall xi yi v,
