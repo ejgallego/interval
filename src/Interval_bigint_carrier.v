@@ -205,6 +205,7 @@ unfold mantissa_sub, valid_mantissa, MtoP.
 rewrite BigN.spec_sub.
 rewrite Hx, Hy.
 simpl.
+rewrite Z.pos_sub_spec.
 case Pcompare_spec.
 intros H1 H2.
 elim (Plt_irrefl py).
