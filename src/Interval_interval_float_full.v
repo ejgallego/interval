@@ -225,7 +225,7 @@ simpl.
 unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (1 := H).
-now apply Fcore_Raux.exp_increasing_weak.
+now apply Fcore_Raux.exp_le.
 (* upper *)
 clear Hxl.
 rewrite I.real_correct.
@@ -243,7 +243,7 @@ simpl.
 unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (2 := H).
-now apply Fcore_Raux.exp_increasing_weak.
+now apply Fcore_Raux.exp_le.
 Qed.
 
 Definition bound_type := I.bound_type.
@@ -264,6 +264,8 @@ Definition meet_correct := I.meet_correct.
 Definition mask_correct := I.mask_correct.
 Definition sign_large := I.sign_large.
 Definition sign_large_correct := I.sign_large_correct.
+Definition sign_strict := I.sign_strict.
+Definition sign_strict_correct := I.sign_strict_correct.
 Definition midpoint := I.midpoint.
 Definition midpoint_correct := I.midpoint_correct.
 Definition precision := I.precision.
@@ -276,6 +278,7 @@ Definition add := I.add.
 Definition sub := I.sub.
 Definition mul := I.mul.
 Definition div := I.div.
+Definition power_int := I.power_int.
 Definition neg_correct := I.neg_correct.
 Definition abs_correct := I.abs_correct.
 Definition inv_correct := I.inv_correct.
@@ -285,6 +288,7 @@ Definition add_correct := I.add_correct.
 Definition sub_correct := I.sub_correct.
 Definition mul_correct := I.mul_correct.
 Definition div_correct := I.div_correct.
+Definition power_int_correct := I.power_int_correct.
 Definition bounded := I.bounded.
 Definition lower_bounded := I.lower_bounded.
 Definition upper_bounded := I.upper_bounded.

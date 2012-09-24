@@ -14,7 +14,6 @@ Goal
   (sqrt (1 - x) <= 141422/100000)%R.
 Proof.
   intros.
-  apply Rminus_le.
   interval.
 Qed.
 

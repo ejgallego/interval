@@ -480,6 +480,7 @@ Parameter subset_correct :
 Parameter join : type -> type -> type.
 Parameter meet : type -> type -> type.
 Parameter sign_large : type -> Xcomparison.
+Parameter sign_strict : type -> Xcomparison.
 
 Parameter sign_large_correct :
   forall xi,
@@ -487,6 +488,15 @@ Parameter sign_large_correct :
   | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
   | Xlt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle (proj_val x) 0
   | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle 0 (proj_val x)
+  | Xund => True
+  end.
+
+Parameter sign_strict_correct :
+  forall xi,
+  match sign_strict xi with
+  | Xeq => forall x, contains (convert xi) x -> x = Xreal 0
+  | Xlt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rlt (proj_val x) 0
+  | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rlt 0 (proj_val x)
   | Xund => True
   end.
 
@@ -537,6 +547,7 @@ Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
 Parameter div : precision -> type -> type -> type.
+Parameter power_int : precision -> type -> Z -> type.
 
 Parameter neg_correct : extension Xneg neg.
 Parameter inv_correct : forall prec, extension Xinv (inv prec).
@@ -552,6 +563,7 @@ Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).
 Parameter div_correct : forall prec, extension_2 Xdiv (div prec).
+Parameter power_int_correct : forall prec n, extension (fun x => Xpower_int x n) (fun x => power_int prec x n).
 
 Parameter bounded : type -> bool.
 Parameter lower_bounded : type -> bool.

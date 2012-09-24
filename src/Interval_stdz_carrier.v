@@ -132,6 +132,8 @@ Definition mantissa_neg_correct :=
 Definition mantissa_one_correct := conj (refl_equal xH) I.
 Definition mantissa_add_correct :=
   fun x y (_ _ : True) => conj (refl_equal (MtoP x + MtoP y)%positive) I.
+Definition mantissa_sub_correct :=
+  fun x y (_ _ : True) (_ : (MtoP y < MtoP x)%positive) => conj (refl_equal (MtoP x - MtoP y)%positive) I.
 Definition mantissa_mul_correct :=
   fun x y (Hx Hy : True) => conj (refl_equal (MtoP x * MtoP y)%positive) I.
 Definition mantissa_cmp_correct :=
@@ -162,18 +164,27 @@ unfold Zsucc.
 generalize xH.
 induction x ; intros p.
 simpl digits_aux.
-simpl Fcalc_digits.digits2_Pnat.
+simpl Fcore_digits.digits2_Pnat.
 rewrite inj_S.
 unfold Zsucc.
 rewrite <- Zplus_assoc.
 now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
 simpl digits_aux.
-simpl Fcalc_digits.digits2_Pnat.
+simpl Fcore_digits.digits2_Pnat.
 rewrite inj_S.
 unfold Zsucc.
 rewrite <- Zplus_assoc.
 now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
 apply refl_equal.
+Qed.
+
+Lemma mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
+Proof.
+now intros x d Vx.
 Qed.
 
 Lemma mantissa_shl_correct :

@@ -7,7 +7,7 @@ Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 
 Module Type Radix.
-  Parameter val : Fcore_Raux.radix.
+  Parameter val : radix.
 End Radix.
 
 Module Radix2 <: Radix.
@@ -15,7 +15,7 @@ Module Radix2 <: Radix.
 End Radix2.
 
 Module Radix10 <: Radix.
-  Definition val := Fcore_Raux.Build_radix 10 (refl_equal _).
+  Definition val := Build_radix 10 (refl_equal _).
 End Radix10.
 
 Module GenericFloat (Rad : Radix) <: FloatOps.

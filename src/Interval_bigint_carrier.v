@@ -194,6 +194,29 @@ repeat split.
 now exists (px + py)%positive.
 Qed.
 
+Lemma mantissa_sub_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (MtoP y < MtoP x)%positive ->
+  MtoP (mantissa_sub x y) = (MtoP x - MtoP y)%positive /\
+  valid_mantissa (mantissa_sub x y).
+Proof.
+intros x y (px, Hx) (py, Hy).
+unfold mantissa_sub, valid_mantissa, MtoP.
+rewrite BigN.spec_sub.
+rewrite Hx, Hy.
+simpl.
+case Pcompare_spec.
+intros H1 H2.
+elim (Plt_irrefl py).
+now rewrite H1 in H2.
+intros H1 H2.
+elim (Plt_irrefl py).
+now apply Plt_trans with px.
+intros H _.
+repeat split.
+now exists (px - py)%positive.
+Qed.
+
 Lemma mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\
@@ -243,7 +266,7 @@ rewrite <- Zplus_0_r.
 rewrite <- (Zplus_opp_r [BigN.head0 x]%bigN)%Z.
 rewrite Zplus_assoc.
 apply (f_equal (fun v => v + _)%Z).
-rewrite <- Fcalc_digits.digits_shift.
+rewrite <- Fcalc_digits.Zdigits_mult_Zpower.
 2: now apply Zgt_not_eq.
 2: apply BigN.spec_pos.
 refine (_ (BigN.spec_head0 x _)).
@@ -251,23 +274,49 @@ refine (_ (BigN.spec_head0 x _)).
 intros (H1,H2).
 unfold MtoP.
 rewrite Vx.
-set (d := Fcalc_digits.digits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
+set (d := Fcore_digits.Zdigits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
 cut (d <= Zpos (BigN.digits x) /\ Zpos (BigN.digits x) - 1 < d)%Z. omega.
 unfold d ; clear d.
 split.
-apply Fcalc_digits.digits_le_Zpower.
+apply Fcalc_digits.Zdigits_le_Zpower.
 rewrite Zabs_Zmult, Zmult_comm.
 rewrite Zabs_eq.
 simpl Zabs.
 now rewrite <- Vx.
 apply Zpower_ge_0.
-apply Fcalc_digits.digits_gt_Zpower.
+apply Fcalc_digits.Zdigits_gt_Zpower.
 rewrite Zabs_Zmult, Zmult_comm.
 rewrite Zabs_eq.
 simpl Zabs.
 now rewrite <- Vx.
 apply Zpower_ge_0.
-admit.
+rewrite BigN.spec_Ndigits.
+assert (Zpower 2 [BigN.head0 x]%bigN * 1 < Zpower 2 (Zpos (BigN.digits x)))%Z.
+apply Zle_lt_trans with (Zpower 2 [BigN.head0 x]%bigN * Zpos px)%Z.
+apply Zmult_le_compat_l.
+now case px.
+apply (Zpower_ge_0 radix2).
+rewrite <- Vx.
+apply BigN.spec_head0.
+now rewrite Vx.
+change (~ ([BigN.head0 x]%bigN > Zpos (BigN.digits x))%Z).
+intros H'.
+apply (Zlt_not_le _ _ H).
+rewrite Zmult_1_r.
+apply (Zpower_le radix2).
+apply Zlt_le_weak.
+now apply Zgt_lt.
+Qed.
+
+Lemma mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
+Proof.
+intros x d Vx.
+repeat split.
+exact Vx.
 Qed.
 
 Lemma mantissa_shl_correct :

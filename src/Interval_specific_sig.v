@@ -13,7 +13,7 @@ Implicit Arguments Mnumber [A].
 
 Module Type FloatCarrier.
 
-Parameter radix : Fcore_Raux.radix.
+Parameter radix : radix.
 Parameter smantissa_type : Type.
 Parameter mantissa_type : Type.
 Parameter exponent_type : Type.
@@ -101,6 +101,12 @@ Parameter mantissa_add_correct :
   MtoP (mantissa_add x y) = (MtoP x + MtoP y)%positive /\
   valid_mantissa (mantissa_add x y).
 
+Parameter mantissa_sub_correct :
+  forall x y, valid_mantissa x -> valid_mantissa y ->
+  (MtoP y < MtoP x)%positive ->
+  MtoP (mantissa_sub x y) = (MtoP x - MtoP y)%positive /\
+  valid_mantissa (mantissa_sub x y).
+
 Parameter mantissa_mul_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   MtoP (mantissa_mul x y) = (MtoP x * MtoP y)%positive /\
@@ -113,6 +119,12 @@ Parameter mantissa_cmp_correct :
 Parameter mantissa_digits_correct :
   forall x, valid_mantissa x ->
   EtoZ (mantissa_digits x) = Zpos (count_digits radix (MtoP x)).
+
+Parameter mantissa_scale2_correct :
+  forall x d, valid_mantissa x ->
+  let (x',d') := mantissa_scale2 x d in
+  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  valid_mantissa x'.
 
 Parameter mantissa_shl_correct :
   forall x y z, valid_mantissa y -> EtoZ z = Zpos x ->

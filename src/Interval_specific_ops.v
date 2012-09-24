@@ -284,9 +284,40 @@ Definition scale2 (f : type) d :=
   | _ => f
   end.
 
-Axiom scale2_correct :
+Lemma scale2_correct :
   forall x d, even_radix = true ->
   FtoX (toF (scale2 x (ZtoE d))) = FtoX (Fscale2 (toF x) d).
+Proof.
+intros [|m e] d.
+easy.
+intros H.
+rewrite Fscale2_correct.
+2: easy.
+simpl.
+generalize (mantissa_sign_correct m).
+case_eq (mantissa_sign m).
+intros Hs _.
+simpl.
+rewrite Hs.
+now rewrite Rmult_0_l.
+intros s m' _ (Em,Vm).
+simpl.
+generalize (mantissa_scale2_correct m' (ZtoE d) Vm).
+case mantissa_scale2.
+intros p e' (Ep, Vp).
+rewrite ZtoE_correct in Ep.
+rewrite toF_float with (1 := Vp).
+rewrite exponent_add_correct.
+simpl.
+rewrite 2!FtoR_split.
+unfold Fcore_defs.F2R.
+simpl.
+rewrite Rmult_assoc, (Rmult_comm (bpow radix (EtoZ e))).
+rewrite 2!Z2R_cond_Zopp, <- 2!cond_Ropp_mult_l.
+apply (f_equal (fun v => Xreal (cond_Ropp s v))).
+rewrite Zplus_comm, bpow_plus, <- 2!Rmult_assoc.
+now rewrite <- Ep.
+Qed.
 
 (*
  * cmp
@@ -527,7 +558,7 @@ now rewrite Hd, Hl.
 now rewrite exponent_sub_correct, mantissa_digits_correct.
 rewrite shift_correct, Zmult_1_l.
 change (Zpower Carrier.radix (Zpos dp) <= Zabs (Zpos (MtoP m1)))%Z.
-apply Zpower_le_digits.
+apply Zpower_le_Zdigits.
 rewrite <- Hd, <- Hp.
 rewrite <- digits_conversion.
 clear ; zify ; omega.
@@ -723,14 +754,56 @@ Definition add_exact (x y : type) :=
 
 Lemma add_exact_aux_correct :
   forall sx mx ex sy my ey,
+  valid_mantissa mx -> valid_mantissa my ->
   FtoX (toF (add_exact_aux2 sx sy mx my ex ey)) =
   FtoX (Fround_none (Fadd_slow_aux2 radix sx sy (MtoP mx) (MtoP my) (EtoZ ex) (EtoZ ey))).
-intros.
-unfold add_exact_aux2, Fround_none, Fadd_slow_aux2.
+Proof.
+assert (Aux: forall sx mx sy my e,
+  valid_mantissa mx -> valid_mantissa my ->
+  toF (add_exact_aux1 sx sy mx my e) = Fround_none (Fadd_slow_aux1 radix sx sy (MtoP mx) (MtoP my) (EtoZ e))).
+intros sx mx sy my e Mx My.
+unfold add_exact_aux1, Fadd_slow_aux1.
+case eqb.
+destruct (mantissa_add_correct _ _ Mx My) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+rewrite (mantissa_cmp_correct _ _ Mx My).
+simpl.
+case Pcompare_spec.
+intros _.
+apply zero_correct.
+intros H.
+destruct (mantissa_sub_correct _ _ My Mx H) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+intros H.
+destruct (mantissa_sub_correct _ _ Mx My H) as (Ep,Mp).
+rewrite toF_float with (1 := Mp).
+now rewrite Ep.
+intros sx mx ex sy my ey Mx My.
+unfold add_exact_aux2, Fadd_slow_aux2.
 rewrite exponent_cmp_correct.
 rewrite exponent_zero_correct.
-rewrite exponent_sub_correct.
-Admitted.
+rewrite <- exponent_sub_correct.
+case_eq (EtoZ (exponent_sub ex ey)).
+simpl.
+intros H.
+apply f_equal.
+now apply Aux.
+simpl.
+intros p Hp.
+destruct (mantissa_shl_correct _ _ _ Mx Hp) as (Ep,Mp).
+rewrite Aux ; try easy.
+now rewrite Ep.
+simpl.
+intros p Hp.
+assert (Hn: EtoZ (exponent_neg (exponent_sub ex ey)) = Zpos p).
+rewrite exponent_neg_correct.
+now rewrite Hp.
+destruct (mantissa_shl_correct _ _ _ My Hn) as (Ep,Mp).
+rewrite Aux ; try easy.
+now rewrite Ep.
+Qed.
 
 Lemma add_exact_correct :
   forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).
@@ -751,7 +824,7 @@ simpl.
 now rewrite Hx.
 intros sy py (Hy1, Hy2).
 unfold Fadd_exact, Fadd_slow_aux.
-apply add_exact_aux_correct.
+now apply add_exact_aux_correct.
 Qed.
 
 (*
@@ -891,7 +964,7 @@ case_eq (EtoZ p) ; try (intros ; apply exponent_one_correct).
 easy.
 rewrite Hp.
 unfold radix.
-set (d := (digits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - digits Carrier.radix (Zpos (MtoP nx)))%Z).
+set (d := (Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP nx)))%Z).
 set (nd := exponent_sub (exponent_add (mantissa_digits ny) p') (mantissa_digits nx)).
 assert (Hs := fun d' (H : EtoZ nd = Zpos d') => mantissa_shl_correct d' nx nd Vmx H).
 assert (Hs': forall d', d = Zpos d' -> MtoP (mantissa_shl nx nd) = shift Carrier.radix (MtoP nx) d' /\ valid_mantissa (mantissa_shl nx nd)).
@@ -912,7 +985,7 @@ refine (let Hmd := mantissa_div_correct (match d with Zpos _ => mantissa_shl nx 
 destruct d as [|pd|pd] ; trivial.
 now apply (Hs' pd).
 apply Zlt_le_weak.
-apply (lt_digits Carrier.radix).
+apply (lt_Zdigits Carrier.radix).
 easy.
 case_eq d.
 unfold d.
@@ -922,7 +995,7 @@ specialize (Hs' p0 Hp0).
 rewrite (proj1 Hs').
 rewrite shift_correct.
 fold (Zpower Carrier.radix (Zpos p0)).
-rewrite digits_shift ; try easy.
+rewrite Zdigits_mult_Zpower ; try easy.
 rewrite <- Hp0.
 unfold d.
 clear ; zify ; omega.

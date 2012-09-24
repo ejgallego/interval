@@ -9,9 +9,38 @@ Require Import Interval_generic_proof.
 Require Import Interval_interval.
 
 Module IntervalAlgos (I : IntervalOps).
+Record check := {
+  check_f : I.type -> bool;
+  check_p : ExtendedR -> Prop;
+  _ : forall y yi, contains (I.convert yi) y -> check_f yi = true -> check_p y
+}.
 
-Definition bisect_1d_step fi l u output cont :=
-  if I.subset (fi (I.bnd l u)) output then true
+Definition subset_check : I.type -> check.
+Proof.
+intros output.
+apply (Build_check (fun i => I.subset i output) (contains (I.convert output))).
+abstract (
+  intros y yi Hy Hb ;
+  assert (H := I.subset_correct yi output Hb) ;
+  now apply subset_contains with (1 := H)).
+Defined.
+
+Definition positive_check : check.
+Proof.
+apply (Build_check
+  (fun i => match I.sign_strict i with Xgt => true | _ => false end)
+  (fun y => match y with Xreal r => (0 < r)%R | _ => False end)).
+abstract (
+  intros y yi Hy Hb ;
+  generalize (I.sign_strict_correct yi) ;
+  destruct (I.sign_strict yi) ; try easy ;
+  intros H ;
+  destruct (H y Hy) as (H1,H2) ;
+  now rewrite H1).
+Defined.
+
+Definition bisect_1d_step fi l u (check : I.type -> bool) cont :=
+  if check (fi (I.bnd l u)) then true
   else
     let m := I.midpoint (I.bnd l u) in
     match cont l m with
@@ -19,51 +48,46 @@ Definition bisect_1d_step fi l u output cont :=
     | false => false
     end.
 
-Fixpoint bisect_1d fi l u output steps { struct steps } :=
+Fixpoint bisect_1d fi l u check steps { struct steps } :=
   match steps with
   | O => false
   | S n =>
-    bisect_1d_step fi l u output
-      (fun l u => bisect_1d fi l u output n)
+    bisect_1d_step fi l u check
+      (fun l u => bisect_1d fi l u check n)
   end.
 
 Theorem bisect_1d_correct :
-  forall steps f fi inpl inpu output,
+  forall steps f fi inpl inpu check,
   I.extension f fi ->
-  bisect_1d fi inpl inpu output steps = true ->
+  bisect_1d fi inpl inpu (check_f check) steps = true ->
   forall x,
-  contains (I.convert (I.bnd inpl inpu)) x -> contains (I.convert output) (f x).
-intros.
-generalize inpl inpu H0 x H1. clear inpl inpu H0 x H1.
+  contains (I.convert (I.bnd inpl inpu)) x -> check_p check (f x).
+Proof.
+intros steps f fi inpl inpu (check_f,check_p,check_th) Hf.
+revert inpl inpu.
 induction steps.
-intros.
-discriminate H0.
+intros inpl inpu Hb.
+discriminate Hb.
 intros inpl inpu.
 simpl.
-(*fold (I.bnd (I.Ibnd inpl inpu) x).*)
 unfold bisect_1d_step.
-case_eq (I.subset (fi (I.bnd inpl inpu)) output).
-intros H0 _ x H1.
-eapply subset_contains.
-apply I.subset_correct with (1 := H0).
-apply H.
-exact H1.
+case_eq (check_f (fi (I.bnd inpl inpu))).
+intros Hb _ x Hx.
+apply check_th with (2 := Hb).
+now apply Hf.
 intros _.
 set (inpm := I.midpoint (I.bnd inpl inpu)).
-case_eq (bisect_1d fi inpl inpm output steps).
-intros H0 H1 x H2.
-apply (bisect (fun x => contains (I.convert output) (f x))
+case_eq (bisect_1d fi inpl inpm check_f steps) ; try easy.
+intros Hl Hr x Hx.
+apply (bisect (fun x => check_p (f x))
               (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
 unfold domain.
 rewrite <- I.bnd_correct.
-apply IHsteps with (1 := H0).
+apply IHsteps with (1 := Hl).
 unfold domain.
 rewrite <- I.bnd_correct.
-apply IHsteps with (1 := H1).
-rewrite <- I.bnd_correct.
-exact H2.
-intros _ H0 x _.
-discriminate H0.
+apply IHsteps with (1 := Hr).
+now rewrite <- I.bnd_correct.
 Qed.
 
 Definition lookup_1d_step fi l u output cont :=
@@ -72,7 +96,7 @@ Definition lookup_1d_step fi l u output cont :=
     let m := I.midpoint (I.bnd l u) in
     let output := cont l m output in
     if I.lower_bounded output || I.upper_bounded output then cont m u output
-    else cont m u output.
+    else output.
 
 Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
   match steps with
@@ -289,46 +313,6 @@ intros (H3,H4).
 apply f_equal.
 now apply Rle_antisym.
 Qed.
-
-(*
-Lemma diff_refining_correct_aux_5 :
-  forall f f' fi',
-  I.extension f' fi' ->
-  Xderive f f' ->
-  forall xi,
-  I.convert (fi' xi) <> Inan ->
- (exists x, contains (I.convert xi) x) ->
-  exists m, I.convert_bound (I.midpoint xi) = Xreal m.
-intros f f' fi' Hf' Hd xi Hyi'.
-case_eq (I.convert xi).
-(* - xi = NaI *)
-intros Hxi _.
-elim Hyi'.
-generalize (Hf' xi Xnan).
-rewrite Hxi.
-generalize (Hd Xnan).
-case (f' Xnan).
-destruct (I.convert (fi' xi)) as [|l u].
-now intros _ _.
-simpl.
-intros _ H0.
-simpl in H0.
-elim (H0 I).
-intros _ H0 _.
-elim H0.
-(* - xi = [l,u] *)
-intros xl xu Hxi Hx.
-rewrite <- Hxi in Hx.
-generalize (I.midpoint_correct _ Hx).
-rewrite Hxi.
-destruct (I.convert_bound (I.midpoint xi)) as [|m].
-intro H.
-elim H.
-intros _.
-exists m.
-apply refl_equal.
-Qed.
-*)
 
 Theorem diff_refining_points_correct :
   forall prec f f' xi yi yi' ym yl yu,
@@ -636,258 +620,12 @@ split ; apply Rle_refl.
 now intros _.
 Qed.
 
-(*
-generalize (I.sign_large_correct (fi' xi)).
-case_eq (I.sign_large (fi' xi)) ; intros Hs1 Hs2.
-(* - sign is Xeq *)
-refine ((fun Hm => _) (diff_refining_correct_aux_5 _ _ _ Hf' Hd xi _ (ex_intro _ _ Hx))).
-destruct Hm as (m, Hm).
-eapply diff_refining_aux_2 with (1 := Hd).
-instantiate (1 := m).
-rewrite <- Hm.
-apply I.midpoint_correct.
-exists x.
-exact Hx.
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hm.
-split ; apply Rle_refl.
-intros.
-rewrite (Hs2 (f' x0)).
-split ; apply Rle_refl.
-apply Hf'.
-exact H.
-exact Hx.
-intro H.
-rewrite H in Hs2.
-generalize (Hs2 Xnan I).
-discriminate.
-(* - sign is Xlt *)
-assert (I.sign_large (fi' xi) <> Xund).
-now rewrite Hs1.
-clear Hs1. rename H into Hs1.
-assert (forall x, contains (I.convert xi) x -> forall v,
-  f x = Xreal (proj_fun v f (proj_val x)) /\
-  f' x = Xreal (proj_fun v f' (proj_val x)) /\
-  (proj_fun v f' (proj_val x) <= 0)%R).
-intros a Ha v.
-destruct (Hs2 _ (Hf' _ _ Ha)) as (Ha1, Ha2).
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Ha) as (Ha3, Ha4).
-destruct (Ha4 v) as (Ha5, Ha6).
-split.
-exact Ha5.
-split.
-exact Ha6.
-rewrite Ha1 in Ha6.
-inversion Ha6.
-exact Ha2.
-clear Hs2. rename H into Hs2.
-apply I.meet_correct.
-(*   lower part *)
-case_eq (I.lower_bounded xi).
-intros H.
-destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
-clear H.
-assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-rewrite Hxi, Hxl.
-apply contains_lower with x.
-now rewrite <- Hxl, <- Hxi.
-rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
-rewrite <- (proj1 (Hs2 _ Hl R0)).
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hxl.
-split ; apply Rle_refl.
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Hx) as (Hx1, _).
-eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
-apply (contains_connected (I.convert xi)).
-intros a Ha.
-simpl in Ha.
-destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
-split.
-generalize (Hd (Xreal a)).
-rewrite Ha2, Ha1.
-intro H.
-exact (H R0).
-exact Ha3.
-simpl.
-now rewrite <- Hxl.
-simpl.
-now rewrite <- Hx1.
-rewrite Hxi, Hx1, Hxl in Hx.
-exact (proj1 Hx).
-intros _.
-rewrite (proj1 (Hs2 x Hx R0)).
-apply I.whole_correct.
-(*   upper part *)
-case_eq (I.upper_bounded xi).
-intros H.
-destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
-clear H.
-assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi, Hxu.
-apply contains_upper with x.
-now rewrite <- Hxu, <- Hxi.
-rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
-rewrite <- (proj1 (Hs2 _ Hu R0)).
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hxu.
-split ; apply Rle_refl.
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Hx) as (Hx1, _).
-eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
-apply (contains_connected (I.convert xi)).
-intros a Ha.
-simpl in Ha.
-destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
-split.
-generalize (Hd (Xreal a)).
-rewrite Ha2, Ha1.
-intro H.
-exact (H R0).
-exact Ha3.
-simpl.
-now rewrite <- Hx1.
-simpl.
-now rewrite <- Hxu.
-rewrite Hxi, Hx1, Hxu in Hx.
-exact (proj2 Hx).
-intros _.
-rewrite (proj1 (Hs2 x Hx R0)).
-apply I.whole_correct.
-(* - sign is Xgt *)
-assert (I.sign_large (fi' xi) <> Xund).
-now rewrite Hs1.
-clear Hs1. rename H into Hs1.
-assert (forall x, contains (I.convert xi) x -> forall v,
-  f x = Xreal (proj_fun v f (proj_val x)) /\
-  f' x = Xreal (proj_fun v f' (proj_val x)) /\
-  (0 <= proj_fun v f' (proj_val x))%R).
-intros a Ha v.
-destruct (Hs2 _ (Hf' _ _ Ha)) as (Ha1, Ha2).
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Ha) as (Ha3, Ha4).
-destruct (Ha4 v) as (Ha5, Ha6).
-split.
-exact Ha5.
-split.
-exact Ha6.
-rewrite Ha1 in Ha6.
-inversion Ha6.
-exact Ha2.
-clear Hs2. rename H into Hs2.
-apply I.meet_correct.
-(*   lower part *)
-case_eq (I.lower_bounded xi).
-intros H.
-destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
-clear H.
-assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-rewrite Hxi, Hxl.
-apply contains_lower with x.
-now rewrite <- Hxl, <- Hxi.
-rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
-rewrite <- (proj1 (Hs2 _ Hl R0)).
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hxl.
-split ; apply Rle_refl.
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Hx) as (Hx1, _).
-eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
-apply (contains_connected (I.convert xi)).
-intros a Ha.
-simpl in Ha.
-destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
-split.
-generalize (Hd (Xreal a)).
-rewrite Ha2, Ha1.
-intro H.
-exact (H R0).
-exact Ha3.
-simpl.
-now rewrite <- Hxl.
-simpl.
-now rewrite <- Hx1.
-rewrite Hxi, Hx1, Hxl in Hx.
-exact (proj1 Hx).
-intros _.
-rewrite (proj1 (Hs2 x Hx R0)).
-apply I.whole_correct.
-(*   upper part *)
-case_eq (I.upper_bounded xi).
-intros H.
-destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
-clear H.
-assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi, Hxu.
-apply contains_upper with x.
-now rewrite <- Hxu, <- Hxi.
-rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
-rewrite <- (proj1 (Hs2 _ Hu R0)).
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hxu.
-split ; apply Rle_refl.
-destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 (Hf' _) _ Hx) as (Hx1, _).
-eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
-apply (contains_connected (I.convert xi)).
-intros a Ha.
-simpl in Ha.
-destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
-split.
-generalize (Hd (Xreal a)).
-rewrite Ha2, Ha1.
-intro H.
-exact (H R0).
-exact Ha3.
-simpl.
-now rewrite <- Hx1.
-simpl.
-now rewrite <- Hxu.
-rewrite Hxi, Hx1, Hxu in Hx.
-exact (proj2 Hx).
-intros _.
-rewrite (proj1 (Hs2 x Hx R0)).
-apply I.whole_correct.
-(* - sign is Xund *)
-clear Hs1 Hs2.
-case_eq (I.bounded (fi' xi)) ; intro Hb.
-apply I.meet_correct.
-now apply Hf.
-refine ((fun Hm => _) (diff_refining_correct_aux_5 _ _ _ Hf' Hd xi _ (ex_intro _ _ Hx))).
-destruct Hm as (m, Hm).
-eapply diff_refining_aux_1 with (1 := Hd).
-instantiate (1 := m).
-rewrite I.bnd_correct.
-rewrite Hm.
-split ; apply Rle_refl.
-rewrite <- Hm.
-apply I.midpoint_correct.
-exists x.
-exact Hx.
-apply Hf.
-rewrite I.bnd_correct.
-rewrite Hm.
-split ; apply Rle_refl.
-apply Hf'.
-exact Hx.
-destruct (I.bounded_correct _ Hb) as (Hbl, _).
-destruct (I.lower_bounded_correct _ Hbl) as (_, Hl).
-rewrite Hl.
-discriminate.
-now apply Hf.
-Qed.
-*)
-
 End IntervalAlgos.
 
 Module Valuator (I : IntervalOps).
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp.
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -901,7 +639,8 @@ Set Implicit Arguments.
 Record operations (A : Type) : Type :=
   { constant : Z -> A
   ; unary : unary_op -> A -> A
-  ; binary : binary_op -> A -> A -> A }.
+  ; binary : binary_op -> A -> A -> A
+  ; sign : A -> Xcomparison }.
 
 Unset Implicit Arguments.
 
@@ -972,6 +711,7 @@ Definition bnd_operations prec :=
     | Tan => I.tan prec
     | Atan => I.atan prec
     | Exp => I.exp prec
+    | PowerInt n => fun x => I.power_int prec x n
     end)
    (fun o =>
     match o with
@@ -979,7 +719,8 @@ Definition bnd_operations prec :=
     | Sub => I.sub prec
     | Mul => I.mul prec
     | Div => I.div prec
-    end).
+    end)
+    I.sign_strict.
 
 Definition eval_bnd prec :=
   eval_generic I.nai (bnd_operations prec).
@@ -998,6 +739,7 @@ Definition ext_operations :=
     | Tan => Xtan
     | Atan => Xatan
     | Exp => Xexp
+    | PowerInt n => fun x => Xpower_int x n
     end)
    (fun o =>
     match o with
@@ -1005,7 +747,8 @@ Definition ext_operations :=
     | Sub => Xsub
     | Mul => Xmul
     | Div => Xdiv
-    end).
+    end)
+   (fun x => Xcmp x (Xreal 0)).
 
 Definition eval_ext :=
   eval_generic (Xreal 0) ext_operations.
@@ -1056,6 +799,7 @@ Definition real_operations :=
     | Tan => tan
     | Atan => atan
     | Exp => exp
+    | PowerInt n => fun x => powerRZ x n
     end)
    (fun o =>
     match o with
@@ -1063,7 +807,8 @@ Definition real_operations :=
     | Sub => Rminus
     | Mul => Rmult
     | Div => Rdiv
-    end).
+    end)
+   (fun x => Xcmp (Xreal x) (Xreal 0)).
 
 Definition eval_real :=
   eval_generic R0 real_operations.
@@ -1077,7 +822,7 @@ Definition diff_operations A (ops : @operations A) :=
       match o with
       | Neg => let f := unary ops Neg in (f v, f d)
       | Abs => let w := unary ops Abs v in (w,
-        binary ops Mul d (binary ops Div v w))
+        match sign ops v with Xlt => unary ops Neg d | Xgt => d | _ => unary ops Inv (constant ops 0) end)
       | Inv => let w := unary ops Inv v in (w,
         binary ops Mul d (unary ops Neg (unary ops Sqr w)))
       | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
@@ -1093,6 +838,8 @@ Definition diff_operations A (ops : @operations A) :=
         binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       | Exp => let w := unary ops Exp v in (w,
         binary ops Mul d w)
+      | PowerInt n =>
+        (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
       end
     end)
    (fun o x y =>
@@ -1107,37 +854,8 @@ Definition diff_operations A (ops : @operations A) :=
         let w := f vx vy in
         (w, f (binary ops Sub dx (binary ops Mul dy w)) vy)
       end
-    end).
-
-(*
-Lemma unary_ext_correct :
-  forall o x y,
-  unary ext_operations o x = Xreal y ->
-  exists u, x = Xreal u /\ unary real_operations o u = y.
-intros o x y.
-case o ; simpl ;
-  [ unfold Xneg
-  | unfold Xabs
-  | unfold Xinv
-  | unfold Xsqr, Xmul
-  | unfold Xsqrt
-  | unfold Xcos
-  | unfold Xsin
-  | unfold Xtan
-  | unfold Xatan ] ;
-  intros ; xtotal ; refl_exists ; assumption.
-Qed.
-
-Lemma binary_ext_correct :
-  forall o x y z,
-  binary ext_operations o x y = Xreal z ->
-  exists u, x = Xreal u /\
-  exists v, y = Xreal v /\ binary real_operations o u v = z.
-intros o x y z.
-case o ; simpl ; [ unfold Xadd | unfold Xsub | unfold Xmul | unfold Xdiv ] ;
-  intros ; xtotal ; refl_exists ; refl_exists ; assumption.
-Qed.
-*)
+    end)
+   (fun x => match x with (vx, _) => sign ops vx end).
 
 Lemma rewrite_inv_diff :
   forall u u',
@@ -1151,34 +869,6 @@ unfold Xsqr.
 apply sym_eq.
 apply Xinv_Xmul_distr.
 Qed.
-
-(*
-Lemma unary_diff_correct :
-  forall o f f',
-  Xderive f f' ->
-  let g := fun x => unary (diff_operations _ ext_operations) o (f x, f' x) in
-  Xderive (fun x => fst (g x)) (fun x => snd (g x)).
-intros o f f' Hf g.
-unfold g. clear g.
-case o ; simpl.
-apply Xderive_neg with (1 := Hf).
-admit.
-(* Xinv *)
-apply Xderive_eq_diff with (fun x => Xneg (Xdiv (f' x) (Xsqr (f x)))).
-intros.
-apply rewrite_inv_diff.
-apply Xderive_inv with (1 := Hf).
-(* Xsqr *)
-change (fun x => Xsqr (f x)) with (fun x => Xmul (f x) (f x)).
-apply Xderive_mul ; exact Hf.
-(* *)
-apply Xderive_sqrt with (1 := Hf).
-apply Xderive_cos with (1 := Hf).
-apply Xderive_sin with (1 := Hf).
-apply Xderive_tan with (1 := Hf).
-admit.
-Qed.
-*)
 
 Lemma rewrite_div_diff :
   forall u v u' v',
@@ -1201,70 +891,50 @@ apply sym_eq.
 apply Xmul_Xadd_distr_r.
 Qed.
 
-(*
-Lemma binary_diff_correct :
-  forall o f f' g g',
-  Xderive f f' -> Xderive g g' ->
-  let h := fun x => binary (diff_operations _ ext_operations) o (f x, f' x) (g x, g' x) in
-  Xderive (fun x => fst (h x)) (fun x => snd (h x)).
-intros o f f' g g' Hf Hg h.
-unfold h. clear h.
-case o ; simpl.
-apply Xderive_add ; assumption.
-apply Xderive_sub ; assumption.
-apply Xderive_mul ; assumption.
-(* Xdiv *)
-apply Xderive_eq_diff with (fun x => Xdiv (Xsub (Xmul (f' x) (g x)) (Xmul (g' x) (f x))) (Xmul (g x) (g x))).
-intros.
-apply rewrite_div_diff.
-apply Xderive_div ; assumption.
-Qed.
-*)
-
 Lemma xreal_to_real :
-  forall prog terms n xi,
-  contains xi (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
-  contains xi (Xreal (nth n (eval_real prog terms) R0)).
-assert (Heq : forall a b, (forall xi, contains xi (Xreal a) -> contains xi (Xreal b)) -> b = a).
-intros.
-assert (Hb := H (Ibnd (Xreal a) (Xreal a)) (conj (Rle_refl a) (Rle_refl a))).
-apply Rle_antisym.
-exact (proj2 Hb).
-exact (proj1 Hb).
-(* . *)
-intros prog terms.
+  forall (P1 : ExtendedR -> Prop) (P2 : R -> Prop),
+  (P1 Xnan -> forall r, P2 r) ->
+  (forall r, P1 (Xreal r) -> P2 r) ->
+  forall prog terms n,
+  P1 (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  P2 (nth n (eval_real prog terms) 0%R).
+Proof.
+intros P1 P2 HP1 HP2 prog terms n.
 unfold eval_ext, eval_real.
-apply (eval_inductive_prop _ _ (fun a b => forall xi, contains xi a -> contains xi (Xreal b))) ;
-  simpl ; intros.
-exact H.
+refine (_ (eval_inductive_prop _ _ (fun a b => match a with Xreal a => a = b | _ => True end)
+  (Xreal 0) R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
+case (nth n (eval_generic (Xreal 0) ext_operations prog (map Xreal terms)) (Xreal 0)).
+intros _ H.
+now apply HP1.
+intros y H.
+rewrite H.
+apply HP2.
+apply refl_equal.
 (* unary *)
-destruct xi.
-exact I.
 destruct a as [|a].
-destruct o ; exact (False_ind _ H0).
-rewrite (Heq _ _ H).
-destruct o ; try exact H0.
-unfold Xinv in H0.
-now destruct (is_zero a).
-unfold Xsqrt in H0.
-now destruct (is_negative a).
-unfold Xtan, Xdiv, Xsin, Xcos in H0.
-now destruct (is_zero (cos a)).
+now destruct o.
+intros b H.
+rewrite H.
+destruct o ; try easy ; simpl.
+now case (is_zero b).
+now case (is_negative b).
+unfold Xtan, Xdiv, Xsin, Xcos.
+now case (is_zero (cos b)).
+fold (Xpower_int (Xreal b) n0).
+generalize (Xpower_int_correct n0 (Xreal b)).
+now case Xpower_int.
 (* binary *)
-destruct xi.
-exact I.
 destruct a1 as [|a1].
-destruct o ; exact (False_ind _ H1).
+now destruct o.
 destruct a2 as [|a2].
-destruct o ; exact (False_ind _ H1).
-rewrite (Heq _ _ H).
-rewrite (Heq _ _ H0).
-destruct o ; try exact H1.
-unfold Xdiv in H1.
-now destruct (is_zero a2).
+now destruct o.
+intros b1 b2 H1 H2.
+rewrite H1, H2.
+destruct o ; try easy ; simpl.
+now destruct (is_zero b2).
 (* . *)
-rewrite map_nth in H.
-exact H.
+intros n0.
+now rewrite map_nth.
 Qed.
 
 Inductive bound_proof :=
@@ -1311,7 +981,8 @@ destruct o ; simpl ;
   | apply I.sin_correct
   | apply I.tan_correct
   | apply I.atan_correct
-  | apply I.exp_correct ].
+  | apply I.exp_correct
+  | apply I.power_int_correct ].
 (* binary *)
 destruct o ; simpl ;
   [ apply I.add_correct
@@ -1357,31 +1028,6 @@ apply Xderive_eq_diff with (1 := H0).
 exact H1.
 Qed.
 
-(*
-Lemma eval_diff_1_correct :
-  forall prog terms n x,
-  nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0) =
-  fst (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan)).
-intros.
-unfold eval_ext.
-apply (eval_inductive_prop _ (ExtendedR * ExtendedR) (fun a b => a = fst b)) ; try split.
-intros o a (bl,br) H.
-rewrite H.
-now case o.
-intros o a1 a2 (bl1,br1) (bl2,br2) H1 H2.
-rewrite H1, H2.
-now case o.
-clear n.
-intros [|n].
-apply refl_equal.
-rewrite <- map_nth.
-simpl.
-rewrite map_map.
-apply (f_equal (fun v => nth n v (Xreal 0))).
-now apply map_ext.
-Qed.
-*)
-
 Lemma unary_diff_correct :
   forall o f d x,
   Xderive_pt f x d ->
@@ -1391,7 +1037,8 @@ Lemma unary_diff_correct :
 intros o f d x Hd.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_neg.
-admit.
+rewrite is_zero_correct_zero.
+now apply Xderive_pt_abs.
 rewrite rewrite_inv_diff.
 now apply Xderive_pt_inv.
 unfold Xsqr.
@@ -1402,6 +1049,7 @@ now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 admit.
 now apply Xderive_pt_exp.
+now apply Xderive_pt_power_int.
 Qed.
 
 Lemma binary_diff_correct :
@@ -1484,6 +1132,7 @@ Lemma unary_diff_bnd_correct :
  (forall x, contains xi x -> contains (I.convert yi') (f' x)) ->
   let v := unary (diff_operations _ (bnd_operations prec)) o (yi, yi') in
  (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
+Proof.
 intros prec o f f' u yi yi' xi Hf Hf' v x Hx.
 destruct o ; simpl ;
   repeat first
@@ -1497,12 +1146,36 @@ destruct o ; simpl ;
   | apply I.tan_correct
   | apply I.atan_correct
   | apply I.exp_correct
+  | apply I.power_int_correct
   | apply I.add_correct
   | apply I.mul_correct
   | apply I.div_correct
   | apply I.fromZ_correct
-  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _) ] ;
-  now first [ apply Hf | apply Hf' ].
+  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
+  | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
+  try now first [ apply Hf | apply Hf' ].
+(* abs *)
+generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+simpl.
+rewrite is_zero_correct_zero.
+specialize (Hf _ Hx).
+generalize (I.sign_strict_correct yi).
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Lt.
+apply I.neg_correct.
+now apply Hf'.
+apply H.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Gt.
+now apply Hf'.
+apply H.
 Qed.
 
 Lemma binary_diff_bnd_correct :
@@ -1581,7 +1254,8 @@ destruct o ; simpl ;
   | apply I.sin_correct
   | apply I.tan_correct
   | apply I.atan_correct
-  | apply I.exp_correct ] ;
+  | apply I.exp_correct
+  | apply I.power_int_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
 exact (fun x Hx => proj1 (H x Hx)).
@@ -1652,87 +1326,6 @@ refine (map_nth _ bounds (Bproof 0 I.nai _) _).
 now rewrite I.nai_correct.
 Qed.
 
-(*
-(* Note: The derivative of default values is set to NaN, which is sub-optimal, but they are not supposed to be used anyway. *)
-Lemma eval_diff_correct_aux :
-  forall formula terms n,
-  let f x := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) formula ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan) in
-  Xderive (fun x => fst (f x)) (fun x => snd (f x)).
-intros.
-pose (g := fun n x =>
-       nth n
-          (fold_right
-             (fun t l =>
-              eval_generic_body (Xreal 0, Xnan)
-                (diff_operations ExtendedR ext_operations) l t)
-             ((x, Xmask (Xreal 1) x)
-              :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms) (rev formula))
-          (Xreal 0, Xnan)).
-apply Xderive_eq with (fun x => fst (g n x)) (fun x => snd (g n x)) ;
-  try (intros ; unfold f ; now rewrite rev_formula).
-generalize n. clear.
-induction (rev formula).
-(* empty formula *)
-simpl in g.
-intros [|n].
-apply Xderive_identity.
-generalize n. clear n.
-induction terms.
-now intros [|n] [|x].
-intros [|n] ; simpl.
-apply Xderive_constant.
-apply IHterms.
-(* non-empty formulas *)
-intros [|n].
-unfold g. simpl. clear -IHl.
-induction a.
-eapply Xderive_eq.
-3: eexact (unary_diff_correct u _ _ (IHl n)).
-intros x. simpl.
-now match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
-intros x. simpl.
-now match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
-eapply Xderive_eq.
-3: eexact (binary_diff_correct b _ _ _ _ (IHl n) (IHl n0)).
-intros x. simpl.
-now do 2 match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
-intros x. simpl.
-now do 2 match goal with |- context [match ?p with (v, d) => _ end] => destruct p end.
-exact (IHl n).
-Qed.
-
-Theorem eval_diff_correct :
-  forall prog terms n,
-  Xderive
-    (fun x => nth n (eval_ext prog (x :: map (fun v => Xreal v) terms)) (Xreal R0))
-    (fun x => snd (nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan))).
-intros.
-eapply Xderive_eq_fun.
-2: apply (eval_diff_correct_aux prog terms n).
-intros x.
-unfold eval_ext.
-generalize n. clear n.
-apply (eval_inductive_prop _ (ExtendedR * ExtendedR) (fun a b => a = fst b)).
-apply refl_equal.
-intros i.
-apply refl_equal.
-intros o a (b, c) H.
-rewrite H.
-now case o.
-intros o a1 a2 (b1, c1) (b2, c2) H1 H2.
-rewrite H1, H2.
-now case o.
-intros [|n].
-apply refl_equal.
-simpl.
-rewrite map_nth.
-rewrite <- map_nth.
-rewrite map_map.
-simpl.
-now rewrite map_nth.
-Qed.
-*)
-
 Module Algos := IntervalAlgos I.
 
 Definition eval_diff prec formula bounds n xi :=
@@ -1782,158 +1375,5 @@ apply map_ext.
 now destruct a.
 exact (proj1 (H xi)).
 Qed.
-
-(*
-Inductive first_order_data : Type :=
-  FO_data (y y' ym yl yu : I.type) : first_order_data.
-
-Definition first_order_operations prec x dx :=
-  let ops := bnd_operations prec in
-  let dops := diff_operations _ ops in
-  Build_operations
-   (fun a => let y := I.fromZ a in FO_data y (I.fromZ 0) y y y)
-   (fun o a =>
-    let 'FO_data ay ay' am al au := a in
-    let '(cy, cy') := unary dops o (ay, ay') in
-    let op := unary ops o in
-    FO_data cy cy' (op am) (op al) (op au))
-   (fun o a b =>
-    let 'FO_data ay ay' am al au := a in
-    let 'FO_data by by' bm bl bu := b in
-    let '(cy, cy') := binary dops o (ay, ay') (by, by') in
-    let op := binary ops o in
-    let cm := op am bm in
-    let cl := op al bl in
-    let cu := op au bu in
-    let cy2 := Algos.diff_refining_points prec x dx cy cy' cm cl cu in
-    FO_data cy2 cy' cm cl cu).
-
-Definition FO_def := FO_data I.nai I.nai I.nai I.nai I.nai.
-
-Definition eval_first_order prec prog bounds xi :=
-  let xm := I.midpoint xi in
-  let mm := I.bnd xm xm in
-  eval_generic FO_def (first_order_operations prec xi (I.sub prec xi mm)) prog
-    ((FO_data xi (I.mask (I.fromZ 1) xi) mm
-       (if I.lower_bounded xi then let l := I.lower xi in I.bnd l l else I.nai (*I.lower_extent mm*))
-       (if I.upper_bounded xi then let u := I.upper xi in I.bnd u u else I.nai (*I.upper_extent mm*))) ::
-     map (fun b => FO_data b (I.mask (I.fromZ 0) xi) b b b) bounds).
-
-Definition FO_prop xi f v :=
-  let 'FO_data yi yi' ym yl yu := v in
- (forall x, contains (I.convert xi) x -> contains (I.convert yi) (f x)) /\
- (exists f', Xderive f f' /\ forall x, contains (I.convert xi) x -> contains (I.convert yi') (f' x)) /\
-  contains (I.convert ym) (f (I.convert_bound (I.midpoint xi))) /\
- (if I.lower_bounded xi then
-    contains (I.convert yl) (f (I.convert_bound (I.lower xi)))
-  else True) /\
- (if I.upper_bounded xi then
-    contains (I.convert yu) (f (I.convert_bound (I.upper xi)))
-  else True).
-
-Lemma eval_first_order_correct_aux :
-  forall prec prog terms bounds,
- (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms (Xreal 0))) ->
-  forall xi n,
-  FO_prop xi (fun x => nth n (eval_ext prog (x :: terms)) (Xreal 0))
-   (nth n (eval_first_order prec prog bounds xi) FO_def).
-intros prec prog terms bounds Hinp xi n.
-unfold eval_first_order.
-apply (eval_inductive_prop_fun _ (FO_prop xi)).
-(* extensionality *)
-clear.
-intros a1 a2 Heq (yi, yi', ym, yl, yu).
-intros (H1, ((f', (H2, H3)), (H4, (H5, H6)))).
-repeat split ; try now rewrite <- Heq.
-intros.
-rewrite <- Heq.
-now apply H1.
-exists f'.
-split.
-apply Xderive_eq_fun with (2 := H2).
-intros.
-now apply sym_eq.
-exact H3.
-(* default *)
-simpl.
-rewrite I.nai_correct.
-repeat split.
-exists (Xmask (Xreal 0)).
-repeat split.
-exact (Xderive_pt_constant 0).
-now case (I.lower_bounded xi).
-now case (I.upper_bounded xi).
-(* unary *)
-intros o a (b, b', bm, bl, bu) (H1, ((c', (H2, H3)), (H4, (H5, H6)))).
-unfold FO_prop, first_order_operations, unary at 1.
-case_eq (unary (diff_operations I.type (bnd_operations prec)) o (b, b')).
-intros d d' Hu.
-repeat split.
-intros x Hx.
-Admitted.
-
-CoInductive Lazy := Data (v : I.type) : Lazy.
-CoFixpoint lazy (f : unit -> I.type) := let v := f tt in Data v.
-Definition force (v : Lazy) := match v with Data w => w end.
-
-Inductive first_order_data2 : Type :=
-  FO_data2 (y y' : I.type) (ym yl yu : Lazy) : first_order_data2.
-
-Definition first_order_operations2 prec x dx :=
-  let ops := bnd_operations prec in
-  let dops := diff_operations _ ops in
-  Build_operations
-   (fun a =>
-    let y := I.fromZ a in
-    let ly := lazy (fun _ => y) in
-    FO_data2 y (I.fromZ 0) ly ly ly)
-   (fun o a =>
-    let 'FO_data2 ay ay' am al au := a in
-    let '(cy, cy') := unary dops o (ay, ay') in
-    let op := unary ops o in
-    FO_data2 cy cy' (lazy (fun _ => op (force am))) (lazy (fun _ => op (force al))) (lazy (fun _ => op (force au))))
-   (fun o a b =>
-    let 'FO_data2 ay ay' am al au := a in
-    let 'FO_data2 by by' bm bl bu := b in
-    let '(cy, cy') := binary dops o (ay, ay') (by, by') in
-    let op := binary ops o in
-    match I.sign_large cy' with
-    | Xund | Xeq =>
-      let cm := op (force am) (force bm) in
-      let cy2 := Algos.diff_refining_points prec x dx cy cy' cm I.nai I.nai in
-      FO_data2 cy2 cy' (lazy (fun _ => cm)) (lazy (fun _ => op (force al) (force bl))) (lazy (fun _ => op (force au) (force bu)))
-    | Xlt | Xgt =>
-      let cl := op (force al) (force bl) in
-      let cu := op (force au) (force bu) in
-      let cy2 := Algos.diff_refining_points prec x dx cy cy' I.nai cl cu in
-      FO_data2 cy2 cy' (lazy (fun _ => op (force am) (force bm))) (lazy (fun _ => cl)) (lazy (fun _ => cu))
-    end).
-
-Definition FO_def2 :=
-  let lnai := lazy (fun _ =>I.nai) in
-  FO_data2 I.nai I.nai lnai lnai lnai.
-
-Definition eval_first_order2 prec prog bounds xi :=
-  let xm := I.midpoint xi in
-  let mm := I.bnd xm xm in
-  eval_generic FO_def2 (first_order_operations2 prec xi (I.sub prec xi mm)) prog
-    ((FO_data2 xi (I.mask (I.fromZ 1) xi) (lazy (fun _ => mm))
-       (lazy (fun _ => if I.lower_bounded xi then let l := I.lower xi in I.bnd l l else I.nai (*I.lower_extent mm*)))
-       (lazy (fun _ => if I.upper_bounded xi then let u := I.upper xi in I.bnd u u else I.nai (*I.upper_extent mm*)))) ::
-     map (fun b => let lb := lazy (fun _ => b) in FO_data2 b (I.mask (I.fromZ 0) xi) lb lb lb) bounds).
-
-Definition eval_first_order_nth prec prog bounds n xi :=
-  match nth n (eval_first_order2 prec prog bounds xi) FO_def2 with
-  | FO_data2 yi _ _ _ _ => yi
-  end.
-
-Theorem eval_first_order_correct_ext :
-  forall prec prog bounds n,
-  I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
-    (fun b => eval_first_order_nth prec prog (map interval_from_bp bounds) n b).
-intros prec prog bounds n xi x Hx.
-Admitted.
-*)
 
 End Valuator.

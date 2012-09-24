@@ -1,4 +1,4 @@
-AC_INIT([Interval], [0.13.0],
+AC_INIT([Interval], [0.15.0],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 AM_INIT_AUTOMAKE
@@ -22,7 +22,8 @@ AC_CHECK_TOOL(COQDEP, coqdep)
 
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
-  [ echo "Require Fcore Fcalc_digits." > conftest.v
+  [ echo "Require Import Flocq_version BinNat." \
+         "Goal (20000 <= Flocq_version)%N. easy. Qed." > conftest.v
     "$COQC" conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
