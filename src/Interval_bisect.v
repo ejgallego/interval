@@ -109,9 +109,13 @@ Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
 Definition lookup_1d fi l u extend steps :=
   let m := iter_nat steps _ (fun u => I.midpoint (I.bnd l u)) u in
   let output := extend (fi (I.bnd l m)) in
-  if I.lower_bounded output || I.upper_bounded output then
-    lookup_1d_main fi l u output steps
-  else output.
+  match steps with
+  | O => I.whole
+  | S steps =>
+    if I.lower_bounded output || I.upper_bounded output then
+      lookup_1d_main fi l u output steps
+    else output
+  end.
 
 Definition diff_refining_points prec xi di yi yi' ym yl yu :=
   match I.sign_large yi' with
