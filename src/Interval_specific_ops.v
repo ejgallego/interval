@@ -769,6 +769,7 @@ rewrite toF_float with (1 := Mp).
 now rewrite Ep.
 rewrite (mantissa_cmp_correct _ _ Mx My).
 simpl.
+rewrite Z.pos_sub_spec.
 case Pcompare_spec.
 intros _.
 apply zero_correct.
