@@ -4,10 +4,9 @@ ChangeLog
 config.log
 config.status
 configure
-install-sh
-Makefile.in
-Makefile
-missing
+.remake
+remake
+remake.exe
 *.vo
 *.vd
 *.glob
