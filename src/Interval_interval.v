@@ -11,6 +11,18 @@ Inductive interval : Set :=
   | Inan : interval
   | Ibnd (l u : ExtendedR) : interval.
 
+Definition Xlower (xi : interval) : ExtendedR :=
+  match xi with
+  | Ibnd xl _ => xl
+  | _ => Xnan
+  end.
+
+Definition Xupper (xi : interval) : ExtendedR :=
+  match xi with
+  | Ibnd _ xu => xu
+  | _ => Xnan
+  end.
+
 Definition contains i v :=
   match i, v with
   | Ibnd l u, Xreal x =>

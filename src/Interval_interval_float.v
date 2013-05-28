@@ -425,6 +425,26 @@ Ltac bound_tac :=
     apply Rle_trans with (2 := proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   end.
 
+Lemma lower_correct :
+  forall xi : type, convert_bound (lower xi) = Xlower (convert xi).
+Proof.
+intros [|xl xu].
+simpl.
+unfold convert_bound.
+now rewrite F.nan_correct.
+easy.
+Qed.
+
+Lemma upper_correct :
+  forall xi : type, convert_bound (upper xi) = Xupper (convert xi).
+Proof.
+intros [|xl xu].
+simpl.
+unfold convert_bound.
+now rewrite F.nan_correct.
+easy.
+Qed.
+
 Lemma real_correct :
   forall (A : Type) x (y1 y2 : A),
   (if F.real x then y1 else y2) = match convert_bound x with Xnan => y2 | _ => y1 end.
