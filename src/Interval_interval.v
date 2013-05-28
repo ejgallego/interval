@@ -603,6 +603,12 @@ Parameter whole_correct :
 Parameter lower : type -> bound_type.
 Parameter upper : type -> bound_type.
 
+Parameter lower_correct :
+  forall xi : type, convert_bound (lower xi) = Xlower (convert xi).
+
+Parameter upper_correct :
+  forall xi : type, convert_bound (upper xi) = Xupper (convert xi).
+
 Definition bounded_prop xi :=
   convert xi = Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
 
