@@ -15,11 +15,18 @@ m4_divert_pop([HELP_ENABLE])
 
 AC_PROG_CXX
 
+AC_ARG_VAR(COQBIN, [path to Coq executables [empty]])
+if test ${COQBIN##*/}; then COQBIN=$COQBIN/; fi
+
 AC_ARG_VAR(COQC, [Coq compiler command [coqc]])
-AC_CHECK_TOOL(COQC, coqc)
+AC_MSG_CHECKING([for coqc])
+if test ! "$COQC"; then COQC=`which ${COQBIN}coqc`; fi
+AC_MSG_RESULT([$COQC])
 
 AC_ARG_VAR(COQDEP, [Coq dependency analyzer command [coqdep]])
-AC_CHECK_TOOL(COQDEP, coqdep)
+AC_MSG_CHECKING([for coqdep])
+if test ! "$COQDEP"; then COQDEP=`which ${COQBIN}coqdep`; fi
+AC_MSG_RESULT([$COQDEP])
 
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
