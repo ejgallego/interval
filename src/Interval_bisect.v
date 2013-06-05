@@ -1051,7 +1051,7 @@ now apply Xderive_pt_sqrt.
 now apply Xderive_pt_cos.
 now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
-admit.
+now apply Xderive_pt_atan.
 now apply Xderive_pt_exp.
 now apply Xderive_pt_power_int.
 Qed.

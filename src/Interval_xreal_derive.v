@@ -733,6 +733,28 @@ rewrite X.
 apply (derivable_pt_lim_exp r1).
 Qed.
 
+Theorem Xderive_pt_atan :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xatan (f x)) x (Xdiv f' (Xadd (Xreal 1) (Xsqr (f x)))).
+Proof.
+intros f f' x Hf.
+xtotal.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp atan (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_any _ _ _ _ X Hf).
+intros x (w, Hw).
+unfold comp, proj_fun.
+now rewrite Hw.
+unfold Rdiv.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X.
+apply (derivable_pt_lim_atan r1).
+Qed.
+
 Theorem Xderive_pt_power_int :
   forall n f f' x,
   Xderive_pt f x f' ->
