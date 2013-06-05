@@ -34,16 +34,16 @@ configure config.status: configure.in
 	./config.status --recheck
 
 %.vo: %.v
-	@COQDEP@ -R src Interval ${1%.vo}.v | @REMAKE@ -r $1
-	@COQC@ -R src Interval -dont-load-proofs ${1%.vo}.v
+	@COQDEP@ -R src Interval $< | @REMAKE@ -r $@
+	@COQC@ -R src Interval -dont-load-proofs $<
 
 src/clean:
-	rm -f $OBJS src/*.glob
+	rm -f $(OBJS) src/*.glob
 
 testsuite/check: src/Interval_tactic.vo
 	set +e
 	cd testsuite
-	logfile="failures-$(date '+%Y-%m-%d').log"
+	logfile="failures-`date '+%Y-%m-%d'`.log"
 	cat /dev/null > log.tmp
 	cat /dev/null > "$logfile"
 	for f in *.v; do
@@ -74,20 +74,20 @@ install:
 	prefix=@prefix@
 	exec_prefix=@exec_prefix@
 	mkdir -p @libdir@
-	cp $OBJS @libdir@
+	cp $(OBJS) @libdir@
 
 EXTRA_DIST = \
 	configure
 
 dist: $(EXTRA_DIST)
 	PACK=@PACKAGE_TARNAME@-@PACKAGE_VERSION@
-	DIRS=$(git ls-tree -d -r --name-only HEAD)
-	FILES=$(git ls-tree -r --name-only HEAD)
+	DIRS=`git ls-tree -d -r --name-only HEAD`
+	FILES=`git ls-tree -r --name-only HEAD`
 	rm -rf $PACK.tar.gz $PACK
 	mkdir $PACK
 	for d in $DIRS; do mkdir $PACK/$d; done
-	for f in $FILES ${EXTRA_DIST}; do cp $f $PACK/$f; done
+	for f in $FILES $(EXTRA_DIST); do cp $f $PACK/$f; done
 	git log --pretty="format:%ad %s" --date=short > $PACK/ChangeLog
-	rm $(find $PACK -name .gitignore)
+	rm `find $PACK -name .gitignore`
 	tar czf $PACK.tar.gz $PACK
 	rm -rf $PACK
