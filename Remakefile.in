@@ -20,6 +20,8 @@ FILES = \
 
 OBJS = $(addprefix src/,$(addsuffix o,$(FILES)))
 
+.PHONY: all check clean dist install
+
 all: $(OBJS)
 
 clean: src/clean testsuite/clean
