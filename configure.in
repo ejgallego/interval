@@ -1,4 +1,4 @@
-AC_INIT([Interval], [0.16.1],
+AC_INIT([Interval], [0.16.2],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 

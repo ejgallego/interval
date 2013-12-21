@@ -1,3 +1,6 @@
+Version 0.16.2:
+ - fixed install rule on case-insensitive filesystems
+
 Version 0.16.1:
  - removed the custom definition of atan and used the one from Coq 8.4
 

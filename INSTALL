@@ -19,6 +19,8 @@ Ideally, you should just have to type:
 
 The environment variable COQC can be passed to the configure script in order
 to set the Coq compiler command. The configure script defaults to "coqc".
+Similarly, COQDEP can be used to specify the location of "coqdep". The
+COQBIN environment variable can be used to set both variables at once.
 
 Option "--libdir=DIR" sets the directory where the compiled library files
 should be installed by "./remake install". By default, the target directory
