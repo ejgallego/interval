@@ -390,12 +390,104 @@ Axiom mantissa_shr_correct :
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
 
-Axiom mantissa_div_correct :
+Lemma mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
   Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
   valid_mantissa q.
+Proof.
+intros x y [x' Vx] [y' Vy].
+unfold MtoP.
+rewrite Vx, Vy.
+unfold mantissa_div, mantissa_split_div.
+generalize (BigN.spec_div_eucl x y).
+generalize (Z_div_mod (Z.pos (MtoP x)) (Z.pos (MtoP y)) (eq_refl Gt)).
+unfold MtoP.
+rewrite Vx, Vy.
+destruct BigN.div_eucl as [q r].
+destruct Z.div_eucl as [q' r'].
+intros [H1 H2] H.
+injection H.
+clear H.
+intros Hr' Vq Hxy.
+assert (H: (0 < q')%Z).
+  apply Zmult_lt_reg_r with (Zpos y').
+  easy.
+  rewrite Zmult_0_l, Zmult_comm.
+  apply Zplus_lt_reg_r with r'.
+  rewrite Zplus_0_l.
+  rewrite <- H1.
+  now apply Zlt_le_trans with (2 := Hxy).
+destruct q' as [|q'|q'] ; try easy.
+rewrite Vq.
+clear H Hxy.
+assert (Hq := Zdiv_unique _ _ _ _ H2 H1).
+refine (conj Hq (conj _ (ex_intro _ _ Vq))).
+unfold Fcalc_bracket.inbetween_int.
+rewrite BigN.spec_eqb.
+rewrite BigN.spec_compare.
+rewrite BigN.spec_shiftl_pow2.
+rewrite Hr', Vy.
+change (BigN.to_Z 0) with Z0.
+change (2 ^ [1]%bigN)%Z with 2%Z.
+destruct (Z.eqb_spec r' 0) as [Hr|Hr].
+- apply Fcalc_bracket.inbetween_Exact.
+  rewrite H1, Hq, Hr, Zplus_0_r.
+  rewrite Z2R_mult.
+  field.
+  now apply (Z2R_neq _ 0).
+- replace (convert_location_inv _) with (Fcalc_bracket.loc_Inexact (Zcompare (r' * 2) (Zpos y'))).
+  2: now case Zcompare.
+  apply Fcalc_bracket.inbetween_Inexact.
+  unfold Rdiv.
+  rewrite H1, Zmult_comm.
+  split ;
+    apply Rmult_lt_reg_r with (Z2R (Zpos y')) ;
+    (try now apply (Z2R_lt 0)) ;
+    rewrite Rmult_assoc, Rinv_l, Rmult_1_r, <- Z2R_mult ;
+    (try now apply (Z2R_neq _ 0)) ;
+    apply Z2R_lt.
+  clear -H2 Hr ; omega.
+  rewrite Zmult_plus_distr_l.
+  clear -H2 ; omega.
+  rewrite H1, 2!Z2R_plus, Z2R_mult.
+  simpl (Z2R 1).
+  destruct (Z.compare_spec (r' * 2) (Zpos y')) as [H|H|H].
+  + apply Rcompare_Eq.
+    rewrite <- H.
+    rewrite Z2R_mult.
+    simpl (Z2R 2).
+    field.
+    now apply (Z2R_neq _ 0).
+  + apply Rcompare_Lt.
+    apply Rminus_gt.
+    match goal with |- (?a > 0)%R => replace a with ((Z2R (Zpos y') - Z2R r' * 2) / (2 * Z2R (Zpos y')))%R end.
+    apply Fourier_util.Rlt_mult_inv_pos.
+    apply Rgt_minus.
+    change 2%R with (Z2R 2).
+    rewrite <- Z2R_mult.
+    now apply Z2R_lt.
+    apply Rmult_lt_0_compat.
+    apply Rlt_0_2.
+    now apply (Z2R_lt 0).
+    field.
+    now apply (Z2R_neq _ 0).
+  + apply Rcompare_Gt.
+    apply Rminus_lt.
+    match goal with |- (?a < 0)%R => replace a with (- ((Z2R r' * 2 - Z2R (Zpos y')) / (2 * Z2R (Zpos y'))))%R end.
+    apply Ropp_lt_gt_0_contravar.
+    apply Fourier_util.Rlt_mult_inv_pos.
+    apply Rgt_minus.
+    change 2%R with (Z2R 2).
+    rewrite <- Z2R_mult.
+    now apply Z2R_lt.
+    apply Rmult_lt_0_compat.
+    apply Rlt_0_2.
+    now apply (Z2R_lt 0).
+    field.
+    now apply (Z2R_neq _ 0).
+Qed.
 
 End BigIntRadix2.

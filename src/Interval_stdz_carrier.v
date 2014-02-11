@@ -207,12 +207,56 @@ Axiom mantissa_shr_correct :
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
 
-Axiom mantissa_div_correct :
+Lemma mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
   Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
   valid_mantissa q.
+Proof.
+intros x y _ _.
+unfold MtoP.
+intros Hxy.
+unfold mantissa_div, mantissa_split_div.
+generalize (Z_div_mod (Z.pos x) (Z.pos y) (eq_refl Gt)).
+destruct Z.div_eucl as [q r].
+intros [H1 H2].
+assert (H: (0 < q)%Z).
+  apply Zmult_lt_reg_r with (Zpos y).
+  easy.
+  rewrite Zmult_0_l, Zmult_comm.
+  apply Zplus_lt_reg_r with r.
+  rewrite Zplus_0_l.
+  rewrite <- H1.
+  now apply Zlt_le_trans with (2 := Hxy).
+destruct q as [|q|q] ; try easy.
+clear H Hxy.
+assert (Hq := Zdiv_unique _ _ _ _ H2 H1).
+refine (conj Hq (conj _ I)).
+unfold Fcalc_bracket.inbetween_int.
+destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
+- assert (H: (1 < Zpos y)%Z) by now apply Zgt_lt, Zle_succ_gt.
+  rewrite adjust_pos_correct by assumption.
+  rewrite Z2R_plus.
+  simpl (Z2R 1).
+  rewrite <- (Rinv_r (Z2R (Zpos y))) by now apply (Z2R_neq _ 0).
+  apply Fcalc_bracket.new_location_correct ; try assumption.
+  now apply Rinv_0_lt_compat, (Z2R_lt 0).
+  apply Fcalc_bracket.inbetween_Exact.
+  rewrite H1, Z2R_plus, Z2R_mult.
+  field.
+  now apply (Z2R_neq _ 0).
+- rewrite Hq, H1.
+  clear H1 Hq.
+  cut (Zpos y = 1 /\ r = 0)%Z.
+  2: omega.
+  clear.
+  intros [-> ->].
+  simpl.
+  apply Fcalc_bracket.inbetween_Exact.
+  unfold Rdiv.
+  now rewrite Zdiv_1_r, Rinv_1, Rmult_1_r.
+Qed.
 
 End StdZRadix2.
