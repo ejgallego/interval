@@ -71,17 +71,19 @@ Definition mantissa_split_div m d pos :=
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
+Definition mantissa_shr_aux v :=
+  match v with
+  | (xO p, pos_Eq) => (p, pos_Eq)
+  | (xO p, _)      => (p, pos_Lo)
+  | (xI p, pos_Eq) => (p, pos_Mi)
+  | (xI p, _)      => (p, pos_Up)
+  | _ => (xH, pos_Eq) (* dummy *)
+  end.
+
 Definition mantissa_shr m d pos :=
   match d with
   | Zpos nb =>
-    iter_pos nb _ (fun v =>
-      match v with
-      | (xO p, pos_Eq) => (p, pos_Eq)
-      | (xO p, _)      => (p, pos_Lo)
-      | (xI p, pos_Eq) => (p, pos_Mi)
-      | (xI p, _)      => (p, pos_Up)
-      | _ => (xH, pos_Eq) (* dummy *)
-      end) (m, pos)
+    iter_pos nb _ mantissa_shr_aux (m, pos)
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
@@ -192,13 +194,14 @@ Lemma mantissa_shl_correct :
   z = Zpos x ->
   MtoP (mantissa_shl y z) = shift radix (MtoP y) x /\
   valid_mantissa (mantissa_shl y z).
+Proof.
 repeat split.
 unfold EtoZ in H0.
 rewrite H0.
 apply refl_equal.
 Qed.
 
-Axiom mantissa_shr_correct :
+Lemma mantissa_shr_correct :
   forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
   (Zpos (shift radix 1 x) <= Zpos (MtoP y))%Z ->
   let (sq,l) := mantissa_shr y z k in
@@ -206,6 +209,151 @@ Axiom mantissa_shr_correct :
   Zpos (MtoP sq) = q /\
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
+Proof.
+intros x y z k _ Ezx.
+destruct z as [|z|z] ; try easy.
+injection Ezx.
+clear Ezx.
+unfold MtoP.
+intros -> Hy.
+unfold mantissa_shr.
+rewrite Pos2Nat.inj_iter.
+case_eq (nat_iter (Pos.to_nat x) mantissa_shr_aux (y, k)).
+intros sq l H1.
+generalize (Z.div_str_pos _ _ (conj (refl_equal Lt : (0 < Zpos _)%Z) Hy)).
+generalize (Z_div_mod (Z.pos y) (Z.pos (shift radix 1 x)) (eq_refl Gt)).
+unfold Zdiv.
+case Z.div_eucl.
+intros q r [H2 H3] H4.
+refine ((fun H => conj (proj1 H) (conj (proj2 H) I)) _).
+revert H2 H3 Hy.
+change (adjust_pos r (shift radix 1 x) k) with
+  (match Z.pos (shift radix 1 x) with Zpos v => adjust_pos r v k | _ => l end).
+rewrite shift_correct.
+rewrite Zpower_pos_nat.
+rewrite Zmult_1_l.
+revert sq l q r H1 H4.
+induction (Pos.to_nat x) as [|p IHp].
+- change (Zpower_nat radix 0) with 1%Z.
+  intros sq l q r.
+  rewrite Zmult_1_l.
+  simpl.
+  intros H1.
+  injection H1.
+  intros <- <-.
+  clear H1.
+  intros _ H1 H2.
+  revert H1.
+  assert (H: r = 0%Z) by omega.
+  rewrite H, Zplus_0_r.
+  split.
+  exact H1.
+  now destruct k.
+- intros sq' l' q' r'.
+  simpl nat_iter.
+  destruct (nat_iter p mantissa_shr_aux (y, k)) as [sq l].
+  specialize (IHp sq l).
+  intros H1 H0 H2 H3 Hy.
+  revert H2.
+  generalize (Zle_lt_trans _ _ _ (proj1 H3) (proj2 H3)).
+  case_eq (Zpower_nat radix (S p)) ; try easy.
+  intros m'.
+  revert H3.
+  rewrite Zpower_nat_succ_r.
+  revert IHp.
+  destruct (Zpower_nat radix p) as [|m|m] ; try easy.
+  intros IHp H3 H4 _ H2.
+  injection H4.
+  intros <-.
+  clear H4.
+  change (radix_val radix) with 2%Z in H3.
+  change (Zpos (xO m)) with (2 * Zpos m)%Z in H2.
+  destruct (Zle_or_lt (Zpos m) r') as [Hr|Hr].
+  + destruct (IHp (2 * q' + 1)%Z (r' - Zpos m)%Z) as [H4 H5].
+    reflexivity.
+    clear -H0 ; omega.
+    rewrite H2.
+    ring.
+    clear -Hr H3 ; omega.
+    rewrite H2.
+    rewrite <- (Zplus_0_l (Zpos m)) at 1.
+    apply Zplus_le_compat with (2 := Hr).
+    apply Zmult_le_0_compat.
+    clear -H3 ; omega.
+    now apply Zlt_le_weak.
+    clear IHp.
+    destruct q' as [|q'|q'] ; try easy.
+    clear H0.
+    destruct sq as [sq|sq|] ; try easy.
+    simpl in H1.
+    simpl in H4.
+    split.
+    injection H4.
+    intros <-.
+    apply f_equal, sym_eq.
+    now destruct l ; injection H1.
+    clear H4.
+    unfold adjust_pos.
+    destruct r' as [|r'|r'] ; try now elim Hr.
+    apply sym_eq.
+    replace l' with (match l with pos_Eq => pos_Mi | _ => pos_Up end).
+    2: clear -H1 ; destruct l ; injection H1 ; easy.
+    rewrite H5.
+    clear H1 H5.
+    destruct (Zcompare_spec (Zpos r') (Zpos m)) as [H|H|H].
+    * elim Hr.
+      now apply Zcompare_Gt.
+    * rewrite (Zeq_minus _ _ H).
+      simpl.
+      case k ; try easy ; case m ; easy.
+    * assert (H': (Zpos r' - Zpos m)%Z = Zpos (r' - m)) by now apply Z.pos_sub_gt.
+      rewrite H'.
+      unfold adjust_pos.
+      clear -H H3.
+      destruct m as [m|m|] ;
+        case Zcompare ; try easy ; try (case k ; easy).
+      clear -H3 H ; omega.
+  + destruct (IHp (2 * q')%Z r') as [H4 H5].
+    reflexivity.
+    clear -H0 ; omega.
+    rewrite H2.
+    ring.
+    clear -Hr H3 ; omega.
+    rewrite H2.
+    rewrite <- (Zplus_0_r (Zpos m)) at 1.
+    apply Zplus_le_compat with (2 := proj1 H3).
+    apply Zle_0_minus_le.
+    replace (2 * Zpos m * q' - Zpos m)%Z with (Zpos m * (2 * q' - 1))%Z by ring.
+    apply Zmult_le_0_compat.
+    easy.
+    clear -H0 ; omega.
+    clear IHp.
+    destruct q' as [|q'|q'] ; try easy.
+    clear H0.
+    destruct sq as [sq|sq|] ; try easy.
+    simpl in H1.
+    simpl in H4.
+    split.
+    injection H4.
+    intros <-.
+    apply f_equal, sym_eq.
+    now destruct l ; injection H1.
+    clear H4.
+    unfold adjust_pos.
+    apply sym_eq.
+    replace l' with (match l with pos_Eq => pos_Eq | _ => pos_Lo end).
+    2: clear -H1 ; destruct l ; injection H1 ; easy.
+    rewrite H5.
+    clear H1 H5.
+    destruct r' as [|r'|r'] ; try now elim (proj1 H3).
+    case k ; try easy ; case m ; easy.
+    rewrite Zcompare_Lt with (1 := Hr).
+    unfold adjust_pos.
+    destruct m.
+    case Zcompare ; try easy ; case k ; easy.
+    case Zcompare ; try easy ; case k ; easy.
+    now rewrite Hr.
+Qed.
 
 Lemma mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->

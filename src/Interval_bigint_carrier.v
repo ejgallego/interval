@@ -381,7 +381,7 @@ exists (MtoP t).
 exact (BinInt.Zopp_inj _ (Zpos _) H0).
 Qed.
 
-Axiom mantissa_shr_correct :
+Lemma mantissa_shr_correct :
   forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
   (Zpos (shift radix 1 x) <= Zpos (MtoP y))%Z ->
   let (sq,l) := mantissa_shr y z k in
@@ -389,6 +389,124 @@ Axiom mantissa_shr_correct :
   Zpos (MtoP sq) = q /\
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
+Proof.
+intros x y z k [y' Vy] Ezx.
+unfold mantissa_shr, MtoP.
+unfold EtoZ in Ezx.
+rewrite Vy.
+intros Hy.
+unfold valid_mantissa.
+rewrite BigN.spec_shiftr_pow2.
+rewrite spec_to_Z_pos by now rewrite Ezx.
+rewrite Vy, Ezx.
+generalize (Z.div_str_pos _ _ (conj (refl_equal Lt : (0 < Zpos _)%Z) Hy)).
+generalize (Z_div_mod (Z.pos y') (Z.pos (shift radix 1 x)) (eq_refl Gt)).
+rewrite shift_correct, Zmult_1_l.
+change (Zpower 2 (Zpos x)) with (Z.pow_pos radix x).
+unfold Zdiv.
+case Z.div_eucl.
+intros q r.
+revert Hy.
+change (adjust_pos r (shift radix 1 x) k) with
+  (match Z.pos (shift radix 1 x) with Zpos v => adjust_pos r v k | _ => pos_Eq end).
+rewrite shift_correct, Zmult_1_l.
+intros Hy [H2 H3].
+destruct q as [|q|q] ; try easy.
+intros _.
+refine (conj (eq_refl _) (conj _ (ex_intro _ q (eq_refl _)))).
+generalize (BigN.spec_tail0 y).
+rewrite Vy.
+intros H.
+specialize (H (eq_refl Lt)).
+destruct H as [yn [Hy1 Hy2]].
+rewrite BigN.spec_compare.
+rewrite BigN.spec_even.
+rewrite BigN.spec_shiftr_pow2.
+rewrite Vy.
+rewrite BigN.spec_pred_pos ; rewrite BigZ.spec_to_Z_pos ; rewrite Ezx ; try easy.
+unfold adjust_pos.
+change (Z.pow_pos radix x) with (Z.pow_pos (Zpos 2) x).
+rewrite <- Pos2Z.inj_pow_pos.
+assert (H2x : (2^x)%positive = xO (Z.to_pos (2 ^ (Zpos x - 1)))).
+  clear.
+  rewrite <- (Z2Pos.inj_pow_pos 2) by easy.
+  change (Z.pow_pos 2 x) with (Zpower 2 (Zpos x)).
+  pattern (Zpos x) at 1 ; replace (Zpos x) with (1 + (Zpos x - 1))%Z by ring.
+  rewrite Zpower_plus ; try easy.
+  rewrite Z2Pos.inj_mul ; try easy.
+  apply (Zpower_gt_0 radix2).
+  now apply (Zlt_0_le_0_pred (Zpos x)).
+  now apply (Zlt_0_le_0_pred (Zpos x)).
+rewrite H2x.
+case Zcompare_spec ; intros Hc.
+- rewrite Zeven_mod.
+  (* Z_div_plus_full *)
+  case Zcompare_spec ; intros Hr.
+  + rewrite Zeq_bool_true.
+    destruct r as [|r|r] ; try easy.
+    2: now elim (proj1 H3).
+    destruct k ; try easy.
+    contradict H2.
+    rewrite Hy2, Zplus_0_r.
+    change (Z.pow_pos radix x) with (Zpower 2 (Zpos x)).
+    replace (Zpos x) with (Zpos x - 1 - [BigN.tail0 y]%bigN + 1 + [BigN.tail0 y]%bigN)%Z by ring.
+    rewrite <- (Zmult_comm (Zpos q)).
+    rewrite Zpower_plus.
+    2: clear -Hc ; omega.
+    2: apply BigN.spec_pos.
+    rewrite Zmult_assoc.
+    intros H.
+    apply Z.mul_reg_r in H.
+    2: apply Zgt_not_eq, (Zpower_gt_0 radix2), BigN.spec_pos.
+    revert H.
+    rewrite Zpower_plus.
+    change (2 ^ 1)%Z with 2%Z.
+    clear ; intros.
+    apply (f_equal Zeven) in H.
+    revert H.
+    rewrite Zeven_2xp1.
+    rewrite Zmult_assoc, Zeven_mult.
+    now rewrite orb_comm.
+    clear -Hc ; omega.
+    easy.
+    rewrite H2.
+    admit.
+  + contradict H2.
+    rewrite Hy2, Hr.
+    admit.
+  + rewrite Zeq_bool_false.
+    clear -Hr.
+    now destruct r as [|r|r].
+    admit.
+- replace r with (Zpos (Z.to_pos (2^(Zpos x - 1)))).
+  now rewrite Zcompare_refl.
+  rewrite Z2Pos.id.
+  2: apply (Zpower_gt_0 radix2) ; clear ; zify ; omega.
+  replace (Zpower 2 (Zpos x - 1)) with (Zmod (Zpos y') (Zpower 2 (Zpos x))).
+  apply sym_eq.
+  apply Z.mod_unique_pos with (1 := H3) (2 := H2).
+  rewrite Hy2, Hc.
+  rewrite Zmult_plus_distr_l, (Zmult_comm 2), Zmult_1_l.
+  rewrite <- Zmult_assoc.
+  rewrite <- (Zpower_plus 2 1).
+  ring_simplify (1 + (Zpos x - 1))%Z.
+  rewrite Zplus_comm, Z_mod_plus_full.
+  apply Zmod_small.
+  split.
+  apply (Zpower_ge_0 radix2).
+  apply (Zpower_lt radix2).
+  easy.
+  apply (Z.lt_pred_l (Zpos x)).
+  easy.
+  now case x.
+- replace r with Z0.
+  reflexivity.
+  apply sym_eq.
+  replace Z0 with (Zmod (Zpos y') (Zpower 2 (Zpos x))).
+  apply Z.mod_unique_pos with (1 := H3) (2 := H2).
+  rewrite Hy2.
+  admit.
+Qed.
 
 Lemma mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
