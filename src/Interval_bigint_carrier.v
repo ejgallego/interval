@@ -427,20 +427,31 @@ rewrite BigN.spec_pred_pos ; rewrite BigZ.spec_to_Z_pos ; rewrite Ezx ; try easy
 unfold adjust_pos.
 change (Z.pow_pos radix x) with (Z.pow_pos (Zpos 2) x).
 rewrite <- Pos2Z.inj_pow_pos.
+assert (Hp : (0 <= Zpos x - 1)%Z).
+  now apply (Zlt_0_le_0_pred (Zpos x)).
 assert (H2x : (2^x)%positive = xO (Z.to_pos (2 ^ (Zpos x - 1)))).
-  clear.
+  clear -Hp.
   rewrite <- (Z2Pos.inj_pow_pos 2) by easy.
   change (Z.pow_pos 2 x) with (Zpower 2 (Zpos x)).
   pattern (Zpos x) at 1 ; replace (Zpos x) with (1 + (Zpos x - 1))%Z by ring.
-  rewrite Zpower_plus ; try easy.
+  rewrite Zpower_plus by easy.
   rewrite Z2Pos.inj_mul ; try easy.
-  apply (Zpower_gt_0 radix2).
-  now apply (Zlt_0_le_0_pred (Zpos x)).
-  now apply (Zlt_0_le_0_pred (Zpos x)).
+  now apply (Zpower_gt_0 radix2).
 rewrite H2x.
 case Zcompare_spec ; intros Hc.
 - rewrite Zeven_mod.
-  (* Z_div_plus_full *)
+  assert (Hy': (Zpos y' / Zpower 2 (Zpos x - 1) = Zpos q * 2 + r / Zpower 2 (Zpos x - 1))%Z).
+    rewrite H2.
+    rewrite Zplus_comm, Zmult_comm.
+    change (Z.pow_pos radix x) with (Zpower 2 (Zpos x)).
+    pattern (Zpos x) at 1 ; replace (Zpos x) with (1 + (Zpos x - 1))%Z by ring.
+    rewrite Zpower_plus by easy.
+    rewrite Zmult_assoc.
+    rewrite (Zplus_comm (Zpos q * 2)).
+    apply Z_div_plus_full.
+    now apply Zgt_not_eq, (Zpower_gt_0 radix2).
+  rewrite Hy'.
+  rewrite Zplus_comm, Z_mod_plus_full.
   case Zcompare_spec ; intros Hr.
   + rewrite Zeq_bool_true.
     destruct r as [|r|r] ; try easy.
@@ -459,7 +470,8 @@ case Zcompare_spec ; intros Hc.
     apply Z.mul_reg_r in H.
     2: apply Zgt_not_eq, (Zpower_gt_0 radix2), BigN.spec_pos.
     revert H.
-    rewrite Zpower_plus.
+    rewrite Zpower_plus ; try easy.
+    2: clear -Hc ; omega.
     change (2 ^ 1)%Z with 2%Z.
     clear ; intros.
     apply (f_equal Zeven) in H.
@@ -467,17 +479,64 @@ case Zcompare_spec ; intros Hc.
     rewrite Zeven_2xp1.
     rewrite Zmult_assoc, Zeven_mult.
     now rewrite orb_comm.
-    clear -Hc ; omega.
+    rewrite Zdiv_small.
     easy.
-    rewrite H2.
-    admit.
+    split.
+    apply H3.
+    rewrite Z2Pos.id in Hr.
+    exact Hr.
+    now apply (Zpower_gt_0 radix2).
   + contradict H2.
     rewrite Hy2, Hr.
-    admit.
+    rewrite Z2Pos.id.
+    2: apply (Zpower_gt_0 radix2) ; clear ; zify ; omega.
+    change (Z.pow_pos radix x) with (Zpower 2 (Zpos x)).
+    pattern (Zpos x) at 1 ; replace (Zpos x) with (1 + (Zpos x - 1))%Z by ring.
+    rewrite Zpower_plus by easy.
+    change (2 ^ 1)%Z with 2%Z.
+    replace (2 * 2 ^ (Zpos x - 1) * Zpos q + 2 ^ (Zpos x - 1))%Z with ((1 + Zpos q * 2) * 2 ^ (Zpos x - 1))%Z by ring.
+    replace (Zpos x - 1)%Z with (Zpos x - 2 - [BigN.tail0 y]%bigN + ([BigN.tail0 y]%bigN + 1))%Z by ring.
+    rewrite Zpower_plus.
+    2: clear -Hc ; omega.
+    2: apply Z.le_le_succ_r, BigN.spec_pos.
+    intros H2.
+    apply (f_equal (fun v => Zmod v (2 ^ ([BigN.tail0 y]%bigN + 1)))) in H2.
+    revert H2.
+    rewrite Zmult_assoc, Z_mod_mult.
+    rewrite Zmult_plus_distr_l.
+    rewrite (Zmult_comm 2), <- Zmult_assoc, Zmult_1_l.
+    rewrite Zplus_comm, (Zmult_comm 2).
+    rewrite <- (Zpower_plus 2 _ 1).
+    2: apply BigN.spec_pos.
+    2: easy.
+    rewrite Z_mod_plus_full.
+    rewrite Zmod_small.
+    apply Zgt_not_eq.
+    apply (Zpower_gt_0 radix2).
+    apply BigN.spec_pos.
+    split.
+    apply (Zpower_ge_0 radix2).
+    apply (Zpower_lt radix2).
+    apply Z.le_le_succ_r, BigN.spec_pos.
+    apply Z.lt_succ_diag_r.
   + rewrite Zeq_bool_false.
     clear -Hr.
     now destruct r as [|r|r].
-    admit.
+    rewrite Zmod_small.
+    apply Zgt_not_eq.
+    apply Zgt_lt, Zle_succ_gt.
+    apply Z.div_le_lower_bound.
+    now apply (Zpower_gt_0 radix2).
+    rewrite Zmult_1_r.
+    rewrite Z2Pos.id in Hr.
+    now apply Zlt_le_weak.
+    now apply (Zpower_gt_0 radix2).
+    split.
+    now apply BigNumPrelude.div_le_0.
+    apply Z.div_lt_upper_bound.
+    now apply (Zpower_gt_0 radix2).
+    rewrite <- (Zpower_plus 2 _ 1) by easy.
+    now ring_simplify (Zpos x - 1 + 1)%Z.
 - replace r with (Zpos (Z.to_pos (2^(Zpos x - 1)))).
   now rewrite Zcompare_refl.
   rewrite Z2Pos.id.
@@ -505,7 +564,12 @@ case Zcompare_spec ; intros Hc.
   replace Z0 with (Zmod (Zpos y') (Zpower 2 (Zpos x))).
   apply Z.mod_unique_pos with (1 := H3) (2 := H2).
   rewrite Hy2.
-  admit.
+  replace [BigN.tail0 y]%bigN with ([BigN.tail0 y]%bigN - Zpos x + Zpos x)%Z by ring.
+  rewrite Zpower_plus.
+  rewrite Zmult_assoc.
+  apply Z_mod_mult.
+  clear -Hc ; omega.
+  easy.
 Qed.
 
 Lemma mantissa_div_correct :
