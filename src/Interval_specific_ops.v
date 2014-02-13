@@ -842,6 +842,51 @@ Definition add_slow_aux1 mode prec sx sy mx my e :=
     | Lt => round_aux mode prec sy (mantissa_sub my mx) e pos_Eq
     end.
 
+Lemma add_slow_aux1_correct :
+  forall mode p sx sy mx my e,
+  valid_mantissa mx ->
+  valid_mantissa my ->
+  FtoX (toF (add_slow_aux1 mode p sx sy mx my e)) = FtoX (Fround_at_prec mode (prec p) (Fadd_slow_aux1 radix sx sy (MtoP mx) (MtoP my) (EtoZ e))).
+Proof.
+intros mode p sx sy mx my e Vx Vy.
+unfold add_slow_aux1, Fadd_slow_aux1.
+case eqb.
+- destruct (mantissa_add_correct mx my Vx Vy) as [H1 H2].
+  rewrite <- H1.
+  now apply round_aux_correct.
+- change (Zpos (MtoP mx) + Zneg (MtoP my))%Z with (Zpos (MtoP mx) - Zpos (MtoP my))%Z.
+  rewrite (mantissa_cmp_correct mx my Vx Vy).
+  rewrite Z.compare_sub.
+  case_eq (Zpos (MtoP mx) - Zpos (MtoP my))%Z ; unfold Zcompare.
+  + intros H.
+    simpl.
+    generalize (mantissa_sign_correct mantissa_zero).
+    case mantissa_sign.
+    easy.
+    rewrite mantissa_zero_correct.
+    now intros [|].
+  + intros m H.
+    assert (H': (Zpos (MtoP my) < Zpos (MtoP mx))%Z).
+      clear -H ; zify ; omega.
+    destruct (mantissa_sub_correct mx my Vx Vy H') as [H1 H2].
+    rewrite round_aux_correct by exact H2.
+    rewrite H1.
+    simpl in H.
+    rewrite Z.pos_sub_gt in H by exact H'.
+    injection H.
+    now intros ->.
+  + intros m H.
+    assert (H': (Zpos (MtoP mx) < Zpos (MtoP my))%Z).
+      clear -H ; zify ; omega.
+    destruct (mantissa_sub_correct my mx Vy Vx H') as [H1 H2].
+    rewrite round_aux_correct by exact H2.
+    rewrite H1.
+    simpl in H.
+    rewrite Z.pos_sub_lt in H by exact H'.
+    injection H.
+    now intros ->.
+Qed.
+
 Definition add_slow_aux2 mode prec sx sy mx my ex ey :=
   let nb := exponent_sub ex ey in
   match exponent_cmp nb exponent_zero with
@@ -849,6 +894,38 @@ Definition add_slow_aux2 mode prec sx sy mx my ex ey :=
   | Lt => add_slow_aux1 mode prec sx sy mx (mantissa_shl my (exponent_neg nb)) ex
   | Eq => add_slow_aux1 mode prec sx sy mx my ex
   end.
+
+Lemma add_slow_aux2_correct :
+  forall mode p sx sy mx my ex ey,
+  valid_mantissa mx ->
+  valid_mantissa my ->
+  FtoX (toF (add_slow_aux2 mode p sx sy mx my ex ey)) = FtoX (Fround_at_prec mode (prec p) (Fadd_slow_aux2 radix sx sy (MtoP mx) (MtoP my) (EtoZ ex) (EtoZ ey))).
+Proof.
+intros mode p sx sy mx my ex ey Vx Vy.
+unfold add_slow_aux2, Fadd_slow_aux2.
+rewrite exponent_cmp_correct, exponent_sub_correct, exponent_zero_correct.
+case_eq (EtoZ ex - EtoZ ey)%Z ; unfold Zcompare.
+- intros _.
+  now apply add_slow_aux1_correct.
+- intros d Hd.
+  generalize (mantissa_shl_correct d mx (exponent_sub ex ey) Vx).
+  intros H'.
+  destruct H' as [H1 H2].
+  rewrite <- Hd.
+  apply exponent_sub_correct.
+  rewrite add_slow_aux1_correct by assumption.
+  now rewrite H1.
+- intros d Hd.
+  generalize (mantissa_shl_correct d my (exponent_neg (exponent_sub ex ey)) Vy).
+  intros H'.
+  destruct H' as [H1 H2].
+  change (Zpos d) with (Zopp (Zneg d)).
+  rewrite <- Hd.
+  rewrite exponent_neg_correct.
+  apply f_equal, exponent_sub_correct.
+  rewrite add_slow_aux1_correct by assumption.
+  now rewrite H1.
+Qed.
 
 Definition add_slow mode prec (x y : type) :=
   match x, y with
@@ -864,9 +941,69 @@ Definition add_slow mode prec (x y : type) :=
     end
   end.
 
+Lemma add_slow_correct :
+  forall mode p x y, FtoX (toF (add_slow mode p x y)) = FtoX (Fadd_slow mode (prec p) (toF x) (toF y)).
+Proof.
+intros mode p x y.
+unfold add_slow, Fadd_slow, Fadd_slow_aux.
+destruct x as [|mx ex] ; try easy.
+destruct y as [|my ey].
+simpl.
+now destruct (mantissa_sign mx).
+unfold toF.
+generalize (mantissa_sign_correct mx).
+case_eq (mantissa_sign mx).
+- intros Hx _.
+  generalize (mantissa_sign_correct my).
+  destruct (mantissa_sign my) as [|sy ny].
+  now rewrite Hx.
+  intros [My Vy].
+  rewrite <- round_aux_correct by exact Vy.
+  case round_aux.
+  reflexivity.
+  intros m e.
+  generalize (mantissa_sign_correct m).
+  case_eq (mantissa_sign m).
+  simpl.
+  now intros ->.
+  intros s n.
+  simpl.
+  now intros ->.
+- intros sx nx Hx [Hmx Vx].
+  generalize (mantissa_sign_correct my).
+  destruct (mantissa_sign my) as [|sy ny].
+  + intros Hy.
+    rewrite <- round_aux_correct by exact Vx.
+    case round_aux.
+    reflexivity.
+    intros m e.
+    generalize (mantissa_sign_correct m).
+    case_eq (mantissa_sign m).
+    simpl.
+    now intros ->.
+    intros s n.
+    simpl.
+    now intros ->.
++ intros [Hmy Vy].
+  rewrite <- (add_slow_aux2_correct mode p sx sy nx ny ex ey Vx Vy).
+  case add_slow_aux2.
+  reflexivity.
+  intros m e.
+  generalize (mantissa_sign_correct m).
+  case_eq (mantissa_sign m).
+  simpl.
+  now intros ->.
+  simpl.
+  now intros s n ->.
+Qed.
+
 Definition add := add_slow.
 
-Axiom add_correct : forall mode p x y, FtoX (toF (add mode p x y)) = FtoX (Fadd mode (prec p) (toF x) (toF y)).
+Lemma add_correct :
+  forall mode p x y, FtoX (toF (add mode p x y)) = FtoX (Fadd mode (prec p) (toF x) (toF y)).
+Proof.
+exact add_slow_correct.
+Qed.
 
 (*
  * sub_exact
