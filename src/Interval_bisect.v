@@ -7,6 +7,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_definitions.
 Require Import Interval_generic_proof.
 Require Import Interval_interval.
+Require Import Interval_taylor_model.
 
 Inductive unary_op : Set :=
   | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
@@ -1392,5 +1393,176 @@ exact (proj1 (H xi)).
 Qed.
 
 End DiffValuator.
+
+Module TaylorValuator.
+
+Module TM := TM I.
+
+Definition dummy := TM.const I.nai.
+
+Lemma approximates_dummy :
+  forall xi f, f Xnan = Xnan -> TM.approximates xi f dummy.
+Proof.
+intros xi f.
+unfold TM.approximates.
+split ; try easy.
+- unfold TM.TMI.Imid.
+  rewrite I.bnd_correct.
+  unfold not_empty.
+  destruct (I.convert_bound (I.midpoint xi)) as [|x].
+  now exists R0.
+  exists x.
+  now split ; apply Rle_refl.
+- simpl.
+  intros u.
+  split.
+  + simpl.
+    apply TM.TMI.Imask_contains.
+    admit.
+    rewrite <- (Rminus_0_r 0).
+    apply I.sub_correct with (x := Xreal 0) (y := Xreal 0).
+    rewrite I.nai_correct.
+    easy.
+    unfold TM.TMI.Imid.
+    admit.
+  + unfold TM.TMI.Imid.
+    rewrite I.bnd_correct.
+    destruct (I.midpoint_correct xi) as [H1 H2].
+    admit.
+    rewrite H1.
+    simpl.
+    destruct (I.convert xi) as [|xl xu].
+    easy.
+    apply contains_le.
+    now rewrite <- H1.
+- simpl.
+  intros x Hx.
+  admit.
+Qed.
+
+Definition operations prec deg xi :=
+  Build_operations
+   (fun _ => dummy) (* fromZ *)
+   (fun o =>
+    match o with
+    | Exp => TM.exp (prec, deg) xi
+    | _ => fun _ => dummy
+    end)
+   (fun o =>
+    match o with
+    | Add => TM.add (prec, deg) xi
+    | _ => fun _ _ => dummy
+    end)
+   (fun _ => Xund) (* sign_strict *).
+
+Definition eval prec deg xi :=
+  eval_generic dummy (operations prec deg xi).
+
+Lemma approximates_ext_l :
+  forall f g h xi,
+  (forall x, f x = g x) ->
+  TM.approximates xi f h ->  TM.approximates xi g h.
+Proof.
+intros f g h xi H [H1 H2 H3 H4].
+split ; try easy.
+now rewrite <- H.
+intros u.
+destruct (H4 u) as [H5 H6 H7].
+split ; try easy.
+simpl.
+intros yi Hy.
+destruct (H7 yi Hy) as [alf [H8 H9 H10]].
+exists alf.
+split ; try easy.
+intros x Hx.
+rewrite <- H.
+now apply H10.
+Qed.
+
+Theorem eval_correct_aux :
+  forall prec deg prog bounds n xi x,
+  contains (I.convert xi) (Xreal x) ->
+  TM.approximates xi
+    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan)
+    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) dummy).
+Proof.
+intros prec deg prog bounds n xi x Hx.
+unfold eval, eval_ext.
+rewrite rev_formula.
+apply (approximates_ext_l (fun t =>
+  nth n (fold_right (fun y l => eval_generic_body Xnan ext_operations l y)
+    (t :: map (fun b => Xmask (xreal_from_bp b) t) bounds) (rev prog)) Xnan)).
+intros t.
+apply (f_equal (fun v => nth n v _)).
+apply sym_eq, rev_formula.
+revert n.
+induction (rev prog) as [|t l].
+- intros [|n].
+  + apply TM.var_correct.
+    eexists.
+    exact Hx.
+  + simpl.
+    destruct (le_or_lt (length bounds) n) as [H|H].
+    rewrite nth_overflow by now rewrite map_length.
+    apply (approximates_ext_l (fun _ => Xnan)).
+    intros t.
+    apply sym_eq, nth_overflow.
+    now rewrite map_length.
+    now apply approximates_dummy.
+    assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
+    pose (b := Bproof R0 I.nai H0).
+    unfold dummy.
+    change I.nai with (interval_from_bp b).
+    rewrite (map_nth (fun v => TM.const (interval_from_bp v))).
+    apply (approximates_ext_l (fun t => Xmask (xreal_from_bp (nth n bounds b)) t)).
+    intros t.
+    rewrite (nth_indep _ _ (Xmask (xreal_from_bp b) t)).
+    apply sym_eq, (map_nth (fun v => Xmask (xreal_from_bp v) t)).
+    now rewrite map_length.
+    destruct (nth n bounds b) as [t ti Ht].
+    simpl.
+    apply TM.const_correct with (1 := Ht).
+    eexists.
+    exact Hx.
+- intros [|n].
+  2: apply IHl.
+  simpl.
+  destruct t as [uo n1|bo n1 n2].
+  + generalize (IHl n1).
+    destruct uo.
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+    admit.
+    apply TM.exp_correct.
+    admit.
+  + generalize (IHl n1) (IHl n2).
+    destruct bo.
+    apply TM.add_correct.
+    admit.
+    admit.
+    admit.
+Qed.
+
+Theorem eval_correct_ext :
+  forall prec deg prog bounds n yi,
+  I.extension
+    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan)
+    (fun b => TM.eval (prec,deg) yi b (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) dummy)).
+Proof.
+intros prec deg prog bounds n yi xi x Hx.
+pose (f x := nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
+pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) dummy).
+apply (@TM.eval_correct (prec,deg) yi f ft) with (2 := Hx).
+eapply eval_correct_aux.
+(* ??? *)
+Admitted.
+
+End TaylorValuator.
 
 End IntervalAlgos.
