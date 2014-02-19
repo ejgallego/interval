@@ -8,7 +8,245 @@ Require Import Interval_definitions.
 Require Import Interval_generic_proof.
 Require Import Interval_interval.
 
+Inductive unary_op : Set :=
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
+
+Inductive binary_op : Set :=
+  | Add | Sub | Mul | Div.
+
+Inductive term : Set :=
+  | Unary : unary_op -> nat -> term
+  | Binary : binary_op -> nat -> nat -> term.
+
+Set Implicit Arguments.
+
+Record operations (A : Type) : Type :=
+  { constant : Z -> A
+  ; unary : unary_op -> A -> A
+  ; binary : binary_op -> A -> A -> A
+  ; sign : A -> Xcomparison }.
+
+Unset Implicit Arguments.
+
+Definition eval_generic_body {A} def (ops : operations A) values op :=
+  let nth n := nth n values def in
+  match op with
+  | Unary o u => unary ops o (nth u)
+  | Binary o u v => binary ops o (nth u) (nth v)
+  end :: values.
+
+Definition eval_generic {A} def (ops : operations A) :=
+  fold_left (eval_generic_body def ops).
+
+Lemma rev_formula :
+  forall A formula terms def (ops : operations A),
+  eval_generic def ops formula terms =
+  fold_right (fun y x => eval_generic_body def ops x y) terms (rev formula).
+intros.
+pattern formula at 1 ; rewrite <- rev_involutive.
+unfold eval_generic, eval_generic_body.
+rewrite <- fold_left_rev_right.
+rewrite rev_involutive.
+apply refl_equal.
+Qed.
+
+Theorem eval_inductive_prop :
+  forall A B P defA defB (opsA : operations A) (opsB : operations B),
+  P defA defB ->
+ (forall o a b, P a b -> P (unary opsA o a) (unary opsB o b)) ->
+ (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
+  forall inpA inpB,
+ (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
+  forall prog,
+  forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
+intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
+do 2 rewrite rev_formula.
+induction (rev prog).
+exact Hinp.
+intros [|n].
+simpl.
+case a.
+intros o n.
+apply Hun.
+apply IHl.
+intros o n1 n2.
+apply Hbin.
+apply IHl.
+apply IHl.
+simpl.
+apply IHl.
+Qed.
+
+Definition ext_operations :=
+  Build_operations (fun x => Xreal (Z2R x))
+   (fun o =>
+    match o with
+    | Neg => Xneg
+    | Abs => Xabs
+    | Inv => Xinv
+    | Sqr => Xsqr
+    | Sqrt => Xsqrt
+    | Cos => Xcos
+    | Sin => Xsin
+    | Tan => Xtan
+    | Atan => Xatan
+    | Exp => Xexp
+    | PowerInt n => fun x => Xpower_int x n
+    end)
+   (fun o =>
+    match o with
+    | Add => Xadd
+    | Sub => Xsub
+    | Mul => Xmul
+    | Div => Xdiv
+    end)
+   (fun x => Xcmp x (Xreal 0)).
+
+Definition eval_ext :=
+  eval_generic (Xreal 0) ext_operations.
+
+Theorem eval_inductive_prop_fun :
+  forall A B P defA defB (opsA : operations A) (opsB : operations B),
+ (forall a1 a2, (forall x, a1 x = a2 x) -> forall b, P a1 b -> P a2 b) ->
+  P (fun _ : ExtendedR => defA) defB ->
+ (forall o a b, P a b -> P (fun x => unary opsA o (a x)) (unary opsB o b)) ->
+ (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (fun x => binary opsA o (a1 x) (a2 x)) (binary opsB o b1 b2)) ->
+  forall inpA inpB,
+ (forall n, P (fun x => nth n (inpA x) defA) (nth n inpB defB)) ->
+  forall prog,
+  forall n, P (fun x => nth n (eval_generic defA opsA prog (inpA x)) defA) (nth n (eval_generic defB opsB prog inpB) defB).
+intros A B P defA defB opsA opsB HP Hdef Hun Hbin inpA inpB Hinp prog n.
+apply HP with (fun x => nth n (fold_right (fun y x => eval_generic_body defA opsA x y) (inpA x) (rev prog)) defA).
+intros x.
+now rewrite rev_formula.
+rewrite rev_formula.
+generalize n. clear n.
+induction (rev prog).
+exact Hinp.
+intros [|n].
+simpl.
+case a.
+intros o n.
+refine (Hun _ _ _ _).
+apply IHl.
+intros o n1 n2.
+refine (Hbin _ _ _ _ _ _ _).
+apply IHl.
+apply IHl.
+simpl.
+apply IHl.
+Qed.
+
+Definition real_operations :=
+  Build_operations Z2R
+   (fun o =>
+    match o with
+    | Neg => Ropp
+    | Abs => Rabs
+    | Inv => Rinv
+    | Sqr => Rsqr
+    | Sqrt => R_sqrt.sqrt
+    | Cos => cos
+    | Sin => sin
+    | Tan => tan
+    | Atan => atan
+    | Exp => exp
+    | PowerInt n => fun x => powerRZ x n
+    end)
+   (fun o =>
+    match o with
+    | Add => Rplus
+    | Sub => Rminus
+    | Mul => Rmult
+    | Div => Rdiv
+    end)
+   (fun x => Xcmp (Xreal x) (Xreal 0)).
+
+Definition eval_real :=
+  eval_generic R0 real_operations.
+
+Lemma rewrite_inv_diff :
+  forall u u',
+  Xmul u' (Xneg (Xsqr (Xinv u))) = Xneg (Xdiv u' (Xsqr u)).
+intros.
+rewrite Xmul_Xneg_distr_r.
+apply f_equal.
+rewrite Xdiv_split.
+apply f_equal.
+unfold Xsqr.
+apply sym_eq.
+apply Xinv_Xmul_distr.
+Qed.
+
+Lemma rewrite_div_diff :
+  forall u v u' v',
+  Xdiv (Xsub u' (Xmul v' (Xdiv u v))) v = Xdiv (Xsub (Xmul u' v) (Xmul v' u)) (Xmul v v).
+intros.
+repeat rewrite Xdiv_split.
+rewrite Xinv_Xmul_distr.
+repeat rewrite <- Xmul_assoc.
+apply (f_equal (fun x => Xmul x (Xinv v))).
+pattern u' at 1 ; rewrite <- Xmul_1_r.
+pattern (Xmul (Xmul v' u) (Xinv v)) ; rewrite <- Xmask_Xfun_r with (1 := Xmul_propagate).
+rewrite Xfun_Xmask_r with (1 := Xsub_propagate).
+rewrite <- Xfun_Xmask_l with (1 := Xsub_propagate).
+rewrite <- Xfun_Xmask_r with (1 := Xmul_propagate).
+rewrite <- Xmul_Xinv.
+repeat rewrite Xsub_split.
+rewrite <- Xmul_assoc.
+rewrite <- Xmul_Xneg_distr_l.
+apply sym_eq.
+apply Xmul_Xadd_distr_r.
+Qed.
+
+Lemma xreal_to_real :
+  forall (P1 : ExtendedR -> Prop) (P2 : R -> Prop),
+  (P1 Xnan -> forall r, P2 r) ->
+  (forall r, P1 (Xreal r) -> P2 r) ->
+  forall prog terms n,
+  P1 (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  P2 (nth n (eval_real prog terms) 0%R).
+Proof.
+intros P1 P2 HP1 HP2 prog terms n.
+unfold eval_ext, eval_real.
+refine (_ (eval_inductive_prop _ _ (fun a b => match a with Xreal a => a = b | _ => True end)
+  (Xreal 0) R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
+case (nth n (eval_generic (Xreal 0) ext_operations prog (map Xreal terms)) (Xreal 0)).
+intros _ H.
+now apply HP1.
+intros y H.
+rewrite H.
+apply HP2.
+apply refl_equal.
+(* unary *)
+destruct a as [|a].
+now destruct o.
+intros b H.
+rewrite H.
+destruct o ; try easy ; simpl.
+now case (is_zero b).
+now case (is_negative b).
+unfold Xtan, Xdiv, Xsin, Xcos.
+now case (is_zero (cos b)).
+fold (Xpower_int (Xreal b) n0).
+generalize (Xpower_int_correct n0 (Xreal b)).
+now case Xpower_int.
+(* binary *)
+destruct a1 as [|a1].
+now destruct o.
+destruct a2 as [|a2].
+now destruct o.
+intros b1 b2 H1 H2.
+rewrite H1, H2.
+destruct o ; try easy ; simpl.
+now destruct (is_zero b2).
+(* . *)
+intros n0.
+now rewrite map_nth.
+Qed.
+
 Module IntervalAlgos (I : IntervalOps).
+
 Record check := {
   check_f : I.type -> bool;
   check_p : ExtendedR -> Prop;
@@ -116,6 +354,478 @@ Definition lookup_1d fi l u extend steps :=
       lookup_1d_main fi l u output steps
     else output
   end.
+
+Inductive bound_proof :=
+  | Bproof : forall x xi, contains (I.convert xi) (Xreal x) -> bound_proof.
+
+Definition real_from_bp v := match v with Bproof x _ _ => x end.
+Definition xreal_from_bp v := match v with Bproof x _ _ => Xreal x end.
+Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
+
+Lemma iterated_bnd_nth :
+  forall bounds n,
+  contains (I.convert (nth n (map interval_from_bp bounds) I.nai))
+    (nth n (map xreal_from_bp bounds) (Xreal R0)).
+Proof.
+intros.
+assert (contains (I.convert I.nai) (Xreal 0)).
+rewrite I.nai_correct. exact I.
+pose (b := Bproof R0 I.nai H).
+change (Xreal 0) with (xreal_from_bp b).
+change I.nai with (interval_from_bp b).
+do 2 rewrite map_nth.
+now case (nth n bounds b).
+Qed.
+
+Module BndValuator.
+
+Definition operations prec :=
+  Build_operations I.fromZ
+   (fun o =>
+    match o with
+    | Neg => I.neg
+    | Abs => I.abs
+    | Inv => I.inv prec
+    | Sqr => I.sqr prec
+    | Sqrt => I.sqrt prec
+    | Cos => I.cos prec
+    | Sin => I.sin prec
+    | Tan => I.tan prec
+    | Atan => I.atan prec
+    | Exp => I.exp prec
+    | PowerInt n => fun x => I.power_int prec x n
+    end)
+   (fun o =>
+    match o with
+    | Add => I.add prec
+    | Sub => I.sub prec
+    | Mul => I.mul prec
+    | Div => I.div prec
+    end)
+    I.sign_strict.
+
+Definition eval prec :=
+  eval_generic I.nai (operations prec).
+
+Lemma eval_correct_aux :
+  forall prec prog terms bounds,
+ (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms (Xreal 0))) ->
+  forall n,
+  contains (I.convert (nth n (eval prec prog bounds) I.nai))
+   (nth n (eval_ext prog terms) (Xreal 0)).
+intros prec prog terms bounds Hinp.
+unfold eval, eval_ext.
+apply (eval_inductive_prop _ _ (fun a b => contains (I.convert a) b)).
+(* . *)
+rewrite I.nai_correct.
+exact I.
+(* unary *)
+destruct o ; simpl ;
+  [ apply I.neg_correct
+  | apply I.abs_correct
+  | apply I.inv_correct
+  | apply I.sqr_correct
+  | apply I.sqrt_correct
+  | apply I.cos_correct
+  | apply I.sin_correct
+  | apply I.tan_correct
+  | apply I.atan_correct
+  | apply I.exp_correct
+  | apply I.power_int_correct ].
+(* binary *)
+destruct o ; simpl ;
+  [ apply I.add_correct
+  | apply I.sub_correct
+  | apply I.mul_correct
+  | apply I.div_correct ].
+(* . *)
+exact Hinp.
+Qed.
+
+Theorem eval_correct :
+  forall prec prog bounds n,
+  contains
+    (I.convert (nth n (eval prec prog (map interval_from_bp bounds)) I.nai))
+    (nth n (eval_ext prog (map xreal_from_bp bounds)) (Xreal 0)).
+Proof.
+intros prec prog bounds.
+apply eval_correct_aux.
+apply iterated_bnd_nth.
+Qed.
+
+Theorem eval_correct_ext :
+  forall prec prog bounds n,
+  I.extension
+    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
+    (fun b => nth n (eval prec prog (b :: map interval_from_bp bounds)) I.nai).
+Proof.
+intros prec prog bounds n xi x Hx.
+generalize n. clear n.
+apply eval_correct_aux.
+intros [|n].
+exact Hx.
+apply iterated_bnd_nth.
+Qed.
+
+End BndValuator.
+
+Module DiffValuator.
+
+Definition diff_operations A (ops : @operations A) :=
+  Build_operations
+   (fun x => (constant ops x, constant ops 0))
+   (fun o x =>
+    match x with
+    | (v, d) =>
+      match o with
+      | Neg => let f := unary ops Neg in (f v, f d)
+      | Abs => let w := unary ops Abs v in (w,
+        match sign ops v with Xlt => unary ops Neg d | Xgt => d | _ => unary ops Inv (constant ops 0) end)
+      | Inv => let w := unary ops Inv v in (w,
+        binary ops Mul d (unary ops Neg (unary ops Sqr w)))
+      | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
+      | Sqrt => let w := unary ops Sqrt v in (w,
+        binary ops Div d (binary ops Add w w))
+      | Cos => (unary ops Cos v,
+        binary ops Mul d (unary ops Neg (unary ops Sin v)))
+      | Sin => (unary ops Sin v,
+        binary ops Mul d (unary ops Cos v))
+      | Tan => let w := unary ops Tan v in (w,
+        binary ops Mul d (binary ops Add (constant ops 1) (unary ops Sqr w)))
+      | Atan => (unary ops Atan v,
+        binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
+      | Exp => let w := unary ops Exp v in (w,
+        binary ops Mul d w)
+      | PowerInt n =>
+        (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
+      end
+    end)
+   (fun o x y =>
+    match x, y with
+    | (vx, dx), (vy, dy) =>
+      match o with
+      | Add => let f := binary ops Add in (f vx vy, f dx dy)
+      | Sub => let f := binary ops Sub in (f vx vy, f dx dy)
+      | Mul => let f := binary ops Mul in (f vx vy,
+        binary ops Add (f dx vy) (f dy vx))
+      | Div => let f := binary ops Div in
+        let w := f vx vy in
+        (w, f (binary ops Sub dx (binary ops Mul dy w)) vy)
+      end
+    end)
+   (fun x => match x with (vx, _) => sign ops vx end).
+
+
+Lemma Xderive_eq :
+  forall g g' f f',
+ (forall x, f x = g x) ->
+ (forall x, f' x = g' x) ->
+  Xderive g g' ->
+  Xderive f f'.
+intros.
+apply Xderive_eq_fun with (1 := H).
+apply Xderive_eq_diff with (1 := H0).
+exact H1.
+Qed.
+
+Lemma unary_diff_correct :
+  forall o f d x,
+  Xderive_pt f x d ->
+  let v := unary (diff_operations _ ext_operations) o (f x, d) in
+  unary ext_operations o (f x) = fst v /\
+  Xderive_pt (fun x0 => unary ext_operations o (f x0)) x (snd v).
+intros o f d x Hd.
+destruct o ; simpl ; repeat split.
+now apply Xderive_pt_neg.
+rewrite is_zero_correct_zero.
+now apply Xderive_pt_abs.
+rewrite rewrite_inv_diff.
+now apply Xderive_pt_inv.
+unfold Xsqr.
+now apply Xderive_pt_mul.
+now apply Xderive_pt_sqrt.
+now apply Xderive_pt_cos.
+now apply Xderive_pt_sin.
+now apply Xderive_pt_tan.
+now apply Xderive_pt_atan.
+now apply Xderive_pt_exp.
+now apply Xderive_pt_power_int.
+Qed.
+
+Lemma binary_diff_correct :
+  forall o f1 f2 d1 d2 x,
+  Xderive_pt f1 x d1 ->
+  Xderive_pt f2 x d2 ->
+  let v := binary (diff_operations _ ext_operations) o (f1 x, d1) (f2 x, d2) in
+  binary ext_operations o (f1 x) (f2 x) = fst v /\
+  Xderive_pt (fun x0 => binary ext_operations o (f1 x0) (f2 x0)) x (snd v).
+intros o f1 f2 d1 d2 x Hd1 Hd2.
+destruct o ; simpl ; repeat split.
+now apply Xderive_pt_add.
+now apply Xderive_pt_sub.
+now apply Xderive_pt_mul.
+rewrite rewrite_div_diff.
+now apply Xderive_pt_div.
+Qed.
+
+Lemma eval_diff_correct :
+  forall prog terms n x,
+  let v := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan) in
+  nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0) = fst v /\
+  Xderive_pt (fun x => nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0)) x (snd v).
+intros prog terms n x.
+(*set (inpA x := x :: map Xreal terms).
+set (inpB := (x, Xmask (Xreal 1) x) :: map (fun v : R => (Xreal v, Xmask (Xreal 0) x)) terms).*)
+refine (eval_inductive_prop_fun _ _ (fun a b => a x = fst b /\ Xderive_pt a x (snd b)) _ _ _ _ _ _ _ _ _ _ _ _ _).
+(* extensionality *)
+intros a1 a2 Heq (bl, br).
+simpl.
+intros (Hl, Hr).
+split.
+now rewrite <- Heq.
+apply Xderive_pt_eq_fun with (2 := Hr).
+intros.
+now apply sym_eq.
+(* default *)
+destruct x ; repeat split.
+(* unary *)
+intros o a (bl, br) (Hl, Hr).
+simpl in Hl.
+rewrite <- Hl.
+now apply unary_diff_correct.
+(* binary *)
+intros o a1 a2 (bl1, br1) (bl2, br2) (Hl1, Hr1) (Hl2, Hr2).
+simpl in Hl1, Hl2.
+rewrite <- Hl1, <- Hl2.
+now apply binary_diff_correct.
+(* inputs *)
+clear n.
+intros [|n].
+simpl.
+repeat split.
+apply Xderive_pt_identity.
+simpl.
+split.
+rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
+rewrite map_map.
+apply (f_equal (fun v => nth n v (Xreal 0))).
+now apply map_ext.
+rewrite <- map_nth.
+rewrite map_map.
+simpl.
+destruct (le_or_lt (length (map (fun _ : R => Xmask (Xreal 0) x) terms)) n).
+rewrite nth_overflow with (1 := H).
+now destruct x.
+replace (nth n (map (fun _ : R => Xmask (Xreal 0) x) terms) Xnan) with (Xmask (Xreal 0) x).
+rewrite map_nth.
+apply Xderive_pt_constant.
+rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
+apply sym_eq.
+exact (map_nth _ _ R0 _).
+Qed.
+
+Lemma unary_diff_bnd_correct :
+  forall prec o f f',
+  let u x := unary (diff_operations _ ext_operations) o (f x, f' x) in
+  forall yi yi' xi,
+ (forall x, contains xi x -> contains (I.convert yi) (f x)) ->
+ (forall x, contains xi x -> contains (I.convert yi') (f' x)) ->
+  let v := unary (diff_operations _ (BndValuator.operations prec)) o (yi, yi') in
+ (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
+Proof.
+intros prec o f f' u yi yi' xi Hf Hf' v x Hx.
+destruct o ; simpl ;
+  repeat first
+  [ apply I.neg_correct
+  | apply I.abs_correct
+  | apply I.inv_correct
+  | apply I.sqr_correct
+  | apply I.sqrt_correct
+  | apply I.cos_correct
+  | apply I.sin_correct
+  | apply I.tan_correct
+  | apply I.atan_correct
+  | apply I.exp_correct
+  | apply I.power_int_correct
+  | apply I.add_correct
+  | apply I.mul_correct
+  | apply I.div_correct
+  | apply I.fromZ_correct
+  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
+  | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
+  try now first [ apply Hf | apply Hf' ].
+(* abs *)
+generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+simpl.
+rewrite is_zero_correct_zero.
+specialize (Hf _ Hx).
+generalize (I.sign_strict_correct yi).
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Lt.
+apply I.neg_correct.
+now apply Hf'.
+apply H.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H).
+simpl.
+rewrite Rcompare_Gt.
+now apply Hf'.
+apply H.
+Qed.
+
+Lemma binary_diff_bnd_correct :
+  forall prec o f1 f2 f1' f2',
+  let u x := binary (diff_operations _ ext_operations) o (f1 x, f1' x) (f2 x, f2' x) in
+  forall yi1 yi2 yi1' yi2' xi,
+ (forall x, contains xi x -> contains (I.convert yi1) (f1 x)) ->
+ (forall x, contains xi x -> contains (I.convert yi2) (f2 x)) ->
+ (forall x, contains xi x -> contains (I.convert yi1') (f1' x)) ->
+ (forall x, contains xi x -> contains (I.convert yi2') (f2' x)) ->
+  let v := binary (diff_operations _ (BndValuator.operations prec)) o (yi1, yi1') (yi2, yi2') in
+ (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
+intros prec o f1 f2 f1' f2' u yi1 yi2 yi1' yi2' xi Hf1 Hf2 Hf1' Hf2' v x Hx.
+destruct o ; simpl ;
+  repeat first
+  [ apply I.add_correct
+  | apply I.sub_correct
+  | apply I.mul_correct
+  | apply I.div_correct ] ;
+  now first [ apply Hf1 | apply Hf2 | apply Hf1' | apply Hf2' ].
+Qed.
+
+Lemma eval_diff_bnd_correct :
+  forall prec prog bounds n,
+  let ff' x := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan) in
+  let ffi' xi := nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
+    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
+  forall xi,
+  nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai = fst (ffi' xi) /\
+ (forall x, contains (I.convert xi) x -> contains (I.convert (snd (ffi' xi))) (snd (ff' x))).
+Proof.
+intros prec prog bounds n ff' ffi' xi.
+split.
+(* . *)
+unfold ffi', BndValuator.eval.
+apply (eval_inductive_prop _ (I.type * I.type) (fun a b => a = fst b)).
+apply refl_equal.
+intros o a (bl, br) H.
+rewrite H.
+now destruct o.
+intros o a1 a2 (bl1, br1) (bl2, br2) H1 H2.
+rewrite H1, H2.
+now destruct o.
+clear.
+intros [|n].
+apply refl_equal.
+simpl.
+rewrite <- (map_nth (@fst I.type I.type)).
+rewrite map_map.
+simpl.
+apply sym_eq.
+exact (map_nth _ _ _ _).
+(* . *)
+refine (let toto := _ in fun x Hx => proj2 (toto x Hx : contains (I.convert (fst (ffi' xi))) (fst (ff' x)) /\ _)).
+apply (eval_inductive_prop_fun (ExtendedR * _) (I.type * _) (fun a b =>
+  forall x, contains (I.convert xi) x ->
+  contains (I.convert (fst b)) (fst (a x)) /\
+  contains (I.convert (snd b)) (snd (a x)))).
+intros f1 f2 Heq (yi, yi') H x Hx.
+rewrite <- Heq.
+now apply H.
+intros _ _.
+simpl.
+rewrite I.nai_correct.
+now split.
+intros o f (yi, yi') H x Hx.
+rewrite (surjective_pairing (f x)).
+split.
+assert (Hf := proj1 (H x Hx)).
+destruct o ; simpl ;
+  [ apply I.neg_correct
+  | apply I.abs_correct
+  | apply I.inv_correct
+  | apply I.sqr_correct
+  | apply I.sqrt_correct
+  | apply I.cos_correct
+  | apply I.sin_correct
+  | apply I.tan_correct
+  | apply I.atan_correct
+  | apply I.exp_correct
+  | apply I.power_int_correct ] ;
+  exact Hf.
+apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
+exact (fun x Hx => proj1 (H x Hx)).
+exact (fun x Hx => proj2 (H x Hx)).
+intros o f1 f2 (yi1, yi1') (yi2, yi2') H1 H2 x Hx.
+rewrite (surjective_pairing (f1 x)).
+rewrite (surjective_pairing (f2 x)).
+split.
+assert (Hf1 := proj1 (H1 x Hx)).
+assert (Hf2 := proj1 (H2 x Hx)).
+destruct o ; simpl ;
+  [ apply I.add_correct
+  | apply I.sub_correct
+  | apply I.mul_correct
+  | apply I.div_correct ] ;
+  first [ exact Hf1 | exact Hf2 ].
+apply (binary_diff_bnd_correct prec o (fun x => fst (f1 x)) (fun x => fst (f2 x)) (fun x => snd (f1 x)) (fun x => snd (f2 x))) with (5 := Hx).
+exact (fun x Hx => proj1 (H1 x Hx)).
+exact (fun x Hx => proj1 (H2 x Hx)).
+exact (fun x Hx => proj2 (H1 x Hx)).
+exact (fun x Hx => proj2 (H2 x Hx)).
+clear.
+intros [|n] x Hx ; simpl.
+split.
+exact Hx.
+apply I.mask_correct.
+apply I.fromZ_correct.
+exact Hx.
+split.
+rewrite <- (map_nth (@fst I.type I.type)).
+rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
+do 4 rewrite map_map.
+simpl.
+replace (map (fun x => interval_from_bp x) bounds) with (map interval_from_bp bounds).
+replace (map (fun x => Xreal (real_from_bp x)) bounds) with (map xreal_from_bp bounds).
+apply iterated_bnd_nth.
+apply map_ext.
+now destruct a.
+apply map_ext.
+now destruct a.
+rewrite <- (map_nth (@snd I.type I.type)).
+rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
+do 4 rewrite map_map.
+simpl.
+assert (H1 := map_length (fun _ => I.mask (I.fromZ 0) xi) bounds).
+assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) bounds).
+destruct (le_or_lt (length bounds) n).
+generalize H. intro H0.
+rewrite <- H1 in H.
+rewrite <- H2 in H0.
+rewrite nth_overflow with (1 := H).
+rewrite nth_overflow with (1 := H0).
+now rewrite I.nai_correct.
+replace (nth n (map (fun _ => I.mask (I.fromZ 0) xi) bounds) I.nai) with (I.mask (I.fromZ 0) xi).
+replace (nth n (map (fun _ => Xmask (Xreal 0) x) bounds) Xnan) with (Xmask (Xreal 0) x).
+apply I.mask_correct.
+apply I.fromZ_correct.
+exact Hx.
+rewrite <- H2 in H.
+rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
+apply sym_eq.
+refine (map_nth _ bounds (Bproof 0 I.nai _) _).
+now rewrite I.nai_correct.
+rewrite <- H1 in H.
+rewrite (nth_indep _ I.nai (I.mask (I.fromZ 0) xi) H).
+apply sym_eq.
+refine (map_nth _ bounds (Bproof 0 I.nai _) _).
+now rewrite I.nai_correct.
+Qed.
 
 Definition diff_refining_points prec xi di yi yi' ym yl yu :=
   match I.sign_large yi' with
@@ -624,735 +1334,28 @@ split ; apply Rle_refl.
 now intros _.
 Qed.
 
-End IntervalAlgos.
-
-Module Valuator (I : IntervalOps).
-
-Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
-
-Inductive binary_op : Set :=
-  | Add | Sub | Mul | Div.
-
-Inductive term : Set :=
-  | Unary : unary_op -> nat -> term
-  | Binary : binary_op -> nat -> nat -> term.
-
-Set Implicit Arguments.
-
-Record operations (A : Type) : Type :=
-  { constant : Z -> A
-  ; unary : unary_op -> A -> A
-  ; binary : binary_op -> A -> A -> A
-  ; sign : A -> Xcomparison }.
-
-Unset Implicit Arguments.
-
-Definition eval_generic_body A def (ops : operations A) values op :=
-  let nth n := nth n values def in
-  match op with
-  | Unary o u => unary ops o (nth u)
-  | Binary o u v => binary ops o (nth u) (nth v)
-  end :: values.
-
-Implicit Arguments eval_generic_body.
-
-Definition eval_generic A def (ops : operations A) :=
-  fold_left (eval_generic_body def ops).
-
-Implicit Arguments eval_generic.
-
-Lemma rev_formula :
-  forall A formula terms def (ops : operations A),
-  eval_generic def ops formula terms =
-  fold_right (fun y x => eval_generic_body def ops x y) terms (rev formula).
-intros.
-pattern formula at 1 ; rewrite <- rev_involutive.
-unfold eval_generic, eval_generic_body.
-rewrite <- fold_left_rev_right.
-rewrite rev_involutive.
-apply refl_equal.
-Qed.
-
-Theorem eval_inductive_prop :
-  forall A B P defA defB (opsA : operations A) (opsB : operations B),
-  P defA defB ->
- (forall o a b, P a b -> P (unary opsA o a) (unary opsB o b)) ->
- (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
-  forall inpA inpB,
- (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
-  forall prog,
-  forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
-intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
-do 2 rewrite rev_formula.
-induction (rev prog).
-exact Hinp.
-intros [|n].
-simpl.
-case a.
-intros o n.
-apply Hun.
-apply IHl.
-intros o n1 n2.
-apply Hbin.
-apply IHl.
-apply IHl.
-simpl.
-apply IHl.
-Qed.
-
-Definition bnd_operations prec :=
-  Build_operations I.fromZ
-   (fun o =>
-    match o with
-    | Neg => I.neg
-    | Abs => I.abs
-    | Inv => I.inv prec
-    | Sqr => I.sqr prec
-    | Sqrt => I.sqrt prec
-    | Cos => I.cos prec
-    | Sin => I.sin prec
-    | Tan => I.tan prec
-    | Atan => I.atan prec
-    | Exp => I.exp prec
-    | PowerInt n => fun x => I.power_int prec x n
-    end)
-   (fun o =>
-    match o with
-    | Add => I.add prec
-    | Sub => I.sub prec
-    | Mul => I.mul prec
-    | Div => I.div prec
-    end)
-    I.sign_strict.
-
-Definition eval_bnd prec :=
-  eval_generic I.nai (bnd_operations prec).
-
-Definition ext_operations :=
-  Build_operations (fun x => Xreal (Z2R x))
-   (fun o =>
-    match o with
-    | Neg => Xneg
-    | Abs => Xabs
-    | Inv => Xinv
-    | Sqr => Xsqr
-    | Sqrt => Xsqrt
-    | Cos => Xcos
-    | Sin => Xsin
-    | Tan => Xtan
-    | Atan => Xatan
-    | Exp => Xexp
-    | PowerInt n => fun x => Xpower_int x n
-    end)
-   (fun o =>
-    match o with
-    | Add => Xadd
-    | Sub => Xsub
-    | Mul => Xmul
-    | Div => Xdiv
-    end)
-   (fun x => Xcmp x (Xreal 0)).
-
-Definition eval_ext :=
-  eval_generic (Xreal 0) ext_operations.
-
-Theorem eval_inductive_prop_fun :
-  forall A B P defA defB (opsA : operations A) (opsB : operations B),
- (forall a1 a2, (forall x, a1 x = a2 x) -> forall b, P a1 b -> P a2 b) ->
-  P (fun _ : ExtendedR => defA) defB ->
- (forall o a b, P a b -> P (fun x => unary opsA o (a x)) (unary opsB o b)) ->
- (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (fun x => binary opsA o (a1 x) (a2 x)) (binary opsB o b1 b2)) ->
-  forall inpA inpB,
- (forall n, P (fun x => nth n (inpA x) defA) (nth n inpB defB)) ->
-  forall prog,
-  forall n, P (fun x => nth n (eval_generic defA opsA prog (inpA x)) defA) (nth n (eval_generic defB opsB prog inpB) defB).
-intros A B P defA defB opsA opsB HP Hdef Hun Hbin inpA inpB Hinp prog n.
-apply HP with (fun x => nth n (fold_right (fun y x => eval_generic_body defA opsA x y) (inpA x) (rev prog)) defA).
-intros x.
-now rewrite rev_formula.
-rewrite rev_formula.
-generalize n. clear n.
-induction (rev prog).
-exact Hinp.
-intros [|n].
-simpl.
-case a.
-intros o n.
-refine (Hun _ _ _ _).
-apply IHl.
-intros o n1 n2.
-refine (Hbin _ _ _ _ _ _ _).
-apply IHl.
-apply IHl.
-simpl.
-apply IHl.
-Qed.
-
-Definition real_operations :=
-  Build_operations Z2R
-   (fun o =>
-    match o with
-    | Neg => Ropp
-    | Abs => Rabs
-    | Inv => Rinv
-    | Sqr => Rsqr
-    | Sqrt => R_sqrt.sqrt
-    | Cos => cos
-    | Sin => sin
-    | Tan => tan
-    | Atan => atan
-    | Exp => exp
-    | PowerInt n => fun x => powerRZ x n
-    end)
-   (fun o =>
-    match o with
-    | Add => Rplus
-    | Sub => Rminus
-    | Mul => Rmult
-    | Div => Rdiv
-    end)
-   (fun x => Xcmp (Xreal x) (Xreal 0)).
-
-Definition eval_real :=
-  eval_generic R0 real_operations.
-
-Definition diff_operations A (ops : @operations A) :=
-  Build_operations
-   (fun x => (constant ops x, constant ops 0))
-   (fun o x =>
-    match x with
-    | (v, d) =>
-      match o with
-      | Neg => let f := unary ops Neg in (f v, f d)
-      | Abs => let w := unary ops Abs v in (w,
-        match sign ops v with Xlt => unary ops Neg d | Xgt => d | _ => unary ops Inv (constant ops 0) end)
-      | Inv => let w := unary ops Inv v in (w,
-        binary ops Mul d (unary ops Neg (unary ops Sqr w)))
-      | Sqr => let w := binary ops Mul d v in (unary ops Sqr v, binary ops Add w w)
-      | Sqrt => let w := unary ops Sqrt v in (w,
-        binary ops Div d (binary ops Add w w))
-      | Cos => (unary ops Cos v,
-        binary ops Mul d (unary ops Neg (unary ops Sin v)))
-      | Sin => (unary ops Sin v,
-        binary ops Mul d (unary ops Cos v))
-      | Tan => let w := unary ops Tan v in (w,
-        binary ops Mul d (binary ops Add (constant ops 1) (unary ops Sqr w)))
-      | Atan => (unary ops Atan v,
-        binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
-      | Exp => let w := unary ops Exp v in (w,
-        binary ops Mul d w)
-      | PowerInt n =>
-        (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
-      end
-    end)
-   (fun o x y =>
-    match x, y with
-    | (vx, dx), (vy, dy) =>
-      match o with
-      | Add => let f := binary ops Add in (f vx vy, f dx dy)
-      | Sub => let f := binary ops Sub in (f vx vy, f dx dy)
-      | Mul => let f := binary ops Mul in (f vx vy,
-        binary ops Add (f dx vy) (f dy vx))
-      | Div => let f := binary ops Div in
-        let w := f vx vy in
-        (w, f (binary ops Sub dx (binary ops Mul dy w)) vy)
-      end
-    end)
-   (fun x => match x with (vx, _) => sign ops vx end).
-
-Lemma rewrite_inv_diff :
-  forall u u',
-  Xmul u' (Xneg (Xsqr (Xinv u))) = Xneg (Xdiv u' (Xsqr u)).
-intros.
-rewrite Xmul_Xneg_distr_r.
-apply f_equal.
-rewrite Xdiv_split.
-apply f_equal.
-unfold Xsqr.
-apply sym_eq.
-apply Xinv_Xmul_distr.
-Qed.
-
-Lemma rewrite_div_diff :
-  forall u v u' v',
-  Xdiv (Xsub u' (Xmul v' (Xdiv u v))) v = Xdiv (Xsub (Xmul u' v) (Xmul v' u)) (Xmul v v).
-intros.
-repeat rewrite Xdiv_split.
-rewrite Xinv_Xmul_distr.
-repeat rewrite <- Xmul_assoc.
-apply (f_equal (fun x => Xmul x (Xinv v))).
-pattern u' at 1 ; rewrite <- Xmul_1_r.
-pattern (Xmul (Xmul v' u) (Xinv v)) ; rewrite <- Xmask_Xfun_r with (1 := Xmul_propagate).
-rewrite Xfun_Xmask_r with (1 := Xsub_propagate).
-rewrite <- Xfun_Xmask_l with (1 := Xsub_propagate).
-rewrite <- Xfun_Xmask_r with (1 := Xmul_propagate).
-rewrite <- Xmul_Xinv.
-repeat rewrite Xsub_split.
-rewrite <- Xmul_assoc.
-rewrite <- Xmul_Xneg_distr_l.
-apply sym_eq.
-apply Xmul_Xadd_distr_r.
-Qed.
-
-Lemma xreal_to_real :
-  forall (P1 : ExtendedR -> Prop) (P2 : R -> Prop),
-  (P1 Xnan -> forall r, P2 r) ->
-  (forall r, P1 (Xreal r) -> P2 r) ->
-  forall prog terms n,
-  P1 (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
-  P2 (nth n (eval_real prog terms) 0%R).
-Proof.
-intros P1 P2 HP1 HP2 prog terms n.
-unfold eval_ext, eval_real.
-refine (_ (eval_inductive_prop _ _ (fun a b => match a with Xreal a => a = b | _ => True end)
-  (Xreal 0) R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
-case (nth n (eval_generic (Xreal 0) ext_operations prog (map Xreal terms)) (Xreal 0)).
-intros _ H.
-now apply HP1.
-intros y H.
-rewrite H.
-apply HP2.
-apply refl_equal.
-(* unary *)
-destruct a as [|a].
-now destruct o.
-intros b H.
-rewrite H.
-destruct o ; try easy ; simpl.
-now case (is_zero b).
-now case (is_negative b).
-unfold Xtan, Xdiv, Xsin, Xcos.
-now case (is_zero (cos b)).
-fold (Xpower_int (Xreal b) n0).
-generalize (Xpower_int_correct n0 (Xreal b)).
-now case Xpower_int.
-(* binary *)
-destruct a1 as [|a1].
-now destruct o.
-destruct a2 as [|a2].
-now destruct o.
-intros b1 b2 H1 H2.
-rewrite H1, H2.
-destruct o ; try easy ; simpl.
-now destruct (is_zero b2).
-(* . *)
-intros n0.
-now rewrite map_nth.
-Qed.
-
-Inductive bound_proof :=
-  | Bproof : forall x xi, contains (I.convert xi) (Xreal x) -> bound_proof.
-
-Definition real_from_bp v := match v with Bproof x _ _ => x end.
-Definition xreal_from_bp v := match v with Bproof x _ _ => Xreal x end.
-Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
-
-Lemma iterated_bnd_nth :
-  forall bounds n,
-  contains (I.convert (nth n (map interval_from_bp bounds) I.nai))
-    (nth n (map xreal_from_bp bounds) (Xreal R0)).
-intros.
-assert (contains (I.convert I.nai) (Xreal 0)).
-rewrite I.nai_correct. exact I.
-pose (b := Bproof R0 I.nai H).
-change (Xreal 0) with (xreal_from_bp b).
-change I.nai with (interval_from_bp b).
-do 2 rewrite map_nth.
-now case (nth n bounds b).
-Qed.
-
-Lemma eval_bnd_correct_aux :
-  forall prec prog terms bounds,
- (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms (Xreal 0))) ->
-  forall n,
-  contains (I.convert (nth n (eval_bnd prec prog bounds) I.nai))
-   (nth n (eval_ext prog terms) (Xreal 0)).
-intros prec prog terms bounds Hinp.
-unfold eval_bnd, eval_ext.
-apply (eval_inductive_prop _ _ (fun a b => contains (I.convert a) b)).
-(* . *)
-rewrite I.nai_correct.
-exact I.
-(* unary *)
-destruct o ; simpl ;
-  [ apply I.neg_correct
-  | apply I.abs_correct
-  | apply I.inv_correct
-  | apply I.sqr_correct
-  | apply I.sqrt_correct
-  | apply I.cos_correct
-  | apply I.sin_correct
-  | apply I.tan_correct
-  | apply I.atan_correct
-  | apply I.exp_correct
-  | apply I.power_int_correct ].
-(* binary *)
-destruct o ; simpl ;
-  [ apply I.add_correct
-  | apply I.sub_correct
-  | apply I.mul_correct
-  | apply I.div_correct ].
-(* . *)
-exact Hinp.
-Qed.
-
-Theorem eval_bnd_correct :
-  forall prec prog bounds n,
-  contains
-    (I.convert (nth n (eval_bnd prec prog (map interval_from_bp bounds)) I.nai))
-    (nth n (eval_ext prog (map xreal_from_bp bounds)) (Xreal 0)).
-intros prec prog bounds.
-apply eval_bnd_correct_aux.
-apply iterated_bnd_nth.
-Qed.
-
-Theorem eval_bnd_correct_ext :
-  forall prec prog bounds n,
-  I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
-    (fun b => nth n (eval_bnd prec prog (b :: map interval_from_bp bounds)) I.nai).
-intros prec prog bounds n xi x Hx.
-generalize n. clear n.
-apply eval_bnd_correct_aux.
-intros [|n].
-exact Hx.
-apply iterated_bnd_nth.
-Qed.
-
-Lemma Xderive_eq :
-  forall g g' f f',
- (forall x, f x = g x) ->
- (forall x, f' x = g' x) ->
-  Xderive g g' ->
-  Xderive f f'.
-intros.
-apply Xderive_eq_fun with (1 := H).
-apply Xderive_eq_diff with (1 := H0).
-exact H1.
-Qed.
-
-Lemma unary_diff_correct :
-  forall o f d x,
-  Xderive_pt f x d ->
-  let v := unary (diff_operations _ ext_operations) o (f x, d) in
-  unary ext_operations o (f x) = fst v /\
-  Xderive_pt (fun x0 => unary ext_operations o (f x0)) x (snd v).
-intros o f d x Hd.
-destruct o ; simpl ; repeat split.
-now apply Xderive_pt_neg.
-rewrite is_zero_correct_zero.
-now apply Xderive_pt_abs.
-rewrite rewrite_inv_diff.
-now apply Xderive_pt_inv.
-unfold Xsqr.
-now apply Xderive_pt_mul.
-now apply Xderive_pt_sqrt.
-now apply Xderive_pt_cos.
-now apply Xderive_pt_sin.
-now apply Xderive_pt_tan.
-now apply Xderive_pt_atan.
-now apply Xderive_pt_exp.
-now apply Xderive_pt_power_int.
-Qed.
-
-Lemma binary_diff_correct :
-  forall o f1 f2 d1 d2 x,
-  Xderive_pt f1 x d1 ->
-  Xderive_pt f2 x d2 ->
-  let v := binary (diff_operations _ ext_operations) o (f1 x, d1) (f2 x, d2) in
-  binary ext_operations o (f1 x) (f2 x) = fst v /\
-  Xderive_pt (fun x0 => binary ext_operations o (f1 x0) (f2 x0)) x (snd v).
-intros o f1 f2 d1 d2 x Hd1 Hd2.
-destruct o ; simpl ; repeat split.
-now apply Xderive_pt_add.
-now apply Xderive_pt_sub.
-now apply Xderive_pt_mul.
-rewrite rewrite_div_diff.
-now apply Xderive_pt_div.
-Qed.
-
-Lemma eval_diff_correct :
-  forall prog terms n x,
-  let v := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan) in
-  nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0) = fst v /\
-  Xderive_pt (fun x => nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0)) x (snd v).
-intros prog terms n x.
-(*set (inpA x := x :: map Xreal terms).
-set (inpB := (x, Xmask (Xreal 1) x) :: map (fun v : R => (Xreal v, Xmask (Xreal 0) x)) terms).*)
-refine (eval_inductive_prop_fun _ _ (fun a b => a x = fst b /\ Xderive_pt a x (snd b)) _ _ _ _ _ _ _ _ _ _ _ _ _).
-(* extensionality *)
-intros a1 a2 Heq (bl, br).
-simpl.
-intros (Hl, Hr).
-split.
-now rewrite <- Heq.
-apply Xderive_pt_eq_fun with (2 := Hr).
-intros.
-now apply sym_eq.
-(* default *)
-destruct x ; repeat split.
-(* unary *)
-intros o a (bl, br) (Hl, Hr).
-simpl in Hl.
-rewrite <- Hl.
-now apply unary_diff_correct.
-(* binary *)
-intros o a1 a2 (bl1, br1) (bl2, br2) (Hl1, Hr1) (Hl2, Hr2).
-simpl in Hl1, Hl2.
-rewrite <- Hl1, <- Hl2.
-now apply binary_diff_correct.
-(* inputs *)
-clear n.
-intros [|n].
-simpl.
-repeat split.
-apply Xderive_pt_identity.
-simpl.
-split.
-rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
-rewrite map_map.
-apply (f_equal (fun v => nth n v (Xreal 0))).
-now apply map_ext.
-rewrite <- map_nth.
-rewrite map_map.
-simpl.
-destruct (le_or_lt (length (map (fun _ : R => Xmask (Xreal 0) x) terms)) n).
-rewrite nth_overflow with (1 := H).
-now destruct x.
-replace (nth n (map (fun _ : R => Xmask (Xreal 0) x) terms) Xnan) with (Xmask (Xreal 0) x).
-rewrite map_nth.
-apply Xderive_pt_constant.
-rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
-apply sym_eq.
-exact (map_nth _ _ R0 _).
-Qed.
-
-Lemma unary_diff_bnd_correct :
-  forall prec o f f',
-  let u x := unary (diff_operations _ ext_operations) o (f x, f' x) in
-  forall yi yi' xi,  
- (forall x, contains xi x -> contains (I.convert yi) (f x)) ->
- (forall x, contains xi x -> contains (I.convert yi') (f' x)) ->
-  let v := unary (diff_operations _ (bnd_operations prec)) o (yi, yi') in
- (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
-Proof.
-intros prec o f f' u yi yi' xi Hf Hf' v x Hx.
-destruct o ; simpl ;
-  repeat first
-  [ apply I.neg_correct
-  | apply I.abs_correct
-  | apply I.inv_correct
-  | apply I.sqr_correct
-  | apply I.sqrt_correct
-  | apply I.cos_correct
-  | apply I.sin_correct
-  | apply I.tan_correct
-  | apply I.atan_correct
-  | apply I.exp_correct
-  | apply I.power_int_correct
-  | apply I.add_correct
-  | apply I.mul_correct
-  | apply I.div_correct
-  | apply I.fromZ_correct
-  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
-  | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
-  try now first [ apply Hf | apply Hf' ].
-(* abs *)
-generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
-simpl.
-rewrite is_zero_correct_zero.
-specialize (Hf _ Hx).
-generalize (I.sign_strict_correct yi).
-case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
-intros H _.
-specialize (H _ Hf).
-rewrite (proj1 H).
-simpl.
-rewrite Rcompare_Lt.
-apply I.neg_correct.
-now apply Hf'.
-apply H.
-intros H _.
-specialize (H _ Hf).
-rewrite (proj1 H).
-simpl.
-rewrite Rcompare_Gt.
-now apply Hf'.
-apply H.
-Qed.
-
-Lemma binary_diff_bnd_correct :
-  forall prec o f1 f2 f1' f2',
-  let u x := binary (diff_operations _ ext_operations) o (f1 x, f1' x) (f2 x, f2' x) in
-  forall yi1 yi2 yi1' yi2' xi,  
- (forall x, contains xi x -> contains (I.convert yi1) (f1 x)) ->
- (forall x, contains xi x -> contains (I.convert yi2) (f2 x)) ->
- (forall x, contains xi x -> contains (I.convert yi1') (f1' x)) ->
- (forall x, contains xi x -> contains (I.convert yi2') (f2' x)) ->
-  let v := binary (diff_operations _ (bnd_operations prec)) o (yi1, yi1') (yi2, yi2') in
- (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
-intros prec o f1 f2 f1' f2' u yi1 yi2 yi1' yi2' xi Hf1 Hf2 Hf1' Hf2' v x Hx.
-destruct o ; simpl ;
-  repeat first
-  [ apply I.add_correct
-  | apply I.sub_correct
-  | apply I.mul_correct
-  | apply I.div_correct ] ;
-  now first [ apply Hf1 | apply Hf2 | apply Hf1' | apply Hf2' ].
-Qed.
-
-Lemma eval_diff_bnd_correct :
-  forall prec prog bounds n,
-  let ff' x := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan) in
-  let ffi' xi := nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) prog
-    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
-  forall xi,
-  nth n (eval_bnd prec prog (xi :: map interval_from_bp bounds)) I.nai = fst (ffi' xi) /\
- (forall x, contains (I.convert xi) x -> contains (I.convert (snd (ffi' xi))) (snd (ff' x))).
-intros prec prog bounds n ff' ffi' xi.
-split.
-(* . *)
-unfold ffi', eval_bnd.
-apply (eval_inductive_prop _ (I.type * I.type) (fun a b => a = fst b)).
-apply refl_equal.
-intros o a (bl, br) H.
-rewrite H.
-now destruct o.
-intros o a1 a2 (bl1, br1) (bl2, br2) H1 H2.
-rewrite H1, H2.
-now destruct o.
-clear.
-intros [|n].
-apply refl_equal.
-simpl.
-rewrite <- (map_nth (@fst I.type I.type)).
-rewrite map_map.
-simpl.
-apply sym_eq.
-exact (map_nth _ _ _ _).
-(* . *)
-refine (let toto := _ in fun x Hx => proj2 (toto x Hx : contains (I.convert (fst (ffi' xi))) (fst (ff' x)) /\ _)).
-apply (eval_inductive_prop_fun (ExtendedR * _) (I.type * _) (fun a b =>
-  forall x, contains (I.convert xi) x ->
-  contains (I.convert (fst b)) (fst (a x)) /\
-  contains (I.convert (snd b)) (snd (a x)))).
-intros f1 f2 Heq (yi, yi') H x Hx.
-rewrite <- Heq.
-now apply H.
-intros _ _.
-simpl.
-rewrite I.nai_correct.
-now split.
-intros o f (yi, yi') H x Hx.
-rewrite (surjective_pairing (f x)).
-split.
-assert (Hf := proj1 (H x Hx)).
-destruct o ; simpl ;
-  [ apply I.neg_correct
-  | apply I.abs_correct
-  | apply I.inv_correct
-  | apply I.sqr_correct
-  | apply I.sqrt_correct
-  | apply I.cos_correct
-  | apply I.sin_correct
-  | apply I.tan_correct
-  | apply I.atan_correct
-  | apply I.exp_correct
-  | apply I.power_int_correct ] ;
-  exact Hf.
-apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
-exact (fun x Hx => proj1 (H x Hx)).
-exact (fun x Hx => proj2 (H x Hx)).
-intros o f1 f2 (yi1, yi1') (yi2, yi2') H1 H2 x Hx.
-rewrite (surjective_pairing (f1 x)).
-rewrite (surjective_pairing (f2 x)).
-split.
-assert (Hf1 := proj1 (H1 x Hx)).
-assert (Hf2 := proj1 (H2 x Hx)).
-destruct o ; simpl ;
-  [ apply I.add_correct
-  | apply I.sub_correct
-  | apply I.mul_correct
-  | apply I.div_correct ] ;
-  first [ exact Hf1 | exact Hf2 ].
-apply (binary_diff_bnd_correct prec o (fun x => fst (f1 x)) (fun x => fst (f2 x)) (fun x => snd (f1 x)) (fun x => snd (f2 x))) with (5 := Hx).
-exact (fun x Hx => proj1 (H1 x Hx)).
-exact (fun x Hx => proj1 (H2 x Hx)).
-exact (fun x Hx => proj2 (H1 x Hx)).
-exact (fun x Hx => proj2 (H2 x Hx)).
-clear.
-intros [|n] x Hx ; simpl.
-split.
-exact Hx.
-apply I.mask_correct.
-apply I.fromZ_correct.
-exact Hx.
-split.
-rewrite <- (map_nth (@fst I.type I.type)).
-rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
-do 4 rewrite map_map.
-simpl.
-replace (map (fun x => interval_from_bp x) bounds) with (map interval_from_bp bounds).
-replace (map (fun x => Xreal (real_from_bp x)) bounds) with (map xreal_from_bp bounds).
-apply iterated_bnd_nth.
-apply map_ext.
-now destruct a.
-apply map_ext.
-now destruct a.
-rewrite <- (map_nth (@snd I.type I.type)).
-rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
-do 4 rewrite map_map.
-simpl.
-assert (H1 := map_length (fun _ => I.mask (I.fromZ 0) xi) bounds).
-assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) bounds).
-destruct (le_or_lt (length bounds) n).
-generalize H. intro H0.
-rewrite <- H1 in H.
-rewrite <- H2 in H0.
-rewrite nth_overflow with (1 := H).
-rewrite nth_overflow with (1 := H0).
-now rewrite I.nai_correct.
-replace (nth n (map (fun _ => I.mask (I.fromZ 0) xi) bounds) I.nai) with (I.mask (I.fromZ 0) xi).
-replace (nth n (map (fun _ => Xmask (Xreal 0) x) bounds) Xnan) with (Xmask (Xreal 0) x).
-apply I.mask_correct.
-apply I.fromZ_correct.
-exact Hx.
-rewrite <- H2 in H.
-rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
-apply sym_eq.
-refine (map_nth _ bounds (Bproof 0 I.nai _) _).
-now rewrite I.nai_correct.
-rewrite <- H1 in H.
-rewrite (nth_indep _ I.nai (I.mask (I.fromZ 0) xi) H).
-apply sym_eq.
-refine (map_nth _ bounds (Bproof 0 I.nai _) _).
-now rewrite I.nai_correct.
-Qed.
-
-Module Algos := IntervalAlgos I.
-
-Definition eval_diff prec formula bounds n xi :=
-  match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) formula
+Definition eval prec formula bounds n xi :=
+  match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) formula
     ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) bounds)) (I.nai, I.nai) with
   | (yi, yi') =>
-    Algos.diff_refining prec xi yi yi'
-      (fun b => nth n (eval_bnd prec formula (b :: bounds)) I.nai)
+    diff_refining prec xi yi yi'
+      (fun b => nth n (BndValuator.eval prec formula (b :: bounds)) I.nai)
   end.
 
-Theorem eval_diff_correct_ext :
+Theorem eval_correct_ext :
   forall prec prog bounds n,
   I.extension
     (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
-    (fun b => eval_diff prec prog (map interval_from_bp bounds) n b).
+    (fun b => eval prec prog (map interval_from_bp bounds) n b).
+Proof.
 intros prec prog bounds n xi x Hx.
-unfold eval_diff.
+unfold eval.
 pose (f := fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0)).
 fold (f x).
 pose (ff' := fun x => nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog
      ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan)).
-set (fi := fun xi => nth n (eval_bnd prec prog (xi :: map interval_from_bp bounds)) I.nai).
-pose (ffi' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (bnd_operations prec)) prog
+set (fi := fun xi => nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai).
+pose (ffi' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
      ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
 fold (ffi' xi).
 rewrite (surjective_pairing (ffi' xi)).
@@ -1362,10 +1365,10 @@ replace (fst (ffi' xi)) with (fi xi).
 pose (fi' := fun xi => snd (ffi' xi)).
 fold (fi' xi).
 pose (f' x := snd (ff' x)).
-refine (Algos.diff_refining_correct prec f f' _ _ _ _ _ xi x Hx) ;
+refine (diff_refining_correct prec f f' _ _ _ _ _ xi x Hx) ;
   clear Hx xi x.
 (* . *)
-apply eval_bnd_correct_ext.
+apply BndValuator.eval_correct_ext.
 intros xi x Hx.
 exact (proj2 (H xi) x Hx).
 intros x.
@@ -1380,4 +1383,6 @@ now destruct a.
 exact (proj1 (H xi)).
 Qed.
 
-End Valuator.
+End DiffValuator.
+
+End IntervalAlgos.

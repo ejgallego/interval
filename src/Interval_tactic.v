@@ -14,7 +14,7 @@ Require Import Interval_bisect.
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatIntervalFull F.
-Module V := Valuator I.
+Module A := IntervalAlgos I.
 
 Ltac get_float t :=
   let get_mantissa t :=
@@ -108,30 +108,30 @@ Qed.
 
 Lemma xreal_to_contains :
   forall prog terms n xi,
-  V.Algos.check_p (V.Algos.subset_check xi) (nth n (V.eval_ext prog (map Xreal terms)) (Xreal 0)) ->
-  contains (I.convert xi) (Xreal (nth n (V.eval_real prog terms) R0)).
+  A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  contains (I.convert xi) (Xreal (nth n (eval_real prog terms) R0)).
 Proof.
 intros prog terms n xi.
-simpl V.Algos.check_p.
-apply (V.xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
+simpl A.check_p.
+apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
 now case (I.convert xi).
 easy.
 Qed.
 
 Lemma xreal_to_positive :
   forall prog terms n,
-  V.Algos.check_p V.Algos.positive_check (nth n (V.eval_ext prog (map Xreal terms)) (Xreal 0)) ->
-  (0 < nth n (V.eval_real prog terms) R0)%R.
+  A.check_p A.positive_check (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  (0 < nth n (eval_real prog terms) R0)%R.
 Proof.
 intros prog terms n.
-simpl V.Algos.check_p.
-now apply (V.xreal_to_real (fun x => match x with Xnan => False | Xreal r => (0 < r)%R end) (fun x => (0 < x)%R)).
+simpl A.check_p.
+now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => (0 < r)%R end) (fun x => (0 < x)%R)).
 Qed.
 
 Inductive expr :=
   | Econst : nat -> expr
-  | Eunary : V.unary_op -> expr -> expr
-  | Ebinary : V.binary_op -> expr -> expr -> expr.
+  | Eunary : unary_op -> expr -> expr
+  | Ebinary : binary_op -> expr -> expr -> expr.
 
 Ltac list_add a l :=
   let rec aux a l n :=
@@ -161,24 +161,24 @@ Ltac remove_constants t l :=
           end
         end in
       match t with
-      | Ropp ?a => aux_u V.Neg a
-      | Rabs ?a => aux_u V.Abs a
-      | Rinv ?a => aux_u V.Inv a
-      | Rsqr ?a => aux_u V.Sqr a
-      | Rmult ?a ?a => aux_u V.Sqr a
-      | sqrt ?a => aux_u V.Sqrt a
-      | cos ?a => aux_u V.Cos a
-      | sin ?a => aux_u V.Sin a
-      | tan ?a => aux_u V.Tan a
-      | atan ?a => aux_u V.Atan a
-      | exp ?a => aux_u V.Exp a
-      | powerRZ ?a ?b => aux_u (V.PowerInt b) a
-      | Rplus ?a ?b => aux_b V.Add a b
-      | Rminus ?a ?b => aux_b V.Sub a b
-      | Rplus ?a (Ropp ?b) => aux_b V.Sub a b
-      | Rmult ?a ?b => aux_b V.Mul a b
-      | Rdiv ?a ?b => aux_b V.Div a b
-      | Rmult ?a (Rinv ?b) => aux_b V.Div a b
+      | Ropp ?a => aux_u Neg a
+      | Rabs ?a => aux_u Abs a
+      | Rinv ?a => aux_u Inv a
+      | Rsqr ?a => aux_u Sqr a
+      | Rmult ?a ?a => aux_u Sqr a
+      | sqrt ?a => aux_u Sqrt a
+      | cos ?a => aux_u Cos a
+      | sin ?a => aux_u Sin a
+      | tan ?a => aux_u Tan a
+      | atan ?a => aux_u Atan a
+      | exp ?a => aux_u Exp a
+      | powerRZ ?a ?b => aux_u (PowerInt b) a
+      | Rplus ?a ?b => aux_b Add a b
+      | Rminus ?a ?b => aux_b Sub a b
+      | Rplus ?a (Ropp ?b) => aux_b Sub a b
+      | Rmult ?a ?b => aux_b Mul a b
+      | Rdiv ?a ?b => aux_b Div a b
+      | Rmult ?a (Rinv ?b) => aux_b Div a b
       | _ =>
         match list_add t l with
         | (?n, ?l) => constr:(Econst n, l)
@@ -239,15 +239,15 @@ Ltac generate_machine l :=
         match t with
         | Eunary ?o ?a =>
           let u := list_find2 a l in
-          constr:(V.Unary o u)
+          constr:(Unary o u)
         | Ebinary ?o ?a ?b =>
           let u := list_find2 a l in
           let v := list_find2 b l in
-          constr:(V.Binary o u v)
+          constr:(Binary o u v)
         end in
       aux l (cons m q)
     end in
-  aux l (@nil V.term).
+  aux l (@nil term).
 
 Ltac extract_algorithm t l :=
   match remove_constants t l with
@@ -300,26 +300,26 @@ Ltac xalgorithm lx :=
 Ltac get_bounds l :=
   let rec aux l :=
     match l with
-    | nil => constr:(@nil V.bound_proof)
+    | nil => constr:(@nil A.bound_proof)
     | cons ?x ?l =>
       let i :=
         match goal with
         | H: Rle ?a x /\ Rle x ?b |- _ =>
           let v := get_float a in
           let w := get_float b in
-          constr:(V.Bproof x (I.bnd v w) H)
+          constr:(A.Bproof x (I.bnd v w) H)
         | H: Rle ?a x |- _ =>
           let v := get_float a in
-          constr:(V.Bproof x (I.bnd v F.nan) (conj H I))
+          constr:(A.Bproof x (I.bnd v F.nan) (conj H I))
         | H: Rle x ?b |- _ =>
           let v := get_float b in
-          constr:(V.Bproof x (I.bnd F.nan v) (conj I H))
+          constr:(A.Bproof x (I.bnd F.nan v) (conj I H))
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
-          constr:(V.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
+          constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
         | _ =>
           let v := get_float x in
-          constr:(let f := v in V.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+          constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
         | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
         end in
       let m := aux l in
@@ -329,23 +329,23 @@ Ltac get_bounds l :=
 
 Lemma interval_helper_evaluate :
   forall bounds check formula prec n,
-  V.Algos.check_f check (nth n (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.nai) = true ->
-  V.Algos.check_p check (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_f check (nth n (A.BndValuator.eval prec formula (map A.interval_from_bp bounds)) I.nai) = true ->
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
 Proof.
 intros bound (check_f, check_p, check_th). simpl.
 intros.
 apply check_th with (2 := H).
-apply V.eval_bnd_correct.
+apply A.BndValuator.eval_correct.
 Qed.
 
 Lemma interval_helper_bisection :
   forall bounds check formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    V.Algos.bisect_1d (fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u (V.Algos.check_f check) depth = true
+  | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+    A.bisect_1d (fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp tail)) I.nai) l u (A.check_f check) depth = true
   | _ => False
   end ->
-  V.Algos.check_p check (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
 Proof.
 intro.
 case bounds.
@@ -359,22 +359,23 @@ intros.
 elim H.
 intros.
 clear bounds b xi.
-pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
-pose (fi := fun b => nth n (V.eval_bnd prec formula (b :: map V.interval_from_bp l0)) I.nai).
-change (V.Algos.check_p check (f (Xreal x))).
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) (Xreal 0)).
+pose (fi := fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp l0)) I.nai).
+change (A.check_p check (f (Xreal x))).
 fold fi in H.
-refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
-exact (V.eval_bnd_correct_ext _ _ _ _).
+refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
+apply A.BndValuator.eval_correct_ext.
 Qed.
 
 Lemma interval_helper_bisection_diff :
   forall bounds check formula prec depth n,
   match bounds with
-  | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    V.Algos.bisect_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) n b) l u (V.Algos.check_f check) depth = true
+  | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+    A.bisect_1d (fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp tail) n b) l u (A.check_f check) depth = true
   | _ => False
   end ->
-  V.Algos.check_p check (nth n (V.eval_ext formula (map V.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
+Proof.
 intro.
 case bounds.
 intros.
@@ -387,11 +388,11 @@ intros.
 elim H.
 intros.
 clear bounds b xi.
-pose (f := fun x => nth n (V.eval_ext formula (x :: map V.xreal_from_bp l0)) (Xreal 0)).
-pose (fi := fun b => V.eval_diff prec formula (map V.interval_from_bp l0) n b).
-change (V.Algos.check_p check (f (Xreal x))).
-refine (V.Algos.bisect_1d_correct depth f fi _ _ _ _ H _ c).
-exact (V.eval_diff_correct_ext _ _ _ _).
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) (Xreal 0)).
+pose (fi := fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp l0) n b).
+change (A.check_p check (f (Xreal x))).
+refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
+exact (A.DiffValuator.eval_correct_ext prec formula l0 n).
 Qed.
 
 (*
@@ -429,17 +430,17 @@ Definition prec_of_nat prec :=
 Ltac do_interval vars prec depth eval_tac :=
   (abstract (
     match goal with
-    | |- contains (I.convert _) (nth _ (V.eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
+    | |- contains (I.convert _) (nth _ (eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
     | _ => xalgorithm vars
     end ;
     match goal with
-    | |- V.Algos.check_p ?check (nth ?n
-        (V.eval_ext ?formula (map Xreal ?constants)) (Xreal 0)) =>
+    | |- A.check_p ?check (nth ?n
+        (eval_ext ?formula (map Xreal ?constants)) (Xreal 0)) =>
       let bounds_ := get_bounds constants in
       let bounds := fresh "bounds" in
       pose (bounds := bounds_) ;
       let prec := eval vm_compute in (prec_of_nat prec) in
-      change (map Xreal constants) with (map V.xreal_from_bp bounds) ;
+      change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
       eval_tac bounds check formula prec depth n ;
       vm_cast_no_check (refl_equal true)
     end)) ||
@@ -507,21 +508,21 @@ Ltac do_interval_generalize t b :=
   end.
 
 Ltac do_interval_intro_eval extend bounds formula prec depth :=
-  eval vm_compute in (extend (nth 0 (V.eval_bnd prec formula (map V.interval_from_bp bounds)) I.nai)).
+  eval vm_compute in (extend (nth 0 (A.BndValuator.eval prec formula (map A.interval_from_bp bounds)) I.nai)).
 
 Ltac do_interval_intro_bisect extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-      V.Algos.lookup_1d (fun b => nth 0 (V.eval_bnd prec formula (b :: map V.interval_from_bp tail)) I.nai) l u extend depth
+    | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+      A.lookup_1d (fun b => nth 0 (A.BndValuator.eval prec formula (b :: map A.interval_from_bp tail)) I.nai) l u extend depth
     | _ => I.nai
     end).
 
 Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
-    | cons (V.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-      V.Algos.lookup_1d (fun b => V.eval_diff prec formula (map V.interval_from_bp tail) 0 b) l u extend depth
+    | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+      A.lookup_1d (fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp tail) 0 b) l u extend depth
     | _ => I.nai
     end).
 
