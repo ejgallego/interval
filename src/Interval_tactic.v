@@ -108,7 +108,7 @@ Qed.
 
 Lemma xreal_to_contains :
   forall prog terms n xi,
-  A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
   contains (I.convert xi) (Xreal (nth n (eval_real prog terms) R0)).
 Proof.
 intros prog terms n xi.
@@ -120,7 +120,7 @@ Qed.
 
 Lemma xreal_to_positive :
   forall prog terms n,
-  A.check_p A.positive_check (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  A.check_p A.positive_check (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
   (0 < nth n (eval_real prog terms) R0)%R.
 Proof.
 intros prog terms n.
@@ -330,7 +330,7 @@ Ltac get_bounds l :=
 Lemma interval_helper_evaluate :
   forall bounds check formula prec n,
   A.check_f check (nth n (A.BndValuator.eval prec formula (map A.interval_from_bp bounds)) I.nai) = true ->
-  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
 intros bound (check_f, check_p, check_th). simpl.
 intros.
@@ -345,7 +345,7 @@ Lemma interval_helper_bisection :
     A.bisect_1d (fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp tail)) I.nai) l u (A.check_f check) depth = true
   | _ => False
   end ->
-  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
 intro.
 case bounds.
@@ -359,7 +359,7 @@ intros.
 elim H.
 intros.
 clear bounds b xi.
-pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) (Xreal 0)).
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) Xnan).
 pose (fi := fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp l0)) I.nai).
 change (A.check_p check (f (Xreal x))).
 fold fi in H.
@@ -374,7 +374,7 @@ Lemma interval_helper_bisection_diff :
     A.bisect_1d (fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp tail) n b) l u (A.check_f check) depth = true
   | _ => False
   end ->
-  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) (Xreal 0)).
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
 intro.
 case bounds.
@@ -388,7 +388,7 @@ intros.
 elim H.
 intros.
 clear bounds b xi.
-pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) (Xreal 0)).
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) Xnan).
 pose (fi := fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp l0) n b).
 change (A.check_p check (f (Xreal x))).
 refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
@@ -430,12 +430,12 @@ Definition prec_of_nat prec :=
 Ltac do_interval vars prec depth eval_tac :=
   (abstract (
     match goal with
-    | |- contains (I.convert _) (nth _ (eval_ext _ (map Xreal _)) (Xreal 0)) => idtac
+    | |- contains (I.convert _) (nth _ (eval_ext _ (map Xreal _)) Xnan) => idtac
     | _ => xalgorithm vars
     end ;
     match goal with
     | |- A.check_p ?check (nth ?n
-        (eval_ext ?formula (map Xreal ?constants)) (Xreal 0)) =>
+        (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
       let bounds_ := get_bounds constants in
       let bounds := fresh "bounds" in
       pose (bounds := bounds_) ;

@@ -51,7 +51,7 @@ apply refl_equal.
 Qed.
 
 Theorem eval_inductive_prop :
-  forall A B P defA defB (opsA : operations A) (opsB : operations B),
+  forall A B (P : A -> B -> Prop) defA defB (opsA : operations A) (opsB : operations B),
   P defA defB ->
  (forall o a b, P a b -> P (unary opsA o a) (unary opsB o b)) ->
  (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
@@ -103,7 +103,7 @@ Definition ext_operations :=
    (fun x => Xcmp x (Xreal 0)).
 
 Definition eval_ext :=
-  eval_generic (Xreal 0) ext_operations.
+  eval_generic Xnan ext_operations.
 
 Theorem eval_inductive_prop_fun :
   forall A B P defA defB (opsA : operations A) (opsB : operations B),
@@ -204,20 +204,20 @@ Lemma xreal_to_real :
   (P1 Xnan -> forall r, P2 r) ->
   (forall r, P1 (Xreal r) -> P2 r) ->
   forall prog terms n,
-  P1 (nth n (eval_ext prog (map Xreal terms)) (Xreal 0)) ->
+  P1 (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
   P2 (nth n (eval_real prog terms) 0%R).
 Proof.
 intros P1 P2 HP1 HP2 prog terms n.
 unfold eval_ext, eval_real.
 refine (_ (eval_inductive_prop _ _ (fun a b => match a with Xreal a => a = b | _ => True end)
-  (Xreal 0) R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
-case (nth n (eval_generic (Xreal 0) ext_operations prog (map Xreal terms)) (Xreal 0)).
+  Xnan R0 ext_operations real_operations _ _ _ (map Xreal terms) terms _ prog n)).
+case (nth n (eval_generic Xnan ext_operations prog (map Xreal terms)) Xnan).
 intros _ H.
 now apply HP1.
 intros y H.
 rewrite H.
 apply HP2.
-apply refl_equal.
+easy.
 (* unary *)
 destruct a as [|a].
 now destruct o.
@@ -241,7 +241,10 @@ rewrite H1, H2.
 destruct o ; try easy ; simpl.
 now destruct (is_zero b2).
 (* . *)
-intros n0.
+intros k.
+destruct (le_or_lt (length (map Xreal terms)) k) as [H|H].
+now rewrite nth_overflow.
+rewrite (nth_indep _ _ (Xreal 0) H).
 now rewrite map_nth.
 Qed.
 
@@ -365,15 +368,18 @@ Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
 Lemma iterated_bnd_nth :
   forall bounds n,
   contains (I.convert (nth n (map interval_from_bp bounds) I.nai))
-    (nth n (map xreal_from_bp bounds) (Xreal R0)).
+    (nth n (map xreal_from_bp bounds) Xnan).
 Proof.
-intros.
-assert (contains (I.convert I.nai) (Xreal 0)).
-rewrite I.nai_correct. exact I.
-pose (b := Bproof R0 I.nai H).
+intros bounds n.
+destruct (le_or_lt (length bounds) n) as [H|H].
+rewrite 2!nth_overflow by now rewrite map_length.
+now rewrite I.nai_correct.
+rewrite (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
+assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
+pose (b := Bproof R0 I.nai H0).
 change (Xreal 0) with (xreal_from_bp b).
 change I.nai with (interval_from_bp b).
-do 2 rewrite map_nth.
+rewrite 2!map_nth.
 now case (nth n bounds b).
 Qed.
 
@@ -409,10 +415,11 @@ Definition eval prec :=
 
 Lemma eval_correct_aux :
   forall prec prog terms bounds,
- (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms (Xreal 0))) ->
+ (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms Xnan)) ->
   forall n,
   contains (I.convert (nth n (eval prec prog bounds) I.nai))
-   (nth n (eval_ext prog terms) (Xreal 0)).
+   (nth n (eval_ext prog terms) Xnan).
+Proof.
 intros prec prog terms bounds Hinp.
 unfold eval, eval_ext.
 apply (eval_inductive_prop _ _ (fun a b => contains (I.convert a) b)).
@@ -446,7 +453,7 @@ Theorem eval_correct :
   forall prec prog bounds n,
   contains
     (I.convert (nth n (eval prec prog (map interval_from_bp bounds)) I.nai))
-    (nth n (eval_ext prog (map xreal_from_bp bounds)) (Xreal 0)).
+    (nth n (eval_ext prog (map xreal_from_bp bounds)) Xnan).
 Proof.
 intros prec prog bounds.
 apply eval_correct_aux.
@@ -456,7 +463,7 @@ Qed.
 Theorem eval_correct_ext :
   forall prec prog bounds n,
   I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
+    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan)
     (fun b => nth n (eval prec prog (b :: map interval_from_bp bounds)) I.nai).
 Proof.
 intros prec prog bounds n xi x Hx.
@@ -570,9 +577,9 @@ Qed.
 
 Lemma eval_diff_correct :
   forall prog terms n x,
-  let v := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xreal 0, Xnan) in
-  nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0) = fst v /\
-  Xderive_pt (fun x => nth n (eval_ext prog (x :: map Xreal terms)) (Xreal 0)) x (snd v).
+  let v := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xnan, Xnan) in
+  nth n (eval_ext prog (x :: map Xreal terms)) Xnan = fst v /\
+  Xderive_pt (fun x => nth n (eval_ext prog (x :: map Xreal terms)) Xnan) x (snd v).
 intros prog terms n x.
 (*set (inpA x := x :: map Xreal terms).
 set (inpB := (x, Xmask (Xreal 1) x) :: map (fun v : R => (Xreal v, Xmask (Xreal 0) x)) terms).*)
@@ -608,20 +615,21 @@ simpl.
 split.
 rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
 rewrite map_map.
-apply (f_equal (fun v => nth n v (Xreal 0))).
+apply (f_equal (fun v => nth n v _)).
 now apply map_ext.
 rewrite <- map_nth.
 rewrite map_map.
 simpl.
-destruct (le_or_lt (length (map (fun _ : R => Xmask (Xreal 0) x) terms)) n).
-rewrite nth_overflow with (1 := H).
-now destruct x.
-replace (nth n (map (fun _ : R => Xmask (Xreal 0) x) terms) Xnan) with (Xmask (Xreal 0) x).
+destruct (le_or_lt (length terms) n) as [H|H].
+rewrite 2!nth_overflow by now rewrite map_length.
+now case x.
+rewrite (nth_indep (map (fun _ => Xmask (Xreal 0) x) terms) _ (Xmask (Xreal 0) x))
+  by now rewrite map_length.
+change (Xmask (Xreal 0) x) with ((fun _ => Xmask (Xreal 0) x) R0) at 2.
+rewrite map_nth.
+rewrite (nth_indep _ _ (Xreal 0)) by now rewrite map_length.
 rewrite map_nth.
 apply Xderive_pt_constant.
-rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
-apply sym_eq.
-exact (map_nth _ _ R0 _).
 Qed.
 
 Lemma unary_diff_bnd_correct :
@@ -700,7 +708,7 @@ Qed.
 
 Lemma eval_diff_bnd_correct :
   forall prec prog bounds n,
-  let ff' x := nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan) in
+  let ff' x := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan) in
   let ffi' xi := nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
     ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
   forall xi,
@@ -1345,15 +1353,15 @@ Definition eval prec formula bounds n xi :=
 Theorem eval_correct_ext :
   forall prec prog bounds n,
   I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0))
+    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan)
     (fun b => eval prec prog (map interval_from_bp bounds) n b).
 Proof.
 intros prec prog bounds n xi x Hx.
 unfold eval.
-pose (f := fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) (Xreal 0)).
+pose (f := fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan).
 fold (f x).
-pose (ff' := fun x => nth n (eval_generic (Xreal 0, Xnan) (diff_operations _ ext_operations) prog
-     ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xreal 0, Xnan)).
+pose (ff' := fun x => nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog
+     ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan)).
 set (fi := fun xi => nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai).
 pose (ffi' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
      ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
