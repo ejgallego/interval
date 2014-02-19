@@ -386,18 +386,21 @@ Definition eval (u : U) (X : I.type) (t : T) : I.type :=
 *)
 
 Definition eval (u : U) (Y X : I.type) (t : T) : I.type :=
-  let X0 := Imid Y in
-  let tm := tm_helper1 u Y t in
-  I.add u.1 (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0)) (RPA.error tm).
+  if I.subset X Y then
+    let X0 := Imid Y in
+    let tm := tm_helper1 u Y t in
+    I.add u.1 (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0)) (RPA.error tm)
+  else I.nai.
 
 Theorem eval_correct :
   forall u (Y : I.type) f tf, approximates Y f tf ->
-  forall (X : I.type), I.subset X Y ->
+  forall (X : I.type),
   forall x, contains (I.convert X) x ->
   contains (I.convert (eval u Y X tf)) (f x).
 Proof.
-move=> u Y f tf Hf X HXY x HXx.
+move=> u Y f tf Hf X x HXx.
 rewrite /eval.
+case HXY: I.subset; last by rewrite I.nai_correct.
 have {Hf} := tm_helper1_correct u Hf.
 move: (tm_helper1 u Y tf) => tm Htm.
 have {Htm} [NN SS H0] := Htm.

@@ -24,7 +24,7 @@ Parameter exp : U -> I.type -> T -> T.
 
 Parameter eval_correct :
   forall u (Y : I.type) f tf, approximates Y f tf ->
-  forall (X : I.type), I.subset X Y = true ->
+  forall (X : I.type),
   forall x, contains (I.convert X) x ->
   contains (I.convert (eval u Y X tf)) (f x).
 
