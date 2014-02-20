@@ -395,6 +395,26 @@ refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
 exact (A.DiffValuator.eval_correct_ext prec formula l0 n).
 Qed.
 
+Lemma interval_helper_bisection_taylor :
+  forall bounds check formula prec deg depth n,
+  match bounds with
+  | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+    A.bisect_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy)) l u (A.check_f check) depth = true
+  | _ => False
+  end ->
+  A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
+Proof.
+intros [|[x [|l u] Hx] bounds] check formula prec deg depth n ; try easy.
+intros H.
+pose (f := fun x => nth n (eval_ext formula (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan).
+pose (fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
+     (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.dummy)).
+change (A.check_p check (f (Xreal x))).
+refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ Hx).
+intros yi y Hy.
+now apply A.TaylorValuator.eval_correct_ext.
+Qed.
+
 (*
 Lemma interval_helper_bisection_first_order :
   forall bounds output formula prec depth n,
@@ -455,10 +475,14 @@ Ltac do_interval_bisect bounds output formula prec depth n :=
 Ltac do_interval_bisect_diff bounds output formula prec depth n :=
   refine (interval_helper_bisection_diff bounds output formula prec depth n _).
 
+Ltac do_interval_bisect_taylor deg bounds output formula prec depth n :=
+  refine (interval_helper_bisection_taylor bounds output formula prec deg depth n _).
+
 Inductive interval_tac_parameters :=
   | i_prec : nat -> interval_tac_parameters
   | i_bisect : R -> interval_tac_parameters
   | i_bisect_diff : R -> interval_tac_parameters
+  | i_bisect_taylor : R -> nat -> interval_tac_parameters
   | i_depth : nat -> interval_tac_parameters.
 
 Ltac tuple_to_list params l :=
@@ -475,6 +499,7 @@ Ltac do_interval_parse params :=
     | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
     | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_bisect t
     | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth ltac:(do_interval_bisect_taylor d) t
     | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
@@ -526,6 +551,14 @@ Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
     | _ => I.nai
     end).
 
+Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
+  eval vm_compute in
+   (match bounds with
+    | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
+      A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy)) l u extend depth
+    | _ => I.nai
+    end).
+
 Ltac do_interval_intro t extend params vars prec depth eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
@@ -543,6 +576,7 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
     | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect t
     | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth ltac:(do_interval_intro_bisect_taylor d) t
     | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
@@ -619,5 +653,16 @@ Lemma blo4 :
   (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
 intros.
 interval with (i_bisect x).
+Qed.
+*)
+
+(*
+Lemma blo5 :
+  forall x, (-1 <= x <= 1)%R ->
+  (0 <= exp x - (1 + x) <= 3/4)%R.
+Proof.
+intros.
+interval_intro (1 + x)%R with (i_bisect_taylor x 2).
+interval with (i_bisect_taylor x 2).
 Qed.
 *)
