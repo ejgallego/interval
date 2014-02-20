@@ -13,6 +13,15 @@ Require Import Interval_bisect.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
+Inductive interval_tac_parameters :=
+  | i_prec : nat -> interval_tac_parameters
+  | i_bisect : R -> interval_tac_parameters
+  | i_bisect_diff : R -> interval_tac_parameters
+  | i_bisect_taylor : R -> nat -> interval_tac_parameters
+  | i_depth : nat -> interval_tac_parameters.
+
+Module Private.
+
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 
@@ -478,13 +487,6 @@ Ltac do_interval_bisect_diff bounds output formula prec depth n :=
 Ltac do_interval_bisect_taylor deg bounds output formula prec depth n :=
   refine (interval_helper_bisection_taylor bounds output formula prec deg depth n _).
 
-Inductive interval_tac_parameters :=
-  | i_prec : nat -> interval_tac_parameters
-  | i_bisect : R -> interval_tac_parameters
-  | i_bisect_diff : R -> interval_tac_parameters
-  | i_bisect_taylor : R -> nat -> interval_tac_parameters
-  | i_depth : nat -> interval_tac_parameters.
-
 Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
@@ -504,12 +506,6 @@ Ltac do_interval_parse params :=
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
   aux (@nil R) 30%nat 15%nat do_interval_eval params.
-
-Tactic Notation "interval" :=
-  do_interval_parse (@nil interval_tac_parameters).
-
-Tactic Notation "interval" "with" constr(params) :=
-  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
@@ -581,6 +577,16 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
   aux (@nil R) 30%nat 5%nat do_interval_intro_eval params_.
+
+End Private.
+
+Import Private.
+
+Tactic Notation "interval" :=
+  do_interval_parse (@nil interval_tac_parameters).
+
+Tactic Notation "interval" "with" constr(params) :=
+  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) :=
   do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters).
