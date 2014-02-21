@@ -397,7 +397,7 @@ Lemma interval_helper_bisection_taylor :
   | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
     let fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
       (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var ::
-        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy) in
+        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy) in
     A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true
   | _ => False
   end ->
@@ -407,7 +407,7 @@ intros [|[x [|l u] Hx] bounds] check formula prec deg depth n ; try easy.
 pose (f := fun x => nth n (eval_ext formula (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan).
 pose (fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
   (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var ::
-    map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.dummy)).
+    map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy)).
 change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f (Xreal x))).
 intros H.
 apply A.bisect_1d_correct with (P := fun x => A.check_p check (f x)) (2 := H) (3 := Hx).
