@@ -202,13 +202,61 @@ Definition i_validTM (X0 X : interval)
   [/\ contains (I.convert (error M)) (Xreal R0),
     I.subset_ X0 X &
     let N := Pol.tsize (approx M) in
-    forall fi0, contains X0 fi0 ->
+    forall x0, contains X0 x0 ->
     exists alf,
     [/\ PolX.tsize alf = N,
       forall k, (k < N)%nat ->
         contains (I.convert (Pol.tnth (approx M) k)) (PolX.tnth alf k) &
       forall x, contains X x -> contains (I.convert (error M))
-        (FullXR.tsub tt (f x) (PolX.teval tt alf (FullXR.tsub tt x fi0)))]].
+        (FullXR.tsub tt (f x) (PolX.teval tt alf (FullXR.tsub tt x x0)))]].
+
+Lemma TM_fun_eq X0 X TMf f g :
+  (forall x, contains X x -> f x = g x) ->
+  i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
+Proof.
+move=> Hfg [H0 H1 H2].
+split=>// N fi0 H.
+have [alf [H3 H4 H5]] := H2 fi0 H.
+exists alf.
+split=>// x Hx.
+rewrite -Hfg //; exact: H5.
+Qed.
+
+Lemma teval_in_nan p : PolX.teval tt p Xnan = Xnan.
+Proof.
+elim/PolX.tpoly_ind: p; first by rewrite PolX.teval_polyNil.
+by move=> *; rewrite PolX.teval_polyCons /FullXR.tmul Xmul_comm.
+Qed.
+
+Lemma i_validTM_nan (X0 X:interval) (tm:rpa) (f:ExtendedR -> ExtendedR) :
+  forall v w : ExtendedR,
+  i_validTM X0 X tm (fun x => if x is Xnan then v else f x) ->
+  i_validTM X0 X tm (fun x => if x is Xnan then w else f x).
+Proof.
+move=> v w /= [Hzero Hsubset Hmain].
+split=>//=.
+move=> xi0 Hxi0.
+move/(_ xi0 Hxi0) in Hmain.
+have [a [Hsize Hcont Hdelta]] := Hmain.
+exists a.
+split=>//.
+move=> x Hx.
+move/(_ x Hx) in Hdelta.
+case: x Hx Hdelta => [|r] Hx Hdelta //.
+simpl in Hdelta |- *.
+rewrite teval_in_nan in Hdelta.
+rewrite [FullXR.tsub tt _ _]Xsub_Xnan_r in Hdelta.
+by move/contains_Xnan: Hdelta ->.
+Qed.
+
+Lemma i_validTM_mask (X0 X: interval) (tm: RPA.rpa) (f: ExtendedR -> ExtendedR):
+  i_validTM X0 X tm f -> i_validTM X0 X tm (fun x => Xmask (f x) x).
+Proof.
+move=> Hf.
+apply: (i_validTM_nan (v := f Xnan) Xnan).
+apply: TM_fun_eq Hf.
+by case.
+Qed.
 
 Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
 
@@ -328,6 +376,10 @@ case: xi =>[|l u] [v Hv]; first by exists R0.
 case: v Hv =>[//|r] Hr.
 by exists r.
 Qed.
+
+Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
+  contains xi x -> contains xi (Xreal (proj_val x)).
+Proof. by case: x =>//; case: xi. Qed.
 
 Lemma not_empty_Imid (X : I.type) :
   not_empty (I.convert X) -> not_empty (I.convert (Imid X)).
@@ -877,12 +929,6 @@ Lemma isNNegOrNPos_false (X : I.type) :
 Proof.
 move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
 by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
-Qed.
-
-Lemma teval_in_nan p : PolX.teval tt p Xnan = Xnan.
-Proof.
-elim/PolX.tpoly_ind: p; first by rewrite PolX.teval_polyNil.
-by move=> *; rewrite PolX.teval_polyCons /FullXR.tmul Xmul_comm.
 Qed.
 
 Lemma bounded_singleton_contains_lower_upper (X : I.type) :
@@ -2507,13 +2553,14 @@ Definition TM_const (c : I.type) (X : I.type) (n : nat) :=
   {| RPA.approx := if n == 0 then pol
                    else Pol.tset_nth pol n Pol.Int.tzero;
      RPA.error := I.mask (I.sub prec c (Imid c)) X
+  (* FIXME: Try to replace with *) (* (I.sub prec c (Imid c)) *)
   |}.
 
-Definition sizes := (tsize_polyNil, tsize_polyCons,
+Definition sizes := (Pol.tsize_polyNil, Pol.tsize_polyCons,
                      PolX.tsize_polyNil, PolX.tsize_polyCons,
-                     tsize_set_nth, PolX.tsize_set_nth).
+                     Pol.tsize_set_nth, PolX.tsize_set_nth).
 
-Lemma tsize_TM_const c X n : tsize (approx (TM_const c X n)) = n.+1.
+Lemma size_TM_const c X n : tsize (approx (TM_const c X n)) = n.+1.
 Proof.
 rewrite /TM_const /=.
 case: n =>[|n] /=.
@@ -2521,13 +2568,24 @@ case: n =>[|n] /=.
 by rewrite tsize_set_nth !sizes maxnSS maxn0.
 Qed.
 
-Lemma Imask_IInan (Y X : I.type) :
+Lemma Imask_IInan_r (Y X : I.type) :
   not_empty (I.convert Y) ->
   I.convert X = IInan -> I.convert (I.mask Y X) = IInan.
 Proof.
 move=> [v Hv] HX.
 apply contains_Xnan.
 have->: Xnan = Xmask (Xreal v) Xnan by [].
+apply: I.mask_correct =>//.
+by rewrite HX.
+Qed.
+
+Lemma Imask_IInan_l (Y X : I.type) :
+  not_empty (I.convert X) ->
+  I.convert Y = IInan -> I.convert (I.mask Y X) = IInan.
+Proof.
+move=> [v Hv] HX.
+apply contains_Xnan.
+have->: Xnan = Xmask Xnan (Xreal v) by [].
 apply: I.mask_correct =>//.
 by rewrite HX.
 Qed.
@@ -2550,15 +2608,22 @@ have->: y = Xmask y (Xreal v) by [].
 exact: I.mask_correct.
 Qed.
 
+(*
 Lemma TM_const_correct (c : I.type) (X0 X : I.type) (n : nat) :
   not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
-  forall r : R, contains (I.convert c) (Xreal r) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_const c X n)
-  (fun _ : ExtendedR => Xreal r).
+  forall f : ExtendedR -> ExtendedR,
+  (forall x : ExtendedR, contains (I.convert X) x ->
+    contains (I.convert c) (f x)) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_const c X n) f.
 Proof.
-move=> H0 Hsubset r Hr.
+move=> H0 Hsubset f Hf.
+have [x0 Hx0] := H0.
+have Hx0': contains(I.convert X)(Xreal x0) by exact:subset_contains Hsubset _ _.
+have Hrr := Hf _ Hx0'.
+set r := proj_val (f (Xreal x0)).
+have Hr : contains (I.convert c) (Xreal r) by exact: contains_Xreal.
 split=>//.
-- have Hr' := contains_not_empty _ _ Hr.
+have Hr' := contains_not_empty _ _ Hr.
   have Hmid := not_empty_Imid Hr'.
   have [v Hv] := Hmid.
   rewrite /TM_const /=.
@@ -2603,22 +2668,34 @@ split=>//.
     case: k =>/=.
       rewrite tnth_set_nth PolX.tnth_set_nth /=.
       rewrite tnth_polyCons // PolX.tnth_polyCons //.
-      by move=> _; apply: Imid_contains; exists r.
+      by move=> _;
+        apply: Imid_contains; exists r.
     move=> k; rewrite ltnS => Hk /=.
     rewrite tnth_set_nth PolX.tnth_set_nth /=.
     case: (k.+1 == n.+1); first exact: Int.zero_correct.
     rewrite tnth_out ?sizes // PolX.tnth_out ?sizes //.
     exact: Int.zero_correct.
   + move=> x Hx /=.
+      have := Hf _ Hx.
+      case Efx: (f x) =>[|y] /=.
+      move/contains_Xnan=> Hnan.
+      set J := I.mask _ _; suff->: I.convert J = IInan by done.
+      rewrite Imask_IInan_l //.
+      apply: not_empty'E.
+      by exists x.
+      erewrite Isub_Inan_propagate_l =>//.
+      apply Imid_contains.
+      by exists r.
       case E: (I.convert X) Hsubset Hx => [|l u] Hsubset Hx.
-      rewrite (Imask_IInan _ E) //.
+      rewrite (Imask_IInan_r _ E) //.
       apply: not_empty'E.
       exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
       apply: I.sub_correct =>//.
       apply: Imid_contains.
       by exists r.
+      move=> Hy.
     have [H1 H2] : x = Xreal (proj_val x) /\ xi0 = Xreal (proj_val xi0).
-      case: x Hxi0 Hx; case: xi0 =>// s Hxi0 Hx.
+      case: x Hxi0 Hx Efx; case: xi0 =>// s Hxi0 Hx Efx.
       apply contains_Xnan in Hxi0.
       by rewrite Hxi0 in Hsubset.
     rewrite is_horner_mask H1 H2 /=.
@@ -2631,7 +2708,7 @@ split=>//.
     case: n =>//=.
       rewrite !sizes big_ord_recl big_ord0 /=.
       set s := proj_val _.
-      change (Xreal _) with (Xsub (Xreal r) (Xreal (s + 0))).
+      change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
       apply: I.sub_correct=>//.
       rewrite /s PolX.tnth_polyCons // /FullXR.tmul Xmul_1_r Rplus_0_r /=.
       have Hc : not_empty (I.convert c) by exists r.
@@ -2641,7 +2718,7 @@ split=>//.
       by have [{2}-> _] := I.midpoint_correct _ Hc'.
     move=> n; rewrite !sizes big_ord_recl big1.
       set s := proj_val _.
-      change (Xreal _) with (Xsub (Xreal r) (Xreal (s + 0))).
+      change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
       apply: I.sub_correct=>//.
       rewrite /s PolX.tnth_set_nth /=.
       rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
@@ -2686,6 +2763,175 @@ split=>//.
       by exists (Xreal r).
     by have [{2}-> _] := I.midpoint_correct _ Hc'.
 Qed.
+*)
+
+Lemma TM_const_correct (c X0 X : I.type) (n : nat) (f : ExtendedR->ExtendedR) :
+  not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
+  (forall x : R, contains (I.convert X) (Xreal x) ->
+    (* f (Xreal x) <> Xnan -> *)
+    contains (I.convert c) (f (Xreal x))) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_const c X n) f.
+Proof.
+move=> H0 Hsubset Hf.
+have [x0 Hx0] := H0.
+have Hx0': contains(I.convert X)(Xreal x0) by exact:subset_contains Hsubset _ _.
+have Hrr := Hf _ Hx0'.
+set r := proj_val (f (Xreal x0)).
+have Hr : contains (I.convert c) (Xreal r).
+  exact: contains_Xreal.
+split=>//.
+have Hr' := contains_not_empty _ _ Hr.
+  have Hmid := not_empty_Imid Hr'.
+  have [v Hv] := Hmid.
+  rewrite /TM_const /=.
+  case E: (I.convert X) =>[|l u] //.
+    (* we could use Imask_IInan *)
+    have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
+    apply: I.mask_correct.
+      apply: subset_sub_contains_0; first by eexact Hv.
+      exact: Imid_subset.
+    by rewrite E.
+  have HX : exists x : ExtendedR, contains (I.convert X) x.
+    have [w Hw] := H0.
+    have Hw' := subset_contains _ _ Hsubset (Xreal w) Hw.
+    by exists (Xreal w).
+  have [H1 H2] := I.midpoint_correct X HX.
+  suff->: Xreal 0 = Xmask (Xreal 0) (I.convert_bound (I.midpoint X)).
+    apply: I.mask_correct=>//.
+    apply: subset_sub_contains_0; first by eexact Hv.
+    exact: Imid_subset.
+  by rewrite H1.
+- move=> N xi0 Hxi0.
+  set pol0 := PolX.tpolyCons (I.convert_bound (I.midpoint c)) PolX.tpolyNil.
+  set pol' := if n == 0 then pol0 else PolX.tset_nth pol0 n (Xreal 0).
+  exists pol'.
+  rewrite /N {N} /pol' /pol0 /TM_const.
+  split=>//.
+  + case: n.
+      by rewrite !sizes.
+    move=> n /=; rewrite tsize_set_nth PolX.tsize_set_nth.
+    congr maxn.
+    by rewrite !sizes.
+  + move=> k Hk /=.
+    case: n Hk =>//=.
+      rewrite tsize_polyCons tsize_polyNil ltnS leqn0.
+      move/eqP->.
+      rewrite ?(tnth_polyCons,PolX.tnth_polyCons).
+      * by apply: Imid_contains; exists r.
+      * by rewrite PolX.tsize_polyNil.
+      * by rewrite tsize_polyNil.
+    move=> n.
+    rewrite tsize_set_nth !sizes ltnS.
+    case: k =>/=.
+      rewrite tnth_set_nth PolX.tnth_set_nth /=.
+      rewrite tnth_polyCons // PolX.tnth_polyCons //.
+      by move=> _;
+        apply: Imid_contains; exists r.
+    move=> k; rewrite ltnS => Hk /=.
+    rewrite tnth_set_nth PolX.tnth_set_nth /=.
+    case: (k.+1 == n.+1); first exact: Int.zero_correct.
+    rewrite tnth_out ?sizes // PolX.tnth_out ?sizes //.
+    exact: Int.zero_correct.
+  + move=> x Hx /=.
+    case: x Hx =>[|x] Hx.
+      move/contains_Xnan: Hx.
+      move=> top; rewrite (Imask_IInan_r _ top) //.
+      apply: not_empty'E.
+      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
+      apply I.sub_correct =>//.
+      apply: Imid_contains.
+      by exists r.
+    have := Hf _ Hx.
+    case Efx: (f (Xreal x)) =>[|y] /=.
+      move/contains_Xnan=> Hnan.
+      set J := I.mask _ _; suff->: I.convert J = IInan by done.
+      rewrite Imask_IInan_l //.
+        by exists x.
+      erewrite Isub_Inan_propagate_l =>//.
+      apply Imid_contains.
+      by exists r.
+    case E: (I.convert X) Hsubset Hx => [|l u] Hsubset Hx.
+      rewrite (Imask_IInan_r _ E) //.
+      apply: not_empty'E.
+      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
+      apply: I.sub_correct =>//.
+      apply: Imid_contains.
+      by exists r.
+    move=> Hy.
+    case: xi0 Hxi0 => [|xi0] Hxi0.
+      have := subset_contains _ _ Hsubset Xnan Hxi0; done.
+    rewrite is_horner_mask  /=.
+    rewrite bigXadd_Xreal_proj.
+      apply: Imask_contains.
+        by exists xi0; rewrite -E in Hsubset; apply:subset_contains Hsubset _ _.
+      case: n =>//=.
+        rewrite !sizes big_ord_recl big_ord0 /=.
+        set s := proj_val _.
+        change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
+        apply: I.sub_correct=>//.
+        rewrite /s PolX.tnth_polyCons // /FullXR.tmul Xmul_1_r Rplus_0_r /=.
+        have Hc : not_empty (I.convert c) by exists r.
+        have := Imid_contains Hc.
+        have Hc' : exists z : ExtendedR, contains (I.convert c) z
+          by exists (Xreal r).
+        by have [{2}-> _] := I.midpoint_correct _ Hc'.
+      move=> n; rewrite !sizes big_ord_recl big1.
+        set s := proj_val _.
+        change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
+        apply: I.sub_correct=>//.
+        rewrite /s PolX.tnth_set_nth /=.
+        rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
+        rewrite PolX.tnth_polyCons // Xmul_1_r Rplus_0_r.
+        have Hc : not_empty (I.convert c) by exists r.
+        have := Imid_contains Hc.
+        have Hc' : exists z : ExtendedR, contains (I.convert c) z
+          by exists (Xreal r).
+        by have [{2}-> _] := I.midpoint_correct _ Hc'.
+      move=> i _.
+      rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
+      rewrite lift0 PolX.tnth_set_nth.
+      case: (i.+1 == n.+1).
+        case: i => m Hm.
+        rewrite FullXR.tpow_S /=.
+        case: FullXR.tpow =>// z.
+        by rewrite Rmult_0_l.
+      rewrite PolX.tnth_out.
+        rewrite FullXR.tpow_S /=.
+        case: FullXR.tpow =>// z.
+        by rewrite Rmult_0_l.
+      by rewrite !sizes.
+    case => m /= Hm.
+    rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
+    case: n Hm =>//=.
+      rewrite !sizes ltnS leqn0.
+      move/eqP->.
+      rewrite PolX.tnth_polyCons //.
+      have Hc' : exists z : ExtendedR, contains (I.convert c) z
+        by exists (Xreal r).
+      by have [{2}-> _] := I.midpoint_correct _ Hc'.
+    move=> n.
+    rewrite !sizes maxnSS maxn0 ltnS => Hm.
+    rewrite PolX.tnth_set_nth.
+    case: (m == n.+1) =>//.
+      by rewrite [FullXR.tpow _ _ _]Xpow_idem Xpow_Xreal.
+    case: m Hm => [|m Hm]; last by rewrite PolX.tnth_out ?sizes.
+    move=> h0.
+    rewrite PolX.tnth_polyCons //.
+    rewrite /FullXR.tpow /=.
+    have Hc' : exists z : ExtendedR, contains (I.convert c) z
+      by exists (Xreal r).
+    by have [{2}-> _] := I.midpoint_correct _ Hc'.
+Qed.
+
+Corollary TM_const_correct_weak (c : I.type) (X0 X : I.type) (n : nat) :
+  not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
+  forall r : R, contains (I.convert c) (Xreal r) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_const c X n)
+  (fun _ : ExtendedR => Xreal r).
+Proof. move=> *; exact: TM_const_correct =>//. Qed.
+
+Lemma size_TM_var X0 X n : tsize (approx (TM_var X0 X n)) = n.+1.
+Proof. exact: tsize_trec2. Qed.
 
 Lemma TM_var_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -2732,6 +2978,38 @@ rewrite !zeroF; discrR.
   by apply: not_0_INR; apply: fact_neq_0.
 by apply: not_0_INR; apply: fact_neq_0.
 Qed.
+
+Corollary TM_var_correct_cor X0 X n (f : ExtendedR -> ExtendedR) :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  (forall x : R, f (Xreal x) = (Xreal x)) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_var X0 X n) f.
+Proof.
+move=> Hsubset [v Hv] H.
+apply: (TM_fun_eq
+  (f := fun x => match x with Xnan => f Xnan | Xreal _ => f x end)).
+  by case=> [|r] _.
+apply: (i_validTM_nan (v := Xnan)).
+apply: (TM_fun_eq (f := id)); last by apply: TM_var_correct =>//; exists v.
+by case.
+Qed.
+
+(*
+Definition TM_var' X0 X (n : nat) :=
+  let pol := Pol.tpolyCons X0 Pol.tpolyNil in
+  if n == 0 then
+  {| approx := pol; error := I.sub prec X X0 |}
+  else
+  {| approx := Pol.tset_nth pol n Pol.Int.tzero; error := Int.tzero |}.
+
+Lemma size_TM_var' c X n : tsize (approx (TM_var' c X n)) = n.+1.
+Proof.
+rewrite /TM_var' /=.
+case: n =>[|n] /=.
+  by rewrite !sizes.
+by rewrite tsize_set_nth !sizes maxnSS maxn0.
+Qed.
+*)
 
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -3569,18 +3847,6 @@ rewrite /poly_eval_tm.
 elim/tpoly_ind: p =>[|a p IHp].
   by rewrite tfold_polyNil /TM_cst tsize_trec1.
 by rewrite tfold_polyCons size_TM_add /TM_cst tsize_trec1 size_TM_mul maxnn.
-Qed.
-
-Lemma TM_fun_eq X0 X TMf f g :
-  (forall x, contains X x -> f x = g x) ->
-  i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
-Proof.
-move=> Hfg [H0 H1 H2].
-split=>// N fi0 H.
-have [alf [H3 H4 H5]] := H2 fi0 H.
-exists alf.
-split=>// x Hx.
-rewrite -Hfg //; exact: H5.
 Qed.
 
 (* Attention!

@@ -399,7 +399,7 @@ Lemma interval_helper_bisection_taylor :
   forall bounds check formula prec deg depth n,
   match bounds with
   | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    A.bisect_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy)) l u (A.check_f check) depth = true
+    A.bisect_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy)) l u (A.check_f check) depth = true
   | _ => False
   end ->
   A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
@@ -408,7 +408,7 @@ intros [|[x [|l u] Hx] bounds] check formula prec deg depth n ; try easy.
 intros H.
 pose (f := fun x => nth n (eval_ext formula (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan).
 pose (fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
-     (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.dummy)).
+     (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy)).
 change (A.check_p check (f (Xreal x))).
 refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ Hx).
 intros yi y Hy.
@@ -555,7 +555,7 @@ Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
     | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-      A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy)) l u extend depth
+      A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy)) l u extend depth
     | _ => I.nai
     end).
 

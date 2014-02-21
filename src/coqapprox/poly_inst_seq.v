@@ -332,7 +332,6 @@ End SeqPolyMonomUp.
 
 Module ExactSeqPolyMonomUp (C : ExactFullOps) <: ExactMonomPolyOps C.
 Include SeqPolyMonomUp C.
-Module Import M := SeqPolyMonomUp C.
 
 Canonical Cadd_monoid := Monoid.Law C.tadd_assoc C.tadd_zerol C.tadd_zeror.
 Canonical Cadd_comm := Monoid.ComLaw C.tadd_comm.
