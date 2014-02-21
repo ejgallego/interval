@@ -13,6 +13,15 @@ Require Import Interval_bisect.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
+Inductive interval_tac_parameters :=
+  | i_prec : nat -> interval_tac_parameters
+  | i_bisect : R -> interval_tac_parameters
+  | i_bisect_diff : R -> interval_tac_parameters
+  | i_bisect_taylor : R -> nat -> interval_tac_parameters
+  | i_depth : nat -> interval_tac_parameters.
+
+Module Private.
+
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 
@@ -342,76 +351,69 @@ Lemma interval_helper_bisection :
   forall bounds check formula prec depth n,
   match bounds with
   | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    A.bisect_1d (fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp tail)) I.nai) l u (A.check_f check) depth = true
+    let fi := fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp tail)) I.nai in
+    A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true
   | _ => False
   end ->
   A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
-intro.
-case bounds.
-intros.
-elim H.
-intro.
-case b.
-intros x xi.
-case xi.
-intros.
-elim H.
-intros.
-clear bounds b xi.
-pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) Xnan).
-pose (fi := fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp l0)) I.nai).
-change (A.check_p check (f (Xreal x))).
-fold fi in H.
-refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
-apply A.BndValuator.eval_correct_ext.
+intros [|[x [|l u] Hx] bounds] check formula prec depth n ; try easy.
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp bounds)) Xnan).
+pose (fi := fun b => nth n (A.BndValuator.eval prec formula (b :: map A.interval_from_bp bounds)) I.nai).
+change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f (Xreal x))).
+intros H.
+apply A.bisect_1d_correct with (P := fun x => A.check_p check (f x)) (2 := H) (3 := Hx).
+intros y yi Hy Hb.
+destruct check as [b P HP].
+apply (HP (f y) (fi yi)) with (2 := Hb).
+now apply A.BndValuator.eval_correct_ext.
 Qed.
 
 Lemma interval_helper_bisection_diff :
   forall bounds check formula prec depth n,
   match bounds with
   | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    A.bisect_1d (fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp tail) n b) l u (A.check_f check) depth = true
+    let fi := fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp tail) n b in
+    A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true
   | _ => False
   end ->
   A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
-intro.
-case bounds.
-intros.
-elim H.
-intro.
-case b.
-intros x xi.
-case xi.
-intros.
-elim H.
-intros.
-clear bounds b xi.
-pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp l0)) Xnan).
-pose (fi := fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp l0) n b).
-change (A.check_p check (f (Xreal x))).
-refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ c).
-exact (A.DiffValuator.eval_correct_ext prec formula l0 n).
+intros [|[x [|l u] Hx] bounds] check formula prec depth n ; try easy.
+pose (f := fun x => nth n (eval_ext formula (x :: map A.xreal_from_bp bounds)) Xnan).
+pose (fi := fun b => A.DiffValuator.eval prec formula (map A.interval_from_bp bounds) n b).
+change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f (Xreal x))).
+intros H.
+apply A.bisect_1d_correct with (P := fun x => A.check_p check (f x)) (2 := H) (3 := Hx).
+intros y yi Hy Hb.
+destruct check as [b P HP].
+apply (HP (f y) (fi yi)) with (2 := Hb).
+now apply A.DiffValuator.eval_correct_ext.
 Qed.
 
 Lemma interval_helper_bisection_taylor :
   forall bounds check formula prec deg depth n,
   match bounds with
   | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-    A.bisect_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy)) l u (A.check_f check) depth = true
+    let fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
+      (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var ::
+        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.dummy) in
+    A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true
   | _ => False
   end ->
   A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
 intros [|[x [|l u] Hx] bounds] check formula prec deg depth n ; try easy.
-intros H.
 pose (f := fun x => nth n (eval_ext formula (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan).
 pose (fi := fun b => A.TaylorValuator.TM.eval (prec, deg) b b
-     (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy)).
-change (A.check_p check (f (Xreal x))).
-refine (A.bisect_1d_correct depth f fi _ _ _ _ H _ Hx).
-intros yi y Hy.
+  (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var ::
+    map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.dummy)).
+change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f (Xreal x))).
+intros H.
+apply A.bisect_1d_correct with (P := fun x => A.check_p check (f x)) (2 := H) (3 := Hx).
+intros y yi Hy Hb.
+destruct check as [b P HP].
+apply (HP (f y) (fi yi)) with (2 := Hb).
 now apply A.TaylorValuator.eval_correct_ext.
 Qed.
 
@@ -478,13 +480,6 @@ Ltac do_interval_bisect_diff bounds output formula prec depth n :=
 Ltac do_interval_bisect_taylor deg bounds output formula prec depth n :=
   refine (interval_helper_bisection_taylor bounds output formula prec deg depth n _).
 
-Inductive interval_tac_parameters :=
-  | i_prec : nat -> interval_tac_parameters
-  | i_bisect : R -> interval_tac_parameters
-  | i_bisect_diff : R -> interval_tac_parameters
-  | i_bisect_taylor : R -> nat -> interval_tac_parameters
-  | i_depth : nat -> interval_tac_parameters.
-
 Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
@@ -504,12 +499,6 @@ Ltac do_interval_parse params :=
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
   aux (@nil R) 30%nat 15%nat do_interval_eval params.
-
-Tactic Notation "interval" :=
-  do_interval_parse (@nil interval_tac_parameters).
-
-Tactic Notation "interval" "with" constr(params) :=
-  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
@@ -581,6 +570,16 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
   aux (@nil R) 30%nat 5%nat do_interval_intro_eval params_.
+
+End Private.
+
+Import Private.
+
+Tactic Notation "interval" :=
+  do_interval_parse (@nil interval_tac_parameters).
+
+Tactic Notation "interval" "with" constr(params) :=
+  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) :=
   do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters).

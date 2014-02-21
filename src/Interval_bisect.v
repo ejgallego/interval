@@ -281,8 +281,8 @@ abstract (
   now rewrite H1).
 Defined.
 
-Definition bisect_1d_step fi l u (check : I.type -> bool) cont :=
-  if check (fi (I.bnd l u)) then true
+Definition bisect_1d_step l u (check : I.type -> bool) cont :=
+  if check (I.bnd l u) then true
   else
     let m := I.midpoint (I.bnd l u) in
     match cont l m with
@@ -290,22 +290,22 @@ Definition bisect_1d_step fi l u (check : I.type -> bool) cont :=
     | false => false
     end.
 
-Fixpoint bisect_1d fi l u check steps { struct steps } :=
+Fixpoint bisect_1d l u check steps { struct steps } :=
   match steps with
   | O => false
   | S n =>
-    bisect_1d_step fi l u check
-      (fun l u => bisect_1d fi l u check n)
+    bisect_1d_step l u check
+      (fun l u => bisect_1d l u check n)
   end.
 
 Theorem bisect_1d_correct :
-  forall steps f fi inpl inpu check,
-  I.extension f fi ->
-  bisect_1d fi inpl inpu (check_f check) steps = true ->
+  forall steps inpl inpu f P,
+  (forall y yi, contains (I.convert yi) y -> f yi = true -> P y) ->
+  bisect_1d inpl inpu f steps = true ->
   forall x,
-  contains (I.convert (I.bnd inpl inpu)) x -> check_p check (f x).
+  contains (I.convert (I.bnd inpl inpu)) x -> P x.
 Proof.
-intros steps f fi inpl inpu (check_f,check_p,check_th) Hf.
+intros steps inpl inpu f P Hf.
 revert inpl inpu.
 induction steps.
 intros inpl inpu Hb.
@@ -313,16 +313,14 @@ discriminate Hb.
 intros inpl inpu.
 simpl.
 unfold bisect_1d_step.
-case_eq (check_f (fi (I.bnd inpl inpu))).
+case_eq (f (I.bnd inpl inpu)).
 intros Hb _ x Hx.
-apply check_th with (2 := Hb).
-now apply Hf.
+now apply Hf with (2 := Hb).
 intros _.
 set (inpm := I.midpoint (I.bnd inpl inpu)).
-case_eq (bisect_1d fi inpl inpm check_f steps) ; try easy.
+case_eq (bisect_1d inpl inpm f steps) ; try easy.
 intros Hl Hr x Hx.
-apply (bisect (fun x => check_p (f x))
-              (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
+apply (bisect P (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
 unfold domain.
 rewrite <- I.bnd_correct.
 apply IHsteps with (1 := Hl).
