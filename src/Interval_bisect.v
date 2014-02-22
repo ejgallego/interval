@@ -1401,12 +1401,15 @@ Definition operations prec deg xi :=
    (fun _ => TM.dummy) (* fromZ *)
    (fun o =>
     match o with
+    | Neg => TM.opp (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
     | _ => fun _ => TM.dummy
     end)
    (fun o =>
     match o with
     | Add => TM.add (prec, deg) xi
+    | Sub => TM.sub (prec, deg) xi
+    | Mul => TM.mul (prec, deg) xi
     | _ => fun _ _ => TM.dummy
     end)
    (fun _ => Xund) (* sign_strict *).
@@ -1440,7 +1443,7 @@ induction (rev prog) as [|t l].
     intros t.
     apply sym_eq, nth_overflow.
     now rewrite map_length.
-    now apply TM.approximates_dummy.
+    now apply TM.dummy_correct.
     assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
     pose (b := Bproof R0 I.nai H0).
     unfold TM.dummy.
@@ -1460,7 +1463,7 @@ induction (rev prog) as [|t l].
   destruct t as [uo n1|bo n1 n2].
   + generalize (IHl n1).
     destruct uo.
-    admit.
+    apply TM.opp_correct.
     admit.
     admit.
     admit.
@@ -1474,8 +1477,8 @@ induction (rev prog) as [|t l].
   + generalize (IHl n1) (IHl n2).
     destruct bo.
     apply TM.add_correct.
-    admit.
-    admit.
+    apply TM.sub_correct.
+    apply TM.mul_correct.
     admit.
 Qed.
 

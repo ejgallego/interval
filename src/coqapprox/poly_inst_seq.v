@@ -180,12 +180,15 @@ rewrite /= IH1 -add1n -(add1n (size l)) -(add1n (size m)).
 by apply:addn_maxr.
 Qed.
 
-Lemma tnth_tadd :
-   forall p1 p2 k, k < minn (tsize p1) (tsize p2) ->
-   tnth (tadd p1 p2) k = C.tadd u (tnth p1 k) (tnth p2 k).
+Lemma tnth_tadd p1 p2 k :
+  k < minn (tsize p1) (tsize p2) ->
+  tnth (tadd p1 p2) k = C.tadd u (tnth p1 k) (tnth p2 k).
 Proof.
-elim;[|move=> a l IH];case=>//= b m; case=> //= k Hk.
-by apply: IH; move:Hk;rewrite -![S (tsize _)]addn1 -addn_minl addn1.
+elim: p1 p2 k =>[//|c1 p1 IHp] p2 k; first by rewrite /= min0n.
+case: p2 k =>[//|c2 p2] k.
+case: k IHp =>[//|k] IHp Hk.
+apply: IHp.
+by rewrite /= minnSS ltnS in Hk.
 Qed.
 
 Notation Local "a + b" := (C.tadd a b).
@@ -328,6 +331,39 @@ Lemma tnth_out p n: tsize p <= n -> tnth p n = C.tzero.
 Proof. by move=> H; rewrite /tnth nth_default. Qed.
 
 End PrecIsPropagated.
+
+Lemma tsize_opp p1 :
+  tsize (topp p1) = tsize p1.
+Proof. by elim: p1 =>[//|c1 p1]; move=>/=->. Qed.
+
+Lemma tnth_opp p1 k :
+  k < tsize p1 ->
+  tnth (topp p1) k = C.topp (tnth p1 k).
+Proof.
+elim: p1 k =>[//|c1 p1 IHp] [|k] // Hk.
+rewrite /= ltnS in Hk.
+by rewrite /= IHp.
+Qed.
+
+Lemma tsize_sub u p1 p2 :
+  tsize (tsub u p1 p2) = maxn (tsize p1) (tsize p2).
+Proof.
+elim: p1 p2 =>[/=|c1 p1 IHp] p2; first by rewrite tsize_opp max0n.
+case: p2 IHp =>[//|c2 p2] IHp.
+by rewrite /= IHp maxnSS.
+Qed.
+
+Lemma tnth_sub u p1 p2 k :
+  k < minn (tsize p1) (tsize p2) ->
+  tnth (tsub u p1 p2) k = C.tsub u (tnth p1 k) (tnth p2 k).
+Proof.
+elim: p1 p2 k =>[//|c1 p1 IHp] p2 k; first by rewrite /= min0n.
+case: p2 k =>[//|c2 p2] k.
+case: k IHp =>[//|k] IHp Hk.
+apply: IHp.
+by rewrite /= minnSS ltnS in Hk.
+Qed.
+
 End SeqPolyMonomUp.
 
 Module ExactSeqPolyMonomUp (C : ExactFullOps) <: ExactMonomPolyOps C.

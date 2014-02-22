@@ -224,6 +224,18 @@ Parameter tsize_tadd :
 Parameter tnth_tadd :
   forall u p1 p2 k, k < minn (tsize p1) (tsize p2) ->
   tnth (tadd u p1 p2) k = C.tadd u (tnth p1 k) (tnth p2 k).
+Parameter tsize_sub :
+  forall u p1 p2,
+  tsize (tsub u p1 p2) = maxn (tsize p1) (tsize p2).
+Parameter tnth_sub :
+  forall u p1 p2 k, k < minn (tsize p1) (tsize p2) ->
+  tnth (tsub u p1 p2) k = C.tsub u (tnth p1 k) (tnth p2 k).
+Parameter tsize_opp :
+  forall p1,
+  tsize (topp p1) = tsize p1.
+Parameter tnth_opp :
+  forall p1 k, k < tsize p1 ->
+  tnth (topp p1) k = C.topp (tnth p1 k).
 Parameter tsize_polyCons : forall a p, tsize (tpolyCons a p) = (tsize p).+1.
 Parameter tnth_polyCons : forall a p k, k <= tsize p ->
   tnth (tpolyCons a p) k = if k is k'.+1 then tnth p k' else a.
@@ -292,7 +304,6 @@ multiplication and polynomial evaluation. *)
 
 Module Type ExactMonomPolyOps (C : PowDivOps0)
   := PolyOps C <+ SliceMonomPolyOps C <+ SliceExactMonomPolyOps C.
-
 
 Module RigPolyApprox (I : IntervalOps) (C : BaseOps) (Pol : PolyOps C).
 

@@ -49,7 +49,7 @@ Parameter exp_correct :
 
 Parameter dummy : T.
 
-Parameter approximates_dummy :
+Parameter dummy_correct :
   forall xi f, f Xnan = Xnan -> approximates xi f dummy.
 
 Parameter approximates_ext :

@@ -187,6 +187,13 @@ Definition TM_add (Mf Mg : rpa) : rpa :=
   RPA (Pol.tadd prec (approx Mf) (approx Mg))
     (I.add prec (error Mf) (error Mg)).
 
+Definition TM_opp (M : rpa) : rpa :=
+  RPA (Pol.topp (approx M)) (I.neg (error M)).
+
+Definition TM_sub (Mf Mg : rpa) : rpa :=
+  RPA (Pol.tsub prec (approx Mf) (approx Mg))
+      (I.sub prec (error Mf) (error Mg)).
+
 (* Old definition
 
 Definition valid_poly_bound n fint X B :=
@@ -3348,6 +3355,84 @@ Local Notation "a - b" := (FullXR.tsub tt a b).
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
 
+Lemma teval_add pf pg x :
+  PolX.tsize pf = PolX.tsize pg ->
+  PolX.teval tt (PolX.tadd tt pf pg) x =
+  Xadd (PolX.teval tt pf x) (PolX.teval tt pg x).
+Proof.
+(* Erik: Ideally, we should put this lemma in a more generic place *)
+move=> Heq.
+have Hsize := PolX.tsize_tadd tt pf pg.
+rewrite Heq maxnn in Hsize.
+case Eg : (PolX.tsize pg) => [| n'].
+  rewrite !PolX.is_horner Heq Hsize Eg !big_ord0.
+  by case x => [|rx] //=; rewrite Rplus_0_l.
+rewrite !is_horner_pos /FullXR.tadd /FullXR.tzero.
+- rewrite Heq Hsize Eg.
+  rewrite -big_split /=.
+  apply: eq_bigr => i _; rewrite PolX.tnth_tadd.
+    by rewrite FullXR.tmul_distrl.
+- by rewrite Heq Eg minnn.
+- by rewrite Eg.
+- by rewrite Heq Eg.
+- by rewrite Hsize Eg.
+Qed.
+
+Lemma teval_opp pf x :
+  PolX.teval tt (PolX.topp pf) x =
+  Xneg (PolX.teval tt pf x).
+Proof.
+(* Erik: Ideally, we should put this lemma in a more generic place *)
+have Hsize := PolX.tsize_opp pf.
+case Ef : (PolX.tsize pf) => [| n'].
+  rewrite !PolX.is_horner Hsize Ef !big_ord0.
+  by case x => [|rx] //=; rewrite Ropp_0.
+rewrite !is_horner_pos /FullXR.tsub /FullXR.tzero; first last.
+  by rewrite PolX.tsize_opp Ef.
+  by rewrite Ef.
+rewrite Hsize Ef.
+rewrite (big_morph Xneg (id1 := Xreal 0) (op1 := Xadd)).
+apply: eq_bigr.
+move=> i _.
+rewrite PolX.tnth_opp.
+by rewrite [FullXR.tmul _ _ _]Xmul_Xneg_distr_l.
+case: i.
+by rewrite Ef.
+by move=>*; rewrite Xneg_Xadd.
+by congr Xreal; auto with real.
+Qed.
+
+Lemma teval_sub pf pg x :
+  PolX.tsize pf = PolX.tsize pg ->
+  PolX.teval tt (PolX.tsub tt pf pg) x =
+  Xsub (PolX.teval tt pf x) (PolX.teval tt pg x).
+Proof.
+(* Erik: Ideally, we should put this lemma in a more generic place *)
+move=> Heq.
+have Hsize := PolX.tsize_sub tt pf pg.
+rewrite Heq maxnn in Hsize.
+case Eg : (PolX.tsize pg) => [| n'].
+  rewrite !PolX.is_horner Heq Hsize Eg !big_ord0.
+  by case x => [|rx] //=; rewrite Rminus_0_r.
+rewrite !is_horner_pos /FullXR.tsub /FullXR.tzero; first last.
+  by rewrite PolX.tsize_sub Heq Eg maxnn.
+  by rewrite Heq Eg.
+  by rewrite Eg.
+rewrite Xsub_split.
+rewrite (big_morph Xneg (id1 := Xreal 0) (op1 := Xadd)).
+rewrite Heq Hsize Eg -big_split /=.
+apply: eq_bigr.
+move=> i _.
+rewrite PolX.tnth_sub.
+rewrite [FullXR.tsub _ _ _]Xsub_split.
+rewrite [FullXR.tmul _ _ _]Xmul_Xadd_distr_r //=.
+by rewrite Xmul_Xneg_distr_l.
+case: i.
+by move=>*; rewrite Heq Eg minnn.
+by move=>*; rewrite Xneg_Xadd.
+by congr Xreal; auto with real.
+Qed.
+
 (* TODO: Remove superfluous hypothesis, cf. [TM_add_correct]. *)
 Lemma TM_add_correct_gen (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   I.subset_ smallX0 (I.convert X) ->
@@ -3411,6 +3496,68 @@ Proof.
 move=> Heq Hf Hg.
 case Hf => [_ H0 _].
 by apply TM_add_correct_gen.
+Qed.
+
+Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
+  i_validTM X0 X TMf f ->
+  i_validTM X0 X (TM_opp TMf)
+  (fun xr => FullXR.topp (f xr)).
+Proof.
+move=> [Hsubset Hzero /= Hmain].
+split=>//.
+have->: let x := (Xreal 0) in x = Xneg x by simpl; f_equal; rewrite Ropp_0.
+exact: I.neg_correct.
+simpl=> x0 Hx0.
+have [a [Hsize Hcont Hdelta]] := Hmain _ Hx0.
+exists (PolX.topp a).
+split=>//.
+by rewrite PolX.tsize_opp tsize_opp.
+move=> k Hk.
+rewrite tsize_opp in Hk.
+have Hk' := Hk.
+rewrite -Hsize in Hk'.
+rewrite PolX.tnth_opp // tnth_opp //.
+apply: I.neg_correct.
+exact: Hcont.
+move=> x Hx.
+rewrite /FullXR.topp /FullXR.tsub Xsub_split -Xneg_Xadd.
+apply: I.neg_correct.
+rewrite teval_opp -Xsub_split.
+exact: Hdelta.
+Qed.
+
+Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
+  Pol.tsize (approx TMf) = Pol.tsize (approx TMg) ->
+  i_validTM X0 X TMf f ->
+  i_validTM X0 X TMg g ->
+  i_validTM X0 X (TM_sub TMf TMg)
+  (fun xr => FullXR.tsub tt (f xr) (g xr)).
+Proof.
+move=> Hsame [Hzero1 Hsubset1 /= Hmain1] [Hzero2 _ /= Hmain2].
+split=>//.
+have->: let x := (Xreal 0) in x = Xsub x x by simpl; f_equal; auto with real.
+simpl error.
+exact: I.sub_correct.
+simpl=> x0 Hx0.
+have [a [Hsize1 Hcont1 Hdelta1]] := Hmain1 _ Hx0.
+have [b [Hsize2 Hcont2 Hdelta2]] := Hmain2 _ Hx0.
+exists (PolX.tsub tt a b).
+split=>//.
+by rewrite PolX.tsize_sub tsize_sub Hsize1 Hsize2.
+move=> k Hk.
+rewrite tsize_sub Hsame maxnn in Hk.
+pose lem := (Hsame,tnth_sub,Hsize1,Hsize2,minnn).
+rewrite ?(PolX.tnth_sub,tnth_sub) ?lem //.
+by apply: I.sub_correct; [apply: Hcont1|apply: Hcont2]; rewrite ?lem.
+move=> x Hx.
+have->: f x - g x - PolX.teval tt (PolX.tsub tt a b) (x - x0)
+  = (f x - PolX.teval tt a (x - x0)) - (g x - PolX.teval tt b (x - x0)).
+  rewrite teval_sub; last by rewrite Hsize1 Hsize2 Hsame.
+  rewrite /FullXR.tsub !(Xsub_split,Xneg_Xadd).
+  rewrite !Xadd_assoc; congr Xadd.
+  rewrite -!Xadd_assoc; congr Xadd.
+  by rewrite Xadd_comm.
+apply: I.sub_correct; [exact: Hdelta1|exact: Hdelta2].
 Qed.
 
 Definition mul_error prec n (f g : rpa) X0 X :=
@@ -3810,18 +3957,21 @@ have H : Xreal (rg i) = Xreal 0%R; last by case: H.
 by rewrite -Hrg PolX.tnth_out // Hg1.
 Qed.
 
-Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g :
+Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  let n := Pol.tsize (approx TMf) in
+  n = Pol.tsize (approx TMf) ->
   n = Pol.tsize (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X) (TM_mul TMf TMg X0 X n.-1)
   (fun xr => FullXR.tmul tt (f xr) (g xr)).
 Proof.
-move=> Ht n npos Heq [Hef H0 Hf] Hg.
+move=> Ht H1 H2 Hpos [Hef H0 Hf] Hg.
+rewrite H1.
 apply: TM_mul_correct_gen => //.
 exact: subset_refl.
+by rewrite -H1 H2.
+by rewrite -H1.
 Qed.
 
 Definition poly_eval_tm n p (Mf : rpa) (X0 X : I.type) : rpa :=
@@ -3839,6 +3989,15 @@ Qed.
 Lemma size_TM_mul Mf Mg n X0 X :
   tsize (approx (TM_mul Mf Mg X0 X n)) = n.+1.
 Proof. by rewrite /TM_mul /= tsize_mul_trunc. Qed.
+
+Lemma size_TM_sub Mf Mg :
+  tsize (approx (TM_sub Mf Mg)) =
+  maxn (tsize (approx Mf)) (tsize (approx Mg)).
+Proof. by rewrite /TM_sub /= Pol.tsize_sub. Qed.
+
+Lemma size_TM_opp Mf :
+  tsize (approx (TM_opp Mf)) = tsize (approx Mf).
+Proof. by rewrite /TM_opp /= Pol.tsize_opp. Qed.
 
 Lemma size_poly_eval_tm n p Mf X0 X :
   tsize (approx (poly_eval_tm n p Mf X0 X)) = n.+1.
