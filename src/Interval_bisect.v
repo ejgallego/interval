@@ -1446,8 +1446,8 @@ induction (rev prog) as [|t l].
     now apply TM.dummy_correct.
     assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
     pose (b := Bproof R0 I.nai H0).
-    unfold TM.dummy.
-    change I.nai with (interval_from_bp b).
+    rewrite (nth_indep _ TM.dummy (TM.const (interval_from_bp b))).
+    2: now rewrite map_length.
     rewrite (map_nth (fun v => TM.const (interval_from_bp v))).
     apply (@TM.approximates_ext (fun t => Xmask (xreal_from_bp (nth n bounds b)) t)).
     intros t.

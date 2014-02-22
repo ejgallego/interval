@@ -512,6 +512,74 @@ Theorem var_correct :
   approximates X id var.
 Proof. by move=> *; split. Qed.
 
+Definition eval (u : U) (Y X : I.type) (t : T) : I.type :=
+  if I.subset X Y (* && Inot_empty X *) then
+    let X0 := Imid Y in
+    let tm := tm_helper1 u Y t in
+    I.add u.1 (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0)) (RPA.error tm)
+  else I.nai (* or I.whole ? *).
+
+Theorem eval_correct :
+  forall u (Y : I.type) f tf, approximates Y f tf ->
+  forall (X : I.type),
+  forall x, contains (I.convert X) x ->
+  contains (I.convert (eval u Y X tf)) (f x).
+Proof.
+move=> u Y f tf Hf X x HXx.
+rewrite /eval.
+case HXY: I.subset; last by rewrite I.nai_correct.
+move/I.subset_correct: (HXY) => HXY'.
+(* case HneX: Inot_empty; last by rewrite I.nai_correct. *)
+(* move/Inot_empty_correct in HneX. *)
+have /= {Hf} := tm_helper1_correct u Hf.
+move: (tm_helper1 u Y tf) => tm Htm.
+have {Htm} [Hnan Hnil Htm] := Htm.
+have HneY: not_empty (I.convert Y).
+apply not_empty'E; exists x; exact: subset_contains HXY' _ _.
+move/(_ HneY): Htm.
+case => [/= Hzero Hsubset Hmain].
+set c0 := I.convert_bound (I.midpoint Y).
+have [|qx [Hsize Hcont Hdelta]] := Hmain c0.
+  apply: Imid_contains.
+  apply: not_empty'E.
+  exists x.
+  apply: subset_contains HXx.
+  exact: I.subset_correct.
+move/(_ x) in Hdelta.
+apply I.subset_correct in HXY.
+move/(_ (subset_contains _ _ HXY _ HXx)) in Hdelta.
+have Hreal: f x <> Xnan /\ I.convert (RPA.error tm) <> IInan ->
+  PolX.teval tt qx (FullXR.tsub tt x c0) =
+  Xreal (proj_val (PolX.teval tt qx (FullXR.tsub tt x c0))).
+  case=> Hfx HD.
+  case Eqx : PolX.teval => [|r] //; [exfalso].
+  rewrite Eqx [FullXR.tsub tt _ _]Xsub_Xnan_r /contains in Hdelta.
+  by case: I.convert Hdelta HD.
+case ED : (I.convert (RPA.error tm)) => [|a b].
+rewrite (Iadd_Inan_propagate_r _ _ ED (y := PolX.teval tt qx (Xsub x c0))) //.
+apply: teval_contains =>//.
+apply: I.sub_correct =>//.
+apply Imid_contains.
+(* duplicate *)
+apply: not_empty'E.
+exists x.
+exact: subset_contains HXx.
+have->: f x = Xadd (PolX.teval tt qx (FullXR.tsub tt x c0))
+  (FullXR.tsub tt (f x) (PolX.teval tt qx (FullXR.tsub tt x c0))).
+case Efx : (f x) => [|r]; first by rewrite XaddC.
+rewrite Efx ED in Hreal.
+rewrite Hreal //=.
+by congr Xreal; auto with real.
+apply I.add_correct =>//.
+apply: teval_contains; first by split.
+apply: I.sub_correct =>//.
+apply: Imid_contains.
+(* duplicate *)
+apply: not_empty'E.
+exists x.
+exact: subset_contains HXx.
+Qed.
+
 Definition add_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let t' := pad2 u X (t1, t2) in
   let M1 := tm_helper1 u X t'.1 in
@@ -736,74 +804,6 @@ by case: Hf =>->.
 case: Hf => _ _ H Hne; move/(_ Hne) in H.
 red=> x; apply: I.mul_correct=>//.
 by case: Hg => _ _ H'; move/(_ Hne) in H'.
-Qed.
-
-Definition eval (u : U) (Y X : I.type) (t : T) : I.type :=
-  if I.subset X Y (* && Inot_empty X *) then
-    let X0 := Imid Y in
-    let tm := tm_helper1 u Y t in
-    I.add u.1 (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0)) (RPA.error tm)
-  else I.nai.
-
-Theorem eval_correct :
-  forall u (Y : I.type) f tf, approximates Y f tf ->
-  forall (X : I.type),
-  forall x, contains (I.convert X) x ->
-  contains (I.convert (eval u Y X tf)) (f x).
-Proof.
-move=> u Y f tf Hf X x HXx.
-rewrite /eval.
-case HXY: I.subset; last by rewrite I.nai_correct.
-move/I.subset_correct: (HXY) => HXY'.
-(* case HneX: Inot_empty; last by rewrite I.nai_correct. *)
-(* move/Inot_empty_correct in HneX. *)
-have /= {Hf} := tm_helper1_correct u Hf.
-move: (tm_helper1 u Y tf) => tm Htm.
-have {Htm} [Hnan Hnil Htm] := Htm.
-have HneY: not_empty (I.convert Y).
-apply not_empty'E; exists x; exact: subset_contains HXY' _ _.
-move/(_ HneY): Htm.
-case => [/= Hzero Hsubset Hmain].
-set c0 := I.convert_bound (I.midpoint Y).
-have [|qx [Hsize Hcont Hdelta]] := Hmain c0.
-  apply: Imid_contains.
-  apply: not_empty'E.
-  exists x.
-  apply: subset_contains HXx.
-  exact: I.subset_correct.
-move/(_ x) in Hdelta.
-apply I.subset_correct in HXY.
-move/(_ (subset_contains _ _ HXY _ HXx)) in Hdelta.
-have Hreal: f x <> Xnan /\ I.convert (RPA.error tm) <> IInan ->
-  PolX.teval tt qx (FullXR.tsub tt x c0) =
-  Xreal (proj_val (PolX.teval tt qx (FullXR.tsub tt x c0))).
-  case=> Hfx HD.
-  case Eqx : PolX.teval => [|r] //; [exfalso].
-  rewrite Eqx [FullXR.tsub tt _ _]Xsub_Xnan_r /contains in Hdelta.
-  by case: I.convert Hdelta HD.
-case ED : (I.convert (RPA.error tm)) => [|a b].
-rewrite (Iadd_Inan_propagate_r _ _ ED (y := PolX.teval tt qx (Xsub x c0))) //.
-apply: teval_contains =>//.
-apply: I.sub_correct =>//.
-apply Imid_contains.
-(* duplicate *)
-apply: not_empty'E.
-exists x.
-exact: subset_contains HXx.
-have->: f x = Xadd (PolX.teval tt qx (FullXR.tsub tt x c0))
-  (FullXR.tsub tt (f x) (PolX.teval tt qx (FullXR.tsub tt x c0))).
-case Efx : (f x) => [|r]; first by rewrite XaddC.
-rewrite Efx ED in Hreal.
-rewrite Hreal //=.
-by congr Xreal; auto with real.
-apply I.add_correct =>//.
-apply: teval_contains; first by split.
-apply: I.sub_correct =>//.
-apply: Imid_contains.
-(* duplicate *)
-apply: not_empty'E.
-exists x.
-exact: subset_contains HXx.
 Qed.
 
 (* Naive version of exp
