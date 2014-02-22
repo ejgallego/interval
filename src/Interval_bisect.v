@@ -1420,15 +1420,16 @@ Definition eval prec deg xi :=
 Theorem eval_correct_aux :
   forall prec deg prog bounds n xi,
   TM.approximates xi
-    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan)
-    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
+    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)
+    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
 Proof.
 intros prec deg prog bounds n xi.
 unfold eval, eval_ext.
 rewrite rev_formula.
-apply (@TM.approximates_ext (fun t =>
-  nth n (fold_right (fun y l => eval_generic_body Xnan ext_operations l y)
-    (t :: map (fun b => Xmask (xreal_from_bp b) t) bounds) (rev prog)) Xnan)).
+apply (@TM.approximates_ext (fun t => nth n (fold_right
+  (fun y l => eval_generic_body Xnan ext_operations l y)
+  (t :: map (fun b => Xmask (xreal_from_bp b) t) bounds)
+  (rev prog)) Xnan)).
 intros t.
 apply (f_equal (fun v => nth n v _)).
 apply sym_eq, rev_formula.
@@ -1486,12 +1487,12 @@ Theorem eval_correct_ext :
   forall prec deg prog bounds n yi,
   I.extension
     (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan)
-    (fun b => TM.eval (prec,deg) yi b (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)).
+    (fun b => TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy) yi b).
 Proof.
 intros prec deg prog bounds n yi xi x Hx.
 pose (f x := nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
 pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
-apply (@TM.eval_correct (prec,deg) yi f ft) with (2 := Hx).
+apply (@TM.eval_correct (prec,deg) yi ft f) with (2 := Hx).
 now apply eval_correct_aux.
 Qed.
 
