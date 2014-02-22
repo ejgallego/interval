@@ -1681,6 +1681,7 @@ move:(Hsign c contains_c R0); rewrite /proj_fun -/(proj_val _)=> Hsignc.
 by apply:Rmult_le_neg_pos=>//; apply:Rdiv_neg_compat.
 Qed.
 
+(* FIXME: Subsumed by Interval_missing.pow_powerRZ *)
 Lemma powerRZ_pow (r : R) (n : nat) :
   (powerRZ r (Z_of_nat n) = r ^ n)%Re.
 Proof.

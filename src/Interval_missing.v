@@ -138,6 +138,13 @@ apply Rmult_eq_compat_l.
 exact IHn0.
 Qed.
 
+Lemma pow_powerRZ (r : R) (n : nat) :
+  (r ^ n)%R = powerRZ r (Z_of_nat n).
+Proof.
+induction n; [easy|simpl].
+now rewrite SuccNat2Pos.id_succ.
+Qed.
+
 Definition Zlt_0_Zpower_pos := Zpower_pos_gt_0.
 
 Lemma Zlt_0_Zpower :
