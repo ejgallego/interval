@@ -3462,23 +3462,7 @@ split; first by rewrite /= PolX.tsize_tadd /N Pol.tsize_tadd Hf1 Hg1.
   apply: Hg2.
   by rewrite /= /N tsize_tadd Heq maxnn in Hk.
 move=> x Hx /=.
-have teval_tadd : PolX.teval tt (PolX.tadd tt pf pg) (x-x0) =
- PolX.teval tt pf (x - x0) + PolX.teval tt pg (x - x0).
-  have H1 := PolX.tsize_tadd tt pf pg.
-  rewrite Hf1 Hg1 Heq maxnn in H1.
-  case cs : (tsize (approx TMg)) => [| n'].
-    rewrite !PolX.is_horner Hf1 Hg1 Heq H1 cs !big_ord0.
-    by case (x - x0) => [|rx] //=; rewrite Rplus_0_l.
-  rewrite !is_horner_pos /FullXR.tadd /FullXR.tzero.
-  - rewrite Hf1 Hg1 Heq H1 cs.
-    rewrite -big_split /=.
-    apply: eq_bigr => i _; rewrite PolX.tnth_tadd.
-      by rewrite FullXR.tmul_distrl.
-  - by rewrite Hf1 Hg1 Heq cs minnn.
-  - by rewrite Hg1 cs.
-  - by rewrite Hf1 Heq cs.
-  by rewrite H1 cs.
-rewrite teval_tadd.
+rewrite teval_add; last by rewrite Hf1 Hg1 Heq.
 suff->: f x + g x - (PolX.teval tt pf (x - x0) + PolX.teval tt pg (x - x0))
   = f x - PolX.teval tt pf (x - x0) + (g x - PolX.teval tt pg (x - x0)).
   by apply: I.add_correct; [apply: Hf3|apply: Hg3].
