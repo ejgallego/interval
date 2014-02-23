@@ -530,7 +530,7 @@ apply sym_eq.
 now apply H.
 Qed.
 
-Lemma alternated :
+Lemma alternated_series_ineq' :
   forall u l,
   Un_decreasing u ->
   Un_cv u 0 ->
