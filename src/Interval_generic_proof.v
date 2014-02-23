@@ -1052,6 +1052,10 @@ rewrite <- Fneg_correct.
 apply Fadd_correct.
 Qed.
 
+(*
+ * Fmul
+ *)
+
 Theorem Fmul_aux_correct :
   forall beta (x y : float beta),
   UtoX (Fmul_aux x y) = Xmul (FtoX x) (FtoX y).
@@ -1084,6 +1088,22 @@ destruct x as [| |sx mx ex].
 easy.
 now case y.
 now case y.
+Qed.
+
+(*
+ * Fmul_exact
+ *)
+
+Theorem Fmul_exact_correct :
+  forall beta (x y : float beta),
+  FtoX (Fmul_exact x y) = Xmul (FtoX x) (FtoX y).
+Proof.
+intros beta x y.
+unfold Fmul_exact.
+rewrite <- (Fmul_aux_correct _ x y).
+case (Fmul_aux x y) ; try easy.
+intros s m e l.
+now case l.
 Qed.
 
 Lemma is_zero_correct_zero :

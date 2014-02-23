@@ -976,6 +976,75 @@ right.
 exact Hxu.
 Qed.
 
+Theorem abs_ge_0 :
+  forall xi, (0 <= proj_val (FtoX (F.toF (lower (abs xi)))))%R.
+Proof.
+intros [|xl xu].
+simpl.
+rewrite F.nan_correct.
+apply Rle_refl.
+simpl.
+unfold sign_large_.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct, F.zero_correct.
+case_eq (FtoX (F.toF xl)) ; case_eq (FtoX (F.toF xu)).
+simpl.
+intros _ _.
+rewrite F.zero_correct.
+apply Rle_refl.
+simpl.
+intros ru Hu _.
+case Rcompare_spec ; simpl ; intros H.
+rewrite F.neg_correct, Fneg_correct, Hu.
+simpl.
+rewrite <- Ropp_0.
+apply Ropp_le_contravar.
+now apply Rlt_le.
+rewrite F.neg_correct, Fneg_correct, Hu.
+rewrite H.
+simpl.
+rewrite Ropp_0.
+apply Rle_refl.
+rewrite F.zero_correct.
+apply Rle_refl.
+intros _ rl Hl.
+simpl.
+case Rcompare_spec ; simpl ; intros H.
+rewrite F.zero_correct.
+apply Rle_refl.
+rewrite Hl, H.
+apply Rle_refl.
+rewrite Hl.
+now apply Rlt_le.
+intros ru Hu rl Hl.
+simpl.
+case Rcompare_spec ; simpl ; intros H1 ;
+  case Rcompare_spec ; simpl ; intros H2 ;
+    try rewrite F.neg_correct, Fneg_correct ;
+    try rewrite F.zero_correct ;
+    try apply Rle_refl.
+rewrite <- Ropp_0, Hu.
+apply Ropp_le_contravar.
+now apply Rlt_le.
+rewrite Hu, H2.
+simpl.
+rewrite Ropp_0.
+apply Rle_refl.
+rewrite <- Ropp_0, Hu.
+apply Ropp_le_contravar.
+now apply Rlt_le.
+rewrite Hl, H1.
+apply Rle_refl.
+rewrite <- Ropp_0, Hu.
+apply Ropp_le_contravar.
+now apply Rlt_le.
+rewrite Hu, H2.
+simpl.
+rewrite Ropp_0.
+apply Rle_refl.
+rewrite Hl.
+now apply Rlt_le.
+Qed.
+
 Theorem scale2_correct :
   forall xi x d,
   contains (convert xi) x ->
