@@ -29,6 +29,10 @@ interval_intro (-10831/1000000)%R lower.
 generalize (conj (Rle_trans _ _ _ H1 (proj1 H)) (Rle_trans _ _ _ (proj2 H) H0)).
 clear; intros H.
 simpl powerRZ. (* to remove later on *)
+
+Time interval_intro (exp x - 1)%R with (i_bisect_taylor x 2).
+clear H0.
+
 Time interval with (i_bisect_taylor x 3, i_prec 50, i_depth 7).
 (* No more subgoals. *)
 (* Finished transaction in 0. secs (0.593962u,0.003918s) *)
@@ -44,6 +48,7 @@ interval_intro (10831/1000000)%R upper.
 interval_intro (-10831/1000000)%R lower.
 generalize (conj (Rle_trans _ _ _ H1 (proj1 H)) (Rle_trans _ _ _ (proj2 H) H0)).
 clear; intros H.
+
 Time interval with (i_bisect_diff x, i_prec 50, i_depth 16).
 (* No more subgoals. *)
 (* Finished transaction in 33. secs (32.86976u,0.007909s) *)
