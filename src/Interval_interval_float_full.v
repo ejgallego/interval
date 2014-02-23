@@ -2,6 +2,7 @@ Require Import Reals.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_float_sig.
+Require Import Interval_generic.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
 Require Import Interval_transcend.
@@ -47,7 +48,84 @@ Definition cos prec xi :=
   | Inan => Inan
   end.
 
-Axiom cos_correct : forall prec, I.extension Xcos (cos prec).
+Lemma cos_correct :
+  forall prec, I.extension Xcos (cos prec).
+Proof.
+intros prec xi x Hx.
+unfold cos.
+generalize (I.abs_correct xi x Hx) (I.abs_ge_0 xi).
+destruct (I.abs xi) as [|xl xu].
+easy.
+intros Ha Hal.
+simpl in Hal.
+destruct x as [|x] ; try easy.
+simpl Xcos.
+replace (Rtrigo_def.cos x) with (Rtrigo_def.cos (Rabs x)).
+2: unfold Rabs ; case Rcase_abs ; intros _ ; try easy ; apply cos_neg.
+case_eq (Fle xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2))).
+- intros Hle.
+  apply Fle_correct in Hle.
+  simpl in Ha.
+  assert (Hcxu := T.cos_fast_correct prec xu).
+  unfold I.convert_bound in Ha, Hle.
+  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  assert (Hxur: (xur <= PI)%R).
+    rewrite F.scale2_correct in Hle by easy.
+    rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct) in Hle.
+    generalize (T.pi4_correct prec).
+    destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl in Hle.
+    now rewrite F.nan_correct in Hle.
+    simpl.
+    unfold T.I.convert_bound.
+    intros [H _].
+    destruct (FtoX (F.toF pi4l)) as [|pi4r] ; try easy.
+    apply Rle_trans with (1 := Hle).
+    rewrite <- (Rmult_1_r PI).
+    rewrite <- (Rinv_l 4) at 5.
+    2: now apply (Fcore_Raux.Z2R_neq 4 0).
+    rewrite <- (Rmult_assoc PI).
+    apply Rmult_le_compat_r with (2 := H).
+    now apply (Fcore_Raux.Z2R_le 0 4).
+  split.
+  + apply proj2 in Ha.
+    destruct (T.cos_fast prec xu) as [|cu cu'].
+    unfold I.convert_bound.
+    simpl.
+    now rewrite F.nan_correct.
+    simpl.
+    destruct Hcxu as [Hu _].
+    unfold T.I.convert_bound in Hu.
+    unfold I.convert_bound.
+    destruct (FtoX (F.toF cu)) as [|cur] ; try easy.
+    apply Rle_trans with (1 := Hu).
+    apply cos_decr_1 with (4 := Hxur) (5 := Ha).
+    apply Rabs_pos.
+    now apply Rle_trans with xur.
+    apply Rle_trans with (2 := Ha).
+    apply Rabs_pos.
+  + generalize (T.cos_fast_correct prec xl).
+    destruct (T.cos_fast prec xl) as [|cl' cl].
+    intros _.
+    unfold I.convert_bound.
+    simpl.
+    now rewrite F.nan_correct.
+    destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+    simpl.
+    unfold T.I.convert_bound, I.convert_bound.
+    intros [_ Hl].
+    destruct (FtoX (F.toF cl)) as [|clr] ; try easy.
+    apply Rle_trans with (2 := Hl).
+    apply cos_decr_1 with (1 := Hal).
+    apply Rle_trans with (2 := Hxur).
+    now apply Rle_trans with (Rabs x).
+    apply Rabs_pos.
+    now apply Rle_trans with xur.
+    apply Ha.
+- intros _.
+  unfold I.convert, I.convert_bound, I.bnd.
+  rewrite 2!F.fromZ_correct.
+  apply COS_bound.
+Qed.
 
 (* useful only for |xi| <= pi/2 *)
 Definition sin prec xi :=
