@@ -1402,11 +1402,12 @@ Definition operations prec deg xi :=
    (fun o =>
     match o with
     | Neg => TM.opp (prec, deg) xi
+    | Abs => TM.abs (prec, deg) xi
     | Inv => TM.inv (prec, deg) xi
     | Sqrt => TM.sqrt (prec, deg) xi
-    | Exp => TM.exp (prec, deg) xi
     | Cos => TM.cos (prec, deg) xi
     | Sin => TM.sin (prec, deg) xi
+    | Exp => TM.exp (prec, deg) xi
     | _ => fun _ => TM.dummy
     end)
    (fun o =>

@@ -68,12 +68,12 @@ Parameter mul_correct :
   approximates Y tf f -> approximates Y tg g ->
   approximates Y (mul u Y tf tg) (fun x => Xmul (f x) (g x)).
 
-Parameter inv : U -> I.type -> T -> T.
+Parameter abs : U -> I.type -> T -> T.
 
-Parameter inv_correct :
+Parameter abs_correct :
   forall u (Y : I.type) tf f,
   approximates Y tf f ->
-  approximates Y (inv u Y tf) (fun x => Xinv (f x)).
+  approximates Y (abs u Y tf) (fun x => Xabs (f x)).
 
 Parameter div : U -> I.type -> T -> T -> T.
 
@@ -81,6 +81,13 @@ Parameter div_correct :
   forall u (Y : I.type) tf tg f g,
   approximates Y tf f -> approximates Y tg g ->
   approximates Y (div u Y tf tg) (fun x => Xdiv (f x) (g x)).
+
+Parameter inv : U -> I.type -> T -> T.
+
+Parameter inv_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (inv u Y tf) (fun x => Xinv (f x)).
 
 Parameter sqrt : U -> I.type -> T -> T.
 
