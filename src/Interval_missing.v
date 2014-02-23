@@ -571,3 +571,40 @@ destruct (Even.even_or_odd n) as [H|H].
     destruct (alternated_series_ineq u l (p + 1) Du Cu Cl) as [_ H1].
     now rewrite <- H0 in H1.
 Qed.
+
+Lemma Un_decreasing_exp :
+  forall x : R,
+  (0 <= x <= 1)%R ->
+  Un_decreasing (fun n => / INR (fact n) * x ^ n)%R.
+Proof.
+intros x Hx n.
+change (fact (S n)) with (S n * fact n).
+rewrite mult_INR.
+rewrite Rinv_mult_distr.
+simpl pow.
+rewrite <- (Rmult_1_r (/ _ * _ ^ n)).
+replace (/ INR (S n) * / INR (fact n) * (x * x ^ n))%R
+  with (/ INR (fact n) * x ^ n * (/ INR (S n) * x))%R by ring.
+apply Rmult_le_compat_l.
+apply Rmult_le_pos.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_fact.
+now apply pow_le.
+rewrite <- (Rmult_1_r 1).
+apply Rmult_le_compat.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_Sn.
+apply Hx.
+rewrite <- Rinv_1.
+apply Rle_Rinv_pos.
+apply Rlt_0_1.
+apply (le_INR 1).
+apply le_n_S, le_0_n.
+apply Hx.
+now apply not_0_INR.
+apply INR_fact_neq_0.
+Qed.
