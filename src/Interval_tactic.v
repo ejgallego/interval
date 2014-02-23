@@ -545,7 +545,7 @@ Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
   eval vm_compute in
    (match bounds with
     | cons (A.Bproof _ (Interval_interval_float.Ibnd l u) _) tail =>
-      A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) b b (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy)) l u extend depth
+      A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) tail)) A.TaylorValuator.TM.dummy) b b) l u extend depth
     | _ => I.nai
     end).
 
