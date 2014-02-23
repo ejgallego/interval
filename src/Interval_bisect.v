@@ -1470,7 +1470,7 @@ induction (rev prog) as [|t l].
   + generalize (IHl n1).
     destruct uo.
     apply TM.opp_correct.
-    admit.
+    apply TM.abs_correct.
     apply TM.inv_correct.
     admit.
     apply TM.sqrt_correct.
