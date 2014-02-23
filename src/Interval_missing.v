@@ -529,3 +529,45 @@ intros Huv2.
 apply sym_eq.
 now apply H.
 Qed.
+
+Lemma alternated :
+  forall u l,
+  Un_decreasing u ->
+  Un_cv u 0 ->
+  Un_cv (fun n => sum_f_R0 (tg_alt u) n) l ->
+  forall n,
+  (0 <= (-1)^(S n) * (l - sum_f_R0 (tg_alt u) n) <= u (S n))%R.
+Proof.
+intros u l Du Cu Cl n.
+destruct (Even.even_or_odd n) as [H|H].
+- destruct (Div2.even_2n n H) as [p Hp].
+  rewrite NPeano.double_twice in Hp.
+  destruct (alternated_series_ineq u l p Du Cu Cl) as [H1 H2].
+  rewrite Hp, pow_1_odd.
+  split.
+  + rewrite Ropp_mult_distr_l_reverse, Rmult_1_l.
+    apply Ropp_0_ge_le_contravar.
+    now apply Rle_ge, Rle_minus.
+  + apply Rplus_le_reg_r with (- sum_f_R0 (tg_alt u) (2 * p))%R.
+    ring_simplify.
+    replace (- sum_f_R0 (tg_alt u) (2 * p) + u (S (2 * p)))%R
+      with (- (sum_f_R0 (tg_alt u) (2 * p) + (-1) * u (S (2 * p))))%R by ring.
+    rewrite <- (pow_1_odd p).
+    now apply Ropp_le_contravar.
+- destruct (Div2.odd_S2n n H) as [p Hp].
+  rewrite NPeano.double_twice in Hp.
+  assert (H0: S (S (2 * p)) = 2 * (p + 1)) by ring.
+  rewrite Hp.
+  rewrite H0 at 1 2.
+  rewrite pow_1_even, Rmult_1_l.
+  split.
+  + apply Rle_0_minus.
+    now apply alternated_series_ineq.
+  + apply Rplus_le_reg_l with (sum_f_R0 (tg_alt u) (S (2 * p))).
+    ring_simplify.
+    rewrite <- (Rmult_1_l (u (S (S (2 * p))))).
+    rewrite <- (pow_1_even (p + 1)).
+    rewrite <- H0.
+    destruct (alternated_series_ineq u l (p + 1) Du Cu Cl) as [_ H1].
+    now rewrite <- H0 in H1.
+Qed.
