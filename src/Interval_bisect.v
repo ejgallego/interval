@@ -1402,7 +1402,11 @@ Definition operations prec deg xi :=
    (fun o =>
     match o with
     | Neg => TM.opp (prec, deg) xi
+    | Inv => TM.inv (prec, deg) xi
+    | Sqrt => TM.sqrt (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
+    | Cos => TM.cos (prec, deg) xi
+    | Sin => TM.sin (prec, deg) xi
     | _ => fun _ => TM.dummy
     end)
    (fun o =>
@@ -1410,7 +1414,7 @@ Definition operations prec deg xi :=
     | Add => TM.add (prec, deg) xi
     | Sub => TM.sub (prec, deg) xi
     | Mul => TM.mul (prec, deg) xi
-    | _ => fun _ _ => TM.dummy
+    | Div => TM.div (prec, deg) xi
     end)
    (fun _ => Xund) (* sign_strict *).
 
@@ -1466,11 +1470,11 @@ induction (rev prog) as [|t l].
     destruct uo.
     apply TM.opp_correct.
     admit.
+    apply TM.inv_correct.
     admit.
-    admit.
-    admit.
-    admit.
-    admit.
+    apply TM.sqrt_correct.
+    apply TM.cos_correct.
+    apply TM.sin_correct.
     admit.
     admit.
     apply TM.exp_correct.
@@ -1480,7 +1484,7 @@ induction (rev prog) as [|t l].
     apply TM.add_correct.
     apply TM.sub_correct.
     apply TM.mul_correct.
-    admit.
+    apply TM.div_correct.
 Qed.
 
 Theorem eval_correct_ext :

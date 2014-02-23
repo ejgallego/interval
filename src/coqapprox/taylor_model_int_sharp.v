@@ -3243,7 +3243,7 @@ rewrite fact_simpl !mult_INR (S_INR k) -tech_pow_Rmult /= -(S_INR k).
 by field; split =>//; split.
 Qed.
 
-Lemma TM_sin_correct X X0 n :
+Lemma TM_sin_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) (FullXR.tsin tt).
@@ -4315,7 +4315,6 @@ Qed.
 Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
   f Xnan = Xnan ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  (exists t : ExtendedR, contains (I.convert (tnth (approx TMf) 0)) t) ->
   forall n, Pol.tsize (approx TMf) = n.+1 ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   (forall Y0 Y k, I.subset_ (I.convert Y0) (I.convert Y) ->
@@ -4325,7 +4324,7 @@ Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
   i_validTM (I.convert X0) (I.convert X)
   (TM_comp Tyg TMf X0 X n) (fun xr => (g (f xr))).
 Proof.
-move=> Hnan Ht Hu n Hn Hf Hg.
+move=> Hnan Ht n Hn Hf Hg.
 have {Ht} [t Ht] := Ht.
 case Hf => [H0 H1 H2].
 split=>//.
@@ -4662,13 +4661,12 @@ Definition TM_inv_comp Mf X0 X (n : nat) := TM_comp TM_inv Mf X0 X n.
 Lemma TM_inv_comp_correct (X0 X : I.type) (TMf : rpa) f :
   f Xnan = Xnan ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  (exists t : ExtendedR, contains (I.convert (tnth (approx TMf) 0)) t) ->
   forall n, Pol.tsize (approx TMf) = n.+1 ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X)
   (TM_inv_comp TMf X0 X n) (fun xr => FullXR.tinv tt (f xr)).
 Proof.
-move=> Hnan Ht Ha0 n Hn Hf.
+move=> Hnan Ht n Hn Hf.
 apply: TM_comp_correct=> //.
 have {Hf} [Hef H0 Hf] := Hf => a Y k Ha Ht'.
 split; first exact: TM_inv_correct.
@@ -4678,28 +4676,24 @@ Qed.
 Definition TM_div Mf Mg X0 X n :=
    TM_mul Mf (TM_inv_comp Mg X0 X n) X0 X n.
 
-Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g :
+Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   g Xnan = Xnan->
-  (exists t : ExtendedR, contains (I.convert (tnth (approx TMg) 0)) t) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  forall n, Pol.tsize (approx TMf) = n.+1 ->
-  n.+1 = Pol.tsize (approx TMg) ->
+  n = Pol.tsize (approx TMf) ->
+  n = Pol.tsize (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X)
-  (TM_div TMf TMg X0 X n) (fun xr => FullXR.tdiv tt (f xr) (g xr)).
+  (TM_div TMf TMg X0 X n.-1) (fun xr => FullXR.tdiv tt (f xr) (g xr)).
 Proof.
-move=> Hnan Hex Ht n Hn Hneq Hf Hg.
-apply: (TM_fun_eq
-    (f := fun xr => FullXR.tmul tt (f xr) (FullXR.tinv tt (g xr)))).
+move=> Hnan Hex Hn1 Hn2 Hnpos Hf Hg.
+apply: (TM_fun_eq (f :=
+  fun xr => FullXR.tmul tt (f xr) (FullXR.tinv tt (g xr)))).
   by move=> x; rewrite /FullXR.tdiv Xdiv_split.
 rewrite /TM_div.
-have {2}->: n = (n.+1.-1) by done.
-rewrite -Hn.
-apply: TM_mul_correct =>//.
-- by rewrite /= -/n size_poly_eval_tm.
-- by rewrite Hn.
-by apply TM_inv_comp_correct.
+apply: TM_mul_correct =>//; first by rewrite size_poly_eval_tm (prednK Hnpos).
+apply TM_inv_comp_correct =>//.
+by rewrite -Hn2 (prednK Hnpos).
 Qed.
 
 Lemma size_TM_comp (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) (n : nat) :

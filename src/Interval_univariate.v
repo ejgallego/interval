@@ -68,11 +68,46 @@ Parameter mul_correct :
   approximates Y tf f -> approximates Y tg g ->
   approximates Y (mul u Y tf tg) (fun x => Xmul (f x) (g x)).
 
+Parameter inv : U -> I.type -> T -> T.
+
+Parameter inv_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (inv u Y tf) (fun x => Xinv (f x)).
+
+Parameter div : U -> I.type -> T -> T -> T.
+
+Parameter div_correct :
+  forall u (Y : I.type) tf tg f g,
+  approximates Y tf f -> approximates Y tg g ->
+  approximates Y (div u Y tf tg) (fun x => Xdiv (f x) (g x)).
+
+Parameter sqrt : U -> I.type -> T -> T.
+
+Parameter sqrt_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (sqrt u Y tf) (fun x => Xsqrt (f x)).
+
 Parameter exp : U -> I.type -> T -> T.
 
 Parameter exp_correct :
   forall u (Y : I.type) tf f,
   approximates Y tf f ->
   approximates Y (exp u Y tf) (fun x => Xexp (f x)).
+
+Parameter cos : U -> I.type -> T -> T.
+
+Parameter cos_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (cos u Y tf) (fun x => Xcos (f x)).
+
+Parameter sin : U -> I.type -> T -> T.
+
+Parameter sin_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (sin u Y tf) (fun x => Xsin (f x)).
 
 End UnivariateApprox.

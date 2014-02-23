@@ -681,7 +681,7 @@ Definition sub_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
 Definition sub (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   match t1, t2 with
     | Const c1, Const c2 => Const (I.sub u.1 c1 c2)
-  (*| Var, Var => Const (I.fromZ 0)*)
+  (*| Var, Var => Const (I.fromZ 0) : FIXME *)
     | _, _ => sub_slow u X t1 t2
   end.
 
@@ -796,60 +796,209 @@ red=> x; apply: I.mul_correct=>//.
 by case: Hg => _ _ H'; move/(_ Hne) in H'.
 Qed.
 
-(* Naive version of exp
+(** * Generic implementation of basic functions *)
 
-Definition exp (u : U) (X : I.type) (t : T) : T :=
-  let X0 := Imid X in
-  let tm := (tm_helper1 u X t) in
-  let n := (tmsize tm).-1 in
-  Tm (TM_comp u.1 (TM_exp u.1) (tm_helper1 u X t) X0 X n).
-*)
-
-Definition exp (u : U) (X : I.type) (t : T) : T :=
+Definition fun_gen
+  (fi : I.precision -> I.type -> I.type)
+  (ftm : I.precision -> TM_type)
+  (u : U) (X : I.type) (t : T) : T :=
   match t with
-    | Const c => Const (I.exp u.1 c)
-    | Var => let X0 := Imid X in Tm (TM_exp u.1 X0 X u.2)
+    | Const c => Const (fi u.1 c)
+    | Var => let X0 := Imid X in Tm (ftm u.1 X0 X u.2)
     | Tm tm => let X0 := Imid X in let n := (tmsize tm).-1 in
-      Tm (TM_comp u.1 (TM_exp u.1) tm X0 X n)
+      Tm (TM_comp u.1 (ftm u.1) tm X0 X n)
   end.
 
-Theorem exp_correct u (Y : I.type) tf f :
-  approximates Y tf f ->
-  approximates Y (exp u Y tf) (fun x => Xexp (f x)).
+Lemma fun_gen_correct
+  (fi : I.precision -> I.type -> I.type)
+  (ftm : I.precision -> TM_type)
+  (fx : ExtendedR -> ExtendedR)
+  (ft := fun_gen fi ftm) :
+  fx Xnan = Xnan ->
+  (forall prec : I.precision, I.extension fx (fi prec)) ->
+  (forall prec X0 X n, tmsize (ftm prec X0 X n) = n.+1) ->
+  (forall prec X0 X n,
+    subset (I.convert X0) (I.convert X) ->
+    (exists t : ExtendedR, contains (I.convert X0) t) ->
+    i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
+  forall (u : U) (X : I.type) (tf : T) (f : ExtendedR -> ExtendedR),
+  approximates X tf f ->
+  approximates X (ft u X tf) (fun x => fx (f x)).
 Proof.
-move: tf => [c||tm] Hf.
+move=> Hpro Hext Hsiz Hvalid u X [c| |tm] f Hf.
 - have [Hnan Hnil Hc] := Hf; split; [by rewrite Hnan|done|].
   red=> HneY x.
-  apply: I.exp_correct.
+  apply: Hext.
   exact: Hc.
 - have [Hnan Hnil Hid] := Hf; split=>//; first by rewrite Hnan.
-  by rewrite /not_nil /tmsize /= PolI.tsize_trec1.
+  by rewrite /not_nil /ft /fun_gen /= Hsiz.
   simpl.
   move=> HneY; move/(_ HneY) in Hid.
   eapply TM_fun_eq.
   case=> [|x]; last by move=> *; rewrite Hid.
   by rewrite Hnan.
-  apply: TM_exp_correct.
+  apply: Hvalid.
   exact: Imid_subset.
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists (Xreal y).
 - have [Hnan Hnil Htm] := Hf; split; first by rewrite Hnan.
-  by rewrite /not_nil /exp /tmsize /exp size_TM_comp.
+  by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
   move=> HneY; move/(_ HneY) in Htm.
   have [Hzero Hsubset Hmain] := Htm.
   have Hne' := not_empty_Imid HneY.
   have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
   + by exists (Xreal m).
-  + have  [a [H H' H'']] := Hmain _ Hm.
-    exists (PolX.tnth a 0).
-    apply: H'.
-    by rewrite /= -lt0n in Hnil.
   + rewrite /tmsize.
     rewrite /= /tmsize in Hnil.
     by case: PolI.tsize Hnil.
-  + move=> *; split; last by rewrite PolI.tsize_trec1.
-    exact: TM_exp_correct.
-Save.
+  + move=> *; split; first exact: Hvalid.
+    by rewrite -/(tmsize _) Hsiz.
+Qed.
+
+(*
+Definition inv (u : U) (X : I.type) (t : T) : T :=
+  match t with
+    | Const c => Const (I.inv u.1 c)
+    | Var => let X0 := Imid X in Tm (TM_inv u.1 X0 X u.2)
+    | Tm tm => let X0 := Imid X in let n := (tmsize tm).-1 in
+      Tm (TM_inv_comp u.1 tm X0 X n)
+  end.
+*)
+
+Definition inv := Eval hnf in fun_gen I.inv TM_inv.
+
+Theorem inv_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (inv u Y tf) (fun x => Xinv (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.inv_correct.
+by move=>*; rewrite /tmsize PolI.tsize_trec1. (* TODO : refactor *)
+exact: TM_inv_correct.
+Qed.
+
+Definition div_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
+  let t' := pad2 u X (t1, t2) in
+  let M1 := tm_helper1 u X t'.1 in
+  let M2 := tm_helper1 u X t'.2 in
+  let X0 := Imid X in
+  let n := (tsize t'.1).-1 in
+  Tm (TM_div u.1 M1 M2 X0 X n).
+
+Definition div (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
+  match t1, t2 with
+    | Const c1, Const c2 => Const (I.div u.1 c1 c2)
+  (*| Var, Var => Const (I.fromZ 1) : FIXME *)
+    | _, _ => div_slow u X t1 t2
+  end.
+
+Lemma div_slow_correct u (Y : I.type) tf tg f g :
+  approximates Y tf f -> approximates Y tg g ->
+  approximates Y (div_slow u Y tf tg) (fun x => Xdiv (f x) (g x)).
+Proof.
+move=> Hf Hg.
+have [[Hnan Hnil H] [Hnan' _ H']] := @pad2_correct u Y f g (tf, tg) Hf Hg.
+split=>//.
+by rewrite Hnan.
+rewrite /div_slow.
+set t' := pad2 u Y (tf, tg) in Hnil *.
+(* ... *)
+move=> Hne; move/(_ Hne) in H; move/(_ Hne) in H'.
+have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
+have [v Hv] := Hne'.
+apply TM_div_correct=>//.
+by exists (Xreal v).
+(* . *)
+rewrite /t' ![PolI.tsize _]tsize_tm_helper1.
+have := isTm_pad2 u Y (tf, tg).
+case: pad2=>//=.
+by case=> [c1| |t1] b [].
+(* . *)
+rewrite /t' ![PolI.tsize _]tsize_tm_helper1 size_pad2.
+have := isTm_pad2 u Y (tf, tg).
+case: pad2=>//=.
+by move=> a [c2| |t2] [].
+(* . *)
+move: Hnil.
+rewrite lt0n /t' /not_nil.
+have := isTm_pad2 u Y (tf, tg).
+by case: pad2 => [[c1| |t1][c2| |t2]] [].
+(* . *)
+case: t'.1 H H'; case: t'.2 =>// *;
+  try (apply: TM_const_correct =>//; exact: Imid_subset);
+  apply TM_var_correct_cor =>//; (try apply: Imid_subset =>//);
+  exists (Xreal v); done.
+(* . *)
+case: t'.1 H H'; case: t'.2 =>// *;
+  try (apply: TM_const_correct =>//; exact: Imid_subset);
+  apply TM_var_correct_cor =>//; (try apply: Imid_subset =>//);
+  exists (Xreal v); done.
+Qed.
+
+Theorem div_correct u (Y : I.type) tf tg f g :
+  approximates Y tf f -> approximates Y tg g ->
+  approximates Y (div u Y tf tg) (fun x => Xdiv (f x) (g x)).
+Proof.
+move: tf tg => [cf| |tf] [cg| |tg] Hf Hg; try exact: div_slow_correct.
+split=>//.
+by case: Hf =>->.
+case: Hf => _ _ H Hne; move/(_ Hne) in H.
+red=> x; apply: I.div_correct=>//.
+by case: Hg => _ _ H'; move/(_ Hne) in H'.
+Qed.
+
+Definition sqrt := Eval hnf in fun_gen I.sqrt TM_sqrt.
+
+Theorem sqrt_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (sqrt u Y tf) (fun x => Xsqrt (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.sqrt_correct.
+by move=>*; rewrite /tmsize PolI.tsize_trec1.
+exact: TM_sqrt_correct.
+Qed.
+
+Definition exp := Eval hnf in fun_gen I.exp TM_exp.
+
+Theorem exp_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (exp u Y tf) (fun x => Xexp (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.exp_correct.
+by move=>*; rewrite /tmsize PolI.tsize_trec1.
+exact: TM_exp_correct.
+Qed.
+
+Definition cos := Eval hnf in fun_gen I.cos TM_cos.
+
+Theorem cos_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (cos u Y tf) (fun x => Xcos (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.cos_correct.
+by move=>*; rewrite /tmsize PolI.tsize_trec2.
+exact: TM_cos_correct.
+Qed.
+
+Definition sin := Eval hnf in fun_gen I.sin TM_sin.
+
+Theorem sin_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (sin u Y tf) (fun x => Xsin (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.sin_correct.
+by move=>*; rewrite /tmsize PolI.tsize_trec2.
+exact: TM_sin_correct.
+Qed.
 
 End TM.
