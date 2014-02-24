@@ -375,7 +375,86 @@ Definition atan prec xi :=
   | Inan => Inan
   end.
 
-Axiom atan_correct : forall prec, I.extension Xatan (atan prec).
+Lemma atan_correct :
+  forall prec, I.extension Xatan (atan prec).
+Proof.
+intros prec [|xl xu] [|x] Hx ; try easy.
+assert (Hpi := T.pi4_correct prec).
+simpl.
+rewrite 2!I.real_correct.
+simpl in Hx.
+split.
+- generalize (proj1 Hx). clear Hx.
+  case_eq (I.convert_bound xl).
+  intros _ _.
+  unfold I.convert_bound.
+  rewrite F.neg_correct, Interval_generic_proof.Fneg_correct.
+  rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct ; try easy.
+  2: apply F.even_radix_correct.
+  destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
+  now rewrite F.nan_correct.
+  simpl in Hpi.
+  unfold T.I.convert_bound in Hpi.
+  destruct (FtoX (F.toF pi4u)) as [|rpi4] ; try easy.
+  apply Rlt_le.
+  apply Rle_lt_trans with (2 := proj1 (atan_bound x)).
+  replace (- PI / 2)%R with (-(PI / 4 * 2))%R by field.
+  apply Ropp_le_contravar.
+  apply Rmult_le_compat_r with (2 := proj2 Hpi).
+  now apply (Fcore_Raux.Z2R_le 0 2).
+  intros rl Hl Hx.
+  generalize (T.atan_correct prec xl).
+  destruct (T.atan_fast prec xl) as [|al au].
+  intros _.
+  unfold I.convert_bound.
+  simpl.
+  now rewrite F.nan_correct.
+  simpl.
+  unfold I.convert_bound in Hl.
+  rewrite Hl.
+  unfold T.I.convert_bound, I.convert_bound.
+  destruct (FtoX (F.toF al)) as [|ral] ; try easy.
+  intros [H _].
+  apply Rle_trans with (1 := H).
+  destruct Hx as [Hx|Hx].
+  now apply Rlt_le, atan_increasing.
+  rewrite Hx.
+  apply Rle_refl.
+- generalize (proj2 Hx). clear Hx.
+  case_eq (I.convert_bound xu).
+  intros _ _.
+  unfold I.convert_bound.
+  rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct ; try easy.
+  2: apply F.even_radix_correct.
+  destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
+  now rewrite F.nan_correct.
+  simpl in Hpi.
+  unfold T.I.convert_bound in Hpi.
+  destruct (FtoX (F.toF pi4u)) as [|rpi4] ; try easy.
+  apply Rlt_le.
+  apply Rlt_le_trans with (1 := proj2 (atan_bound x)).
+  replace (PI / 2)%R with (PI / 4 * 2)%R by field.
+  apply Rmult_le_compat_r with (2 := proj2 Hpi).
+  now apply (Fcore_Raux.Z2R_le 0 2).
+  intros rl Hl Hx.
+  generalize (T.atan_correct prec xu).
+  destruct (T.atan_fast prec xu) as [|al au].
+  intros _.
+  unfold I.convert_bound.
+  simpl.
+  now rewrite F.nan_correct.
+  simpl.
+  unfold I.convert_bound in Hl.
+  rewrite Hl.
+  unfold T.I.convert_bound, I.convert_bound.
+  destruct (FtoX (F.toF au)) as [|rau] ; try easy.
+  intros [_ H].
+  apply Rle_trans with (2 := H).
+  destruct Hx as [Hx|Hx].
+  now apply Rlt_le, atan_increasing.
+  rewrite Hx.
+  apply Rle_refl.
+Qed.
 
 Definition exp prec xi :=
   match xi with
