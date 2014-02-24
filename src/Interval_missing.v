@@ -652,3 +652,21 @@ apply pow_maj_Rabs with (1 := Hx).
 apply INR_fact_neq_0.
 now apply not_0_INR.
 Qed.
+
+Lemma Un_cv_subseq :
+  forall (u : nat -> R) (f : nat -> nat) (l : R),
+  (forall n, f n < f (S n)) ->
+  Un_cv u l -> Un_cv (fun n => u (f n)) l.
+Proof.
+intros u f l Hf Cu eps He.
+destruct (Cu eps He) as [N HN].
+exists N.
+intros n Hn.
+apply HN.
+apply le_trans with (1 := Hn).
+clear -Hf.
+induction n.
+apply le_0_n.
+specialize (Hf n).
+omega.
+Qed.
