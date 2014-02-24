@@ -1407,6 +1407,8 @@ Definition operations prec deg xi :=
     | Sqrt => TM.sqrt (prec, deg) xi
     | Cos => TM.cos (prec, deg) xi
     | Sin => TM.sin (prec, deg) xi
+    | Tan => TM.tan (prec, deg) xi
+    | Atan => TM.atan (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
     | _ => fun _ => TM.dummy
     end)
@@ -1476,8 +1478,8 @@ induction (rev prog) as [|t l].
     apply TM.sqrt_correct.
     apply TM.cos_correct.
     apply TM.sin_correct.
-    admit.
-    admit.
+    apply TM.tan_correct.
+    apply TM.atan_correct.
     apply TM.exp_correct.
     admit.
   + generalize (IHl n1) (IHl n2).

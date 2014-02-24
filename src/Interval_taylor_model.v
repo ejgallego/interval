@@ -1108,4 +1108,45 @@ by move=>*; rewrite /tmsize PolI.tsize_trec2.
 exact: TM_sin_correct.
 Qed.
 
+Definition TM_tan_slow prec X0 X n :=
+  TM_div prec (TM_sin prec X0 X n) (TM_cos prec X0 X n) X0 X n.
+
+Definition tan := Eval hnf in fun_gen I.tan TM_tan_slow.
+
+Theorem tan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (tan u Y tf) (fun x => Xtan (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.tan_correct.
+by move=> *; rewrite /tmsize size_TM_mul. (* TODO : refactor *)
+move=> prec X0 X n Hsubset [x Hx].
+rewrite /TM_tan_slow; change n with (n.+1.-1); apply: TM_div_correct =>//.
+(* OK since Xtan := fun x : ExtendedR => Xdiv (Xsin x) (Xcos x) *)
+eexists; exact Hx.
+by rewrite PolI.tsize_trec2. (* TODO : refactor *)
+by rewrite PolI.tsize_trec2. (* TODO : refactor *)
+apply: TM_sin_correct =>//.
+eexists; exact Hx.
+apply: TM_cos_correct =>//.
+eexists; exact Hx.
+Qed.
+
+Definition atan (u : U) (X : I.type) (t : T) : T :=
+(* FIXME: this is a very naive definition, ideally we should rely on TM_atan *)
+  Const (I.atan u.1 (eval u t X X)).
+
+Theorem atan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (atan u Y tf) (fun x => Xatan (f x)).
+Proof.
+move=> u Y tf f [Hnan Hnil Hmain].
+split=>//; first by rewrite Hnan.
+red=> x Hx.
+apply: I.atan_correct.
+exact: eval_correct.
+Qed.
+
 End TM.

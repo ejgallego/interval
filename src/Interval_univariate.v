@@ -117,4 +117,18 @@ Parameter sin_correct :
   approximates Y tf f ->
   approximates Y (sin u Y tf) (fun x => Xsin (f x)).
 
+Parameter tan : U -> I.type -> T -> T.
+
+Parameter tan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (tan u Y tf) (fun x => Xtan (f x)).
+
+Parameter atan : U -> I.type -> T -> T.
+
+Parameter atan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (atan u Y tf) (fun x => Xatan (f x)).
+
 End UnivariateApprox.
