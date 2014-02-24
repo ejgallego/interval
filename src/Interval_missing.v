@@ -608,3 +608,47 @@ apply Hx.
 now apply not_0_INR.
 apply INR_fact_neq_0.
 Qed.
+
+Lemma Un_decreasing_cos :
+  forall x : R,
+  (Rabs x <= 1)%R ->
+  Un_decreasing (fun n => / INR (fact (2 * n)) * x ^ (2 * n))%R.
+Proof.
+intros x Hx n.
+replace (2 * S n) with (2 + 2 * n) by ring.
+rewrite pow_add.
+rewrite <- Rmult_assoc.
+apply Rmult_le_compat_r.
+rewrite pow_sqr.
+apply pow_le.
+apply Rle_0_sqr.
+change (fact (2 + 2 * n)) with ((2 + 2 * n) * ((1 + 2 * n) * fact (2 * n))).
+rewrite mult_assoc, mult_comm.
+rewrite mult_INR.
+rewrite <- (Rmult_1_r (/ INR (fact _))).
+rewrite Rinv_mult_distr.
+rewrite Rmult_assoc.
+apply Rmult_le_compat_l.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_fact.
+rewrite <- (Rmult_1_r 1).
+apply Rmult_le_compat.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_Sn.
+unfold pow.
+rewrite Rmult_1_r.
+apply Rle_0_sqr.
+rewrite <- Rinv_1.
+apply Rle_Rinv_pos.
+apply Rlt_0_1.
+apply (le_INR 1).
+apply le_n_S, le_0_n.
+replace R1 with (1 * (1 * 1))%R by ring.
+apply pow_maj_Rabs with (1 := Hx).
+apply INR_fact_neq_0.
+now apply not_0_INR.
+Qed.
