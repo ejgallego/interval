@@ -267,7 +267,7 @@ Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
     let pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
-    match Fle (F.neg pi2) xl, Fle xu pi2 with
+    match Flt (F.neg pi2) xl, Flt xu pi2 with
     | true, true =>
       I.bnd (I.lower (T.tan_fast prec xl)) (I.upper (T.tan_fast prec xu))
     | _, _ => Inan
@@ -275,7 +275,94 @@ Definition tan prec xi :=
   | Inan => Inan
   end.
 
-Axiom tan_correct : forall prec, I.extension Xtan (tan prec).
+Lemma tan_correct :
+  forall prec, I.extension Xtan (tan prec).
+Proof.
+intros prec [|xl xu] [|x] Hx ; try easy.
+unfold tan.
+case_eq (Flt (F.neg (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1))) xl) ; try easy.
+intros Hlt1.
+apply Flt_correct in Hlt1.
+case_eq (Flt xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1))) ; try easy.
+intros Hlt2.
+apply Flt_correct in Hlt2.
+generalize (T.tan_correct prec xl) (T.tan_correct prec xu).
+simpl in Hx.
+unfold I.convert_bound in Hx, Hlt1, Hlt2.
+destruct (FtoX (F.toF xl)) as [|rl].
+now destruct (FtoX (F.toF (F.neg (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1))))).
+destruct (FtoX (F.toF xu)) as [|ru] ; try easy.
+intros Hl Hu.
+rewrite I.bnd_correct.
+rewrite F.neg_correct, Interval_generic_proof.Fneg_correct in Hlt1.
+rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct in Hlt1, Hlt2 ;
+  try easy ; try apply F.even_radix_correct.
+generalize (T.pi4_correct prec).
+destruct (T.pi4 prec) as [|pi4l pi4u].
+simpl in Hlt1.
+now rewrite F.nan_correct in Hlt1.
+intros [Hpil _].
+simpl in Hlt1, Hlt2.
+unfold T.I.convert_bound in Hpil.
+destruct (FtoX (F.toF pi4l)) as [|pi4r] ; try easy.
+simpl in Hlt1, Hlt2.
+apply (Rmult_le_compat_r 2) in Hpil.
+2: now apply (Fcore_Raux.Z2R_le 0 2).
+unfold Rdiv in Hpil.
+replace (PI * /4 * 2)%R with (PI / 2)%R in Hpil by field.
+assert (H1: (- PI / 2 < rl)%R).
+  apply Rle_lt_trans with (2 := Hlt1).
+  unfold Rdiv.
+  rewrite Ropp_mult_distr_l_reverse.
+  now apply Ropp_le_contravar.
+assert (H2: (ru < PI / 2)%R).
+  now apply Rlt_le_trans with (pi4r * 2)%R.
+unfold Xtan.
+simpl.
+case is_zero_spec.
+simpl in Hx.
+apply Rgt_not_eq, cos_gt_0.
+apply Rlt_le_trans with (2 := proj1 Hx).
+unfold Rdiv.
+now rewrite <- Ropp_mult_distr_l_reverse.
+now apply Rle_lt_trans with ru.
+unfold Xtan in Hl, Hu.
+intros _.
+unfold I.convert_bound.
+split.
+- destruct (T.tan_fast prec xl) as [|tl tu].
+  simpl.
+  now rewrite F.nan_correct.
+  revert Hl.
+  simpl.
+  case is_zero_spec ; try easy.
+  unfold T.I.convert_bound.
+  intros _ [H _].
+  destruct (FtoX (F.toF tl)) as [|rtl] ; try easy.
+  apply Rle_trans with (1 := H).
+  destruct (proj1 Hx) as [Hx'|Hx'].
+  apply Rlt_le.
+  apply tan_increasing ; try easy.
+  now apply Rle_lt_trans with ru.
+  rewrite Hx'.
+  apply Rle_refl.
+- destruct (T.tan_fast prec xu) as [|tl tu].
+  simpl.
+  now rewrite F.nan_correct.
+  revert Hu.
+  simpl.
+  case is_zero_spec ; try easy.
+  unfold T.I.convert_bound.
+  intros _ [_ H].
+  destruct (FtoX (F.toF tu)) as [|rtu] ; try easy.
+  apply Rle_trans with (2 := H).
+  destruct (proj2 Hx) as [Hx'|Hx'].
+  apply Rlt_le.
+  apply tan_increasing ; try easy.
+  now apply Rlt_le_trans with rl.
+  rewrite Hx'.
+  apply Rle_refl.
+Qed.
 
 Definition atan prec xi :=
   match xi with
