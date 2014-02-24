@@ -37,6 +37,31 @@ simpl.
 now case Fcore_Raux.Rcompare_spec ; auto with real.
 Qed.
 
+Definition Flt x y :=
+  match F.cmp x y with
+  | Xlt  => true
+  | _ => false
+  end.
+
+Lemma Flt_correct :
+  forall x y,
+  Flt x y = true ->
+  match I.convert_bound x, I.convert_bound y with
+  | Xreal xr, Xreal yr => (xr < yr)%R
+  | _, _ => False
+  end.
+Proof.
+intros x y.
+unfold Flt.
+rewrite F.cmp_correct, Interval_generic_proof.Fcmp_correct.
+I.xreal_tac x.
+easy.
+I.xreal_tac y.
+easy.
+simpl.
+now case Fcore_Raux.Rcompare_spec.
+Qed.
+
 (* useful only for |xi| <= pi *)
 Definition cos prec xi :=
   match I.abs xi with
