@@ -102,6 +102,60 @@ case : x {e}; first by rewrite Xmul_comm Xpow_idem Xpow_Xnan /=.
 by move=> r; rewrite Xmul_1_r.
 Qed.
 
+Lemma nth_Xderive_pt_power_int (n : Z) x :
+  nth_Xderive_pt (fun x => Xpower_int x n)%XR
+  (fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (n - Z.of_nat i))) * Xpower_int x (n - Z.of_nat k))%XR x.
+Proof.
+split=>[y | k].
+  by rewrite big_ord0 Xmul_1_l Zminus_0_r.
+rewrite big_ord_recr /=.
+have -> : (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (n - Z.of_nat i)))%XR =
+      Xreal (\big[Rmult/R1]_(i < k) (IZR (n - Z.of_nat i))).
+  elim: k; first by rewrite !big_ord0.
+  by move=> k Hrec; rewrite !big_ord_recr Hrec.
+set b := Xreal _.
+have H := Xderive_pt_mul (fun _ => b) (fun x => Xpower_int x (n - Z.of_nat k))%XR
+ _ _ x (Xderive_pt_constant (\big[Rmult/1%Re]_(i < k) IZR (n - Z.of_nat i))x).
+rewrite Xmul_comm (Xmul_comm b) -Xmul_assoc.
+set e:= (Xpower_int x (n - Z.of_nat k.+1) * Xreal (IZR (n - Z.of_nat k)))%XR.
+have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * b))%XR.
+  rewrite /e=> {e H}.
+  case : x; first done.
+  move=> r.
+  rewrite Xmul_0_l.
+  set x0 := Xmask _ _.
+rewrite /= /x0 /=.
+case: (Req_EM_T r R0) => Hr; case Enk: (n - Z.of_nat k.+1)%Z @b @x0 =>[|p|p] b x0.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+simpl.
+by rewrite Rplus_0_l.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+by rewrite Xadd_0_l.
+by rewrite zeroT //= Xadd_comm.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+by rewrite Xadd_0_l.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+by rewrite Xadd_0_l.
+rewrite zeroF //.
+case E': (n - Z.of_nat k)%Z => [|q|q]; try (zify; romega).
+by rewrite /= Rplus_0_l.
+by rewrite /= Rplus_0_l.
+(* . *)
+apply: H; rewrite /e.
+have := (Xderive_pt_power_int (n - Z.of_nat k) _ _ _ (Xderive_pt_identity x)).
+(* Check Xderive_pt_eq_fun. *)
+congr Xderive_pt.
+case: x {e} =>[//|r].
+simpl.
+set nk := (n - Z.pos (Pos.of_succ_nat k))%Z.
+have->: Z.pred (n - Z.of_nat k)%Z = nk by rewrite /nk; zify; romega.
+case: nk =>//=.
+by rewrite Z2R_IZR Rmult_1_r.
+by move=> p; rewrite Rmult_1_l Rmult_comm Z2R_IZR.
+move=> p; case: is_zero =>//=.
+by rewrite Rmult_1_l Rmult_comm Z2R_IZR.
+Qed.
+
 Lemma nth_derivable_pt_inv_pow n x :
   x <> R0 ->
   nth_derivable_pt (fun x => / x ^ n)%Re

@@ -43,7 +43,7 @@ End IntPolyOps.
 
 Module Type IntMonomPolyOps (I : IntervalOps).
 Module Int := FullInt I.
-Include MonomPolyOps Int.
+Include PowDivMonomPolyOps Int.
 End IntMonomPolyOps.
 
 Module Type LinkIntX

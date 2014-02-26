@@ -18,7 +18,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith.
+Require Import BinPos.
 Require Import Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
@@ -28,7 +28,7 @@ Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
-Require Import poly_datatypes.
+Require Import poly_datatypes basic_rec.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -52,6 +52,9 @@ Definition sin_rec (a b : T) (n : nat) : T :=
 
 Definition cos_rec (a b : T) (n : nat) : T :=
   tdiv u (topp a) (tmul u (tnat n) (tnat n.-1)).
+
+Definition pow_aux_rec (p : Z) (x : T) (_ : T) (n : nat)
+  := C.tpower_int u x (p - Z.of_nat n)%Z.
 
 (* Erik: These notations could be used globally *)
 Local Notation "i + j" := (tadd u i j).
@@ -140,7 +143,7 @@ Parameter T_acos : P.U -> C.T -> nat -> P.T.
 *)
 End TaylorPolyOps.
 
-Module TaylorPoly (C : FullOps) (P : PolyOps C) <: TaylorPolyOps C P.
+Module TaylorPoly (C : FullOps) (P : PowDivMonomPolyOps C) <: TaylorPolyOps C P.
 (** Needs functions defining the recurrences, as well as trec1, trec2. *)
 Module Rec := TaylorRec C.
 Import P C Rec.
@@ -163,6 +166,10 @@ Definition T_cos x := trec2 (cos_rec u) (tcos u x) (C.topp (tsin u x)).
 Definition T_sqrt x := trec1 (sqrt_rec u x) (tsqrt u x).
 
 Definition T_invsqrt x := trec1 (invsqrt_rec u x) (tinvsqrt u x).
+
+Definition T_power_int (p : Z) x (n : nat) :=
+  P.tdotmuldiv u (falling_seq p n) (fact_seq n)
+               (trec1 (pow_aux_rec u p x) (tpower_int u x p) n).
 
 (*
 Definition T_ln x := trec2 (ln_rec u x) (tln u x) (tinv u x).

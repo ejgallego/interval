@@ -366,8 +366,49 @@ Qed.
 
 End SeqPolyMonomUp.
 
-Module ExactSeqPolyMonomUp (C : ExactFullOps) <: ExactMonomPolyOps C.
+Module SeqPolyPowDivMonomUp (Import C : PowDivOps) <: PowDivMonomPolyOps C.
+
 Include SeqPolyMonomUp C.
+
+Fixpoint tdotmuldiv (u : U) (a b : seq Z) (p : T) : T :=
+match a, b, p with
+| a0 :: a1, b0 :: b1, p0 :: p1 =>
+  C.tmul u (C.tdiv u (C.tfromZ a0) (C.tfromZ b0)) p0 ::
+  tdotmuldiv u a1 b1 p1
+| _, _, _ => [::] (* e.g. *)
+end.
+
+Lemma tsize_dotmuldiv (n : nat) (u : U) a b p :
+  tsize p = n -> size a = n -> size b = n ->
+  tsize (tdotmuldiv u a b p) = n.
+Proof.
+move: a b p n; elim=> [|a0 a1 IH] [|b0 b1] [|p0 p1] =>//.
+move=> /= n Hp Ha Hb /=.
+rewrite (IH _ _ n.-1) //.
+by rewrite -Hp.
+by rewrite -Hp.
+by rewrite -Ha.
+by rewrite -Hb.
+Qed.
+
+Lemma tnth_dotmuldiv :
+  (* Erik: We might replace this spec with a parameter in rpa_inst.LinkIntX *)
+  forall u a b p n, n < tsize (tdotmuldiv u a b p) ->
+  tnth (tdotmuldiv u a b p) n =
+  C.tmul u (C.tdiv u (C.tfromZ (nth 1%Z a n))
+                     (C.tfromZ (nth 1%Z b n)))
+         (tnth p n).
+Proof.
+move=> u; elim=> [|a0 a1 IH] [|b0 b1] [|p0 p1] =>//.
+move=> /= [|n] Hn //=.
+rewrite ltnS in Hn.
+by rewrite IH.
+Qed.
+
+End SeqPolyPowDivMonomUp.
+
+Module ExactSeqPolyMonomUp (C : ExactFullOps) <: ExactMonomPolyOps C.
+Include SeqPolyPowDivMonomUp C.
 
 Canonical Cadd_monoid := Monoid.Law C.tadd_assoc C.tadd_zerol C.tadd_zeror.
 Canonical Cadd_comm := Monoid.ComLaw C.tadd_comm.
@@ -473,7 +514,7 @@ End ExactSeqPolyMonomUp.
 rather than taking it as an additional module parameter. *)
 Module SeqPolyMonomUpInt (I : IntervalOps).
 Module Int := FullInt I.
-Include SeqPolyMonomUp Int.
+Include SeqPolyPowDivMonomUp Int.
 End SeqPolyMonomUpInt.
 
 Module SeqPolyMonomUpFloat (F : FloatOps with Definition even_radix := true).

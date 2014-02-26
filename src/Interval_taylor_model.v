@@ -1,4 +1,4 @@
-Require Import Reals.
+Require Import Reals ZArith.
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -1147,6 +1147,58 @@ split=>//; first by rewrite Hnan.
 red=> x Hx.
 apply: I.atan_correct.
 exact: eval_correct.
+Qed.
+
+Definition power_int p := Eval cbv delta[fun_gen] beta in
+  match p with
+(*| 0%Z => fun u xi t => Const (I.fromZ 1) *)
+  | 1%Z => fun u xi t => t
+  | _ => fun_gen
+           (fun prec x => I.power_int prec x p)
+           (fun prec => TM_power_int prec p)
+  end.
+
+Theorem power_int_correct :
+  forall (p : Z) u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (power_int p u Y tf) (fun x => Xpower_int (f x) p).
+Proof.
+move=> p u Y tf f Hf.
+have [Hnan Hnil Hmain] := Hf.
+have [Hp|Hp] := Z.eq_dec p 1%Z.
+(* . *)
+(* rewrite Hp.
+apply (@approximates_ext (fun x => Xmask (Xreal 1) (f x)))=>//. *)
+(* . *)
+rewrite Hp.
+apply (@approximates_ext f)=>//.
+move=> x; rewrite /Xinv.
+case: (f x) =>[//|r].
+by rewrite /= Rmult_1_r.
+(* . *)
+case: p Hp =>[|p'|p']=>//; (try case: p'=>[p''|p''|]) =>// H;
+apply: (fun_gen_correct
+  (fi := fun prec x => I.power_int prec x _)
+  (ftm := fun prec => TM_power_int prec _)
+  (fx := fun x => Xpower_int x _)) =>//;
+try (by move=> *; apply: I.power_int_correct);
+try (by move=> *; rewrite /tmsize size_TM_power_int);
+by move=> *; apply: TM_power_int_correct.
+Qed.
+
+Definition sqr := power_int 2.
+
+Theorem sqr_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (sqr u Y tf) (fun x => Xsqr (f x)).
+Proof.
+move=> u Y tf f Hf.
+apply: (@approximates_ext (fun x => Xpower_int (f x) 2%Z)).
+move=> x; rewrite /Xpower_int /Xsqr.
+case: (f x) =>[//|r].
+by rewrite /= Rmult_1_r.
+exact: power_int_correct.
 Qed.
 
 End TM.

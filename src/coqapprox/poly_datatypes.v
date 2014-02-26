@@ -63,6 +63,8 @@ End Nota.
 
 Module Type SliceMaskBaseOps (Import A : BaseOps).
 Parameter tcst : T -> T -> T. (** the first argument is the constant *)
+Parameter tnat : nat -> T.
+Parameter tfromZ : Z -> T.
 End SliceMaskBaseOps.
 
 Module Type SlicePowDivOps (Import A : BaseOps).
@@ -75,7 +77,6 @@ End SlicePowDivOps.
 (* Local Notation tpow prec x n := (tpower_int prec x (Z_of_nat n)). *)
 
 Module Type SliceFullOps (Import A : BaseOps).
-Parameter tnat : nat -> T.
 Parameter tsqrt : U -> T -> T.
 Parameter tinvsqrt : U -> T -> T.
 Parameter texp : U -> T -> T.
@@ -116,6 +117,14 @@ Parameter tmul_distrr : right_distributive (tmul tt) (tadd tt).
 Parameter tmul_zerol : left_zero tzero (tmul tt).
 Parameter tmul_zeror : right_zero tzero (tmul tt). *)
 End SliceExactBaseOps.
+
+(*
+Module Type SliceStdZOps (Import A : BaseOps).
+Parameter tfromZ : Z -> T.
+End SliceStdZOps.
+Module Type BaseStdZOps := BaseOps <+ SliceStdZOps.
+Module Type BaseStdZOps0 := BaseStdZOps with Definition U := unit.
+*)
 
 Module Type SliceExactMaskBaseOps (Import A : MaskBaseOps0).
 Parameter mask_add_l :
@@ -269,6 +278,23 @@ End SliceMonomPolyOps.
 
 Module Type MonomPolyOps (C : MaskBaseOps) := PolyOps C <+ SliceMonomPolyOps C.
 
+Module Type SlicePowDivPolyOps (C : PowDivOps) (Import A : PolyOps C).
+Parameter tdotmuldiv : U -> seq Z -> seq Z -> T -> T.
+Parameter tsize_dotmuldiv :
+  forall n u a b p, tsize p = n -> size a = n -> size b = n ->
+  tsize (tdotmuldiv u a b p) = n.
+Parameter tnth_dotmuldiv :
+  (* FIXME: Replace this spec with a parameter in rpa_inst.LinkIntX *)
+  forall u a b p n, n < tsize (tdotmuldiv u a b p) ->
+  tnth (tdotmuldiv u a b p) n =
+  C.tmul u (C.tdiv u (C.tfromZ (nth 1%Z a n))
+                     (C.tfromZ (nth 1%Z b n)))
+         (tnth p n).
+End SlicePowDivPolyOps.
+
+Module Type PowDivMonomPolyOps (C : PowDivOps) :=
+   MonomPolyOps C <+ SlicePowDivPolyOps C.
+
 Module Type SliceExactMonomPolyOps
   (C : PowDivOps0)
   (Import A : PolyOps C)
@@ -303,7 +329,8 @@ on the choice of a particular polynomial basis, especially for the
 multiplication and polynomial evaluation. *)
 
 Module Type ExactMonomPolyOps (C : PowDivOps0)
-  := PolyOps C <+ SliceMonomPolyOps C <+ SliceExactMonomPolyOps C.
+  := PolyOps C
+  <+ SliceMonomPolyOps C <+ SlicePowDivPolyOps C <+ SliceExactMonomPolyOps C.
 
 Module RigPolyApprox (I : IntervalOps) (C : BaseOps) (Pol : PolyOps C).
 

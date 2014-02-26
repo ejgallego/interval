@@ -1404,13 +1404,15 @@ Definition operations prec deg xi :=
     | Neg => TM.opp (prec, deg) xi
     | Abs => TM.abs (prec, deg) xi
     | Inv => TM.inv (prec, deg) xi
+    | Sqr => TM.sqr (prec, deg) xi
     | Sqrt => TM.sqrt (prec, deg) xi
     | Cos => TM.cos (prec, deg) xi
     | Sin => TM.sin (prec, deg) xi
     | Tan => TM.tan (prec, deg) xi
     | Atan => TM.atan (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
-    | _ => fun _ => TM.dummy
+    | PowerInt n => TM.power_int n (prec, deg) xi
+ (* | _ => fun _ => TM.dummy *)
     end)
    (fun o =>
     match o with
@@ -1474,14 +1476,14 @@ induction (rev prog) as [|t l].
     apply TM.opp_correct.
     apply TM.abs_correct.
     apply TM.inv_correct.
-    admit.
+    apply TM.sqr_correct.
     apply TM.sqrt_correct.
     apply TM.cos_correct.
     apply TM.sin_correct.
     apply TM.tan_correct.
     apply TM.atan_correct.
     apply TM.exp_correct.
-    admit.
+    apply TM.power_int_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.
     apply TM.add_correct.

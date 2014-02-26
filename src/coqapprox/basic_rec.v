@@ -19,8 +19,9 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith.
+Require Import Rfunctions. (* for fact_simpl *)
 Require Import NaryFunctions.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigop tuple.
 Require Import seq_compl nary_tuple.
 
 (*
@@ -827,3 +828,55 @@ Time Eval compute in (fun _ => true) (last Z0 (FibN' 1000)).
 *)
 
 End TestN.
+
+
+Section RecZ.
+
+(* Helper functions to compute
+[1/0!; p/1!; ...; p*(p-1)*...*(p-n+1)/n!] *)
+
+Definition fact_rec (a : Z) (n : nat) : Z := Z.mul a (Z.of_nat n).
+Definition fact_seq := rec1up fact_rec 1%Z.
+
+Theorem fact_seq_correct (d : Z) (n k : nat) :
+  k <= n ->
+  nth d (fact_seq n) k = Z.of_nat (fact k).
+Proof.
+elim: k => [|k IHk] Hkn; first by rewrite rec1up_co0.
+move/(_ (ltnW Hkn)) in IHk.
+move: IHk.
+rewrite /fact_seq.
+rewrite (@rec1up_nth_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
+move => IHk.
+rewrite (@rec1up_nth_indep _ _ _ d d _ k.+1) //.
+rewrite rec1up_correct IHk /fact_rec.
+
+rewrite fact_simpl.
+zify; ring.
+Qed.
+
+Definition falling_rec (p : Z) (a : Z) (n : nat) : Z :=
+  (a * (p - (Z.of_nat n) + 1))%Z.
+Definition falling_seq (p : Z) := rec1up (falling_rec p) 1%Z.
+
+Canonical Zmul_monoid := Monoid.Law Z.mul_assoc Z.mul_1_l Z.mul_1_r.
+
+Theorem falling_seq_correct (d : Z) (p : Z) (n k : nat) :
+  k <= n ->
+  nth d (falling_seq p n) k =
+  \big[Z.mul/1%Z]_(0 <= i < k) (p - Z.of_nat i)%Z.
+Proof.
+elim: k => [|k IHk] Hkn; first by rewrite rec1up_co0 big_mkord big_ord0.
+move/(_ (ltnW Hkn)) in IHk.
+move: IHk.
+rewrite /falling_seq.
+rewrite (@rec1up_nth_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
+move => IHk.
+rewrite (@rec1up_nth_indep _ _ _ d d _ k.+1) //.
+rewrite rec1up_correct IHk /falling_rec.
+rewrite big_nat_recr /=.
+congr Z.mul.
+zify; ring.
+Qed.
+
+End RecZ.

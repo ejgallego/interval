@@ -41,6 +41,7 @@ Require Import taylor_poly.
 Require Import coeff_inst.
 Require Import rpa_inst.
 Require Import derive_compl.
+Require Import basic_rec.
 
 (********************************************************************)
 (** This theory implements Taylor Models, with sharp remainders for
@@ -157,6 +158,10 @@ Definition TM_cst c (X0 X : I.type) (n : nat) : rpa :=
 
 Definition TM_var X0 X (n : nat) :=
   RPA (T_var X0 n) (TLrem prec T_var X0 X n).
+
+Definition TM_power_int (p : Z) X0 X (n : nat) :=
+  let P := (T_power_int prec p X0 n) in RPA P
+  (Ztech prec (T_power_int prec p) P (fun x => tpower_int prec x p) X0 X n).
 
 Definition TM_inv X0 X (n : nat) :=
   let P := (T_inv prec X0 n) in
@@ -2880,6 +2885,159 @@ case: n =>[|n] /=.
 by rewrite tsize_set_nth !sizes maxnSS maxn0.
 Qed.
 *)
+
+Lemma size_TM_power_int (p : Z) X0 X (n : nat) :
+  tsize (approx (TM_power_int p X0 X n)) = n.+1.
+Proof.
+rewrite /= /T_power_int (@tsize_dotmuldiv (n.+1)) //.
+by rewrite tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+Qed.
+
+Lemma tnth_pow_aux_rec (p : Z) (x : ExtendedR) n k :
+  k <= n ->
+  PolX.tnth
+  (PolX.trec1 (TX.Rec.pow_aux_rec tt p x) (FullXR.tpower_int tt x p) n) k =
+  Xpower_int x (p - Z.of_nat k).
+Proof.
+elim: k => [|k IHk] Hkn; first by rewrite PolX.trec1_spec0 Z.sub_0_r.
+move/(_ (ltnW Hkn)) in IHk.
+move: IHk.
+by rewrite PolX.trec1_spec.
+Qed.
+
+(*
+Lemma Xpower_int_match (p : Z) (x : ExtendedR) :
+  match x with
+  | Xnan => Xpower_int x p = Xnan
+  | Xreal r => ...
+  end.
+Proof.
+*)
+
+Lemma powerRZ_0_l (x : R) (p : Z) :
+  x = R0 -> (p > 0)%Z -> powerRZ x p = R0.
+move=> Hx Hp.
+case: p Hp =>[|p|p] Hp; rewrite // /powerRZ.
+rewrite Hx pow_ne_zero //.
+zify; romega.
+Qed.
+
+Inductive Xpower_int_spec (x : ExtendedR) (p : Z) : ExtendedR -> Type :=
+  | Powint_nan of x = Xnan :
+    Xpower_int_spec x p Xnan
+  | Powint_neg of x = Xreal 0 & (p < 0)%Z :
+    Xpower_int_spec x p Xnan
+  | Powint_zero of x = Xreal 0 & (p = 0)%Z :
+    Xpower_int_spec x p (Xreal 1)
+  | Powint_pos of x = Xreal 0 & (p > 0)%Z :
+    Xpower_int_spec x p (Xreal 0)
+  | Powint_nz (r : R) of x = Xreal r & (r <> R0) :
+    Xpower_int_spec x p (Xreal (powerRZ r p)).
+
+Lemma Xpower_intP (x : ExtendedR) (p : Z) : Xpower_int_spec x p (Xpower_int x p).
+Proof.
+case: x=>/=; first exact: Powint_nan.
+move=> r.
+case: (Req_EM_T r R0) =>[Hr|Hr].
+case: (Z_dec p 0) =>[[Hp|Hp]|Hp].
+- rewrite Hr zeroT //.
+  case: p Hp =>//.
+  move=> *; exact: Powint_neg.
+- case: p Hp =>//; move=> *.
+  rewrite Hr pow_ne_zero; last by zify; omega.
+  exact: Powint_pos.
+- case: p Hp =>//; move=> *; apply: Powint_zero; by rewrite // Hr.
+- case: p =>//; move=> *.
+  by rewrite -(powerRZ_O r); apply: Powint_nz.
+  exact: Powint_nz.
+  rewrite zeroF //.
+  exact: Powint_nz.
+Qed.
+
+Lemma bigXmul_Xreal_i n (g : 'I_n -> R) :
+  \big[Xmul/Xreal 1]_(i < n) Xreal (g i) =
+  Xreal (\big[Rmult/R1]_(i < n) g i).
+Proof.
+elim: n g =>[g|n IHn g]; first by rewrite 2!big_ord0.
+by rewrite 2!big_ord_recr IHn.
+Qed.
+
+Lemma TM_power_int_correct (p : Z) X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
+  (fun x => FullXR.tpower_int tt x p).
+Proof.
+move=> Hsubset [t Ht].
+eapply (i_validTM_Ztech
+  (XDn := fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (p - Z.of_nat i))) * Xpower_int x (p - Z.of_nat k))%XR); last by eexists; exact Ht.
+6: done.
+done.
+(* Show Existentials. *)
+Existential 5 := (TX.T_power_int tt p).
+(* Show. *)
+red=> x; simpl.
+apply nth_Xderive_pt_power_int.
+apply: I.power_int_correct.
+split.
+move=> x k.
+rewrite (@PolX.tsize_dotmuldiv k.+1) 1?(@tsize_dotmuldiv k.+1) //
+  ?(tsize_trec1, PolX.tsize_trec1, size_rec1up) //.
+rewrite /T_power_int /TX.T_power_int.
+move=> x n' k Hk.
+rewrite PolX.tnth_dotmuldiv ?falling_seq_correct ?fact_seq_correct //.
+rewrite tnth_pow_aux_rec //.
+rewrite /FullXR.tmul /FullXR.tdiv /FullXR.tfromZ.
+rewrite big_mkord.
+rewrite bigXmul_Xreal_i.
+rewrite !Xdiv_split.
+rewrite !Xmul_assoc (Xmul_comm (Xinv _)).
+repeat f_equal.
+elim: k Hk =>[//|k IHk] Hk; first by rewrite !big_ord0.
+rewrite !big_ord_recr /= -IHk ?mult_IZR //.
+by rewrite ltnS in Hk; exact: ltnW.
+by rewrite INR_IZR_INZ.
+(* . *)
+rewrite (@PolX.tsize_dotmuldiv n'.+1) //.
+by rewrite PolX.tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+split=> Y y m.
+rewrite (@PolX.tsize_dotmuldiv m.+1) //.
+rewrite (@tsize_dotmuldiv m.+1) //.
+by rewrite tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+by rewrite PolX.tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+(* . *)
+move=> k Hy Hk.
+rewrite ?(PolX.tnth_dotmuldiv, tnth_dotmuldiv); first last.
+rewrite (@tsize_dotmuldiv m.+1) //.
+by rewrite tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+rewrite (@PolX.tsize_dotmuldiv m.+1) //.
+by rewrite PolX.tsize_trec1.
+by rewrite size_rec1up.
+by rewrite size_rec1up.
+apply I.mul_correct.
+apply I.div_correct.
+rewrite falling_seq_correct.
+rewrite /tfromZ /FullXR.tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
+by rewrite -ltnS.
+rewrite /tfromZ /FullXR.tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
+case: k m Hk=>[//|k] m Hk.
+rewrite trec1_spec0 PolX.trec1_spec0.
+exact: I.power_int_correct.
+rewrite ltnS in Hk.
+rewrite trec1_spec // PolX.trec1_spec //.
+rewrite /Rec.pow_aux_rec /TX.Rec.pow_aux_rec.
+exact: I.power_int_correct.
+Qed.
 
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->

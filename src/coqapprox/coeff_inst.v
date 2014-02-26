@@ -65,6 +65,7 @@ Definition tdiv := --> Rdiv.
 Definition tpower_int := --> powerRZ.
 Definition texp := --> exp.
 Definition tnat := INR.
+Definition tfromZ := IZR.
 Definition tinv := --> Rinv.
 Definition tcos := --> cos.
 Definition tsin := --> sin.
@@ -97,6 +98,7 @@ Definition tpow := --> fun x n => Xpower_int x (Z_of_nat n).
 Arguments tpow _ x n : simpl nomatch.
 Definition texp := --> Xexp.
 Definition tnat := fun n => Xreal (INR n).
+Definition tfromZ := fun n => Xreal (IZR n).
 Definition tinv := --> Xinv.
 Definition tcos := --> Xcos.
 Definition tsin := --> Xsin.
@@ -215,6 +217,8 @@ Definition topp : T -> T := F.neg.
 Definition tsub : U -> T -> T -> T := nuncurry2 F.sub.
 Definition tcst (c x : T) : T :=
   if F.real x then c else F.nan.
+Definition tnat (n : nat) : T := F.fromZ (Z.of_nat n).
+Definition tfromZ : Z -> T := F.fromZ.
 End MaskBaseF.
 
 Module MaskBaseF_NE (F : FloatOps with Definition even_radix := true)
@@ -230,6 +234,8 @@ Definition topp : T -> T := F.neg.
 Definition tsub : U -> T -> T -> T := F.sub rnd_NE.
 Definition tcst (c x : T) : T :=
   if F.real x then c else F.nan.
+Definition tnat (n : nat) : T := F.fromZ (Z.of_nat n).
+Definition tfromZ : Z -> T := F.fromZ.
 End MaskBaseF_NE.
 
 Module FullInt (I : IntervalOps) <: FullOps.
@@ -247,6 +253,7 @@ Definition tdiv := I.div.
 Definition tpower_int := I.power_int.
 Definition texp := I.exp.
 Definition tnat := fun n => I.fromZ (Z_of_nat n).
+Definition tfromZ := I.fromZ.
 Definition tinv := I.inv.
 Definition tcos := I.cos.
 Definition tsin := I.sin.
