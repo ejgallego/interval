@@ -556,7 +556,7 @@ Ltac do_interval_intro t extend params vars prec depth eval_tac :=
     let bounds := get_bounds constants in
     let v := eval_tac extend bounds formula prec depth in
     do_interval_generalize t v ;
-    [ intro | do_interval_parse params ]
+    [ | do_interval_parse params ]
   end.
 
 Ltac do_interval_intro_parse t_ extend params_ :=
@@ -583,22 +583,40 @@ Tactic Notation "interval" "with" constr(params) :=
   do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) :=
-  do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters).
+  do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "lower" :=
-  do_interval_intro_parse t I.upper_extent (@nil interval_tac_parameters).
+  do_interval_intro_parse t I.upper_extent (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "upper"  :=
-  do_interval_intro_parse t I.lower_extent (@nil interval_tac_parameters).
+  do_interval_intro_parse t I.lower_extent (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "with" constr(params) :=
-  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) :=
-  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) :=
-  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+
+Tactic Notation "interval_intro" constr(t) "as" simple_intropattern(H) :=
+  do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "interval_intro" constr(t) "lower" "as" simple_intropattern(H) :=
+  do_interval_intro_parse t I.upper_extent (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "interval_intro" constr(t) "upper" "as" simple_intropattern(H)  :=
+  do_interval_intro_parse t I.lower_extent (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "interval_intro" constr(t) "with" constr(params) "as" simple_intropattern(H) :=
+  do_interval_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+
+Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) "as" simple_intropattern(H) :=
+  do_interval_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+
+Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
+  do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 End IntervalTactic.
 

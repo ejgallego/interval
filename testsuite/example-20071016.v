@@ -22,8 +22,8 @@ Goal
   (sqrt (1 - x) <= 141422/100000)%R.
 Proof.
   intros.
-  interval_intro (sqrt (1 - x)) upper.
-  apply Rle_trans with (1 := H0).
+  interval_intro (sqrt (1 - x)) upper as H'.
+  apply Rle_trans with (1 := H').
   interval.
 Qed.
 
