@@ -15,17 +15,29 @@ In order to use the tactics of the library, one has to import the
 "interval".
 
 The tactic can be applied on a goal of the form "(f1 <= e <= f2)%R" with
-"e" an expression involving the usual arithmetic operators + - * / and
-sqrt. Sub-expressions not starting with such operators have to be,
-either terms "t" appearing in hypothesis inequalities "(f3 <= t <= f4)%R"
-or simple integers. The bounds "f1" "f2" ... are binary floating-point
-numbers: either relative integers or quotients of relative integers by
-power-of-two, e.g. (42)%R or (-17/8)%R. The following inequalities are
-also recognized:
+"e" an expression involving real-valued operators. Sub-expressions that
+are not recognized by the tactic should be either terms "t" appearing in
+hypothesis inequalities "(f3 <= t <= f4)%R" or simple integers. The
+bounds "f1" "f2" ... are binary floating-point numbers: either relative
+integers or quotients of relative integers by power-of-two, e.g. (42)%R
+or (-17/8)%R.
 
+The complete list of recognized goals is as follows:
+
+  (f1 <= e <= f2)%R
   (e <= f)%R
   (f <= e)%R
+  (0 < e)%R
   (Rabs e <= f)%R      handled as (-f <= e <= f)%R
+  (e1 <= e2)%R         handled as (e1 - e2 <= 0)%R
+  (e1 < e2)%R          handled as (0 < e2 - e1)%R
+
+Operators recognized by the tactic are: Ropp, Rabs, Rinv, Rsqr, sqrt,
+cos, sin, tan, atan, exp, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv. There
+are a some restrictions on the domain of a few functions: pow and powerRZ
+should be written with a numeric exponent; the input of cos should be
+between -PI and PI, the input of sin and tan should be between -PI/2 and
+PI/2.
 
 A helper tactic "interval_intro e" is also available. Instead of proving
 the current goal, it computes an enclosure of the expression "e" passed
@@ -33,7 +45,9 @@ as argument and it introduces the inequalities into the proof context.
 If only one bound is needed, the keywords "lower" and "upper" can be
 passed to the tactic, so that it does not perform useless computations.
 For example, "interval_intro e lower" introduces only a floating-point
-lower bound of "e" in the context.
+lower bound of "e" in the context. Unless "as" followed by an intro
+pattern is used, the "interval_intro" tactic will use a generated name
+for the hypothesis added to the context.
 
 
 II. Fine-tuning
@@ -49,21 +63,29 @@ are: (with the type of their arguments, if any)
   i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
   i_bisect (x:R)      splits input interval on x and repeat until proven
   i_bisect_diff (x:R) same as bisect, but studies variations along x too
+  i_bisect_taylor (x:R) (d:nat)
+                      same as bisect_diff, but computes degree-d Talor
+                      models instead of performing automatic differentiation
 
-Notes on bisection: For both tactics, performing a bisection of depth 1
-is not much slower than performing no bisection. If the current goal can
-be proven by "interval" with a bisection of depth n, then increasing the
-depth to n + 1 will not have any noticeable effect. For
-"interval_intro", increasing the depth from n to n + 1 can, however,
-double the computation time. Performing an "i_bisect_diff" bisection has
-a much higher cost per sub-interval, but it can considerably reduce the
-amount of sub-intervals considered. As a consequence, unless there is a
-huge amount of trivial propositions to prove, one should use this
-improved bisection.
+For both tactics, performing a bisection of depth 1 is not much slower
+than performing no bisection. If the current goal can be proven by
+"interval" with a bisection of depth n, then increasing the depth to n+1
+will not have any noticeable effect. For "interval_intro", increasing the
+depth from n to n + 1 can, however, double the computation time.
 
-The default parameters of the tactics are (i_prec 30) and no bisection.
-If the user enables a bisection, the default depth is (i_depth 15) for
-"interval" and (i_depth 5) for "interval_intro".
+Performing an "i_bisect_diff" bisection has a much higher cost per
+sub-interval, but it can considerably reduce the amount of sub-intervals
+considered. As a consequence, unless there is a huge amount of trivial
+propositions to prove, one should use this improved bisection.
+
+If the proof process is still too slow, the "i_bisect_taylor" bisection
+can be tried instead, as it usually reduces the number of sub-intervals
+much further. In some corner cases though, it will not be able to prove
+properties for which "i_bisect_diff" would have succeeded.
+
+By default, the precision of the floating-point computations is 30 bits.
+If the user enables a bisection, the default depth is 15 for "interval"
+and 5 for "interval_intro".
 
 III. Examples
 -------------
@@ -93,8 +115,8 @@ Goal
   (sqrt (1 - x) <= 141422/100000)%R.
 Proof.
   intros.
-  interval_intro (sqrt (1 - x)) upper.
-  apply Rle_trans with (1 := H0).
+  interval_intro (sqrt (1 - x)) upper as H'.
+  apply Rle_trans with (1 := H').
   interval.
 Qed.
 
