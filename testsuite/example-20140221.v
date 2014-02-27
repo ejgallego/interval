@@ -2,9 +2,6 @@ Require Import Reals.
 Require Import Interval_tactic.
 Require Import Interval_missing. (* for Z2R_IZR, pow_powerRZ *)
 
-Ltac cleanup :=
-  rewrite !(pow_IZR 2), <-!Z2R_IZR; simpl Z2R.
-
 (*
 Example taken from:
 John Harrison, Verifying the Accuracy of Polynomial Approximations in HOL.
@@ -20,14 +17,10 @@ Notation claim :=
 
 Goal claim.
 intros x H.
-cleanup. (* to remove later on *)
-interval_intro (23 / 27 * / 8589934592)%R lower.
-apply Rle_trans with (2 := H0); clear H0.
 interval_intro (10831/1000000)%R upper.
 interval_intro (-10831/1000000)%R lower.
 generalize (conj (Rle_trans _ _ _ H1 (proj1 H)) (Rle_trans _ _ _ (proj2 H) H0)).
 clear; intros H.
-simpl powerRZ. (* to remove later on *)
 
 Time interval_intro (exp x - 1)%R with (i_bisect_taylor x 2).
 clear H0.
@@ -40,8 +33,7 @@ Qed.
 (*
 Goal claim.
 intros x H.
-cleanup. (* to remove later on *)
-interval_intro (23 / 27 * / 8589934592)%R lower.
+interval_intro (23 / 27 / 2 ^ 33)%R lower.
 apply Rle_trans with (2 := H0); clear H0.
 interval_intro (10831/1000000)%R upper.
 interval_intro (-10831/1000000)%R lower.
