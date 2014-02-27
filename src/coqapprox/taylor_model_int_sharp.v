@@ -2899,9 +2899,14 @@ Lemma tnth_pow_aux_rec (p : Z) (x : ExtendedR) n k :
   k <= n ->
   PolX.tnth
   (PolX.trec1 (TX.Rec.pow_aux_rec tt p x) (FullXR.tpower_int tt x p) n) k =
-  Xpower_int x (p - Z.of_nat k).
+  if Z.ltb p Z0 || Z.geb p (Z.of_nat k) then
+    Xpower_int x (p - Z.of_nat k)
+  else Xmask (Xreal 0) x.
 Proof.
-elim: k => [|k IHk] Hkn; first by rewrite PolX.trec1_spec0 Z.sub_0_r.
+elim: k => [|k IHk] Hkn.
+  rewrite PolX.trec1_spec0 Z.sub_0_r.
+  rewrite ifT //.
+  by case: p.
 move/(_ (ltnW Hkn)) in IHk.
 move: IHk.
 by rewrite PolX.trec1_spec.
@@ -2972,7 +2977,10 @@ Lemma TM_power_int_correct (p : Z) X0 X n :
 Proof.
 move=> Hsubset [t Ht].
 eapply (i_validTM_Ztech
-  (XDn := fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (p - Z.of_nat i))) * Xpower_int x (p - Z.of_nat k))%XR); last by eexists; exact Ht.
+  (XDn := (fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (p - Z.of_nat i))) *
+                      (if Z.ltb p Z0 || Z.geb p (Z.of_nat k) then
+                         Xpower_int x (p - Z.of_nat k)%Z
+                       else Xmask (Xreal 0) x)))%XR); last by eexists; exact Ht.
 6: done.
 done.
 (* Show Existentials. *)
@@ -2994,6 +3002,7 @@ rewrite big_mkord.
 rewrite bigXmul_Xreal_i.
 rewrite !Xdiv_split.
 rewrite !Xmul_assoc (Xmul_comm (Xinv _)).
+
 repeat f_equal.
 elim: k Hk =>[//|k IHk] Hk; first by rewrite !big_ord0.
 rewrite !big_ord_recr /= -IHk ?mult_IZR //.
@@ -3036,7 +3045,11 @@ exact: I.power_int_correct.
 rewrite ltnS in Hk.
 rewrite trec1_spec // PolX.trec1_spec //.
 rewrite /Rec.pow_aux_rec /TX.Rec.pow_aux_rec.
-exact: I.power_int_correct.
+set o := (_ || _).
+case: o.
+  exact: I.power_int_correct.
+apply: I.mask_correct =>//.
+exact: I.fromZ_correct.
 Qed.
 
 Lemma TM_inv_correct X0 X n :

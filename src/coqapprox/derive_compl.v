@@ -104,10 +104,14 @@ Qed.
 
 Lemma nth_Xderive_pt_power_int (n : Z) x :
   nth_Xderive_pt (fun x => Xpower_int x n)%XR
-  (fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (n - Z.of_nat i))) * Xpower_int x (n - Z.of_nat k))%XR x.
+  (fun k x => (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (n - Z.of_nat i))) *
+              (if Z.ltb n Z0 || Z.geb n (Z.of_nat k) then
+                 Xpower_int x (n - Z.of_nat k)%Z
+               else Xmask (Xreal 0) x))%XR x.
 Proof.
 split=>[y | k].
-  by rewrite big_ord0 Xmul_1_l Zminus_0_r.
+  rewrite big_ord0 Xmul_1_l Zminus_0_r.
+  by rewrite ifT; case: n.
 rewrite big_ord_recr /=.
 have -> : (\big[Xmul/Xreal 1]_(i < k) Xreal (IZR (n - Z.of_nat i)))%XR =
       Xreal (\big[Rmult/R1]_(i < k) (IZR (n - Z.of_nat i))).
@@ -117,6 +121,16 @@ set b := Xreal _.
 have H := Xderive_pt_mul (fun _ => b) (fun x => Xpower_int x (n - Z.of_nat k))%XR
  _ _ x (Xderive_pt_constant (\big[Rmult/1%Re]_(i < k) IZR (n - Z.of_nat i))x).
 rewrite Xmul_comm (Xmul_comm b) -Xmul_assoc.
+case E :((n <? 0)%Z || (n >=? Z.pos (Pos.of_succ_nat k)))%Z.
+eapply Xderive_pt_eq_fun.
+move=> y.
+rewrite ifT.
+reflexivity.
+case/orP: E =>[->//|].
+do 2! case: Z.geb_spec =>//.
+by rewrite orbC.
+intros; zify; romega.
+
 set e:= (Xpower_int x (n - Z.of_nat k.+1) * Xreal (IZR (n - Z.of_nat k)))%XR.
 have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * b))%XR.
   rewrite /e=> {e H}.
@@ -154,6 +168,24 @@ by rewrite Z2R_IZR Rmult_1_r.
 by move=> p; rewrite Rmult_1_l Rmult_comm Z2R_IZR.
 move=> p; case: is_zero =>//=.
 by rewrite Rmult_1_l Rmult_comm Z2R_IZR.
+
+case E' :((n <? 0)%Z || (n >=? Z.of_nat k))%Z.
+suff->: n = Z.of_nat k.
+rewrite Z.sub_diag.
+rewrite /Xpower_int.
+case: x H => [//|x] H.
+move=> v.
+rewrite !Rmult_0_l.
+exact: derivable_pt_lim_const.
+have [H1 H2] := Bool.orb_false_elim _ _ E.
+case: Z.geb_spec H2=>// H2.
+rewrite H1 /= in E'.
+case: Z.geb_spec E'=>// E'.
+move=> _ _; zify; omega.
+case: x {H}; first done.
+move=> r.
+rewrite /= !Rmult_0_l.
+exact: derivable_pt_lim_const.
 Qed.
 
 Lemma nth_derivable_pt_inv_pow n x :

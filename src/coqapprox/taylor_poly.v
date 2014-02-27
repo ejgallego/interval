@@ -54,7 +54,9 @@ Definition cos_rec (a b : T) (n : nat) : T :=
   tdiv u (topp a) (tmul u (tnat n) (tnat n.-1)).
 
 Definition pow_aux_rec (p : Z) (x : T) (_ : T) (n : nat)
-  := C.tpower_int u x (p - Z.of_nat n)%Z.
+  := if Z.ltb p Z0 || Z.geb p (Z.of_nat n) then
+        C.tpower_int u x (p - Z.of_nat n)%Z
+     else C.tcst C.tzero x.
 
 (* Erik: These notations could be used globally *)
 Local Notation "i + j" := (tadd u i j).
