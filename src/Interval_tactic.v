@@ -265,7 +265,7 @@ Ltac extract_algorithm t l :=
     constr:(lm, lc)
   end.
 
-Ltac xalgorithm lx :=
+Ltac xalgorithm_pre :=
   match goal with
   | |- Rle ?a ?b /\ Rle ?b ?c =>
     let v := get_float a in
@@ -288,7 +288,9 @@ Ltac xalgorithm lx :=
     apply Rminus_gt ;
     unfold Rgt
   | _ => fail 100 "Goal is not an inequality with floating-point bounds."
-  end ;
+  end.
+
+Ltac xalgorithm_post lx :=
   match goal with
   | |- contains (I.convert ?xi) (Xreal ?y) =>
     match extract_algorithm y lx with
@@ -304,6 +306,12 @@ Ltac xalgorithm lx :=
       pose (formula := a) ;
       refine (xreal_to_positive formula b O _)
     end
+  end.
+
+Ltac xalgorithm lx :=
+  match goal with
+  | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) => idtac
+  | _ => xalgorithm_pre ; xalgorithm_post lx
   end.
 
 Ltac get_bounds l :=
@@ -452,13 +460,9 @@ Definition prec_of_nat prec :=
 
 Ltac do_interval vars prec depth eval_tac :=
   (abstract (
+    xalgorithm vars ;
     match goal with
-    | |- contains (I.convert _) (nth _ (eval_ext _ (map Xreal _)) Xnan) => idtac
-    | _ => xalgorithm vars
-    end ;
-    match goal with
-    | |- A.check_p ?check (nth ?n
-        (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
+    | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
       let bounds_ := get_bounds constants in
       let bounds := fresh "bounds" in
       pose (bounds := bounds_) ;
