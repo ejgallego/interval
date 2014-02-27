@@ -3,8 +3,7 @@ Require Import Interval_tactic.
 Require Import Interval_missing. (* for Z2R_IZR, pow_powerRZ *)
 
 Ltac cleanup :=
-  rewrite !(pow_IZR 2), <-!Z2R_IZR; simpl Z2R;
-  rewrite !pow_powerRZ; simpl Z.of_nat.
+  rewrite !(pow_IZR 2), <-!Z2R_IZR; simpl Z2R.
 
 (*
 Example taken from:
