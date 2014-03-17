@@ -1,5 +1,23 @@
 Require Export Fcore_Raux.
 
+Lemma Rplus_lt_reg_l :
+  forall r r1 r2 : R,
+  (r + r1 < r + r2)%R -> (r1 < r2)%R.
+Proof.
+intros.
+solve [ apply Rplus_lt_reg_l with (1 := H) |
+        apply Rplus_lt_reg_r with (1 := H) ].
+Qed.
+
+Lemma Rplus_lt_reg_r :
+  forall r r1 r2 : R,
+  (r1 + r < r2 + r)%R -> (r1 < r2)%R.
+Proof.
+intros.
+apply Rplus_lt_reg_l with r.
+now rewrite 2!(Rplus_comm r).
+Qed.
+
 Lemma Rmult_le_compat_neg_r :
   forall r r1 r2 : R,
   (r <= 0)%R -> (r1 <= r2)%R -> (r2 * r <= r1 * r)%R.
@@ -325,7 +343,7 @@ Theorem continuity_pt_lt :
   locally_true x (fun u => (f u < y)%R).
 intros.
 assert (0 < y - f x)%R.
-apply Rplus_lt_reg_r with (f x).
+apply Rplus_lt_reg_l with (f x).
 rewrite Rplus_0_r.
 replace (f x + (y - f x))%R with y. 2: ring.
 exact H.
@@ -344,7 +362,6 @@ unfold R_met, R_dist, D_x, no_cond.
 simpl.
 intro.
 apply Rplus_lt_reg_r with (- f x)%R.
-do 2 rewrite (Rplus_comm (- f x)).
 apply Rle_lt_trans with (1 := RRle_abs (f (x + h) - f x)%R).
 apply H2.
 assert (x + h - x = h)%R. ring.
