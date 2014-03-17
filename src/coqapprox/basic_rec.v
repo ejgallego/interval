@@ -874,7 +874,7 @@ rewrite (@rec1up_nth_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
 move => IHk.
 rewrite (@rec1up_nth_indep _ _ _ d d _ k.+1) //.
 rewrite rec1up_correct IHk /falling_rec.
-rewrite big_nat_recr /=.
+rewrite big_nat_recr //=.
 congr Z.mul.
 zify; ring.
 Qed.

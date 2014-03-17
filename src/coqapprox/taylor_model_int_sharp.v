@@ -1222,7 +1222,7 @@ rewrite /Xpos_over /Xincr.
 move=> [Hnan Hder] H0 x y Hx Hy Hxy; rewrite //=.
 have H'x : contains X (Xreal x) by exact: (@contains_IIbnd a b (Xreal x) X).
 have H'y : contains X (Xreal y) by exact: (@contains_IIbnd a b (Xreal y) X).
-move=> v; apply: (derivable_pos_imp_increasing _ (proj_fun v f') _ _ _ _ _ _ _ _);
+move=> v; eapply (derivable_pos_imp_increasing _ (proj_fun v f'));
   [exact (contains_connected (IIbnd a b))|..|now auto with real]=>//.
 move=> r Hr.
 rewrite [_ r]/= in Hr.
@@ -1248,7 +1248,7 @@ rewrite /Xpos_over /Xincr.
 move=> [Hnan Hder] H0 x y Hx Hy Hxy; rewrite //=.
 have H'x : contains X (Xreal x) by exact: (@contains_IIbnd a b (Xreal x) X).
 have H'y : contains X (Xreal y) by exact: (@contains_IIbnd a b (Xreal y) X).
-move=> v; apply: (derivable_neg_imp_decreasing _ (proj_fun v f') _ _ _ _ _ _ _ _);
+move=> v; eapply (derivable_neg_imp_decreasing _ (proj_fun v f'));
   [exact (contains_connected (IIbnd a b))|..|now auto with real]=>//.
 move=> r; rewrite [_ r]/= => Hr.
 have H'r : contains X (Xreal r) by exact: (@contains_IIbnd a b (Xreal r) X).
@@ -2662,7 +2662,7 @@ have Hr' := contains_not_empty _ _ Hr.
     (* we could use Imask_IInan *)
     have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
     apply: I.mask_correct.
-      apply: subset_sub_contains_0; first by eexact Hv.
+      eapply subset_sub_contains_0; first by eexact Hv.
       exact: Imid_subset.
     by rewrite E.
   have HX : exists x : ExtendedR, contains (I.convert X) x.
@@ -2672,7 +2672,7 @@ have Hr' := contains_not_empty _ _ Hr.
   have [H1 H2] := I.midpoint_correct X HX.
   suff->: Xreal 0 = Xmask (Xreal 0) (I.convert_bound (I.midpoint X)).
     apply: I.mask_correct=>//.
-    apply: subset_sub_contains_0; first by eexact Hv.
+    eapply subset_sub_contains_0; first by eexact Hv.
     exact: Imid_subset.
   by rewrite H1.
 - move=> N xi0 Hxi0.
