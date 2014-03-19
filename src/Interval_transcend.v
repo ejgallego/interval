@@ -1405,6 +1405,177 @@ Definition tan_fast prec x :=
   | Xund => I.nai
   end.
 
+Lemma tan_fastP_correct :
+  forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (0 <= toR x)%R ->
+  contains (I.convert (tan_fastP prec x)) (Xtan (Xreal (toR x))).
+Proof.
+intros prec x Rx Bx.
+unfold tan_fastP.
+case le_spec.
+- intros _ _.
+  unfold toR at 2, c1, sm1.
+  rewrite scale2_correct.
+  rewrite F.fromZ_correct.
+  intros Bx'.
+  simpl in Bx'.
+  rewrite Rmult_1_l in Bx'.
+  replace (Xtan (Xreal (toR x))) with (Xdiv (Xreal (sin (toR x))) (Xsqrt (Xsub (Xreal 1) (Xsqr (Xreal (sin (toR x))))))).
+  apply I.div_correct.
+  apply sin_fast0_correct with (1 := Rx).
+  now rewrite Rabs_pos_eq.
+  apply I.sqrt_correct.
+  apply I.sub_correct.
+  simpl.
+  unfold I.convert_bound.
+  rewrite F.fromZ_correct.
+  split ; apply Rle_refl.
+  apply I.sqr_correct.
+  apply sin_fast0_correct with (1 := Rx).
+  now rewrite Rabs_pos_eq.
+  simpl.
+  case is_negative_spec.
+  intros H.
+  elim Rlt_not_le with (1 := H).
+  apply Rle_0_minus.
+  rewrite <- (Rmult_1_r 1).
+  apply neg_pos_Rsqr_le ; apply SIN_bound.
+  change (sin (toR x) * sin (toR x))%R with (Rsqr (sin (toR x))).
+  rewrite <- cos2.
+  intros H'.
+  assert (Hc: (0 < cos (toR x))%R).
+    apply cos_gt_0.
+    apply Rlt_le_trans with (2 := Bx).
+    apply Ropp_lt_gt_0_contravar.
+    apply PI2_RGT_0.
+    apply Rle_lt_trans with (1 := Bx').
+    apply Rlt_trans with (2 := PI2_1).
+    rewrite <- Rinv_1 at 3.
+    apply Rinv_lt.
+    apply Rlt_0_1.
+    now apply (Z2R_lt 1 2).
+  case is_zero_spec.
+  intros H.
+  elim Rgt_not_eq with (1 := Hc).
+  apply Rsqr_0_uniq.
+  now apply sqrt_eq_0.
+  intros H''.
+  unfold Xtan.
+  simpl.
+  case is_zero_spec.
+  intros H.
+  rewrite H in Hc.
+  elim Rlt_irrefl with (1 := Hc).
+  intros _.
+  apply (f_equal (fun v => Xreal (_ / v))).
+  apply sqrt_Rsqr.
+  now apply Rlt_le.
+- generalize (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 7))).
+  clear prec. intros prec.
+  generalize (sin_cos_reduce_correct prec (S (Z2nat (F.StoZ (F.mag x)))) x Rx Bx).
+  case sin_cos_reduce.
+  intros s c [Hc Hs].
+  assert (H: contains (I.convert (I.sqrt prec (I.sub prec (I.div prec (I.bnd c1 c1) (I.sqr prec c)) (I.bnd c1 c1)))) (Xabs (Xdiv (Xreal (sin (toR x))) (Xreal (cos (toR x)))))).
+    replace (Xabs (Xdiv (Xreal (sin (toR x))) (Xreal (cos (toR x)))))
+      with (Xsqrt (Xsub (Xdiv (Xreal 1) (Xsqr (Xreal (cos (toR x))))) (Xreal 1))).
+    apply I.sqrt_correct.
+    apply I.sub_correct.
+    apply I.div_correct.
+    simpl.
+    unfold I.convert_bound, c1.
+    rewrite F.fromZ_correct.
+    split ; apply Rle_refl.
+    now apply I.sqr_correct.
+    simpl.
+    unfold I.convert_bound, c1.
+    rewrite F.fromZ_correct.
+    split ; apply Rle_refl.
+    simpl.
+    case is_zero_spec ; intros Zc.
+    rewrite Rsqr_0_uniq with (1 := Zc).
+    now rewrite is_zero_correct_zero.
+    case is_zero_spec ; intros Zc'.
+    rewrite Zc' in Zc.
+    elim Zc.
+    apply Rmult_0_l.
+    simpl.
+    replace (1 / (cos (toR x) * cos (toR x)) - 1)%R with (Rsqr (sin (toR x) / cos (toR x))).
+    case is_negative_spec ; intros H.
+    elim Rlt_not_le with (1 := H).
+    apply Rle_0_sqr.
+    apply f_equal, sqrt_Rsqr_abs.
+    rewrite Rsqr_div with (1 := Zc').
+    rewrite sin2.
+    unfold Rsqr.
+    now field.
+  simpl Xdiv in H.
+  generalize (I.sign_large_correct c).
+  unfold Xtan.
+  simpl Xdiv.
+  destruct s ; try easy ; case I.sign_large ; try easy ; intros Hc'.
+  revert H.
+  destruct (is_zero_spec (cos (toR x))).
+  now case I.convert.
+  intros H'.
+  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  apply H'.
+  apply (f_equal Xreal).
+  apply Rabs_pos_eq.
+  apply Rmult_le_neg_neg with (1 := Hs).
+  apply Rlt_le, Rinv_lt_0_compat.
+  apply Rnot_le_lt.
+  contradict H.
+  apply Rle_antisym with (2 := H).
+  now specialize (Hc' _ Hc).
+  rewrite <- (Xneg_involutive (if is_zero _ then _ else _)).
+  apply I.neg_correct.
+  revert H.
+  destruct (is_zero_spec (cos (toR x))).
+  now case I.convert.
+  intros H'.
+  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  apply H'.
+  apply (f_equal Xreal).
+  apply Rabs_left1.
+  apply Rmult_le_neg_pos with (1 := Hs).
+  apply Rlt_le, Rinv_0_lt_compat.
+  apply Rnot_le_lt.
+  contradict H.
+  apply Rle_antisym with (1 := H).
+  now specialize (Hc' _ Hc).
+  rewrite <- (Xneg_involutive (if is_zero _ then _ else _)).
+  apply I.neg_correct.
+  revert H.
+  destruct (is_zero_spec (cos (toR x))).
+  now case I.convert.
+  intros H'.
+  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  apply H'.
+  apply (f_equal Xreal).
+  apply Rabs_left1.
+  apply Rmult_le_pos_neg with (1 := Hs).
+  apply Rlt_le, Rinv_lt_0_compat.
+  apply Rnot_le_lt.
+  contradict H.
+  apply Rle_antisym with (2 := H).
+  now specialize (Hc' _ Hc).
+  revert H.
+  destruct (is_zero_spec (cos (toR x))).
+  now case I.convert.
+  intros H'.
+  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  apply H'.
+  apply (f_equal Xreal).
+  apply Rabs_pos_eq.
+  apply Rmult_le_pos_pos with (1 := Hs).
+  apply Rlt_le, Rinv_0_lt_compat.
+  apply Rnot_le_lt.
+  contradict H.
+  apply Rle_antisym with (1 := H).
+  now specialize (Hc' _ Hc).
+Qed.
+
 Definition semi_extension f fi :=
   forall x, contains (I.convert (fi x)) (f (FtoX (F.toF x))).
 
