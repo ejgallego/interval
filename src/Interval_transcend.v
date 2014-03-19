@@ -1576,13 +1576,65 @@ case le_spec.
   now specialize (Hc' _ Hc).
 Qed.
 
+Theorem tan_fast_correct :
+  forall prec x,
+  contains (I.convert (tan_fast prec x)) (Xtan (FtoX (F.toF x))).
+Proof.
+intros prec x.
+unfold tan_fast.
+rewrite F.cmp_correct.
+rewrite F.zero_correct.
+case_eq (F.toF x) ; intros ; simpl.
+exact I.
+(* zero *)
+unfold I.convert_bound, Xtan.
+rewrite F.zero_correct.
+simpl.
+case is_zero_spec.
+rewrite cos_0.
+apply Rgt_not_eq, Rlt_0_1.
+intros _.
+unfold Rdiv.
+rewrite sin_0, Rmult_0_l.
+split ; apply Rle_refl.
+destruct b.
+(* neg *)
+generalize (tan_fastP_correct prec (F.neg x)).
+unfold toR.
+rewrite F.neg_correct, H.
+simpl.
+intros H'.
+specialize (H' eq_refl (Rlt_le _ _ (FtoR_Rpos _ _ _))).
+change true with (negb false).
+rewrite <- FtoR_neg.
+rewrite <- (Xneg_involutive (Xtan _)).
+apply I.neg_correct.
+revert H'.
+unfold Xtan.
+simpl.
+rewrite cos_neg.
+case is_zero_spec.
+easy.
+intros _.
+unfold Rdiv.
+simpl.
+rewrite sin_neg, Ropp_mult_distr_l_reverse.
+now rewrite Ropp_involutive.
+(* pos *)
+replace (FtoR _ _ _ _) with (proj_val (FtoX (F.toF x))).
+apply tan_fastP_correct ; unfold toR ; rewrite H.
+easy.
+apply Rlt_le, FtoR_Rpos.
+now rewrite H.
+Qed.
+
 Definition semi_extension f fi :=
   forall x, contains (I.convert (fi x)) (f (FtoX (F.toF x))).
 
 Axiom pi4_correct : forall prec, contains (I.convert (pi4 prec)) (Xreal (PI/4)).
 Definition cos_correct : forall prec, semi_extension Xcos (cos_fast prec) := cos_fast_correct.
 Definition sin_correct : forall prec, semi_extension Xsin (sin_fast prec) := sin_fast_correct.
-Axiom tan_correct : forall prec, semi_extension Xtan (tan_fast prec).
+Definition tan_correct : forall prec, semi_extension Xtan (tan_fast prec) := tan_fast_correct.
 Axiom atan_correct : forall prec, semi_extension Xatan (atan_fast prec).
 
 (* 0 <= inputs *)
