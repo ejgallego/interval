@@ -772,13 +772,9 @@ split ; apply Rle_refl.
 unfold cos_fastP.
 assert (H12: (/2)%R = toR (F.scale2 c1 sm1)).
 unfold toR, c1, sm1.
-rewrite F.scale2_correct, Fscale2_correct.
+rewrite scale2_correct.
 rewrite F.fromZ_correct.
-apply sym_eq.
-simpl.
-apply Rmult_1_l.
-apply F.even_radix_correct.
-apply refl_equal.
+apply sym_eq, Rmult_1_l.
 destruct b.
 (* neg *)
 change true with (negb false).
@@ -1222,12 +1218,9 @@ rewrite Rabs_right.
 replace (/ 2)%R with (toR (F.scale2 c1 sm1)).
 exact Hxy.
 unfold toR, c1, sm1.
-rewrite F.scale2_correct, Fscale2_correct.
+rewrite scale2_correct.
 rewrite F.fromZ_correct.
-simpl.
 apply Rmult_1_l.
-exact F.even_radix_correct.
-apply refl_equal.
 unfold toR.
 rewrite F.neg_correct.
 rewrite H.
@@ -1310,12 +1303,9 @@ rewrite Rabs_right.
 replace (/ 2)%R with (toR (F.scale2 c1 sm1)).
 exact Hxy.
 unfold toR, c1, sm1.
-rewrite F.scale2_correct, Fscale2_correct.
+rewrite scale2_correct.
 rewrite F.fromZ_correct.
-simpl.
 apply Rmult_1_l.
-exact F.even_radix_correct.
-apply refl_equal.
 unfold toR.
 rewrite H.
 simpl.
@@ -1748,8 +1738,7 @@ split.
 now apply Rlt_le.
 apply Rle_trans with (1 := Hx3).
 unfold toR, c1, sm8.
-rewrite F.scale2_correct ; trivial.
-rewrite Fscale2_correct ; try apply F.even_radix_correct.
+rewrite scale2_correct.
 rewrite F.fromZ_correct.
 simpl.
 rewrite Rmult_1_l.
@@ -1790,10 +1779,8 @@ destruct (le_spec x (F.scale2 c1 sm8)).
 apply H ; now try split.
 assert (toR (F.scale2 x sm1) = toR x * /2)%R.
 unfold toR, sm1.
-rewrite F.scale2_correct, Fscale2_correct.
+rewrite scale2_correct.
 now rewrite Hx.
-exact F.even_radix_correct.
-apply refl_equal.
 replace (toR x) with (toR (F.scale2 x sm1) + toR (F.scale2 x sm1))%R.
 rewrite Ropp_plus_distr.
 rewrite exp_plus.
@@ -1802,17 +1789,14 @@ change (Xreal (exp (- toR (F.scale2 x sm1)) * exp (- toR (F.scale2 x sm1))))
 apply I.sqr_correct.
 apply IHnb.
 unfold toR, sm1.
-rewrite F.scale2_correct , Fscale2_correct.
+rewrite scale2_correct.
 now rewrite Hx.
-exact F.even_radix_correct.
-apply refl_equal.
 rewrite H1.
 apply Rmult_lt_0_compat.
 exact H0.
-auto with real.
+apply Rinv_0_lt_compat, Rlt_0_2.
 rewrite H1.
-clear.
-field.
+apply sym_eq, double_var.
 Qed.
 
 Theorem exp_fast_correct :
