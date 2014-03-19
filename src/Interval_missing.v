@@ -687,3 +687,84 @@ apply le_0_n.
 specialize (Hf n).
 omega.
 Qed.
+
+Definition sinc (x : R) := projT1 (exist_sin (Rsqr x)).
+
+Lemma sin_sinc :
+  forall x,
+  sin x = (x * sinc x)%R.
+Proof.
+intros x.
+unfold sin, sinc.
+now case exist_sin.
+Qed.
+
+Lemma sinc_0 :
+  sinc 0 = R1.
+Proof.
+unfold sinc.
+case exist_sin.
+simpl.
+unfold sin_in.
+intros y Hy.
+apply uniqueness_sum with (1 := Hy).
+intros eps He.
+exists 1.
+intros n Hn.
+rewrite (tech2 _ 0) by easy.
+simpl sum_f_R0 at 1.
+rewrite sum_eq_R0.
+unfold R_dist, sin_n.
+simpl.
+replace (1 / 1 * 1 + 0 - 1)%R with R0 by field.
+now rewrite Rabs_R0.
+clear.
+intros m _.
+rewrite Rsqr_0, pow_i.
+apply Rmult_0_r.
+apply lt_0_Sn.
+Qed.
+
+Lemma Un_decreasing_sinc :
+  forall x : R,
+  (Rabs x <= 1)%R ->
+  Un_decreasing (fun n : nat => (/ INR (fact (2 * n + 1)) * x ^ (2 * n)))%R.
+Proof.
+intros x Hx n.
+replace (2 * S n) with (2 + 2 * n) by ring.
+rewrite pow_add.
+rewrite <- Rmult_assoc.
+apply Rmult_le_compat_r.
+rewrite pow_sqr.
+apply pow_le.
+apply Rle_0_sqr.
+change (fact (2 + 2 * n + 1)) with ((2 + 2 * n + 1) * ((1 + 2 * n + 1) * fact (2 * n + 1))).
+rewrite mult_assoc, mult_comm.
+rewrite mult_INR.
+rewrite <- (Rmult_1_r (/ INR (fact _))).
+rewrite Rinv_mult_distr.
+rewrite Rmult_assoc.
+apply Rmult_le_compat_l.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_fact.
+rewrite <- (Rmult_1_r 1).
+apply Rmult_le_compat.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_Sn.
+unfold pow.
+rewrite Rmult_1_r.
+apply Rle_0_sqr.
+rewrite <- Rinv_1.
+apply Rle_Rinv_pos.
+apply Rlt_0_1.
+apply (le_INR 1).
+apply le_n_S, le_0_n.
+replace R1 with (1 * (1 * 1))%R by ring.
+apply pow_maj_Rabs with (1 := Hx).
+apply INR_fact_neq_0.
+now apply not_0_INR.
+Qed.
