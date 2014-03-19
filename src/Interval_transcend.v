@@ -843,29 +843,13 @@ intros H0.
 exact (proj1 (H0 (refl_equal _) (FtoR_Rpos _ _ _))).
 Qed.
 
-(* 0 <= inputs *)
-Fixpoint sin_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
-  let npwu := F.mul rnd_UP prec powu sqru in
-  let valu := F.div rnd_UP prec npwu div in
-  match F.cmp valu thre, nb with
-  | Xlt, _
-  | _, O => I.bnd F.zero valu
-  | _, S n =>
-    let npwl := F.mul rnd_DN prec powl sqrl in
-    let vall := F.div rnd_DN prec npwl div in
-    let nfact := F.add_exact fact c2 in
-    let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact c1)) in
-    I.sub prec (I.bnd vall valu)
-      (sin_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
-  end.
-
 (* -1/2 <= input <= 1/2 *)
 Definition sin_fast0 prec x :=
   let x2l := F.mul rnd_DN prec x x in
   let x2u := F.mul rnd_UP prec x x in
   let p := F.prec prec in
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
-  let rem := sin_fast0_aux prec thre c1 c1 x2l x2u c4 c6 (nat_of_P p) in
+  let rem := cos_fast0_aux prec thre c1 c1 x2l x2u c4 c6 (nat_of_P p) in
   I.mul_mixed prec (I.sub prec (I.bnd c1 c1) rem) x.
 
 Lemma sin_fast0_correct :
@@ -1050,7 +1034,7 @@ specialize (IHm (F.mul rnd_DN prec powl sqrl) (F.mul rnd_UP prec powu sqru) (F.m
 assert (H: forall p, n - S m + S p = n - m + p).
   intros p.
   clear -Hm ; omega.
-destruct ((sin_fast0_aux prec thre (F.mul rnd_DN prec powl sqrl)
+destruct ((cos_fast0_aux prec thre (F.mul rnd_DN prec powl sqrl)
     (F.mul rnd_UP prec powu sqru) sqrl sqru (F.add_exact tp1 c2)
     (F.mul_exact ft (F.mul_exact tp1 (F.add_exact tp1 c1))) m)).
   case F.cmp ; try easy.
