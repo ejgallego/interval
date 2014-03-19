@@ -593,7 +593,7 @@ Qed.
 Lemma sin_cos_reduce_correct :
   forall prec nb x,
   FtoX (F.toF x) = Xreal (toR x) ->
-  (0 < toR x)%R ->
+  (0 <= toR x)%R ->
   match sin_cos_reduce prec x nb with
   | (ss, ci) =>
     contains (I.convert ci) (Xreal (cos (toR x))) /\
@@ -606,7 +606,7 @@ Lemma sin_cos_reduce_correct :
 Proof.
 intros prec.
 (* . *)
-assert (forall x, FtoX (F.toF x) = Xreal (toR x) -> (0 < toR x)%R ->
+assert (forall x, FtoX (F.toF x) = Xreal (toR x) -> (0 <=toR x)%R ->
         le x (F.scale2 (F.fromZ 1) (F.ZtoS (-1))) = true ->
         contains (I.convert (cos_fast0 prec x)) (Xreal (cos (toR x))) /\
         (0 <= sin (toR x))%R).
@@ -627,10 +627,8 @@ split.
 apply cos_fast0_correct with (1 := Hxr).
 rewrite Rabs_right.
 exact H0.
-apply Rle_ge.
-now apply Rlt_le.
-apply sin_ge_0.
-now apply Rlt_le.
+now apply Rle_ge.
+apply sin_ge_0 with (1 := Hx0).
 (*   x <= pi *)
 apply Rle_trans with (1 := H0).
 apply Rlt_le.
@@ -729,9 +727,8 @@ now rewrite scale2_correct, Hxr.
 unfold toR, sm1.
 rewrite scale2_correct, Hxr.
 simpl.
-apply Rmult_lt_0_compat.
-exact Hx.
-apply Rinv_0_lt_compat.
+apply Rmult_le_pos with (1 := Hx).
+apply Rlt_le, Rinv_0_lt_compat.
 now apply (Z2R_lt 0 2).
 Qed.
 
@@ -809,7 +806,7 @@ unfold toR.
 rewrite F.neg_correct.
 rewrite H.
 intros H0.
-exact (proj1 (H0 (refl_equal _) (FtoR_Rpos _ _ _))).
+exact (proj1 (H0 (refl_equal _) (Rlt_le _ _ (FtoR_Rpos _ _ _)))).
 (* pos *)
 destruct (le_spec x (F.scale2 c1 sm1)).
 (* . no reduction *)
@@ -836,7 +833,7 @@ destruct (sin_cos_reduce prec x).
 unfold toR.
 rewrite H.
 intros H0.
-exact (proj1 (H0 (refl_equal _) (FtoR_Rpos _ _ _))).
+exact (proj1 (H0 (refl_equal _) (Rlt_le _ _ (FtoR_Rpos _ _ _)))).
 Qed.
 
 (* -1/2 <= input <= 1/2 *)
@@ -1240,7 +1237,7 @@ unfold toR.
 rewrite F.neg_correct.
 rewrite H.
 intros H0.
-generalize (H0 (refl_equal _) (FtoR_Rpos _ _ _)).
+generalize (H0 (refl_equal _) (Rlt_le _ _ (FtoR_Rpos _ _ _))).
 clear H0.
 case c ; intros (H0, H1).
 simpl.
@@ -1322,7 +1319,7 @@ destruct (sin_cos_reduce prec x).
 unfold toR.
 rewrite H.
 intros H0.
-generalize (H0 (refl_equal _) (FtoR_Rpos _ _ _)).
+generalize (H0 (refl_equal _) (Rlt_le _ _ (FtoR_Rpos _ _ _))).
 clear H0.
 case c ; intros (H0, H1).
 simpl.
