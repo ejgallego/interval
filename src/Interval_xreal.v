@@ -101,6 +101,14 @@ Lemma Xneg_correct : extension Ropp Xneg.
 now intros [|x].
 Qed.
 
+Lemma Xneg_involutive :
+  forall x, Xneg (Xneg x) = x.
+Proof.
+intros [|x].
+easy.
+apply (f_equal Xreal), Ropp_involutive.
+Qed.
+
 Definition Xinv x :=
   match x with
   | Xreal u => if is_zero u then Xnan else Xreal (/ u)
