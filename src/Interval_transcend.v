@@ -856,7 +856,7 @@ Fixpoint sin_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struc
     let nfact := F.add_exact fact c2 in
     let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact c1)) in
     I.sub prec (I.bnd vall valu)
-      (cos_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
+      (sin_fast0_aux prec thre npwl npwu sqrl sqru nfact ndiv n)
   end.
 
 (* -1/2 <= input <= 1/2 *)
