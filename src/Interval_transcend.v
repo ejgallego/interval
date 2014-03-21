@@ -74,7 +74,7 @@ Ltac bound_tac :=
   end.
 
 (* 0 <= inputs *)
-Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru two div (nb : nat) { struct nb } :=
+Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru div (nb : nat) { struct nb } :=
   let npwu := F.mul rnd_UP prec powu sqru in
   let valu := F.div rnd_UP prec npwu div in
   match F.cmp valu thre, nb with
@@ -84,25 +84,8 @@ Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru two div (nb : nat) { struc
     let npwl := F.mul rnd_DN prec powl sqrl in
     let vall := F.div rnd_DN prec npwl div in
     I.sub prec (I.bnd vall valu)
-      (atan_fast0_aux prec thre npwl npwu sqrl sqru two (F.add_exact div two) n)
+      (atan_fast0_aux prec thre npwl npwu sqrl sqru (F.add_exact div c2) n)
   end.
-
-(*
-Definition atan_fast0_aux prec thre powl powu sqrl sqru two div nb :=
-  let fix aux powl powu div (nb : nat) { struct nb } :=
-    let npwu := F.mul rnd_UP prec powu sqru in
-    let valu := F.div rnd_UP prec npwu div in
-    match F.cmp valu thre, nb with
-    | Xlt, _ => I.bnd (F.neg valu) valu
-    | _, O => I.bnd (F.neg valu) valu
-    | _, S n =>
-      let npwl := F.mul rnd_DN prec powl sqrl in
-      let vall := F.div rnd_DN prec npwl div in
-      I.sub prec (I.bnd vall valu)
-        (aux npwl npwu (F.add_exact div two) n)
-    end in
-  aux powl powu div nb.
-*)
 
 (* -1/2 <= input <= 1/2 *)
 Definition atan_fast0 prec x :=
@@ -110,7 +93,7 @@ Definition atan_fast0 prec x :=
   let x2u := F.mul rnd_UP prec x x in
   let p := F.prec prec in
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
-  let rem := atan_fast0_aux prec thre c1 c1 x2l x2u c2 c3 (nat_of_P p) in
+  let rem := atan_fast0_aux prec thre c1 c1 x2l x2u c3 (nat_of_P p) in
   I.mul_mixed prec (I.sub prec (I.bnd c1 c1) rem) x.
 
 (* -1/2 <= input <= 1/2 *)
@@ -118,7 +101,7 @@ Definition atan_fast0i prec xi :=
   let x2 := I.sqr prec xi in
   let p := F.prec prec in
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
-  let rem := atan_fast0_aux prec thre c1 c1 (I.lower x2) (I.upper x2) c2 c3 (nat_of_P p) in
+  let rem := atan_fast0_aux prec thre c1 c1 (I.lower x2) (I.upper x2) c3 (nat_of_P p) in
   I.mul prec (I.sub prec (I.bnd c1 c1) rem) xi.
 
 Definition pi4_gen prec :=
