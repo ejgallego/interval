@@ -73,6 +73,45 @@ Ltac bound_tac :=
     apply Rle_trans with (2 := proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   end.
 
+Definition toR x := proj_val (FtoX (F.toF x)).
+
+Definition le x y :=
+  match F.cmp x y with
+  | Xlt | Xeq => true
+  | Xgt | Xund => false
+  end.
+
+Inductive le_prop x y : bool -> Prop :=
+  | le_true
+    (Hx : FtoX (F.toF x) = Xreal (toR x))
+    (Hy : FtoX (F.toF y) = Xreal (toR y))
+    (Hxy : (toR x <= toR y)%R) : le_prop x y true
+  | le_false : le_prop x y false.
+
+Lemma le_spec :
+  forall x y,
+  le_prop x y (le x y).
+Proof.
+intros.
+unfold le.
+rewrite F.cmp_correct, Fcmp_correct.
+case_eq (FtoX (F.toF x)).
+intros _. apply le_false.
+intros xr Hx.
+case_eq (FtoX (F.toF y)).
+intros _. apply le_false.
+intros yr Hy.
+simpl.
+destruct (Rcompare_spec xr yr) ;
+  constructor ;
+  unfold toR ;
+  try rewrite Hx ;
+  try rewrite Hy ;
+  try apply refl_equal.
+now apply Rlt_le.
+now apply Req_le.
+Qed.
+
 (* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru div (nb : nat) { struct nb } :=
   let npwu := F.mul rnd_UP prec powu sqru in
@@ -140,43 +179,133 @@ Definition atan_fast prec x :=
   | Xund => I.nai
   end.
 
-Definition le x y :=
-  match F.cmp x y with
-  | Xlt | Xeq => true
-  | Xgt | Xund => false
-  end.
+Axiom atan_fast0i_correct :
+  forall prec xi x,
+  subset (I.convert xi) (Interval_interval.Ibnd (Xreal (-/2)) (Xreal (/2))) ->
+  contains (I.convert xi) x ->
+  contains (I.convert (atan_fast0i prec xi)) (Xatan x).
 
-Definition toR x := proj_val (FtoX (F.toF x)).
+Axiom atan_fast0_correct :
+  forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (Rabs (toR x) <= /2)%R ->
+  contains (I.convert (atan_fast0 prec x)) (Xreal (atan (toR x))).
 
-Inductive le_prop x y : bool -> Prop :=
-  | le_true
-    (Hx : FtoX (F.toF x) = Xreal (toR x))
-    (Hy : FtoX (F.toF y) = Xreal (toR y))
-    (Hxy : (toR x <= toR y)%R) : le_prop x y true
-  | le_false : le_prop x y false.
-
-Lemma le_spec :
-  forall x y,
-  le_prop x y (le x y).
+Lemma pi4_correct :
+  forall prec, contains (I.convert (pi4 prec)) (Xreal (PI/4)).
 Proof.
-intros.
-unfold le.
-rewrite F.cmp_correct, Fcmp_correct.
-case_eq (FtoX (F.toF x)).
-intros _. apply le_false.
-intros xr Hx.
-case_eq (FtoX (F.toF y)).
-intros _. apply le_false.
-intros yr Hy.
+intros prec.
+rewrite Machin_4_5_239.
+unfold pi4, constant_getter.
+set (n := Z.abs_nat _).
+unfold pi4_seq, constant_generator.
+generalize xH.
+induction n as [|n].
+2: intros p ; apply IHn.
 simpl.
-destruct (Rcompare_spec xr yr) ;
-  constructor ;
-  unfold toR ;
-  try rewrite Hx ;
-  try rewrite Hy ;
-  try apply refl_equal.
-now apply Rlt_le.
-now apply Req_le.
+intros p.
+generalize (F.PtoP (p * 31)).
+clear prec p.
+intros prec.
+assert (Hc: forall n, (1 < n)%Z -> subset (I.convert (I.inv prec (I.fromZ n)))
+    (Interval_interval.Ibnd (Xreal (- / 2)) (Xreal (/ 2)))).
+  intros n Hn.
+  simpl.
+  unfold I.sign_strict_, I.Fdivz.
+  rewrite F.cmp_correct, Fcmp_correct.
+  rewrite F.zero_correct.
+  rewrite F.fromZ_correct.
+  simpl.
+  rewrite Rcompare_Gt.
+  2: apply (Z2R_lt 0 n) ; omega.
+  unfold subset, le_lower.
+  simpl.
+  rewrite 2!I.real_correct.
+  unfold I.convert_bound.
+  rewrite F.fromZ_correct.
+  do 2 rewrite F.div_correct, Fdiv_correct.
+  do 2 rewrite F.fromZ_correct.
+  simpl.
+  case is_zero_spec.
+  intros H.
+  now rewrite (eq_Z2R n 0 H) in Hn.
+  intros _.
+  simpl.
+  split.
+  apply Ropp_le_contravar.
+  apply Rle_trans with R0.
+  apply Rlt_le, Ropp_lt_gt_0_contravar.
+  apply pos_half_prf.
+  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Fcore_generic_fmt.generic_format_0.
+  apply Rlt_le.
+  unfold Rdiv.
+  rewrite Rmult_1_l.
+  apply Rinv_0_lt_compat.
+  apply (Z2R_lt 0 n).
+  omega.
+  apply Fcore_generic_fmt.round_le_generic ; auto with typeclass_instances.
+  apply Fcore_FLX.generic_format_FLX.
+  generalize F.even_radix_correct (eq_refl (radix_val F.radix)).
+  generalize F.radix at 2 4.
+  destruct (radix_val F.radix) as [|[p|p|]|p] ; try easy.
+  intros beta _ Hb.
+  exists (Fcore_defs.Float beta (Zpos p) (-1)).
+  unfold Fcore_defs.F2R.
+  simpl.
+  split.
+  change (Z.pow_pos beta 1) with (beta * 1)%Z.
+  rewrite Hb, Zmult_1_r.
+  apply Rmult_eq_reg_l with 2%R.
+  2: now apply (Z2R_neq 2 0).
+  rewrite Rinv_r by now apply (Z2R_neq 2 0).
+  rewrite <- Rmult_assoc.
+  change (2 * P2R p)%R with (Z2R 2 * Z2R (Zpos p))%R.
+  rewrite <- Z2R_mult.
+  apply sym_eq, Rinv_r.
+  now apply (Z2R_neq _ 0).
+  apply Zmult_lt_reg_r with 2%Z.
+  easy.
+  rewrite Zmult_comm.
+  change (1 * Zpos (xO p) < Zpower beta (Zpos (F.prec prec)) * 2)%Z.
+  rewrite <- Hb.
+  rewrite Zmult_comm.
+  apply Zmult_lt_compat2.
+  2: now split.
+  split.
+  now rewrite Hb.
+  rewrite <- (Zmult_1_r beta) at 1.
+  change (beta * 1)%Z with (Zpower beta 1).
+  apply Zpower_le.
+  clear ; zify ; omega.
+  unfold Rdiv.
+  rewrite Rmult_1_l.
+  apply Rle_Rinv_pos.
+  apply Rlt_0_2.
+  apply (Z2R_le 2).
+  omega.
+unfold pi4_gen.
+apply (I.sub_correct _ _ _ (Xreal _) (Xreal _)).
+rewrite Rmult_comm.
+apply (I.scale2_correct _ (Xreal _)).
+apply (atan_fast0i_correct _ _ (Xreal _)).
+now apply Hc.
+replace (Xreal (/5)) with (Xinv (Xreal 5)).
+apply I.inv_correct.
+apply I.fromZ_correct.
+simpl.
+case is_zero_spec ; try easy.
+intros H.
+discriminate (eq_Z2R 5 0 H).
+apply (atan_fast0i_correct _ _ (Xreal _)).
+now apply Hc.
+replace (Xreal (/239)) with (Xinv (Xreal 239)).
+apply I.inv_correct.
+apply I.fromZ_correct.
+simpl.
+case is_zero_spec ; try easy.
+intros H.
+discriminate (eq_Z2R 239 0 H).
 Qed.
 
 (*
@@ -1614,7 +1743,6 @@ Qed.
 Definition semi_extension f fi :=
   forall x, contains (I.convert (fi x)) (f (FtoX (F.toF x))).
 
-Axiom pi4_correct : forall prec, contains (I.convert (pi4 prec)) (Xreal (PI/4)).
 Definition cos_correct : forall prec, semi_extension Xcos (cos_fast prec) := cos_fast_correct.
 Definition sin_correct : forall prec, semi_extension Xsin (sin_fast prec) := sin_fast_correct.
 Definition tan_correct : forall prec, semi_extension Xtan (tan_fast prec) := tan_fast_correct.
