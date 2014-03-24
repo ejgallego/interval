@@ -67,6 +67,10 @@ Definition sm8 := F.ZtoS (-8).
 Ltac bound_tac :=
   unfold xround ;
   match goal with
+  | |- (round ?r rnd_DN ?p ?v <= ?v)%R =>
+    apply (proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+  | |- (?v <= round ?r rnd_UP ?p ?v)%R =>
+    apply (proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
     apply Rle_trans with (1 := proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
   | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
@@ -324,6 +328,197 @@ simpl.
 case is_zero_spec ; try easy.
 intros H.
 discriminate (eq_Z2R 239 0 H).
+Qed.
+
+Lemma atan_fastP_correct :
+  forall prec x,
+  FtoX (F.toF x) = Xreal (toR x) ->
+  (0 <= toR x)%R ->
+  contains (I.convert (atan_fastP prec x)) (Xreal (atan (toR x))).
+Proof.
+intros prec x Rx Bx.
+unfold atan_fastP, c1, sm1, s1.
+rewrite F.cmp_correct, Fcmp_correct.
+rewrite scale2_correct.
+rewrite F.fromZ_correct.
+rewrite Rx.
+simpl Xcmp.
+rewrite Rmult_1_l.
+case Rcompare_spec ; intros Bx'.
+apply atan_fast0_correct with (1 := Rx).
+rewrite Rabs_pos_eq with (1 := Bx).
+now apply Rlt_le.
+apply atan_fast0_correct with (1 := Rx).
+rewrite Rabs_pos_eq with (1 := Bx).
+now apply Req_le.
+rewrite F.cmp_correct, Fcmp_correct.
+rewrite scale2_correct.
+rewrite F.fromZ_correct.
+rewrite Rx.
+simpl Xcmp.
+rewrite Rmult_1_l.
+assert (H: (toR x <= 2)%R -> contains (I.convert
+    (I.add (F.incr_prec prec 2) (pi4 (F.incr_prec prec 2)) (atan_fast0i (F.incr_prec prec 2)
+      (I.bnd (F.div rnd_DN (F.incr_prec prec 2) (F.sub_exact x (F.fromZ 1)) (F.add_exact x (F.fromZ 1)))
+        (F.div rnd_UP (F.incr_prec prec 2) (F.sub_exact x (F.fromZ 1)) (F.add_exact x (F.fromZ 1)))))))
+    (Xreal (atan (toR x)))).
+  intros Bx''.
+  replace (Xreal (atan (toR x))) with (Xadd (Xreal (PI / 4)) (Xatan (Xreal ((toR x - 1) / (toR x + 1))))).
+  apply I.add_correct.
+  apply pi4_correct.
+  apply atan_fast0i_correct.
+  unfold subset, le_lower.
+  simpl.
+  unfold I.convert_bound.
+  rewrite 2!F.div_correct, 2!Fdiv_correct.
+  rewrite F.sub_exact_correct, Fsub_exact_correct.
+  rewrite F.add_exact_correct, Fadd_exact_correct.
+  rewrite F.fromZ_correct.
+  rewrite Rx.
+  simpl.
+  case is_zero_spec ; intros Zx.
+  Fourier.fourier.
+  simpl.
+  split.
+  apply Ropp_le_contravar.
+  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Fcore_generic_fmt.generic_format_opp.
+  now apply generic_format_half.
+  apply Rmult_le_reg_r with (toR x + 1)%R.
+  Fourier.fourier.
+  unfold Rdiv.
+  rewrite Rmult_assoc, Rinv_l with (1 := Zx), Rmult_1_r.
+  apply Rminus_le.
+  replace (- / 2 * (toR x + 1) - (toR x - 1))%R with (-3/2 * toR x + /2)%R by field.
+  Fourier.fourier.
+  apply Fcore_generic_fmt.round_le_generic ; auto with typeclass_instances.
+  now apply generic_format_half.
+  apply Rmult_le_reg_r with (toR x + 1)%R.
+  Fourier.fourier.
+  unfold Rdiv.
+  rewrite Rmult_assoc, Rinv_l with (1 := Zx), Rmult_1_r.
+  apply Rminus_le.
+  replace (toR x - 1 - / 2 * (toR x + 1))%R with (/2 * toR x - 3/2)%R by field.
+  Fourier.fourier.
+  simpl.
+  unfold I.convert_bound.
+  rewrite 2!F.div_correct, 2!Fdiv_correct.
+  rewrite F.sub_exact_correct, Fsub_exact_correct.
+  rewrite F.add_exact_correct, Fadd_exact_correct.
+  rewrite F.fromZ_correct.
+  rewrite Rx.
+  simpl.
+  case is_zero_spec ; intros Zx.
+  Fourier.fourier.
+  simpl.
+  split ; bound_tac.
+  apply (f_equal Xreal).
+  rewrite Rplus_comm.
+  apply atan_plus_PI4.
+  Fourier.fourier.
+case Rcompare_spec ; intros Bx''.
+apply H.
+now apply Rlt_le.
+apply H.
+now apply Req_le.
+replace (Xreal (atan (toR x))) with (Xsub (Xmul (Xreal (PI/4)) (Xreal 2)) (Xatan (Xreal (/ toR x)))).
+apply I.sub_correct.
+apply I.scale2_correct.
+apply pi4_correct.
+apply atan_fast0i_correct.
+unfold subset, le_lower.
+simpl.
+unfold I.convert_bound.
+rewrite 2!F.div_correct, 2!Fdiv_correct.
+rewrite F.fromZ_correct.
+rewrite Rx.
+simpl.
+case is_zero_spec ; intros Zx.
+elim Rlt_not_le with (1 := Bx'').
+rewrite Zx.
+apply Rlt_le, Rlt_0_2.
+simpl.
+unfold Rdiv.
+rewrite Rmult_1_l.
+split.
+apply Ropp_le_contravar.
+apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Fcore_generic_fmt.generic_format_opp.
+now apply generic_format_half.
+apply Rlt_le, Rlt_trans with R0.
+rewrite <- Ropp_0.
+apply Ropp_lt_contravar.
+apply pos_half_prf.
+apply Rinv_0_lt_compat.
+now apply Rlt_trans with (1 := Rlt_0_2).
+apply Fcore_generic_fmt.round_le_generic ; auto with typeclass_instances.
+now apply generic_format_half.
+apply Rlt_le, Rinv_lt_contravar with (2 := Bx'').
+apply Rmult_lt_0_compat with (1 := Rlt_0_2).
+now apply Rlt_trans with (1 := Rlt_0_2).
+simpl.
+unfold I.convert_bound.
+rewrite 2!F.div_correct, 2!Fdiv_correct.
+rewrite F.fromZ_correct.
+rewrite Rx.
+simpl.
+case is_zero_spec ; intros Zx.
+easy.
+simpl.
+unfold Rdiv.
+rewrite Rmult_1_l.
+split ; bound_tac.
+apply (f_equal Xreal).
+rewrite atan_inv.
+field.
+now apply Rlt_trans with (1 := Rlt_0_2).
+Qed.
+
+Lemma atan_fast_correct :
+  forall prec x,
+  contains (I.convert (atan_fast prec x)) (Xatan (FtoX (F.toF x))).
+Proof.
+intros prec x.
+unfold atan_fast.
+rewrite F.cmp_correct, Fcmp_correct.
+rewrite F.zero_correct.
+case_eq (F.toF x) ; simpl.
+easy.
+rewrite Rcompare_Eq by easy.
+intros _.
+simpl.
+unfold I.convert_bound.
+rewrite F.zero_correct.
+rewrite atan_0.
+split ; apply Rle_refl.
+(* neg *)
+intros [|] xm xe Hx.
+simpl.
+rewrite Rcompare_Lt by apply FtoR_Rneg.
+replace (FtoR F.radix true xm xe) with (Ropp (toR (F.neg x))).
+rewrite atan_opp.
+apply (I.neg_correct _ (Xreal _)).
+apply atan_fastP_correct.
+unfold toR.
+now rewrite F.neg_correct, Hx.
+unfold toR.
+rewrite F.neg_correct, Hx.
+simpl.
+apply Rlt_le, FtoR_Rpos.
+unfold toR.
+rewrite F.neg_correct, Fneg_correct, Hx.
+apply Ropp_involutive.
+(* pos *)
+rewrite Rcompare_Gt by apply FtoR_Rpos.
+replace (FtoR F.radix false xm xe) with (toR x).
+apply atan_fastP_correct.
+unfold toR.
+now rewrite Hx.
+unfold toR.
+rewrite Hx.
+apply Rlt_le, FtoR_Rpos.
+unfold toR.
+now rewrite Hx.
 Qed.
 
 (*
@@ -1754,7 +1949,7 @@ Definition semi_extension f fi :=
 Definition cos_correct : forall prec, semi_extension Xcos (cos_fast prec) := cos_fast_correct.
 Definition sin_correct : forall prec, semi_extension Xsin (sin_fast prec) := sin_fast_correct.
 Definition tan_correct : forall prec, semi_extension Xtan (tan_fast prec) := tan_fast_correct.
-Axiom atan_correct : forall prec, semi_extension Xatan (atan_fast prec).
+Definition atan_correct : forall prec, semi_extension Xatan (atan_fast prec) := atan_fast_correct.
 
 (* 0 <= inputs *)
 Fixpoint expn_fast0_aux prec thre powl powu x fact div (nb : nat) { struct nb } :=
