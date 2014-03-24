@@ -112,6 +112,56 @@ now apply Rlt_le.
 now apply Req_le.
 Qed.
 
+Lemma scale2_correct :
+  forall x d,
+  FtoX (F.toF (F.scale2 x (F.ZtoS d))) = Xmul (FtoX (F.toF x)) (Xreal (bpow radix2 d)).
+Proof.
+intros x d.
+rewrite F.scale2_correct. 2: apply refl_equal.
+rewrite Fscale2_correct. 2: exact F.even_radix_correct.
+apply refl_equal.
+Qed.
+
+Lemma generic_format_half :
+  forall prec, (0 < prec)%Z ->
+  Fcore_generic_fmt.generic_format F.radix (Fcore_FLX.FLX_exp prec) (/2).
+Proof.
+intros prec Hp.
+apply Fcore_FLX.generic_format_FLX.
+generalize F.even_radix_correct (eq_refl (radix_val F.radix)).
+generalize F.radix at 2 4.
+destruct (radix_val F.radix) as [|[p|p|]|p] ; try easy.
+intros beta _ Hb.
+exists (Fcore_defs.Float beta (Zpos p) (-1)).
+unfold Fcore_defs.F2R.
+simpl.
+split.
+change (Z.pow_pos beta 1) with (beta * 1)%Z.
+rewrite Hb, Zmult_1_r.
+apply Rmult_eq_reg_l with 2%R.
+2: now apply (Z2R_neq 2 0).
+rewrite Rinv_r by now apply (Z2R_neq 2 0).
+rewrite <- Rmult_assoc.
+change (2 * P2R p)%R with (Z2R 2 * Z2R (Zpos p))%R.
+rewrite <- Z2R_mult.
+apply sym_eq, Rinv_r.
+now apply (Z2R_neq _ 0).
+apply Zmult_lt_reg_r with 2%Z.
+easy.
+rewrite Zmult_comm.
+change (1 * Zpos (xO p) < Zpower beta prec * 2)%Z.
+rewrite <- Hb.
+rewrite Zmult_comm.
+apply Zmult_lt_compat2.
+2: now split.
+split.
+now rewrite Hb.
+rewrite <- (Zmult_1_r beta) at 1.
+change (beta * 1)%Z with (Zpower beta 1).
+apply Zpower_le.
+omega.
+Qed.
+
 (* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru div (nb : nat) { struct nb } :=
   let npwu := F.mul rnd_UP prec powu sqru in
@@ -245,39 +295,7 @@ assert (Hc: forall n, (1 < n)%Z -> subset (I.convert (I.inv prec (I.fromZ n)))
   apply (Z2R_lt 0 n).
   omega.
   apply Fcore_generic_fmt.round_le_generic ; auto with typeclass_instances.
-  apply Fcore_FLX.generic_format_FLX.
-  generalize F.even_radix_correct (eq_refl (radix_val F.radix)).
-  generalize F.radix at 2 4.
-  destruct (radix_val F.radix) as [|[p|p|]|p] ; try easy.
-  intros beta _ Hb.
-  exists (Fcore_defs.Float beta (Zpos p) (-1)).
-  unfold Fcore_defs.F2R.
-  simpl.
-  split.
-  change (Z.pow_pos beta 1) with (beta * 1)%Z.
-  rewrite Hb, Zmult_1_r.
-  apply Rmult_eq_reg_l with 2%R.
-  2: now apply (Z2R_neq 2 0).
-  rewrite Rinv_r by now apply (Z2R_neq 2 0).
-  rewrite <- Rmult_assoc.
-  change (2 * P2R p)%R with (Z2R 2 * Z2R (Zpos p))%R.
-  rewrite <- Z2R_mult.
-  apply sym_eq, Rinv_r.
-  now apply (Z2R_neq _ 0).
-  apply Zmult_lt_reg_r with 2%Z.
-  easy.
-  rewrite Zmult_comm.
-  change (1 * Zpos (xO p) < Zpower beta (Zpos (F.prec prec)) * 2)%Z.
-  rewrite <- Hb.
-  rewrite Zmult_comm.
-  apply Zmult_lt_compat2.
-  2: now split.
-  split.
-  now rewrite Hb.
-  rewrite <- (Zmult_1_r beta) at 1.
-  change (beta * 1)%Z with (Zpower beta 1).
-  apply Zpower_le.
-  clear ; zify ; omega.
+  now apply generic_format_half.
   unfold Rdiv.
   rewrite Rmult_1_l.
   apply Rle_Rinv_pos.
@@ -690,16 +708,6 @@ change (A1 (toR x) (n - S m) + (-1) ^ S (n - S m) * / INR (fact (2 * S (n - S m)
 change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
 rewrite <- plus_Sn_m.
 now rewrite -> minus_Sn_m.
-Qed.
-
-Lemma scale2_correct :
-  forall x d,
-  FtoX (F.toF (F.scale2 x (F.ZtoS d))) = Xmul (FtoX (F.toF x)) (Xreal (bpow radix2 d)).
-Proof.
-intros x d.
-rewrite F.scale2_correct. 2: apply refl_equal.
-rewrite Fscale2_correct. 2: exact F.even_radix_correct.
-apply refl_equal.
 Qed.
 
 Lemma sin_cos_reduce_correct :
