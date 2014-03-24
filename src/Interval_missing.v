@@ -828,3 +828,40 @@ rewrite atan_right_inv.
 apply Rgt_not_eq.
 now apply Rgt_minus.
 Qed.
+
+Lemma atan_inv :
+  forall x, (0 < x)%R ->
+  atan (/ x) = (PI / 2 - atan x)%R.
+Proof.
+intros x Hx.
+apply tan_is_inj.
+apply atan_bound.
+split.
+apply Rlt_trans with R0.
+unfold Rdiv.
+rewrite Ropp_mult_distr_l_reverse.
+apply Ropp_lt_gt_0_contravar.
+apply PI2_RGT_0.
+apply Rgt_minus.
+apply atan_bound.
+apply Rplus_lt_reg_r with (atan x - PI / 2)%R.
+ring_simplify.
+rewrite <- atan_0.
+now apply atan_increasing.
+rewrite atan_right_inv.
+unfold tan.
+rewrite sin_shift.
+rewrite cos_shift.
+rewrite <- Rinv_Rdiv.
+apply f_equal, sym_eq, atan_right_inv.
+apply Rgt_not_eq, sin_gt_0.
+rewrite <- atan_0.
+now apply atan_increasing.
+apply Rlt_trans with (2 := PI2_Rlt_PI).
+apply atan_bound.
+apply Rgt_not_eq, cos_gt_0.
+unfold Rdiv.
+rewrite <- Ropp_mult_distr_l_reverse.
+apply atan_bound.
+apply atan_bound.
+Qed.
