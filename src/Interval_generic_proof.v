@@ -1053,6 +1053,29 @@ apply Fadd_correct.
 Qed.
 
 (*
+ * Fsub_exact
+ *)
+
+Lemma Fsub_exact_split :
+  forall beta (x y : float beta),
+  FtoX (Fsub_exact x y) = FtoX (Fadd_exact x (Fneg y)).
+Proof.
+intros beta x y.
+now case y.
+Qed.
+
+Theorem Fsub_exact_correct :
+  forall beta (x y : float beta),
+  FtoX (Fsub_exact x y) = Xsub (FtoX x) (FtoX y).
+Proof.
+intros beta x y.
+rewrite Fsub_exact_split.
+rewrite Fadd_exact_correct.
+rewrite Fneg_correct.
+apply sym_eq, Xsub_split.
+Qed.
+
+(*
  * Fmul
  *)
 
