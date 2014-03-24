@@ -768,3 +768,63 @@ apply pow_maj_Rabs with (1 := Hx).
 apply INR_fact_neq_0.
 now apply not_0_INR.
 Qed.
+
+Lemma atan_plus_PI4 :
+  forall x, (-1 < x)%R ->
+  (atan ((x - 1) / (x + 1)) + PI / 4)%R = atan x.
+Proof.
+intros x Hx.
+assert (H1: ((x - 1) / (x + 1) < 1)%R).
+  apply Rmult_lt_reg_r with (x + 1)%R.
+  Fourier.fourier.
+  unfold Rdiv.
+  rewrite Rmult_1_l, Rmult_assoc, Rinv_l, Rmult_1_r.
+  Fourier.fourier.
+  apply Rgt_not_eq.
+  Fourier.fourier.
+assert (H2: (- PI / 2 < atan ((x - 1) / (x + 1)) + PI / 4 < PI / 2)%R).
+  split.
+  rewrite <- (Rplus_0_r (- PI / 2)).
+  apply Rplus_lt_compat.
+  apply atan_bound.
+  apply PI4_RGT_0.
+  apply Rplus_lt_reg_r with (-(PI / 4))%R.
+  rewrite Rplus_assoc, Rplus_opp_r, Rplus_0_r.
+  replace (PI/2 + - (PI/4))%R with (PI/4)%R by field.
+  rewrite <- atan_1.
+  now apply atan_increasing.
+apply tan_is_inj.
+exact H2.
+apply atan_bound.
+rewrite atan_right_inv.
+rewrite tan_plus.
+rewrite atan_right_inv.
+rewrite tan_PI4.
+field.
+split.
+apply Rgt_not_eq.
+Fourier.fourier.
+apply Rgt_not_eq.
+ring_simplify.
+apply Rlt_0_2.
+apply Rgt_not_eq, cos_gt_0.
+unfold Rdiv.
+rewrite <- Ropp_mult_distr_l_reverse.
+apply atan_bound.
+apply atan_bound.
+rewrite cos_PI4.
+apply Rgt_not_eq.
+unfold Rdiv.
+rewrite Rmult_1_l.
+apply Rinv_0_lt_compat.
+apply sqrt_lt_R0.
+apply Rlt_0_2.
+apply Rgt_not_eq, cos_gt_0.
+unfold Rdiv.
+now rewrite <- Ropp_mult_distr_l_reverse.
+apply H2.
+rewrite tan_PI4, Rmult_1_r.
+rewrite atan_right_inv.
+apply Rgt_not_eq.
+now apply Rgt_minus.
+Qed.
