@@ -28,7 +28,7 @@ Require Import Interval_interval.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
 Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import div fintype finfun path bigop choice ssralg.
+Require Import div fintype finfun path bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

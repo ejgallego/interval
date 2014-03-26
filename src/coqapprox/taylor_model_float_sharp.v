@@ -31,8 +31,7 @@ Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
-Require Import Rstruct.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop ssralg.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 Require Import xreal_ssr_compat.
 Require Import poly_datatypes.
 Require Import interval_compl.

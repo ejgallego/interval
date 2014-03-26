@@ -19,8 +19,8 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
-Require Import Epsilon FunctionalExtensionality.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice bigop ssralg.
+(*Require Import Epsilon FunctionalExtensionality.*)
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -50,6 +50,7 @@ Canonical Structure real_eqType := Eval hnf in EqType R real_eqMixin.
 Fact inhR : inhabited R.
 Proof. exact: (inhabits 0). Qed.
 
+(*
 Definition pickR (P : pred R) (n : nat) :=
   let x := epsilon inhR P in if P x then Some x else None.
 
@@ -71,13 +72,16 @@ Definition R_choiceMixin : choiceMixin R :=
   Choice.Mixin pickR_some pickR_ex pickR_ext.
 
 Canonical R_choiceType := Eval hnf in ChoiceType R R_choiceMixin.
+*)
 
 Fact RplusA : associative (Rplus).
 Proof. by move=> *; rewrite Rplus_assoc. Qed.
 
+(*
 Definition real_zmodMixin := ZmodMixin RplusA Rplus_comm Rplus_0_l Rplus_opp_l.
 
 Canonical Structure real_zmodType := Eval hnf in ZmodType R real_zmodMixin.
+*)
 
 Fact RmultA : associative (Rmult).
 Proof. by move=> *; rewrite Rmult_assoc. Qed.
@@ -85,11 +89,13 @@ Proof. by move=> *; rewrite Rmult_assoc. Qed.
 Fact R1_neq_0 : R1 != R0.
 Proof. by apply/eqP/R1_neq_R0. Qed.
 
+(*
 Definition real_ringMixin := RingMixin RmultA Rmult_1_l Rmult_1_r
   Rmult_plus_distr_r Rmult_plus_distr_l R1_neq_0.
 
 Canonical Structure real_ringType := Eval hnf in RingType R real_ringMixin.
 Canonical Structure real_comringType := Eval hnf in ComRingType R Rmult_comm.
+*)
 
 Import Monoid.
 
@@ -127,6 +133,7 @@ Qed.
 Lemma Rinvx_out : {in predC unit_R, Rinvx =1 id}.
 Proof. by move=> x; rewrite inE /= /Rinvx -if_neg => ->. Qed.
 
+(*
 Definition real_unitRingMixin :=
   UnitRingMixin RmultRinvx RinvxRmult intro_unit_R Rinvx_out.
 
@@ -135,6 +142,7 @@ Canonical Structure real_unitRing :=
 
 Canonical Structure real_comUnitRingType :=
   Eval hnf in [comUnitRingType of R].
+*)
 
 Lemma real_idomainMixin x y : x * y = 0 -> (x == 0) || (y == 0).
 Proof.
@@ -142,6 +150,7 @@ Proof.
 by case: (Rmult_integral_contrapositive_currified _ _ xNZ yNZ).
 Qed.
 
+(*
 Canonical Structure real_idomainType :=
    Eval hnf in IdomainType R real_idomainMixin.
 
@@ -151,6 +160,7 @@ Proof. done. Qed.
 Definition real_fieldIdomainMixin := FieldIdomainMixin real_fieldMixin.
 
 Canonical Structure real_field := FieldType R real_fieldMixin.
+*)
 
 (** Reflect the order on the reals to bool *)
 

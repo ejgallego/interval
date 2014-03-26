@@ -26,7 +26,7 @@ Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import Interval_interval.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop ssralg.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 Require Import seq_compl.
 Require Import nary_tuple.
 Require Import poly_datatypes.
@@ -39,8 +39,6 @@ Require Import rpa_inst.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-Import GRing.Theory.
 
 Lemma eq_foldr (T0 T1 T2 : Type)
   (f0 : T1 -> T0 -> T0)

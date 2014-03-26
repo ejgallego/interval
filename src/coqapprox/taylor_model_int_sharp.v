@@ -32,7 +32,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Rstruct Classical.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop ssralg.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
@@ -53,8 +53,6 @@ remainder. *)
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-
-Import GRing.Theory.
 
 Local Open Scope nat_scope.
 

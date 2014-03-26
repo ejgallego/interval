@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith.
 Require Import NaryFunctions.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice fintype tuple.
+Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype tuple.
 Require Import seq_compl.
 
 (** This theory extends [NaryFunctions] (from Coq's standard library),
