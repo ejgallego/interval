@@ -1,6 +1,6 @@
 Require Import ZArith.
 Require Import Bool.
-Require Import Fcalc_digits.
+Require Import Fcore_digits.
 Require Import Fcalc_bracket.
 Require Import Interval_missing.
 Require Import Interval_xreal.

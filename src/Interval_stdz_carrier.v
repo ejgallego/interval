@@ -101,7 +101,7 @@ Definition exponent_div2_floor n :=
   end.
 
 Definition mantissa_sqrt m :=
-  match Fcalc_sqrt.Zsqrt (Zpos m) with
+  match Z.sqrtrem (Zpos m) with
   | (Zpos s, r) =>
     let pos :=
       match r with
