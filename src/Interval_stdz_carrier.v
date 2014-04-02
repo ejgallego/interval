@@ -107,7 +107,7 @@ Definition mantissa_sqrt m :=
       match r with
       | Z0 => pos_Eq
       | Zpos r =>
-        match Pcompare r s Eq with
+        match Pos.compare r s with
         | Gt => pos_Up
         | _ => pos_Lo
         end
@@ -120,12 +120,25 @@ Definition mantissa_sqrt m :=
 Definition PtoM_correct := fun x : positive => refl_equal x.
 Definition ZtoM_correct := fun x : Z => refl_equal x.
 Definition ZtoE_correct := fun x : Z => refl_equal x.
+
 Definition exponent_zero_correct := refl_equal Z0.
 Definition exponent_one_correct := refl_equal 1%Z.
 Definition exponent_neg_correct := fun x => refl_equal (- EtoZ x)%Z.
 Definition exponent_add_correct := fun x y => refl_equal (EtoZ x + EtoZ y)%Z.
 Definition exponent_sub_correct := fun x y => refl_equal (EtoZ x - EtoZ y)%Z.
 Definition exponent_cmp_correct := fun x y => refl_equal (EtoZ x ?= EtoZ y)%Z.
+
+Lemma exponent_div2_floor_correct :
+  forall e, let (e',b) := exponent_div2_floor e in
+  EtoZ e = (2 * EtoZ e' + if b then 1 else 0)%Z.
+Proof.
+unfold EtoZ, exponent_div2_floor.
+intros [|[e|e|]|[e|e|]] ; try easy.
+rewrite <- Pos.add_1_r.
+change (- (2 * Zpos e + 1) = 2 * - (Zpos e + 1) + 1)%Z.
+ring.
+Qed.
+
 Definition mantissa_zero_correct := refl_equal Z0.
 Definition mantissa_pos_correct :=
   fun (x : positive) (_ : True) => refl_equal (Zpos x).
@@ -405,6 +418,41 @@ destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
   apply Fcalc_bracket.inbetween_Exact.
   unfold Rdiv.
   now rewrite Zdiv_1_r, Rinv_1, Rmult_1_r.
+Qed.
+
+Lemma mantissa_sqrt_correct :
+  forall x, valid_mantissa x ->
+  let (q,l) := mantissa_sqrt x in
+  let (s,r) := Z.sqrtrem (Zpos (MtoP x)) in
+  Zpos (MtoP q) = s /\
+  match l with pos_Eq => r = Z0 | pos_Lo => (0 < r <= s)%Z | pos_Mi => False | pos_Up => (s < r)%Z end /\
+  valid_mantissa q.
+Proof.
+intros x _.
+unfold mantissa_sqrt, MtoP.
+refine (_ (Z.sqrtrem_spec (Zpos x) _)).
+2: easy.
+case Z.sqrtrem.
+intros s r [H1 H2].
+destruct s as [|s|s].
+simpl in H1.
+rewrite <- H1 in H2.
+now elim (proj2 H2).
+repeat split.
+destruct r as [|r|r].
+apply eq_refl.
+case Pcompare_spec.
+intros ->.
+split.
+easy.
+apply Zle_refl.
+intros H.
+split.
+easy.
+now apply Zlt_le_weak.
+easy.
+now elim (proj1 H2).
+now elim (Zle_trans _ _ _ (proj1 H2) (proj2 H2)).
 Qed.
 
 End StdZRadix2.

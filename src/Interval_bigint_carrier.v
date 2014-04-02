@@ -135,6 +135,42 @@ Definition exponent_abs_correct := BigZ.spec_abs.
 Definition exponent_add_correct := BigZ.spec_add.
 Definition exponent_sub_correct := BigZ.spec_sub.
 
+Lemma exponent_div2_floor_correct :
+  forall e, let (e',b) := exponent_div2_floor e in
+  EtoZ e = (2 * EtoZ e' + if b then 1 else 0)%Z.
+Proof.
+unfold exponent_div2_floor.
+intros [e|e].
+unfold EtoZ.
+simpl BigZ.to_Z.
+rewrite BigN.spec_shiftr.
+rewrite <- Z.div2_spec.
+rewrite BigN.spec_even.
+rewrite <- Zodd_even_bool.
+apply Zdiv2_odd_eqn.
+rewrite BigN.spec_even.
+case_eq (Z.even [e]%bigN).
+unfold EtoZ.
+simpl BigZ.to_Z.
+rewrite BigN.spec_shiftr.
+rewrite <- Z.div2_spec.
+rewrite (Zdiv2_odd_eqn [e]%bigN) at 2.
+rewrite Zodd_even_bool.
+intros ->.
+simpl negb ; cbv iota.
+ring.
+unfold EtoZ.
+simpl BigZ.to_Z.
+rewrite BigN.spec_succ.
+rewrite BigN.spec_shiftr.
+rewrite <- Z.div2_spec.
+rewrite (Zdiv2_odd_eqn [e]%bigN) at 2.
+rewrite Zodd_even_bool.
+intros ->.
+simpl negb ; cbv iota.
+ring.
+Qed.
+
 Lemma PtoM_correct :
   forall n, MtoP (PtoM n) = n.
 intros.
@@ -671,6 +707,58 @@ destruct (Z.eqb_spec r' 0) as [Hr|Hr].
     now apply (Z2R_lt 0).
     field.
     now apply (Z2R_neq _ 0).
+Qed.
+
+Lemma mantissa_sqrt_correct :
+  forall x, valid_mantissa x ->
+  let (q,l) := mantissa_sqrt x in
+  let (s,r) := Z.sqrtrem (Zpos (MtoP x)) in
+  Zpos (MtoP q) = s /\
+  match l with pos_Eq => r = Z0 | pos_Lo => (0 < r <= s)%Z | pos_Mi => False | pos_Up => (s < r)%Z end /\
+  valid_mantissa q.
+Proof.
+intros x [x' Vx].
+unfold mantissa_sqrt, MtoP.
+rewrite BigN.spec_eqb.
+rewrite BigN.spec_compare.
+rewrite BigN.spec_sub.
+rewrite BigN.spec_square.
+rewrite BigN.spec_sqrt.
+rewrite <- Z.sqrtrem_sqrt.
+refine (_ (Z.sqrtrem_spec (Zpos x') _)).
+2: easy.
+rewrite Vx.
+case_eq (Z.sqrtrem (Zpos x')).
+intros s r Hsr.
+simpl fst.
+intros [H1 H2].
+refine ((fun H => conj (proj1 H) (conj _ (proj2 H))) _).
+clear H.
+rewrite H1.
+replace (s * s + r - s * s)%Z with r by ring.
+rewrite Zmax_right by easy.
+change [0]%bigN with Z0.
+case Z.eqb_spec.
+easy.
+intros H.
+assert (H3: (0 < r)%Z) by omega.
+case Zcompare_spec ; intros H4.
+apply (conj H3).
+now apply Zlt_le_weak.
+apply (conj H3).
+now apply Zeq_le.
+exact H4.
+destruct s as [|s|s].
+simpl in H1.
+rewrite <- H1 in H2.
+now elim (proj2 H2).
+split.
+apply eq_refl.
+exists s.
+rewrite BigN.spec_sqrt.
+rewrite <- Z.sqrtrem_sqrt.
+now rewrite Vx, Hsr.
+now elim (Zle_trans _ _ _ (proj1 H2) (proj2 H2)).
 Qed.
 
 End BigIntRadix2.

@@ -72,6 +72,10 @@ Parameter exponent_sub_correct :
 Parameter exponent_cmp_correct :
   forall x y, exponent_cmp x y = Zcompare (EtoZ x) (EtoZ y).
 
+Parameter exponent_div2_floor_correct :
+  forall e, let (e',b) := exponent_div2_floor e in
+  EtoZ e = (2 * EtoZ e' + if b then 1 else 0)%Z.
+
 Parameter mantissa_zero_correct : MtoZ mantissa_zero = Z0.
 
 Parameter mantissa_pos_correct :
@@ -146,6 +150,14 @@ Parameter mantissa_div_correct :
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
   Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  valid_mantissa q.
+
+Parameter mantissa_sqrt_correct :
+  forall x, valid_mantissa x ->
+  let (q,l) := mantissa_sqrt x in
+  let (s,r) := Z.sqrtrem (Zpos (MtoP x)) in
+  Zpos (MtoP q) = s /\
+  match l with pos_Eq => r = Z0 | pos_Lo => (0 < r <= s)%Z | pos_Mi => False | pos_Up => (s < r)%Z end /\
   valid_mantissa q.
 
 End FloatCarrier.

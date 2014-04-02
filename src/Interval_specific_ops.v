@@ -1243,19 +1243,6 @@ Definition sqrt mode prec (f : type) :=
     end
   end.
 
-Axiom exponent_div2_floor_correct :
-  forall e,
-  let (e',b) := exponent_div2_floor e in
-  EtoZ e = (2 * EtoZ e' + if b then 1 else 0)%Z.
-
-Axiom mantissa_sqrt_correct :
-  forall x, valid_mantissa x ->
-  let (q,l) := mantissa_sqrt x in
-  let (s,r) := Z.sqrtrem (Zpos (MtoP x)) in
-  Zpos (MtoP q) = s /\
-  match l with pos_Eq => r = Z0 | pos_Lo => (0 < r <= s)%Z | pos_Mi => False | pos_Up => (s < r)%Z end /\
-  valid_mantissa q.
-
 Lemma sqrt_correct :
   forall mode p x,
   FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
