@@ -1232,21 +1232,152 @@ Definition sqrt mode prec (f : type) :=
     | Mnumber true _ => Fnan
     | Mnumber false p =>
       let d := mantissa_digits p in
-      let c := exponent_sub (exponent_add prec prec) (exponent_add d exponent_one) in
-      match exponent_cmp c exponent_zero with
-      | Gt =>
-        let (nb, e2) :=
-          let (ee, b) := exponent_div2_floor (exponent_sub e c) in
-          if b then (exponent_add c exponent_one, ee) else (c, ee) in
-        sqrt_aux2 mode prec (mantissa_shl p nb) e2
-      | _ =>
-        let (e2, b) := exponent_div2_floor e in
-        if b then sqrt_aux2 mode prec (mantissa_shl p exponent_one) e2
-        else sqrt_aux2 mode prec p e2
-      end
+      let prec := match exponent_cmp prec exponent_zero with Gt => prec | _ => exponent_one end in
+      let s := exponent_sub (exponent_add prec prec) d in
+      let s := match exponent_cmp s exponent_zero with Gt => s | _ => exponent_zero end in
+      let (e', r) := exponent_div2_floor (exponent_sub e s) in
+      let s := if r then exponent_add s exponent_one else s in
+      let m := match exponent_cmp s exponent_zero with Gt => mantissa_shl p s | _ => p end in
+      let (m', pos) := mantissa_sqrt m in
+      round_aux mode prec false m' e' pos
     end
   end.
 
-Axiom sqrt_correct : forall mode p x, FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
+Axiom exponent_div2_floor_correct :
+  forall e,
+  let (e',b) := exponent_div2_floor e in
+  EtoZ e = (2 * EtoZ e' + if b then 1 else 0)%Z.
+
+Axiom mantissa_sqrt_correct :
+  forall x, valid_mantissa x ->
+  let (q,l) := mantissa_sqrt x in
+  let (s,r) := Z.sqrtrem (Zpos (MtoP x)) in
+  Zpos (MtoP q) = s /\
+  match l with pos_Eq => r = Z0 | pos_Lo => (0 < r <= s)%Z | pos_Mi => False | pos_Up => (s < r)%Z end /\
+  valid_mantissa q.
+
+Lemma sqrt_correct :
+  forall mode p x,
+  FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
+Proof.
+intros mode p [|mx ex] ; try easy.
+simpl.
+generalize (mantissa_sign_correct mx).
+case_eq (mantissa_sign mx) ; [ intros Hx Mx | intros sx nx Hx (Mx, Vx) ].
+simpl.
+now rewrite Hx.
+destruct sx ; try easy.
+set (p' := match exponent_cmp p exponent_zero with Gt => p | _ => exponent_one end).
+assert (Hp: EtoZ p' = Zpos (prec p)).
+  unfold p', prec.
+  rewrite exponent_cmp_correct, exponent_zero_correct.
+  case_eq (EtoZ p) ; try (intros ; apply exponent_one_correct).
+  easy.
+clearbody p'.
+rewrite exponent_cmp_correct.
+rewrite exponent_sub_correct.
+rewrite exponent_add_correct.
+rewrite exponent_zero_correct.
+unfold Fsqrt, Fsqrt_aux, Fcalc_sqrt.Fsqrt_core.
+set (s1 := match Zcompare (EtoZ p' + EtoZ p' - EtoZ (mantissa_digits nx)) 0 with Gt => exponent_sub (exponent_add p' p') (mantissa_digits nx) | _ => exponent_zero end).
+set (s2 := Zmax (2 * Zpos (prec p) - Zdigits radix (Zpos (MtoP nx))) 0).
+assert (Hs: EtoZ s1 = s2).
+  revert s1 s2 ; cbv zeta.
+  replace (2 * Zpos (prec p))%Z with (Zpos (prec p) + Zpos (prec p))%Z by ring.
+  rewrite digits_conversion.
+  change radix with Carrier.radix.
+  rewrite <- mantissa_digits_correct with (1 := Vx).
+  case Zcompare_spec ;
+    rewrite Hp ;
+    try rewrite exponent_zero_correct ;
+    intros H ;
+    apply eq_sym ;
+    try apply Zmax_right.
+  now apply Zlt_le_weak.
+  now apply Zeq_le.
+  rewrite exponent_sub_correct.
+  rewrite exponent_add_correct.
+  rewrite Hp.
+  apply Zmax_left.
+  now apply Zle_ge, Zlt_le_weak.
+clearbody s1 s2.
+generalize (exponent_div2_floor_correct (exponent_sub ex s1)).
+case exponent_div2_floor ; intros e1 r He.
+rewrite exponent_cmp_correct.
+rewrite exponent_zero_correct.
+set (s3 := if r then exponent_add s1 exponent_one else s1).
+set (s4e2 := if Zeven (EtoZ ex - s2) then (s2, EtoZ ex - s2)%Z else (s2 + 1, EtoZ ex - s2 - 1)%Z).
+assert (Hes: EtoZ e1 = Z.div2 (snd s4e2) /\ EtoZ s3 = fst s4e2).
+  clear -He Hs.
+  generalize (Zdiv2_odd_eqn (EtoZ ex - s2)).
+  rewrite Zodd_even_bool.
+  rewrite exponent_sub_correct, Hs in He.
+  assert (Z.even (EtoZ ex - s2) = negb r).
+    rewrite He at 1 3.
+    rewrite (Zplus_comm (2 * EtoZ e1)).
+    rewrite Z.even_add_mul_2.
+    now case r.
+  rewrite H.
+  rewrite negb_involutive.
+  change Zeven with Z.even in s4e2.
+  intros H'.
+  revert s4e2 s3 ; cbv zeta.
+  rewrite H.
+  destruct r ; simpl.
+  split.
+  rewrite H'.
+  replace (2 * Z.div2 (EtoZ ex - s2) + 1 - 1)%Z with (2 * Z.div2 (EtoZ ex - s2))%Z by ring.
+  rewrite Z.div2_div.
+  rewrite Zmult_comm, Z_div_mult by easy.
+  omega.
+  rewrite exponent_add_correct.
+  rewrite exponent_one_correct.
+  now rewrite Hs.
+  split.
+  omega.
+  exact Hs.
+clearbody s4e2 s3.
+destruct s4e2 as [s4 e2].
+simpl in Hes.
+rewrite <- (proj2 Hes).
+rewrite <- (proj1 Hes).
+clear He Hes.
+set (m1 := match Zcompare (EtoZ s3) 0 with Gt => mantissa_shl nx s3 | _ => nx end).
+set (m2 := match EtoZ s3 with Zpos p => (Zpos (MtoP nx) * Z.pow_pos radix p)%Z | _ => Zpos (MtoP nx) end).
+assert (Hm: valid_mantissa m1 /\ Zpos (MtoP m1) = m2).
+  revert m1 m2 ; cbv zeta.
+  case_eq (EtoZ s3) ; simpl Zcompare ; cbv iota.
+  intros _.
+  now split.
+  intros q Hq.
+  generalize (mantissa_shl_correct q nx s3 Vx Hq).
+  intros [-> H].
+  apply (conj H).
+  apply shift_correct.
+  intros q Hq.
+  now split.
+generalize (mantissa_sqrt_correct m1 (proj1 Hm)).
+rewrite <- (proj2 Hm).
+clearbody m1 m2.
+clear Hm.
+destruct (mantissa_sqrt m1) as [q l].
+destruct (Z.sqrtrem (Z.pos (MtoP m1))) as [s r'].
+intros [<- [H1 H2]].
+rewrite round_aux_correct with (1 := H2).
+unfold prec at 1.
+rewrite Hp.
+clear -H1.
+apply (f_equal (fun l => FtoX (Fround_at_prec mode (prec p) (Ufloat _ _ _ _ l)))).
+destruct l.
+now rewrite Zeq_bool_true.
+rewrite Zeq_bool_false.
+now rewrite Zle_bool_true.
+now apply Zgt_not_eq.
+easy.
+rewrite Zeq_bool_false.
+now rewrite Zle_bool_false.
+apply Zgt_not_eq.
+now apply Zlt_trans with (2 := H1).
+Qed.
 
 End SpecificFloat.
