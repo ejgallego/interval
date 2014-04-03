@@ -865,3 +865,38 @@ rewrite <- Ropp_mult_distr_l_reverse.
 apply atan_bound.
 apply atan_bound.
 Qed.
+
+Lemma Un_decreasing_atanc :
+  forall x : R,
+  (Rabs x <= 1)%R ->
+  Un_decreasing (fun n : nat => (/ INR (2 * n + 1) * x ^ (2 * n)))%R.
+Proof.
+intros x Hx n.
+replace (2 * S n) with (2 + 2 * n) by ring.
+rewrite pow_add.
+rewrite <- Rmult_assoc.
+apply Rmult_le_compat_r.
+rewrite pow_sqr.
+apply pow_le.
+apply Rle_0_sqr.
+rewrite <- (Rmult_1_r (/ INR (2 * n + 1))).
+apply Rmult_le_compat.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_Sn.
+unfold pow.
+rewrite Rmult_1_r.
+apply Rle_0_sqr.
+apply Rlt_le.
+apply Rinv_lt.
+apply (lt_INR 0).
+rewrite plus_comm.
+apply lt_O_Sn.
+apply lt_INR.
+rewrite <- plus_assoc.
+apply (plus_lt_compat_r 0).
+apply lt_O_Sn.
+replace R1 with (1 * (1 * 1))%R by ring.
+apply pow_maj_Rabs with (1 := Hx).
+Qed.
