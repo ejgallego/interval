@@ -1,3 +1,6 @@
+Version 1.0.0:
+ - removed remaining axioms
+
 Version 0.16.2:
  - fixed install rule on case-insensitive filesystems
 
