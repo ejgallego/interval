@@ -952,3 +952,42 @@ Definition atanc x :=
   | left H => projT1 (atanc_exists x (Rabs_le _ _ H))
   | right _ => (atan x / x)%R
   end.
+
+Lemma atanc_opp :
+  forall x,
+  atanc (- x) = atanc x.
+Proof.
+intros x.
+unfold atanc.
+destruct (Ratan.in_int x) as [Hx|Hx] ;
+  case Ratan.in_int ; intros Hx'.
+do 2 case atanc_exists ; simpl projT1.
+intros l1 C1 l2 C2.
+apply UL_sequence with (1 := C2).
+apply Un_cv_ext with (2 := C1).
+intros N.
+apply sum_eq.
+intros n _.
+unfold tg_alt.
+replace (-x)%R with ((-1) * x)%R by ring.
+now rewrite Rpow_mult_distr, pow_1_even, Rmult_1_l.
+elim Hx'.
+split.
+now apply Ropp_le_contravar.
+rewrite <- (Ropp_involutive 1).
+now apply Ropp_le_contravar.
+elim Hx.
+split.
+rewrite <- (Ropp_involutive x).
+now apply Ropp_le_contravar.
+now apply Ropp_le_cancel.
+rewrite atan_opp.
+field.
+contradict Hx.
+rewrite Hx.
+split.
+rewrite <- Ropp_0.
+apply Ropp_le_contravar.
+apply Rle_0_1.
+apply Rle_0_1.
+Qed.
