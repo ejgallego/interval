@@ -15,6 +15,16 @@ Inductive f_interval (A : Type) : Type :=
 Implicit Arguments Inan [A].
 Implicit Arguments Ibnd [A].
 
+Definition le_lower' x y :=
+  match x with
+  | Xnan => True
+  | Xreal xr =>
+    match y with
+    | Xnan => False
+    | Xreal yr => Rle xr yr
+    end
+  end.
+
 Module FloatInterval (F : FloatOps with Definition even_radix := true).
 
 Definition type := f_interval F.type.
@@ -977,12 +987,13 @@ exact Hxu.
 Qed.
 
 Theorem abs_ge_0 :
-  forall xi, (0 <= proj_val (FtoX (F.toF (lower (abs xi)))))%R.
+  forall xi, convert xi <> Interval_interval.Inan ->
+  le_lower' (Xreal 0) (FtoX (F.toF (lower (abs xi)))).
 Proof.
 intros [|xl xu].
-simpl.
-rewrite F.nan_correct.
-apply Rle_refl.
+intros H.
+now elim H.
+intros _.
 simpl.
 unfold sign_large_.
 rewrite 2!F.cmp_correct, 2!Fcmp_correct, F.zero_correct.
@@ -1043,6 +1054,19 @@ rewrite Ropp_0.
 apply Rle_refl.
 rewrite Hl.
 now apply Rlt_le.
+Qed.
+
+Theorem abs_ge_0' :
+  forall xi, (0 <= proj_val (FtoX (F.toF (lower (abs xi)))))%R.
+Proof.
+intros [|xl xu].
+simpl.
+rewrite F.nan_correct.
+apply Rle_refl.
+refine (_ (abs_ge_0 (Ibnd xl xu) _)).
+2: discriminate.
+simpl.
+now case FtoX.
 Qed.
 
 Theorem scale2_correct :
@@ -1501,6 +1525,60 @@ apply Rlt_le.
 now apply Rnot_le_lt.
 Qed.
 
+Theorem sqr_ge_0 :
+  forall prec xi, convert xi <> Interval_interval.Inan ->
+  le_lower' (Xreal 0) (FtoX (F.toF (lower (sqr prec xi)))).
+Proof.
+intros prec [|xl xu].
+intros H.
+now elim H.
+intros _.
+simpl.
+unfold sign_large_.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct, F.zero_correct.
+assert (Hd: forall x xr, FtoX (F.toF x) = Xreal xr ->
+    match FtoX (F.toF (F.mul rnd_DN prec x x)) with
+    | Xnan => False
+    | Xreal yr => (0 <= yr)%R
+    end).
+  intros x xr Hx.
+  rewrite F.mul_correct, Fmul_correct.
+  rewrite Hx.
+  simpl.
+  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Fcore_generic_fmt.generic_format_0.
+  apply Rle_0_sqr.
+assert (Hz: match FtoX (F.toF F.zero) with
+    | Xnan => False
+    | Xreal yr => (0 <= yr)%R
+    end).
+  rewrite F.zero_correct.
+  apply Rle_refl.
+case_eq (FtoX (F.toF xl)) ; case_eq (FtoX (F.toF xu)) ; simpl.
+now intros _ _.
+intros ru Hu _.
+case Rcompare_spec ; simpl ; intros H ; try apply Hz ; apply Hd with (1 := Hu).
+intros _ rl Hl.
+case Rcompare_spec ; simpl ; intros H ; try apply Hz ; apply Hd with (1 := Hl).
+intros ru Hu rl Hl.
+case Rcompare_spec ; simpl ; intros H1 ;
+  case Rcompare_spec ; simpl ; intros H2 ;
+    try apply Hz ; eapply Hd ; eassumption.
+Qed.
+
+Theorem sqr_ge_0' :
+  forall prec xi, (0 <= proj_val (FtoX (F.toF (lower (sqr prec xi)))))%R.
+Proof.
+intros prec [|xl xu].
+simpl.
+rewrite F.nan_correct.
+apply Rle_refl.
+refine (_ (sqr_ge_0 prec (Ibnd xl xu) _)).
+2: discriminate.
+simpl.
+now case FtoX.
+Qed.
+
 Lemma Fpower_pos_up_correct :
   forall prec x n,
   le_upper (Xreal 0) (FtoX (F.toF x)) ->
@@ -1553,16 +1631,6 @@ xreal_tac x.
 rewrite Rmult_1_r.
 apply Rle_refl.
 Qed.
-
-Definition le_lower' x y :=
-  match x with
-  | Xnan => True
-  | Xreal xr =>
-    match y with
-    | Xnan => False
-    | Xreal yr => Rle xr yr
-    end
-  end.
 
 Lemma Fpower_pos_dn_correct :
   forall prec x n,

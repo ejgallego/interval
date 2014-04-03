@@ -78,7 +78,7 @@ Lemma cos_correct :
 Proof.
 intros prec xi x Hx.
 unfold cos.
-generalize (I.abs_correct xi x Hx) (I.abs_ge_0 xi).
+generalize (I.abs_correct xi x Hx) (I.abs_ge_0' xi).
 destruct (I.abs xi) as [|xl xu].
 easy.
 intros Ha Hal.
