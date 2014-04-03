@@ -900,3 +900,38 @@ apply lt_O_Sn.
 replace R1 with (1 * (1 * 1))%R by ring.
 apply pow_maj_Rabs with (1 := Hx).
 Qed.
+
+Lemma Un_cv_atanc :
+  forall x : R,
+  (Rabs x <= 1)%R ->
+  Un_cv (fun n : nat => (/ INR (2 * n + 1) * x ^ (2 * n)))%R 0.
+Proof.
+intros x Hx eps Heps.
+unfold R_dist.
+destruct (archimed_cor1 eps Heps) as [N [HN1 HN2]].
+exists N.
+intros n Hn.
+assert (H: (0 < / INR (2 * n + 1))%R).
+  apply Rinv_0_lt_compat.
+  apply (lt_INR 0).
+  rewrite plus_comm.
+  apply lt_O_Sn.
+rewrite Rminus_0_r, Rabs_pos_eq.
+apply Rle_lt_trans with (/ INR (2 * n + 1) * 1)%R.
+apply Rmult_le_compat_l.
+now apply Rlt_le.
+rewrite <- (pow1 (2 * n)).
+apply pow_maj_Rabs with (1 := Hx).
+rewrite Rmult_1_r.
+apply Rlt_trans with (2 := HN1).
+apply Rinv_lt.
+now apply (lt_INR 0).
+apply lt_INR.
+apply le_lt_trans with (1 := Hn).
+clear ; omega.
+apply Rmult_le_pos.
+now apply Rlt_le.
+rewrite pow_Rsqr.
+apply pow_le.
+apply Rle_0_sqr.
+Qed.
