@@ -991,3 +991,93 @@ apply Ropp_le_contravar.
 apply Rle_0_1.
 apply Rle_0_1.
 Qed.
+
+Lemma atan_atanc :
+  forall x,
+  atan x = (x * atanc x)%R.
+Proof.
+assert (H1: forall x, (0 < x < 1 -> atan x = x * atanc x)%R).
+  intros x Hx.
+  rewrite atan_eq_ps_atan with (1 := Hx).
+  unfold ps_atan, atanc.
+  case Ratan.in_int ; intros H.
+  destruct ps_atan_exists_1 as [l1 C1].
+  destruct atanc_exists as [l2 C2].
+  simpl.
+  clear H.
+  apply UL_sequence with (1 := C1).
+  apply Un_cv_ext with (fun N => x * sum_f_R0 (tg_alt (fun n => (/ INR (2 * n + 1) * x ^ (2 * n)))) N)%R.
+  intros N.
+  rewrite scal_sum.
+  apply sum_eq.
+  intros n Hn.
+  unfold tg_alt, Ratan_seq.
+  rewrite pow_add.
+  unfold Rdiv.
+  ring.
+  apply CV_mult with (2 := C2).
+  intros eps Heps.
+  exists 0.
+  intros n _.
+  now rewrite R_dist_eq.
+  elim H.
+  split.
+  apply Rle_trans with R0.
+  rewrite <- Ropp_0.
+  apply Ropp_le_contravar.
+  apply Rle_0_1.
+  now apply Rlt_le.
+  now apply Rlt_le.
+assert (H2: atan 1 = Rmult 1 (atanc 1)).
+  rewrite Rmult_1_l.
+  rewrite atan_1.
+  rewrite <- Alt_PI_eq.
+  unfold Alt_PI.
+  destruct exist_PI as [pi C1].
+  replace (4 * pi / 4)%R with pi by field.
+  unfold atanc.
+  case Ratan.in_int ; intros H'.
+  destruct atanc_exists as [l C2].
+  simpl.
+  apply UL_sequence with (1 := C1).
+  apply Un_cv_ext with (2 := C2).
+  intros N.
+  apply sum_eq.
+  intros n _.
+  unfold tg_alt, PI_tg.
+  now rewrite pow1, Rmult_1_r.
+  elim H'.
+  split.
+  apply Rle_trans with (2 := Rle_0_1).
+  rewrite <- Ropp_0.
+  apply Ropp_le_contravar.
+  apply Rle_0_1.
+  apply Rle_refl.
+assert (H3: forall x, (0 < x -> atan x = x * atanc x)%R).
+  intros x Hx.
+  destruct (Req_dec x 1) as [J1|J1].
+  now rewrite J1.
+  generalize (H1 x).
+  unfold atanc.
+  case Ratan.in_int ; intros H.
+  destruct (proj2 H) as [J2|J2].
+  case atanc_exists ; simpl ; intros l _.
+  intros K.
+  apply K.
+  now split.
+  now elim J1.
+  intros _.
+  field.
+  now apply Rgt_not_eq.
+intros x.
+destruct (total_order_T 0 x) as [[J|J]|J].
+now apply H3.
+rewrite <- J.
+now rewrite atan_0, Rmult_0_l.
+rewrite <- (Ropp_involutive x).
+rewrite atan_opp, atanc_opp.
+rewrite H3.
+apply sym_eq, Ropp_mult_distr_l_reverse.
+rewrite <- Ropp_0.
+now apply Ropp_lt_contravar.
+Qed.
