@@ -935,3 +935,20 @@ rewrite pow_Rsqr.
 apply pow_le.
 apply Rle_0_sqr.
 Qed.
+
+Lemma atanc_exists :
+  forall x,
+  (Rabs x <= 1)%R ->
+  { l : R | Un_cv (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * x ^ (2 * n))%R)) l }.
+Proof.
+intros x Hx.
+apply alternated_series.
+now apply Un_decreasing_atanc.
+now apply Un_cv_atanc.
+Qed.
+
+Definition atanc x :=
+  match Ratan.in_int x with
+  | left H => projT1 (atanc_exists x (Rabs_le _ _ H))
+  | right _ => (atan x / x)%R
+  end.
