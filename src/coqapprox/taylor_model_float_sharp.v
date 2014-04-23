@@ -56,42 +56,6 @@ Module Fl := MaskBaseF F.
 Include RigPolyApprox I Fl P.
 End RigPolyApproxFloat.
 
-Module PolyMap (A : BaseOps) (PolA : PolyOps A) (B : BaseOps) (PolB : PolyOps B).
-
-Definition tpolymap (f : A.T -> B.T) : PolA.T -> PolB.T :=
-  @PolA.tfold _ (fun x (*acc*) => PolB.tpolyCons (f x) (*acc*)) PolB.tpolyNil.
-
-Lemma tsize_polymap (f : A.T -> B.T) (p : PolA.T) :
-  PolB.tsize (tpolymap f p) = PolA.tsize p.
-Proof.
-elim/PolA.tpoly_ind: p; first rewrite /tpolymap.
-  by rewrite PolA.tsize_polyNil PolA.tfold_polyNil PolB.tsize_polyNil.
-move=> a p IH; rewrite /tpolymap.
-by rewrite PolA.tfold_polyCons PolB.tsize_polyCons PolA.tsize_polyCons IH.
-Qed.
-
-Lemma tnth_polymap (f : A.T -> B.T) (i : nat) (p : PolA.T) :
-  i < PolA.tsize p -> PolB.tnth (tpolymap f p) i = f (PolA.tnth p i).
-Proof.
-elim/PolA.tpoly_ind: p i =>[|a p IH i H]; first by rewrite PolA.tsize_polyNil.
-rewrite PolA.tnth_polyCons; last by rewrite PolA.tsize_polyCons ltnS in H.
-rewrite /tpolymap PolA.tfold_polyCons PolB.tnth_polyCons; last first.
-  by rewrite tsize_polymap; rewrite PolA.tsize_polyCons ltnS in H.
-case: i IH H =>[//|i IH H]; rewrite IH //.
-by rewrite PolA.tsize_polyCons ltnS in H.
-Qed.
-
-Definition tpolymap_polyCons (f : A.T -> B.T) a p :
-  tpolymap f (PolA.tpolyCons a p) =
-  PolB.tpolyCons (f a) (tpolymap f p).
-Proof @PolA.tfold_polyCons _ _ _ _ _.
-
-Definition tpolymap_polyNil (f : A.T -> B.T) :
-  tpolymap f PolA.tpolyNil = PolB.tpolyNil.
-Proof @PolA.tfold_polyNil _ _ _.
-
-End PolyMap.
-
 Module TaylorModelFloat (F : FloatOps with Definition even_radix := true)
   (PolF : FloatPolyOps F)
   (I : FloatIntervalOps F)

@@ -11,5 +11,11 @@ intros x Hx.
 interval_intro b upper as Hr.
 apply Rle_trans with (2 := Hr) in Hx.
 (* END bookkeeping *)
-Time interval with (i_bisect_taylor x 0, i_depth 1).
+
+interval_intro (sin (Rabs x)) lower
+  with (i_bisect_taylor x 0, i_depth 1, i_prec 32) as test.
+(* test : -1 * / 4294967296 <= sin (Rabs x) *)
+clear test.
+
+interval with (i_depth 0, i_prec 0).
 Qed.

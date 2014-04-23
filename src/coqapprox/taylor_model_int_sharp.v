@@ -56,6 +56,42 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope nat_scope.
 
+Module PolyMap (A : BaseOps) (PolA : PolyOps A) (B : BaseOps) (PolB : PolyOps B).
+
+Definition tpolymap (f : A.T -> B.T) : PolA.T -> PolB.T :=
+  @PolA.tfold _ (fun x (*acc*) => PolB.tpolyCons (f x) (*acc*)) PolB.tpolyNil.
+
+Lemma tsize_polymap (f : A.T -> B.T) (p : PolA.T) :
+  PolB.tsize (tpolymap f p) = PolA.tsize p.
+Proof.
+elim/PolA.tpoly_ind: p; first rewrite /tpolymap.
+  by rewrite PolA.tsize_polyNil PolA.tfold_polyNil PolB.tsize_polyNil.
+move=> a p IH; rewrite /tpolymap.
+by rewrite PolA.tfold_polyCons PolB.tsize_polyCons PolA.tsize_polyCons IH.
+Qed.
+
+Lemma tnth_polymap (f : A.T -> B.T) (i : nat) (p : PolA.T) :
+  i < PolA.tsize p -> PolB.tnth (tpolymap f p) i = f (PolA.tnth p i).
+Proof.
+elim/PolA.tpoly_ind: p i =>[|a p IH i H]; first by rewrite PolA.tsize_polyNil.
+rewrite PolA.tnth_polyCons; last by rewrite PolA.tsize_polyCons ltnS in H.
+rewrite /tpolymap PolA.tfold_polyCons PolB.tnth_polyCons; last first.
+  by rewrite tsize_polymap; rewrite PolA.tsize_polyCons ltnS in H.
+case: i IH H =>[//|i IH H]; rewrite IH //.
+by rewrite PolA.tsize_polyCons ltnS in H.
+Qed.
+
+Definition tpolymap_polyCons (f : A.T -> B.T) a p :
+  tpolymap f (PolA.tpolyCons a p) =
+  PolB.tpolyCons (f a) (tpolymap f p).
+Proof @PolA.tfold_polyCons _ _ _ _ _.
+
+Definition tpolymap_polyNil (f : A.T -> B.T) :
+  tpolymap f PolA.tpolyNil = PolB.tpolyNil.
+Proof @PolA.tfold_polyNil _ _ _.
+
+End PolyMap.
+
 Module TaylorModel
   (I : IntervalOps)
   (Import Pol : IntMonomPolyOps I)
@@ -65,6 +101,8 @@ Module Import RPA := RigPolyApproxInt I Pol.
 Module Import TI := TaylorPoly Pol.Int Pol.
 Import Int.
 Module TX := TaylorPoly FullXR PolX.
+Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
+Module MapX := PolyMap FullXR PolX FullXR PolX.
 
 (*
 Eval compute in contains (Interval_interval.Ibnd (Xreal 0) (Xreal 0)) (Xreal 0).
@@ -149,6 +187,20 @@ Section PrecArgument.
     sophisticated handling of the precision inside the functions
     that are defined or called below. *)
 Variable prec : I.precision.
+
+(* FIXME: FORMALIZE/GENERALIZE
+
+Definition ComputeBound (M : rpa) (X0 X : I.type) :=
+  I.add prec (Pol.teval prec (approx M) (I.sub prec X X0)) (error M).
+
+Theorem ComputeBound_correct M (X0 X : I.type) f :
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  forall x, contains (I.convert X) x ->
+  contains (I.convert (ComputeBound M X0 X)) (f x).
+Proof.
+move=> [/= Hzero Hsubs Hmain] x Hx.
+Abort.
+*)
 
 (** Note that Zumkeller's technique is not necessary for [TM_cst] & [TM_var]. *)
 Definition TM_cst c (X0 X : I.type) (n : nat) : rpa :=
@@ -398,11 +450,15 @@ Definition Imid i : I.type := I.bnd (I.midpoint i) (I.midpoint i).
 
 Definition not_empty' (xi : interval) := exists v : ExtendedR, contains xi v.
 
-Lemma not_empty'E xi : not_empty' xi -> not_empty xi.
+Lemma not_emptyE xi : not_empty' xi -> not_empty xi.
 Proof.
 case: xi =>[|l u] [v Hv]; first by exists R0.
 case: v Hv =>[//|r] Hr.
 by exists r.
+Qed.
+
+Lemma not_empty'E xi : not_empty xi -> not_empty' xi.
+case=>[r Hr]; by exists (Xreal r).
 Qed.
 
 Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
@@ -414,7 +470,7 @@ Lemma not_empty_Imid (X : I.type) :
 Proof.
 case=>[v Hv].
 rewrite /Imid I.bnd_correct.
-apply: not_empty'E.
+apply: not_emptyE.
 exists (I.convert_bound (I.midpoint X)).
 red.
 have e : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
@@ -554,6 +610,16 @@ Proof.
 move=> Hy Hnan; move/(I.mul_correct prec Y X y Xnan): Hy.
 rewrite Hnan(_ : y*Xnan = Xnan)%XR; last by case: y.
 by case Cs : (I.convert (I.mul prec Y X)) => [//|l u]/(_ I).
+Qed.
+
+Lemma Idiv_Inan_propagate_r y Y X :
+  contains (I.convert Y) y ->
+  I.convert X = Interval_interval.Inan ->
+  I.convert (I.div prec Y X) = Interval_interval.Inan.
+Proof.
+move=> Hy Hnan; move/(I.div_correct prec Y X y Xnan): Hy.
+rewrite Hnan (_ : y / Xnan = Xnan)%XR; last by case: y.
+by case Cs : (I.convert (I.div prec Y X)) => [//|l u]/(_ I).
 Qed.
 
 Lemma Ipow_Inan_propagate (X : I.type) (n : Z) :
@@ -1267,6 +1333,30 @@ Proof.
 move=> Hreal Ha Hb Hder [H|H].
 left; exact: (@Xderive_pos_imp_incr _ f' X).
 right; exact: (@Xderive_neg_imp_decr _ f' X).
+Qed.
+
+Definition is_const (f : ExtendedR -> ExtendedR) (X c : I.type) : Prop :=
+  exists2 y : ExtendedR, contains (I.convert c) y
+  & forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = y.
+
+Lemma is_const_ext (f g : ExtendedR -> ExtendedR) X c :
+  (forall x : R, contains (I.convert X) (Xreal x) -> f(Xreal x)=g(Xreal x)) ->
+  is_const f X c -> is_const g X c.
+Proof.
+move=> Hmain [a Ha1 Ha2].
+exists a =>//.
+move=> x Hx.
+rewrite -Hmain //.
+exact: Ha2.
+Qed.
+
+Corollary is_const_ext_weak (f g : ExtendedR -> ExtendedR) X c :
+  (forall x : ExtendedR, f x = g x) ->
+  is_const f X c -> is_const g X c.
+Proof.
+move=> Hmain.
+apply: is_const_ext.
+move=> x _; exact: Hmain.
 Qed.
 
 Definition Xdelta (n : nat) (xi0 x : ExtendedR) :=
@@ -2577,12 +2667,28 @@ rewrite !zeroF; first last.
 by rewrite /Rdiv !Rmult_0_l.
 Qed.
 
+Theorem TM_cst_correct_strong n (icst X0 X : I.type) (f:ExtendedR->ExtendedR) :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  is_const f X icst ->
+  i_validTM (I.convert X0) (I.convert X) (TM_cst icst X0 X n) f.
+Proof.
+move=> Hsubset [t Ht] [cst Hcst1 Hcst2].
+apply: (@TM_fun_eq_real (Xmask cst) _ _ _ _ _ (TM_cst_correct _ _ _ _)) =>//.
+  by move=> x Hx; rewrite Hcst2.
+by exists t.
+Qed.
+
+Lemma size_TM_cst c X0 X n : tsize (approx (TM_cst c X0 X n)) = n.+1.
+Proof. by rewrite tsize_trec1. Qed.
+
+(* FIXME: [TM_const] is a deprecated function, which should be renamed *)
 Definition TM_const (c : I.type) (X : I.type) (n : nat) :=
   let pol := Pol.tpolyCons (Imid c) Pol.tpolyNil in
   {| RPA.approx := if n == 0 then pol
                    else Pol.tset_nth pol n Pol.Int.tzero;
      RPA.error := I.mask (I.sub prec c (Imid c)) X
-  (* FIXME: Try to replace with *) (* (I.sub prec c (Imid c)) *)
+  (* which might be replaced with [I.sub prec c (Imid c)] *)
   |}.
 
 Definition sizes := (Pol.tsize_polyNil, Pol.tsize_polyCons,
@@ -2637,7 +2743,7 @@ have->: y = Xmask y (Xreal v) by [].
 exact: I.mask_correct.
 Qed.
 
-Lemma TM_const_correct_strong
+Theorem TM_const_correct_strong
   (c X0 X : I.type) (n : nat) (f : ExtendedR->ExtendedR) :
   not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
   (forall x : R, contains (I.convert X) (Xreal x) ->
@@ -2708,7 +2814,7 @@ have Hr' := contains_not_empty _ _ Hr.
     case: x Hx =>[|x] Hx.
       move/contains_Xnan: Hx.
       move=> top; rewrite (Imask_IInan_r _ top) //.
-      apply: not_empty'E.
+      apply: not_emptyE.
       exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
       apply I.sub_correct =>//.
       apply: Imid_contains.
@@ -2724,7 +2830,7 @@ have Hr' := contains_not_empty _ _ Hr.
       by exists r.
     case E: (I.convert X) Hsubset Hx => [|l u] Hsubset Hx.
       rewrite (Imask_IInan_r _ E) //.
-      apply: not_empty'E.
+      apply: not_emptyE.
       exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
       apply: I.sub_correct =>//.
       apply: Imid_contains.
@@ -2851,7 +2957,7 @@ rewrite !zeroF; discrR.
 by apply: not_0_INR; apply: fact_neq_0.
 Qed.
 
-Corollary TM_var_correct_strong X0 X n (f : ExtendedR -> ExtendedR) :
+Theorem TM_var_correct_strong X0 X n (f : ExtendedR -> ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = (Xreal x)) ->
@@ -3574,6 +3680,289 @@ have->: f x - g x - PolX.teval tt (PolX.tsub tt a b) (x - x0)
   rewrite -!Xadd_assoc; congr Xadd.
   by rewrite Xadd_comm.
 apply: I.sub_correct; [exact: Hdelta1|exact: Hdelta2].
+Qed.
+
+(* TO REMOVE
+
+Definition TM_mul_mixed (a : I.type) (M : rpa) (X0 X : I.type) : rpa :=
+  RPA (MapI.tpolymap (I.mul prec a) (approx M))
+      (I.add prec
+             (I.mul prec
+                    (I.sub prec a (Imid a)) (* will often be [0, 0] *)
+                    (teval prec (approx M) (I.sub prec X X0))
+             (* (ComputeBound M X0 X) *) )
+             (I.mul prec a (error M))).
+*)
+
+Definition TM_mul_mixed (a : I.type) (M : rpa) : rpa :=
+  RPA (MapI.tpolymap (I.mul prec a) (approx M))
+      (I.mul prec a (error M)).
+
+Definition TM_div_mixed_r (M : rpa) (b : I.type) : rpa :=
+  RPA (MapI.tpolymap (I.div prec ^~ b) (approx M))
+      (I.div prec (error M) b).
+
+Lemma size_TM_mul_mixed a M :
+  tsize (approx (TM_mul_mixed a M)) = tsize (approx M).
+Proof. by rewrite MapI.tsize_polymap. Qed.
+
+Lemma size_TM_div_mixed_r M b :
+  tsize (approx (TM_div_mixed_r M b)) = tsize (approx M).
+Proof. by rewrite MapI.tsize_polymap. Qed.
+
+Lemma Xdiv_0_r x : Xdiv x (Xreal 0) = Xnan.
+Proof. by rewrite /Xdiv; case: x=>// r; rewrite zeroT. Qed.
+
+Let TM_div_mixed_r_aux0 M b X0 X f :
+  contains (I.convert b) (Xreal R0) ->
+  i_validTM (I.convert X0) (I.convert X) M f (* hyp maybe too strong *) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
+  (fun x => Xdiv (f x) (Xreal R0)).
+Proof.
+move=> Hzero [H0 Hss /= Hmain].
+have Lem : contains (I.convert (error (TM_div_mixed_r M b))) Xnan.
+  rewrite /TM_div_mixed_r.
+  simpl.
+  rewrite -(Xdiv_0_r (Xreal R0)).
+  exact: I.div_correct.
+split=>//; first by rewrite (contains_Xnan Lem).
+move=> /= x0 Hx0.
+have [q [Hsize Hcont Heval]] := Hmain _ Hx0.
+exists (MapX.tpolymap (Xdiv ^~ (Xreal R0)) q).
+split.
+- by rewrite MapX.tsize_polymap MapI.tsize_polymap.
+- move=> k Hk.
+  rewrite MapI.tsize_polymap in Hk.
+  rewrite MapX.tnth_polymap ?Hsize // MapI.tnth_polymap ?Hsize //.
+  apply: I.div_correct =>//.
+  exact: Hcont.
+- move=> x Hx.
+  move/(_ x Hx) in Heval.
+  rewrite Xdiv_0_r /=.
+  rewrite -(Xdiv_0_r (Xreal R0)).
+  exact: I.div_correct.
+Qed.
+
+Lemma TM_mul_mixed_correct a M X0 X f (y : R) :
+  contains (I.convert a) (Xreal y) ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
+  (fun x => Xmul (Xreal y) (f x)).
+Proof.
+move=> Hy [H0 Hss Hmain].
+split=>//.
+  have->: (Xreal 0) = (Xmul (Xreal y) (Xreal 0)) by simpl; congr Xreal; ring.
+  exact: I.mul_correct.
+move=> /= x0 Hx0.
+have [q [Hsize Hcont Heval]] := Hmain _ Hx0.
+exists (MapX.tpolymap (Xmul (Xreal y)) q).
+split.
+- by rewrite MapX.tsize_polymap MapI.tsize_polymap.
+- move=> k Hk.
+  rewrite MapI.tsize_polymap in Hk.
+  rewrite MapX.tnth_polymap ?Hsize // MapI.tnth_polymap ?Hsize //.
+  apply: I.mul_correct =>//.
+  exact: Hcont.
+- move=> x Hx.
+  move/(_ x Hx) in Heval.
+  clear - Heval Hy.
+  rewrite !is_horner_mask in Heval *.
+  set sub2 := FullXR.tsub tt _ _.
+  set sub1 := FullXR.tsub tt _ _ in Heval.
+  suff->: sub2 = Xmul (Xreal y) sub1 by exact: I.mul_correct.
+  rewrite XmulC.
+  rewrite /sub1 /FullXR.tsub Xsub_split Xmul_Xadd_distr_r.
+  rewrite /sub2 XmulC /=.
+  rewrite /FullXR.tsub {1}Xsub_split.
+  congr Xadd.
+  rewrite Xmul_Xneg_distr_l.
+  congr Xneg.
+  case E : (x - x0)%XR => [//|r /=].
+  rewrite MapX.tsize_polymap.
+  set lhs := @bigop _ _ _ _ _.
+  have->: lhs = \big[Xadd/Xreal 0]_(i < PolX.tsize q)
+  (Xmul (FullXR.tmul tt (PolX.tnth q i)
+  (FullXR.tpow tt (Xreal r) i)) (Xreal y)).
+    apply: eq_bigr.
+      move=> i _; rewrite MapX.tnth_polymap.
+      rewrite /FullXR.tmul.
+      by rewrite XmulC XmulA XmulC XmulA.
+    by case: i.
+  by rewrite big_Xmul_Xadd_distr.
+Qed.
+
+Lemma TM_mul_mixed_nan1 a M f X0 X:
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  contains (I.convert a) Xnan ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  let pol := approx (TM_mul_mixed a M) in
+  forall k : nat, k < tsize pol ->
+  I.convert (tnth pol k) = IInan.
+Proof.
+case=>[t Ht].
+move/contains_Xnan => Ha /=.
+case=>[Hnan Hsubst Hmain].
+rewrite MapI.tsize_polymap.
+move=> k Hk.
+rewrite MapI.tnth_polymap //.
+have [q [Hq1 Hq2 Hq3]] := Hmain _ Ht.
+exact: Imul_Inan_propagate_l (Hq2 _ Hk) _.
+Qed.
+
+Lemma TM_mul_mixed_nan2 a M f X0 X:
+  contains (I.convert a) Xnan ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  I.convert (error (TM_mul_mixed a M)) = IInan.
+Proof.
+move/contains_Xnan => Ha /=.
+case=>[Hnan Hsubst Hmain].
+exact: Imul_Inan_propagate_l Hnan _.
+Qed.
+
+Corollary TM_mul_mixed_correct_strong a M X0 X f g :
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  is_const f X a ->
+  i_validTM (I.convert X0) (I.convert X) M g ->
+  i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
+  (fun x => Xmul (f x) (g x)).
+Proof.
+move=> tHt [[|y] Hy1 Hy2] Hg; move: (Hg) => [Hnan Hsubset Hmain].
+- split=>//.
+  by rewrite (TM_mul_mixed_nan2 Hy1 Hg).
+  move=> /= x0 Hx0.
+  have [q [Hq1 Hq2 Hq3]] := Hmain _ Hx0.
+  exists (MapX.tpolymap (Xmul Xnan) q).
+  split.
+  + by rewrite MapX.tsize_polymap MapI.tsize_polymap.
+  + move=> k Hk.
+    by rewrite (TM_mul_mixed_nan1 tHt Hy1 Hg).
+  + move=> x Hx.
+    by rewrite (TM_mul_mixed_nan2 Hy1 Hg).
+apply: (@TM_fun_eq_real _ _ _ _ _ _ (TM_mul_mixed_correct Hy1 Hg)).
+move=> x Hx.
+by rewrite Hy2.
+Qed.
+
+Lemma not_empty_Imid_ex2 (X : I.type) :
+  not_empty (I.convert X) ->
+  exists2 y : R, contains (I.convert (Imid X)) (Xreal y)
+                 & contains (I.convert X) (Xreal y).
+Proof.
+move=> H; move: (H) => [x Hx].
+have [H1 H2] := I.midpoint_correct X (ex_intro _ (Xreal x) Hx).
+suff [[|z] Hz1 Hz2] : exists2 z : ExtendedR,
+  contains (I.convert (Imid X)) z & contains (I.convert X) z.
+  exists R0; rewrite (contains_Xnan Hz1) // || rewrite (contains_Xnan Hz2) //.
+  by exists z.
+exists (I.convert_bound (I.midpoint X)) =>//.
+exact: Imid_contains.
+Qed.
+
+Lemma TM_div_mixed_r_correct M b X0 X f (y : R) :
+  contains (I.convert b) (Xreal y) ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
+  (fun x => Xdiv (f x) (Xreal y)).
+Proof.
+have [->|Hy0] := Req_dec y R0.
+  exact: TM_div_mixed_r_aux0.
+move=> Hy [H0 Hss Hmain].
+split=>//.
+  have->: (Xreal 0) = (Xdiv (Xreal 0) (Xreal y)).
+  simpl.
+  rewrite zeroF //.
+  by simpl; congr Xreal; rewrite /Rdiv Rmult_0_l.
+  exact: I.div_correct.
+move=> /= x0 Hx0.
+have [q [Hsize Hcont Heval]] := Hmain _ Hx0.
+exists (MapX.tpolymap (Xdiv ^~ (Xreal y)) q).
+split.
+- by rewrite MapX.tsize_polymap MapI.tsize_polymap.
+- move=> k Hk.
+  rewrite MapI.tsize_polymap in Hk.
+  rewrite MapX.tnth_polymap ?Hsize // MapI.tnth_polymap ?Hsize //.
+  apply: I.div_correct =>//.
+  exact: Hcont.
+- move=> x Hx.
+  move/(_ x Hx) in Heval.
+  clear - Heval Hy Hy0.
+  rewrite !is_horner_mask in Heval *.
+  set sub2 := FullXR.tsub tt _ _.
+  set sub1 := FullXR.tsub tt _ _ in Heval.
+  suff->: sub2 = Xdiv sub1 (Xreal y) by exact: I.div_correct.
+  rewrite /sub1 /FullXR.tsub Xsub_split Xdiv_split Xmul_Xadd_distr_r.
+  rewrite /sub2 XmulC /=.
+  rewrite /FullXR.tsub {1}Xsub_split.
+  congr Xadd.
+  by rewrite Xdiv_split /= zeroF // XmulC.
+  rewrite Xmul_Xneg_distr_l.
+  congr Xneg.
+  case E : (x - x0)%XR => [//|r /=].
+  rewrite MapX.tsize_polymap.
+  set lhs := @bigop _ _ _ _ _.
+  have->: lhs = \big[Xadd/Xreal 0]_(i < PolX.tsize q)
+  (Xmul (FullXR.tmul tt (PolX.tnth q i)
+  (FullXR.tpow tt (Xreal r) i)) (Xinv (Xreal y))).
+    apply: eq_bigr.
+      move=> i _; rewrite MapX.tnth_polymap.
+      rewrite /FullXR.tdiv !Xdiv_split /= zeroF // /FullXR.tmul.
+      by rewrite -!XmulA; congr Xmul; rewrite XmulC.
+    by case: i.
+  rewrite /= zeroF //.
+by rewrite big_Xmul_Xadd_distr.
+Qed.
+
+Lemma TM_div_mixed_r_nan1 M b f X0 X:
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  contains (I.convert b) Xnan ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  let pol := approx (TM_div_mixed_r M b) in
+  forall k : nat, k < tsize pol ->
+  I.convert (tnth pol k) = IInan.
+Proof.
+case=>[t Ht].
+move/contains_Xnan => Ha /=.
+case=>[Hnan Hsubst Hmain].
+rewrite MapI.tsize_polymap.
+move=> k Hk.
+rewrite MapI.tnth_polymap //.
+have [q [Hq1 Hq2 Hq3]] := Hmain _ Ht.
+exact: Idiv_Inan_propagate_r (Hq2 _ Hk) _.
+Qed.
+
+
+Lemma TM_div_mixed_r_nan2 M b f X0 X:
+  contains (I.convert b) Xnan ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  I.convert (error (TM_div_mixed_r M b)) = IInan.
+Proof.
+move/contains_Xnan => Ha /=.
+case=>[Hnan Hsubst Hmain].
+exact: Idiv_Inan_propagate_r Hnan _.
+Qed.
+
+Corollary TM_div_mixed_r_correct_strong M b X0 X f g :
+  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  is_const g X b ->
+  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
+  (fun x => Xdiv (f x) (g x)).
+Proof.
+move=> tHt Hf [[|y] Hy1 Hy2]; move: (Hf) => [Hnan Hsubset Hmain].
+- split=>//.
+  by rewrite (TM_div_mixed_r_nan2 Hy1 Hf).
+  move=> /= x0 Hx0.
+  have [q [Hq1 Hq2 Hq3]] := Hmain _ Hx0.
+  exists (MapX.tpolymap (Xdiv^~Xnan) q).
+  split.
+  + by rewrite MapX.tsize_polymap MapI.tsize_polymap.
+  + move=> k Hk.
+    by rewrite (TM_div_mixed_r_nan1 tHt Hy1 Hf).
+  + move=> x Hx.
+    by rewrite (TM_div_mixed_r_nan2 Hy1 Hf).
+apply: (@TM_fun_eq_real _ _ _ _ _ _ (TM_div_mixed_r_correct Hy1 Hf)).
+move=> x Hx.
+by rewrite Hy2.
 Qed.
 
 Definition mul_error prec n (f g : rpa) X0 X :=
