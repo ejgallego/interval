@@ -15,6 +15,7 @@ Require Import taylor_model_int_sharp.
 Require Import coeff_inst.
 Require Import rpa_inst.
 Require Import xreal_ssr_compat.
+Require Import poly_bound.
 Require Import Interval_univariate.
 
 Set Implicit Arguments.
@@ -38,11 +39,11 @@ Module TM (I : IntervalOps) <: UnivariateApprox I.
 (* Erik: We might add a Boolean counterpart of not_empty in IntervalOps *)
 
 (** ** Load the CoqApprox modules *)
-
 Module PolX := ExactSeqPolyMonomUp FullXR.
 Module Link := LinkSeqPolyMonomUp I.
 Module PolI := SeqPolyMonomUpInt I.
-Module Import TMI := TaylorModel I PolI PolX Link.
+Module Bnd := PolyBoundHorner I PolI PolX Link.
+Module Import TMI := TaylorModel I PolI PolX Link Bnd.
 
 (** ** Main type definitions *)
 

@@ -40,6 +40,7 @@ Require Import coeff_inst.
 Require Import rpa_inst.
 Require Import derive_compl.
 Require Import taylor_model_int_sharp.
+Require Import poly_bound.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -61,8 +62,9 @@ Module TaylorModelFloat (F : FloatOps with Definition even_radix := true)
   (I : FloatIntervalOps F)
   (Import Pol : IntMonomPolyOps I)
   (PolX : ExactMonomPolyOps FullXR)
-  (Link : LinkIntX I Pol PolX).
-Module Import TM := TaylorModel I Pol PolX Link.
+  (Link : LinkIntX I Pol PolX)
+  (Bnd : PolyBound I Pol PolX Link).
+Module Import TM := TaylorModel I Pol PolX Link Bnd.
 Module RPAF := RigPolyApproxFloat F PolF I.
 
 Notation f_type := F.type.

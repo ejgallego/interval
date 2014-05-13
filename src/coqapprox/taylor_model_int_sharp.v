@@ -42,6 +42,7 @@ Require Import coeff_inst.
 Require Import rpa_inst.
 Require Import derive_compl.
 Require Import basic_rec.
+Require Import poly_bound.
 
 (********************************************************************)
 (** This theory implements Taylor Models, with sharp remainders for
@@ -96,7 +97,9 @@ Module TaylorModel
   (I : IntervalOps)
   (Import Pol : IntMonomPolyOps I)
   (PolX : ExactMonomPolyOps FullXR)
-  (Link : LinkIntX I Pol PolX).
+  (Link : LinkIntX I Pol PolX)
+  (Bnd : PolyBound I Pol PolX Link).
+Module Export Aux := IntervalAux I.
 Module Import RPA := RigPolyApproxInt I Pol.
 Module Import TI := TaylorPoly Pol.Int Pol.
 Import Int.
@@ -151,6 +154,7 @@ Definition Ztech (P : Pol.T) F X0 X n :=
   if isNNegOrNPos NthCoeff && I.bounded X then
     let a := I.lower X in let b := I.upper X in
     let A := I.bnd a a in let B := I.bnd b b in
+    (* TODO: We may replace teval with ComputeBound *)
     let Da := I.sub prec (F A) (teval prec P (I.sub prec A X0)) in
     let Db := I.sub prec (F B) (teval prec P (I.sub prec B X0)) in
     let Dx0 := I.sub prec (F X0) (teval prec P (I.sub prec X0 X0)) in
@@ -187,20 +191,6 @@ Section PrecArgument.
     sophisticated handling of the precision inside the functions
     that are defined or called below. *)
 Variable prec : I.precision.
-
-(* FIXME: FORMALIZE/GENERALIZE
-
-Definition ComputeBound (M : rpa) (X0 X : I.type) :=
-  I.add prec (Pol.teval prec (approx M) (I.sub prec X X0)) (error M).
-
-Theorem ComputeBound_correct M (X0 X : I.type) f :
-  i_validTM (I.convert X0) (I.convert X) M f ->
-  forall x, contains (I.convert X) x ->
-  contains (I.convert (ComputeBound M X0 X)) (f x).
-Proof.
-move=> [/= Hzero Hsubs Hmain] x Hx.
-Abort.
-*)
 
 (** Note that Zumkeller's technique is not necessary for [TM_cst] & [TM_var]. *)
 Definition TM_cst c (X0 X : I.type) (n : nat) : rpa :=
@@ -507,186 +497,6 @@ have [-> Hreal] := I.midpoint_correct X HX.
 by red; auto with real.
 Qed.
 
-(** * Other support lemmas about intervals *)
-
-Lemma mul_0_contains_0_l y Y X :
-  contains (I.convert Y) y ->
-  contains (I.convert X) (Xreal 0) ->
-  contains (I.convert (I.mul prec X Y)) (Xreal 0).
-Proof.
-move=> Hy H0.
-have H0y ry : (Xreal 0) = (Xreal 0 * Xreal ry)%XR by rewrite /= Rmult_0_l.
-case: y Hy => [|ry] Hy; [rewrite (H0y 0%R)|rewrite (H0y ry)];
-  apply: I.mul_correct =>//.
-by case ->: (I.convert Y) Hy.
-Qed.
-
-Lemma mul_0_contains_0_r y Y X :
-  contains (I.convert Y) y ->
-  contains (I.convert X) (Xreal 0) ->
-  contains (I.convert (I.mul prec Y X)) (Xreal 0).
-Proof.
-move=> Hy H0.
-have Hy0 ry : (Xreal 0) = (Xreal ry * Xreal 0)%XR by rewrite /= Rmult_0_r.
-case: y Hy => [|ry] Hy; [rewrite (Hy0 0%R)|rewrite (Hy0 ry)];
-  apply: I.mul_correct=>//.
-by case: (I.convert Y) Hy.
-Qed.
-
-Lemma pow_contains_0 (X : I.type) (n : Z) :
-  (n > 0)%Z ->
-  contains (I.convert X) (Xreal 0) ->
-  contains (I.convert (I.power_int prec X n)) (Xreal 0).
-Proof.
-move=> Hn HX.
-rewrite (_: (Xreal 0) = (Xpower_int (Xreal 0) n)); first exact: I.power_int_correct.
-case: n Hn =>//= p Hp; rewrite pow_ne_zero //.
-by zify; auto with zarith.
-Qed.
-
-Lemma subset_sub_contains_0 x0 (X0 X : I.type) :
-  contains (I.convert X0) x0 ->
-  I.subset_ (I.convert X0) (I.convert X) ->
-  contains (I.convert (I.sub prec X X0)) (Xreal 0).
-Proof.
-move=> Hx0 Hsub.
-  have H1 : contains (I.convert X) x0.
-    exact: (subset_contains (I.convert X0)).
-have Hs := I.sub_correct prec X X0 x0 x0 H1 Hx0.
-case cx0 : x0 Hs Hx0 => [|rx0].
-  by case: (I.convert (I.sub prec X X0)).
-rewrite (_: Xreal 0 = Xreal rx0 - Xreal rx0)%XR;
-  last by rewrite /= Rminus_diag_eq.
-by move=>*; apply: I.sub_correct=>//; apply: (subset_contains (I.convert X0)).
-Qed.
-
-Lemma subset_real_contains X rx ry c :
-  contains (I.convert X) (Xreal rx) ->
-  contains (I.convert X) (Xreal ry) -> (rx <= c <= ry)%Re ->
-  contains (I.convert X) (Xreal c).
-Proof.
-case CX : (I.convert X) => [|l u] // => Hrx Hry Hc.
-case Cl: l Hc Hrx Hry =>[|rl];
-  case Cu : u =>[|ru] // [Hcx Hcy][Hxu0 Hxu][Hyu0 Hyu]; split => //.
-  + by apply: (Rle_trans _ ry).
-  + by apply: (Rle_trans _ rx).
-  by apply: (Rle_trans _ rx).
-by apply: (Rle_trans _ ry).
-Qed.
-
-Lemma Isub_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.sub prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.sub_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs : (I.convert (I.sub prec X Y))=> [//|l u] /(_ I).
-Qed.
-
-Lemma Isub_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.sub prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.sub_correct prec Y X y Xnan): Hy.
-rewrite Hnan (_ : y - Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.sub prec Y X)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Imul_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.mul prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.mul_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs : (I.convert (I.mul prec X Y)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Imul_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.mul prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.mul_correct prec Y X y Xnan): Hy.
-rewrite Hnan(_ : y*Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.mul prec Y X)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Idiv_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.div prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.div_correct prec Y X y Xnan): Hy.
-rewrite Hnan (_ : y / Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.div prec Y X)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Ipow_Inan_propagate (X : I.type) (n : Z) :
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.power_int prec X n) = Interval_interval.Inan.
-Proof.
-move=> Hnan.
-move: (I.power_int_correct prec n X Xnan); rewrite Hnan.
-by case Cs : (I.convert (I.power_int prec X n)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Iadd_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.add prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.add_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs: (I.convert (I.add prec X Y)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Iadd_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.add prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan.
-move: (I.add_correct prec Y X y Xnan Hy).
-rewrite Hnan (_ : y+Xnan = Xnan)%XR; last by case: y Hy.
-by case: (I.convert (I.add prec Y X)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Iadd_zero_subset_l (a b : I.type) :
-  (exists t, contains (I.convert a) t) ->
-  contains (I.convert b) (Xreal 0) ->
-  I.subset_ (I.convert a) (I.convert (I.add prec b a)).
-Proof.
-move=> Ht Hb0.
-apply: contains_subset =>// v Hav.
-move: {Hav} (I.add_correct prec b a (Xreal 0) v Hb0 Hav).
-by case: v =>// r; rewrite /= Rplus_0_l.
-Qed.
-
-Lemma Iadd_zero_subset_r a b :
-  (exists t, contains (I.convert a) t) ->
-  contains (I.convert b) (Xreal 0) ->
-  I.subset_ (I.convert a) (I.convert (I.add prec a b)).
-Proof.
-move=> Ht Hb0; apply: contains_subset =>// v Hav.
-move: {Hav} (I.add_correct prec a b v (Xreal 0) Hav Hb0).
-by case:v =>// r; rewrite /= Rplus_0_r.
-Qed.
-
-Lemma Iadd_Isub_aux b a B D :
-  contains (I.convert B) b ->
-  contains (I.convert D) (a - b)%XR ->
-  contains (I.convert (I.add prec B D)) a.
-Proof.
-move=> Hb Hd.
-case cb : b Hb=> [|rb].
-  move=> Hb; rewrite (Iadd_Inan_propagate_l _ (y := (a-b)%XR)) => //=.
-  by case: (I.convert B) Hb.
-rewrite -cb => Hb; rewrite (_ : a = b + (a - b))%XR.
-  by apply: I.add_correct.
-rewrite cb; case: a Hd => //= r _.
-by f_equal; ring.
-Qed.
-
 (** Some auxiliary lemmas related to polynomials. *)
 
 Lemma is_horner_pos (p : PolX.T) (x : ExtendedR) :
@@ -737,6 +547,42 @@ move=> Hsub [Hf0 Hf1 Hf2].
 split; [done|exact: (subset_subset _ (I.convert X0))|move=> N fi0 Hfi0].
 have [|alf H] := Hf2 fi0; first exact: (subset_contains SX0).
 by exists alf.
+Qed.
+
+Definition ComputeBound (M : rpa) (X0 X : I.type) :=
+(* I.add prec (Pol.teval prec (approx M) (I.sub prec X X0)) (error M). *)
+  I.add prec (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)) (error M).
+
+Theorem ComputeBound_correct M (X0 X : I.type) f :
+  (exists t, contains (I.convert X0) t) ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  forall x, contains (I.convert X) x ->
+  contains (I.convert (ComputeBound M X0 X)) (f x).
+Proof.
+move=> [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
+have [q [Hsize Hcont Herr]] := Hmain _ Hx0.
+rewrite /ComputeBound.
+have := Herr x Hx.
+case E : (PolX.teval tt q (FullXR.tsub tt x x0)) =>[|r].
+  rewrite [FullXR.tsub _ _ _]Xsub_Xnan_r.
+  move/contains_Xnan => Herr'.
+  have Haux :
+    contains (I.convert (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)))
+      (PolX.teval tt q (Xsub x x0)).
+  apply: Bnd.ComputeBound_correct =>//.
+  exact: I.sub_correct.
+  by rewrite (Iadd_Inan_propagate_r _ Haux).
+move=> Hr.
+have->: f x =
+  FullXR.tadd tt (PolX.teval tt q (FullXR.tsub tt x x0))
+  (FullXR.tsub tt (f x) (PolX.teval tt q (FullXR.tsub tt x x0))).
+  rewrite E /=.
+  by case: (f) =>[//|y]; simpl; congr Xreal; auto with real.
+apply: I.add_correct.
+  apply: Bnd.ComputeBound_correct.
+    now split. (* TODO: Improve? *)
+  exact: I.sub_correct.
+exact: Herr.
 Qed.
 
 Section ProofOfRec.
@@ -849,7 +695,7 @@ have XDn_0_Xnan : XDn 0 Xnan = Xnan by rewrite XDn_0.
 split=>//=.
   (* |- 0 \in err *)
   set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
-  apply: (mul_0_contains_0_r (y := PolX.tnth (XP t n.+1) n.+1)).
+  apply: (mul_0_contains_0_r _ (y := PolX.tnth (XP t n.+1) n.+1)).
     apply: Poly_nth =>//.
     exact: subset_contains (I.convert X0) _ _ _ _ =>//.
   apply: pow_contains_0 =>//.
@@ -945,6 +791,7 @@ Lemma convert_teval pi px (n := tsize pi) :
   (forall k, k < n -> contains (I.convert (tnth pi k)) (PolX.tnth px k)) ->
   forall I x, contains (I.convert I) x ->
   contains (I.convert (teval prec pi I)) (PolX.teval tt px x).
+(* FIXME: Replace with teval_contains ? *)
 Proof.
 move=> Hsize Hnth I x HIx.
 have Habs1 : forall a b, pi = tpolyNil -> px = PolX.tpolyCons a b -> False.
@@ -1000,7 +847,7 @@ elim/PolX.tpoly_ind: pr Hsize Hnth =>[|ar pr IHpr] Hsize Hnth.
   by exfalso; rewrite tsize_polyCons PolX.tsize_polyNil in Hsize.
 rewrite tnth_polyCons // teval_polyCons.
 have H1 : contains (I.convert (tmul prec (teval prec p X) X)) (Xreal 0).
-  apply: (@mul_0_contains_0_r (PolX.teval tt pr (Xreal 0))) =>//.
+  apply: (@mul_0_contains_0_r _ (PolX.teval tt pr (Xreal 0))) =>//.
   apply: convert_teval =>//.
     rewrite tsize_polyCons PolX.tsize_polyCons in Hsize.
     by case: Hsize.
@@ -2353,7 +2200,7 @@ split=>//.
     rewrite E0 in C1.
     have {C1} C1 := contains_Xnan C1.
     rewrite {}/J.
-    apply: (@Isub_Inan_propagate_l (PolX.teval tt (XP x' n) (Xsub x' x'))) =>//.
+    apply: (@Isub_Inan_propagate_l _ (PolX.teval tt (XP x' n) (Xsub x' x'))) =>//.
     apply: teval_contains.
       (* TODO: Rewrite [Link.contains_pointwise] in terms of [validPoly] *)
       split.
@@ -3930,7 +3777,6 @@ have [q [Hq1 Hq2 Hq3]] := Hmain _ Ht.
 exact: Idiv_Inan_propagate_r (Hq2 _ Hk) _.
 Qed.
 
-
 Lemma TM_div_mixed_r_nan2 M b f X0 X:
   contains (I.convert b) Xnan ->
   i_validTM (I.convert X0) (I.convert X) M f ->
@@ -4079,10 +3925,10 @@ case: (Hg t Ht) => [Ag [Ag1 Ag2 Ag3]].
 split=>//.
   have H00: (Xreal 0)=(Xreal 0 + Xreal 0) by rewrite /= Rplus_0_l.
   rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_r
+    apply: (@mul_0_contains_0_r _
       (PolX.teval tt (PolX.tmul_tail tt n.-1 Af Ag) (t - t))); last first.
-       apply: pow_contains_0 =>//.
-       exact: subset_sub_contains_0 Hint _.
+      apply: pow_contains_0 =>//.
+      exact: subset_sub_contains_0 Hint _.
     set ip := tmul_tail _ _ _.
     set rp := PolX.tmul_tail _ _ _.
     rewrite /FullXR.tsub Xsub_split Xadd_Xneg.
@@ -4092,24 +3938,24 @@ split=>//.
       by rewrite /ip tsize_mul_tail in Hk.
     case Heqt: t Ht=> [|r] H.
       case HX0: (I.convert X0)=> [|l u].
-        - rewrite (@Isub_Inan_propagate_l Xnan) //.
+        - rewrite (@Isub_Inan_propagate_l _ Xnan) //.
             by rewrite HX0.
           rewrite HX0 /= in HinX.
           by case: (I.convert X) HinX.
       by rewrite Heqt HX0 /= in Hint.
-    apply: (@subset_sub_contains_0 (Xreal r)) =>//.
+    apply: (@subset_sub_contains_0 _ (Xreal r)) =>//.
     by rewrite Heqt in Hint.
   rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_l (PolX.teval tt Ag (t - t))) =>//.
+    apply: (@mul_0_contains_0_l _ (PolX.teval tt Ag (t - t))) =>//.
     apply: convert_teval =>//.
     apply: I.sub_correct =>//.
     exact: (subset_contains (I.convert X0)).
   rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_l (PolX.teval tt Af (t - t))) =>//.
+    apply: (@mul_0_contains_0_l _ (PolX.teval tt Af (t - t))) =>//.
     apply: convert_teval =>//.
     apply: I.sub_correct =>//.
     exact: (subset_contains (I.convert X0)).
-  exact: (@mul_0_contains_0_l (Xreal 0)).
+  exact: (@mul_0_contains_0_l _ (Xreal 0)).
 move=> N x0 Hx0 {Af} {Af1} {Af2} {Af3} {Ag} {Ag1} {Ag2} {Ag3}.
 case: (Hf x0 Hx0) => [pf [Hf1 Hf2 Hf3]].
 case: (Hg x0 Hx0) => [pg [Hg1 Hg2 Hg3]].
@@ -4608,7 +4454,7 @@ Definition TMset0 (Mf : rpa) t :=
   RPA (Pol.tset_nth (approx Mf) 0 t) (error Mf).
 
 Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
-  let Bf := Pol.teval prec (approx Mf) (I.sub prec X X0) in
+  let Bf := Bnd.ComputeBound prec (approx Mf) (I.sub prec X X0) in
   let Mg := TMg (Pol.tnth (approx Mf) 0) (I.add prec Bf (error Mf)) n in
   let M1 := TMset0 Mf (I.fromZ 0) in
   let M0 := poly_eval_tm n (approx Mg) M1 X0 X in
@@ -4752,16 +4598,17 @@ split=>//.
   have [pr [Hpr Hnth Herr]] := (H2 t Ht).
   have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
       Hg (tnth (approx TMf) 0)
-      (I.add prec (teval prec (approx TMf) (I.sub prec X X0)) (error TMf)) n.
-  - have L := @in_poly_bound (approx TMf) (I.sub prec X X0) pr Hpr Hnth.
-    have H := (L (@subset_sub_contains_0 _ _ _ _ _)).
+      (I.add prec
+        (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n.
+  - have L := @Bnd.ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hpr Hnth.
+    have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
     have {H L} L := (H t Ht H1).
     apply: (subset_subset _
-        (I.convert (teval prec (approx TMf) (I.sub prec X X0)))) =>//.
+        (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
     apply: Iadd_zero_subset_r =>//.
     exists (PolX.teval tt pr (Xreal 0)).
-    apply: convert_teval =>//.
-    exact: (@subset_sub_contains_0 t).
+    apply: Bnd.ComputeBound_correct =>//.
+    exact: (@subset_sub_contains_0 _ t).
   - exists (PolX.tnth pr 0).
     by apply: Hnth; rewrite Hn.
   have {Hokg4} Hokg4 := Hokg4 (PolX.tnth pr 0).
@@ -4849,7 +4696,7 @@ split=>//.
    (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - PolX.tnth pr 0)
    (approx
             (Tyg (tnth (approx TMf) 0)
-               (I.add prec (teval prec (approx TMf) (I.sub prec X X0))
+               (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
                   (error TMf)) n)).
   have H' : I.subset_ (Interval_interval.Ibnd t t) (I.convert X0).
     case cf: t => [|r];
@@ -4873,16 +4720,16 @@ move=> N fi0 Hfi0.
 have [pr [Hpr Hnth Herr]] := H2 fi0 Hfi0.
 have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
     (Hg (tnth (approx TMf) 0)
-    (I.add prec (teval prec (approx TMf) (I.sub prec X X0)) (error TMf)) n).
-- have L := @in_poly_bound (approx TMf) (I.sub prec X X0) pr Hpr Hnth.
-  have H := (L (@subset_sub_contains_0 _ _ _ _ _)).
+    (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n).
+- have L := @Bnd.ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hpr Hnth.
+  have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
   have {H L} L := (H fi0 Hfi0 H1).
   apply: (subset_subset _
-       (I.convert (teval prec (approx TMf) (I.sub prec X X0)))) =>//.
+       (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
     apply: Iadd_zero_subset_r =>//.
     exists (PolX.teval tt pr (Xreal 0)).
-    apply: convert_teval =>//.
-    exact: (@subset_sub_contains_0 t).
+    apply: Bnd.ComputeBound_correct =>//.
+    exact: (@subset_sub_contains_0 _ t).
   exists (PolX.tnth pr 0).
   by apply: Hnth; rewrite Hn.
 have {Hokg4} Hokg4 := Hokg4 (PolX.tnth pr 0).
@@ -4972,7 +4819,7 @@ have Hpe:=
   (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - PolX.tnth pr 0)
   (approx
               (Tyg (tnth (approx TMf) 0)
-                 (I.add prec (teval prec (approx TMf) (I.sub prec X X0))
+                 (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
                     (error TMf)) n)).
 have H' : I.subset_ (Interval_interval.Ibnd fi0 fi0) (I.convert X0).
   case cf: fi0 => [|r];
@@ -5006,11 +4853,11 @@ case cf : fi0 => [|r].
       (poly_eval_tm n
       (approx
       (Tyg (tnth (approx TMf) 0)
-      (I.add prec (teval prec (approx TMf) (I.sub prec X X0))
+      (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
       (error TMf)) n)) (TMset0 TMf (I.fromZ 0)) X0 X)).
   set erg := (error
       (Tyg (tnth (approx TMf) 0)
-      (I.add prec (teval prec (approx TMf) (I.sub prec X X0)) (error TMf))
+      (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf))
       n)).
   have Herpe : I.convert erpe = Interval_interval.Inan.
     rewrite -/erpe in Hpe.
@@ -5026,7 +4873,7 @@ case cf : fi0 => [|r].
     by rewrite c in Hpe.
   rewrite /= -/erpe -/erg.
   have Heq :(I.convert (I.add prec erpe erg)) = Interval_interval.Inan.
-    exact: (@Iadd_Inan_propagate_l (Xreal 0)).
+    exact: (@Iadd_Inan_propagate_l _ (Xreal 0)).
   by rewrite Heq.
 (**************** cas non degenere ****************)
 rewrite cf in Hpe3.
@@ -5042,11 +4889,11 @@ set erpe := (error
     (poly_eval_tm n
     (approx
     (Tyg (tnth (approx TMf) 0)
-    (I.add prec (teval prec (approx TMf) (I.sub prec X X0))
+    (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
     (error TMf)) n)) (TMset0 TMf (I.fromZ 0)) X0 X)).
 set erg := (error
     (Tyg (tnth (approx TMf) 0)
-    (I.add prec (teval prec (approx TMf) (I.sub prec X X0)) (error TMf))
+    (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf))
     n)).
 rewrite -/erpe in Hpe.
 rewrite /= -/erpe -/erg.
@@ -5054,11 +4901,11 @@ have {Hprg3} Hprg3 := Hprg3 (f x).
 rewrite -/erg in Hprg3.
 have H : contains
     (I.convert
-    (I.add prec (teval prec (approx TMf) (I.sub prec X X0)) (error TMf)))
+    (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)))
     (f x).
   have {Herr} Herr := Herr x Hx.
-  apply: (@Iadd_Isub_aux (PolX.teval tt pr (x - fi0))) =>//.
-  apply: convert_teval =>//.
+  apply: (@Iadd_Isub_aux _ (PolX.teval tt pr (x - fi0))) =>//.
+  apply: Bnd.ComputeBound_correct =>//.
   exact: I.sub_correct.
 have {Hprg3 H} H := Hprg3 H.
 set a := (PolX.teval tt prg (f x - PolX.tnth pr 0)).
@@ -5066,7 +4913,7 @@ rewrite -/a in Hpe H.
 case ca : a => [|ra].
   rewrite ca /= in Hpe H.
   rewrite /FullXR.tsub Xsub_split Xadd_comm /= in H.
-  rewrite (@Iadd_Inan_propagate_l Xnan) => //=.
+  rewrite (@Iadd_Inan_propagate_l _ Xnan) => //=.
   by case: (I.convert erpe) Hpe.
 suff->: (g (f x) - PolX.teval tt cn (x - Xreal r))
   = ((a - PolX.teval tt cn (x - Xreal r)) + (g (f x) - a)).
