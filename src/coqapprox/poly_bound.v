@@ -37,16 +37,64 @@ Parameter ComputeBound_correct : forall u p px X,
   forall x, contains (I.convert X) x ->
   contains (I.convert (ComputeBound u p X)) (PolX.teval tt px x).
 
-(* TODO: Rely on [Link.contains_pointwise] or so *)
-Parameter ComputeBound_nth0 : forall prec p pr X,
-  PolX.tsize pr = tsize p ->
-  (forall i, i < tsize p -> contains (I.convert (tnth p i)) (PolX.tnth pr i)) ->
-  contains (I.convert X) (Xreal 0) ->
-  I.subset_ (I.convert (tnth p 0)) (I.convert (ComputeBound prec p X)).
-
 End PolyBound.
 
-(** The implementations *)
+Module PolyBoundThm
+  (I : IntervalOps)
+  (Import Pol : IntMonomPolyOps I)
+  (PolX : ExactMonomPolyOps FullXR)
+  (Link : LinkIntX I Pol PolX)
+  (Import Bnd : PolyBound I Pol PolX Link).
+
+Module Import Aux := IntervalAux I.
+
+Theorem ComputeBound_nth0 prec p px X :
+  Link.contains_pointwise p px ->
+  Pol.tsize p > 0 (* might be removed *) ->
+  contains (I.convert X) (Xreal 0) ->
+  I.subset_ (I.convert (tnth p 0)) (I.convert (ComputeBound prec p X)).
+Proof.
+move=> [Hsiz Hnth] Hp HX.
+apply: contains_subset; first by exists (PolX.tnth px 0); apply: Hnth.
+move=> a0 Ha0.
+red in Hnth.
+have Hcommon : Link.contains_pointwise p (PolX.tset_nth px 0 a0).
+  split.
+    rewrite PolX.tsize_set_nth.
+    rewrite -(prednK Hp) in Hsiz *.
+    by rewrite -Hsiz maxnSS max0n.
+  move=> [|k] Hk.
+    by rewrite PolX.tnth_set_nth eqxx.
+  rewrite PolX.tnth_set_nth /=.
+  exact: Hnth.
+case E: (PolX.teval tt (PolX.tset_nth px 0 a0) (Xreal 0)) =>[|r].
+  suff->: (I.convert (ComputeBound prec p X)) = IInan by [].
+  apply: contains_Xnan.
+  rewrite -E.
+  exact: ComputeBound_correct.
+suff->: a0 = PolX.teval tt (PolX.tset_nth px 0 a0) (Xreal 0).
+  exact: ComputeBound_correct.
+clear - E Hp Hsiz.
+have Hsiz' := prednK Hp.
+move: E; rewrite PolX.is_horner /=.
+  rewrite PolX.tsize_set_nth -Hsiz -Hsiz' maxnSS max0n.
+rewrite big_ord_recl /=.
+rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero.
+rewrite PolX.tnth_set_nth eqxx Xmul_1_r.
+rewrite Hsiz.
+clear; move=> Hreal.
+rewrite big1 ?Xadd_0_r//.
+move=> i _.
+rewrite PolX.tnth_set_nth /bump /=.
+rewrite SuccNat2Pos.id_succ /= Rmult_0_l.
+case Ex: PolX.tnth =>[|x]; last by simpl; f_equal; ring.
+exfalso; move: Hreal.
+by rewrite (bigD1 i) //= PolX.tnth_set_nth /bump /= Ex XaddC.
+Qed.
+
+End PolyBoundThm.
+
+(** Naive implementation: Horner evaluation *)
 
 Module PolyBoundHorner
   (I : IntervalOps)
@@ -90,40 +138,6 @@ apply: I.add_correct =>//.
 rewrite tsize_polyCons in K2.
 move/(_ 0 erefl) in K2.
 by rewrite tnth_polyCons ?PolX.tnth_polyCons in K2.
-Qed.
-
-Lemma ComputeBound_nth0 prec p pr X :
-  PolX.tsize pr = tsize p ->
-  (forall i, i < tsize p -> contains (I.convert (tnth p i)) (PolX.tnth pr i)) ->
-  contains (I.convert X) (Xreal 0) ->
-  I.subset_ (I.convert (tnth p 0)) (I.convert (ComputeBound prec p X)).
-Proof.
-rewrite /ComputeBound.
-move=> Hsize Hnth HX.
-elim/tpoly_ind: p pr Hsize Hnth =>[|a p IHp] pr Hsize Hnth.
-  rewrite teval_polyNil tnth_polyNil.
-  apply: contains_subset.
-    exists (Xreal 0).
-    by apply: I.fromZ_correct.
-  have := I.mask_correct (I.fromZ 0) X _ (Xreal 0) _ HX; exact.
-elim/PolX.tpoly_ind: pr Hsize Hnth =>[|ar pr IHpr] Hsize Hnth.
-  by exfalso; rewrite tsize_polyCons PolX.tsize_polyNil in Hsize.
-rewrite tnth_polyCons // teval_polyCons //.
-have H1 : contains (I.convert (Int.tmul prec (ComputeBound prec p X) X)) (Xreal 0).
-  apply: (@mul_0_contains_0_r prec (PolX.teval tt pr (Xreal 0))) =>//.
-  apply: ComputeBound_correct =>//.
-  rewrite tsize_polyCons PolX.tsize_polyCons in Hsize.
-  split; first by case: Hsize.
-  move=> i Hi; move/(_ i.+1) in Hnth.
-  rewrite tnth_polyCons // PolX.tnth_polyCons in Hnth => //.
-    apply: Hnth.
-    by rewrite tsize_polyCons /leq subSS.
-  by case: Hsize =>->.
-apply: Iadd_zero_subset_l => //.
-exists ar.
-move/(_ 0) in Hnth.
-rewrite tsize_polyCons tnth_polyCons // PolX.tnth_polyCons // in Hnth.
-exact: Hnth.
 Qed.
 
 End PolyBoundHorner.

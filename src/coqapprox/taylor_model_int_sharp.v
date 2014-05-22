@@ -106,6 +106,7 @@ Import Int.
 Module TX := TaylorPoly FullXR PolX.
 Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
 Module MapX := PolyMap FullXR PolX FullXR PolX.
+Module Import BndThm := PolyBoundThm I Pol PolX Link Bnd.
 
 (*
 Eval compute in contains (Interval_interval.Ibnd (Xreal 0) (Xreal 0)) (Xreal 0).
@@ -4596,12 +4597,14 @@ case Hf => [H0 H1 H2].
 split=>//.
   rewrite /= (_ : (Xreal 0) = (Xreal 0 + Xreal 0)); last by rewrite /= Rplus_0_l.
   have [pr [Hpr Hnth Herr]] := (H2 t Ht).
+  have Hcp : Link.contains_pointwise _ _ := conj (esym Hpr) Hnth. (* FIXME *)
   have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
       Hg (tnth (approx TMf) 0)
       (I.add prec
         (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n.
-  - have L := @Bnd.ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hpr Hnth.
-    have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
+  - have L := @ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hcp.
+    have H := (L _ (@subset_sub_contains_0 _ _ _ _ _ _)).
+    rewrite Hn in H; move/(_ erefl) in H.
     have {H L} L := (H t Ht H1).
     apply: (subset_subset _
         (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
@@ -4718,11 +4721,13 @@ split=>//.
   rewrite tsize_set_nth Hn; exact/maxn_idPr.
 move=> N fi0 Hfi0.
 have [pr [Hpr Hnth Herr]] := H2 fi0 Hfi0.
+have Hcp : Link.contains_pointwise _ _ := conj (esym Hpr) Hnth. (* FIXME *)
 have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
     (Hg (tnth (approx TMf) 0)
     (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n).
-- have L := @Bnd.ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hpr Hnth.
-  have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
+- have L := ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hcp.
+  have H := (L _ (@subset_sub_contains_0 _ _ _ _ _ _)).
+  rewrite Hn in H; move/(_ erefl) in H.
   have {H L} L := (H fi0 Hfi0 H1).
   apply: (subset_subset _
        (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
