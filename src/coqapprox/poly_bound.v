@@ -32,10 +32,9 @@ Module Type PolyBound
 
 Parameter ComputeBound : forall (u : Pol.U) (p : Pol.T) (X : I.type), I.type.
 
-Parameter ComputeBound_correct : forall u p px X,
+Parameter ComputeBound_correct : forall u p px,
   Link.contains_pointwise p px ->
-  forall x, contains (I.convert X) x ->
-  contains (I.convert (ComputeBound u p X)) (PolX.teval tt px x).
+  I.extension (PolX.teval tt px) (ComputeBound u p).
 
 End PolyBound.
 
@@ -108,12 +107,11 @@ Module Import Aux := IntervalAux I.
 Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
   Pol.teval.
 
-Theorem ComputeBound_correct u fi fx X :
+Theorem ComputeBound_correct u fi fx :
   Link.contains_pointwise fi fx ->
-  forall x, contains (I.convert X) x ->
-  contains (I.convert (ComputeBound u fi X)) (PolX.teval tt fx x).
+  I.extension (PolX.teval tt fx) (ComputeBound u fi).
 Proof.
-move=> Hfifx x Hx; rewrite /ComputeBound.
+move=> Hfifx X x Hx; rewrite /ComputeBound.
 elim/PolX.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolX.teval_polyNil teval_polyNil.
   by move=> *; apply: I.mask_correct =>//; exact: Int.zero_correct.
