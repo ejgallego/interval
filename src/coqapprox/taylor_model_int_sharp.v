@@ -156,9 +156,9 @@ Definition Ztech (P : Pol.T) F X0 X n :=
     let a := I.lower X in let b := I.upper X in
     let A := I.bnd a a in let B := I.bnd b b in
     (* TODO: We may replace teval with ComputeBound *)
-    let Da := I.sub prec (F A) (teval prec P (I.sub prec A X0)) in
-    let Db := I.sub prec (F B) (teval prec P (I.sub prec B X0)) in
-    let Dx0 := I.sub prec (F X0) (teval prec P (I.sub prec X0 X0)) in
+    let Da := I.sub prec (F A) (Pol.teval prec P (I.sub prec A X0)) in
+    let Db := I.sub prec (F B) (Pol.teval prec P (I.sub prec B X0)) in
+    let Dx0 := I.sub prec (F X0) (Pol.teval prec P (I.sub prec X0 X0)) in
     I.join (I.join Da Db) Dx0
   else
     let NthPower :=
@@ -174,16 +174,6 @@ Lemma ZtechE2 P F X0 X n :
   I.bounded X = false ->
   Ztech P F X0 X n = TLrem X0 X n.
 Proof. by rewrite /Ztech andbC =>->. Qed.
-
-(* Old definitions
-
-Definition max_error_on_poly M X0 X :=
-  Pol.teval prec (Pol.tmap (fun c => I.sub prec c c) (approx M))
-            (I.sub prec X X0).
-
-Definition max_error M X0 X :=
-  (I.add prec (max_error_on_poly M X0 X) (error M)).
-*)
 
 End TaylorModel.
 
@@ -239,16 +229,6 @@ Definition TM_opp (M : rpa) : rpa :=
 Definition TM_sub (Mf Mg : rpa) : rpa :=
   RPA (Pol.tsub prec (approx Mf) (approx Mg))
       (I.sub prec (error Mf) (error Mg)).
-
-(* Old definition
-
-Definition valid_poly_bound n fint X B :=
-  Pol.tsize fint = n /\
-  forall x, contains X x ->
-    forall freal, PolX.tsize freal = n -> (forall i, (i < n)%nat ->
-      contains (I.convert (Pol.tnth fint i)) (PolX.tnth freal i)) ->
-    contains B (PolX.teval tt freal x).
-*)
 
 Definition i_validTM (X0 X : interval)
   (M : rpa) (f : ExtendedR -> ExtendedR) :=
@@ -551,7 +531,6 @@ by exists alf.
 Qed.
 
 Definition ComputeBound (M : rpa) (X0 X : I.type) :=
-(* I.add prec (Pol.teval prec (approx M) (I.sub prec X X0)) (error M). *)
   I.add prec (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)) (error M).
 
 Theorem ComputeBound_correct M (X0 X : I.type) f :
@@ -4543,41 +4522,6 @@ suff <- : forall a b c : ExtendedR, (a - (b + c) = a - b - c)%XR by [].
 move=> a b c; case: a; case: b; case: c=> //=.
 by move=> *; f_equal; ring.
 Qed.
-
-(* Old lemma
-
-Lemma teval_valid_poly_bound :
-  forall p X, valid_poly_bound (tsize p) p (I.convert X) (I.convert (teval prec p X)).
-Proof.
-move=> p X.
-rewrite /valid_poly_bound.
-split; first done.
-move=> x HxinX.
-induction p using tpoly_ind.
-  move=> fr; induction fr using PolX.tpoly_ind => Hsize Hnth.
-    rewrite teval_polyNil PolX.teval_polyNil.
-  rewrite /tzero /tcst /FullXR.tzero /FullXR.tcst.
-apply I.mask_correct => //.
-apply I.fromZ_correct => //.
-  by rewrite PolX.tsize_polyCons tsize_polyNil in Hsize.
-move=> fr; induction fr using PolX.tpoly_ind => Hsize Hnth.
-  by rewrite tsize_polyCons PolX.tsize_polyNil in Hsize.
-rewrite teval_polyCons PolX.teval_polyCons.
-apply I.add_correct.
-  apply I.mul_correct; rewrite tsize_polyCons PolX.tsize_polyCons in Hsize;
-    last done.
-  apply IHp.
-     by injection Hsize=> <-.
-  move=> i Hi; specialize (Hnth i.+1).
-  rewrite tsize_polyCons tnth_polyCons // PolX.tnth_polyCons // in Hnth.
-  apply Hnth.
-    by rewrite /leq subSS.
-  by injection Hsize=> ->.
-specialize (Hnth 0).
-rewrite tsize_polyCons tnth_polyCons // PolX.tnth_polyCons // in Hnth.
-by apply Hnth.
-Qed.
-*)
 
 Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
   f Xnan = Xnan ->
