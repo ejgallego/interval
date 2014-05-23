@@ -3816,10 +3816,10 @@ Definition mul_error prec n (f g : rpa) X0 X :=
  let pf := approx f in
  let pg := approx g in
  let sx := (I.sub prec X X0) in
- let B := I.mul prec (Pol.teval prec (Pol.tmul_tail prec n pf pg) sx)
+ let B := I.mul prec (Bnd.ComputeBound prec (Pol.tmul_tail prec n pf pg) sx)
                 (I.power_int prec sx (Z_of_nat n.+1)) in
- let Bf := Pol.teval prec pf sx in
- let Bg := Pol.teval prec pg sx in
+ let Bf := Bnd.ComputeBound prec pf sx in
+ let Bg := Bnd.ComputeBound prec pg sx in
    I.add prec B (I.add prec (I.mul prec (error f) Bg)
      (I.add prec (I.mul prec (error g) Bf)
        (I.mul prec (error f) (error g)))).
@@ -3933,7 +3933,7 @@ split=>//.
     set ip := tmul_tail _ _ _.
     set rp := PolX.tmul_tail _ _ _.
     rewrite /FullXR.tsub Xsub_split Xadd_Xneg.
-    apply: convert_teval.
+    apply: Bnd.ComputeBound_correct; first split.
     - by rewrite PolX.tsize_mul_tail tsize_mul_tail Af1 Ag1.
     - move=> k Hk; apply:Link.link_tmul_tail=>//.
       by rewrite /ip tsize_mul_tail in Hk.
@@ -3948,12 +3948,12 @@ split=>//.
     by rewrite Heqt in Hint.
   rewrite H00; apply: I.add_correct.
     apply: (@mul_0_contains_0_l _ (PolX.teval tt Ag (t - t))) =>//.
-    apply: convert_teval =>//.
+    apply: Bnd.ComputeBound_correct =>//.
     apply: I.sub_correct =>//.
     exact: (subset_contains (I.convert X0)).
   rewrite H00; apply: I.add_correct.
     apply: (@mul_0_contains_0_l _ (PolX.teval tt Af (t - t))) =>//.
-    apply: convert_teval =>//.
+    apply: Bnd.ComputeBound_correct =>//.
     apply: I.sub_correct =>//.
     exact: (subset_contains (I.convert X0)).
   exact: (@mul_0_contains_0_l _ (Xreal 0)).
@@ -3976,7 +3976,7 @@ suff->: (FullXR.tmul tt (f x) (g x) -
   (f x - PolX.teval tt pf (x - x0)) * (g x - PolX.teval tt pg (x - x0)))))%XR.
   apply: I.add_correct.
     apply: I.mul_correct.
-      apply: convert_teval =>//.
+      apply: Bnd.ComputeBound_correct =>//; first split.
       - by rewrite tsize_mul_tail PolX.tsize_mul_tail Hf1 Hg1.
       - move=> k Hk; apply: Link.link_tmul_tail => //.
         by rewrite tsize_mul_tail in Hk.
@@ -3985,11 +3985,11 @@ suff->: (FullXR.tmul tt (f x) (g x) -
     by apply: I.sub_correct=> //; apply: (subset_contains smallX0).
   apply: I.add_correct.
     apply: I.mul_correct =>//.
-    apply: convert_teval =>//.
+    apply: Bnd.ComputeBound_correct =>//.
     by apply: I.sub_correct =>//; apply: (subset_contains smallX0).
   apply: I.add_correct.
     apply: I.mul_correct =>//.
-    apply: convert_teval =>//.
+    apply: Bnd.ComputeBound_correct =>//.
     by apply: I.sub_correct =>//; apply: (subset_contains smallX0).
   exact: I.mul_correct.
 clear Hf Hf2 Hf3 Hg Hg2 Hg3.
