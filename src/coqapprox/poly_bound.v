@@ -1,3 +1,23 @@
+(**
+This file is part of the CoqApprox formalization of rigorous
+polynomial approximation in Coq:
+http://tamadi.gforge.inria.fr/CoqApprox/
+
+Copyright (c) 2010-2014, ENS de Lyon and Inria.
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 Require Import ZArith Psatz.
 Require Import Fcore_Raux.
 Require Import Interval_xreal.
