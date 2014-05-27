@@ -241,9 +241,7 @@ End MaskBaseF_NE.
 Module FullInt (I : IntervalOps) <: FullOps.
 Definition U := I.precision.
 Definition T := I.type.
-Definition tzero := I.fromZ Z0.
-Lemma zero_correct : contains (I.convert tzero) (Xreal 0).
-Proof I.fromZ_correct Z0.
+Definition tzero := I.zero.
 Definition tone := I.fromZ 1.
 Definition topp := I.neg.
 Definition tadd := I.add.

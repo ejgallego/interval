@@ -141,8 +141,8 @@ Lemma teval_contains_0 pr P (X : i_type) :
 Proof.
 move=> HP0 HX0.
 elim/Pol.tpoly_ind: P HP0 => [|x P IHP] HP0.
-  rewrite Pol.teval_polyNil; case: X HX0 =>//.
-  by move=> *; apply Pol.Int.zero_correct.
+  rewrite Pol.teval_polyNil; case: X HX0 =>//=.
+  by rewrite /I.I.convert_bound F.zero_correct /=; split; auto with real.
 rewrite Pol.teval_polyCons.
 have->: Xreal 0 = Xadd (Xreal 0) (Xreal 0) by rewrite Xadd_0_r.
 apply: I.add_correct.
@@ -235,7 +235,7 @@ elim/tpoly_ind: (i_approx M) alpha {Hdelta Tx T'x E} @N Hsize Hpw.
   rewrite /f2x_poly !MapFX.tpolymap_polyNil.
   rewrite /i2f_rem !MapI.tpolymap_polyNil.
   rewrite Xsub_diag_eq !(teval_polyNil,PolX.teval_polyNil).
-  apply: I.mask_correct; first exact: Int.zero_correct.
+  apply: I.mask_correct; first by rewrite I.zero_correct; split; auto with real.
   change I.I.convert with I.convert.
   case: x Hx =>[|x] Hx; case: xi0 Hxi0 =>[|y] Hxi0 /=;
     (try have Hx' := contains_Xnan Hx); try have Hxi0' := contains_Xnan Hxi0.

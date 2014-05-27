@@ -470,12 +470,16 @@ Parameter bound_type : Type.
 Parameter convert_bound : bound_type -> ExtendedR.
 Parameter type : Type.
 Parameter convert : type -> interval.
+Parameter zero : type.
 Parameter nai : type.
 Parameter bnd : bound_type -> bound_type -> type.
 
 Parameter bnd_correct :
   forall l u,
   convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
+
+Parameter zero_correct :
+  convert zero = Ibnd (Xreal 0) (Xreal 0).
 
 Parameter nai_correct :
   convert nai = Inan.

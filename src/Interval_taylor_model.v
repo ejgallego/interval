@@ -86,7 +86,7 @@ Definition tm_helper2pad (u : U) X (t : T) :=
     | Const c => let X0 := Imid X in (TM_cst u.1 c X0 X u.2)
     | Var => let X0 := Imid X in (TM_var u.1 X0 X u.2)
     | Tm {| RPA.approx := pol; RPA.error := delta |} =>
-      let pol' := PolI.tset_nth pol u.2 PolI.Int.tzero in
+      let pol' := PolI.tset_nth pol u.2 I.zero in
       (RPA.RPA pol' delta)
   end.
 
@@ -242,12 +242,12 @@ split=>//.
   move=> k Hk.
   case: (ltnP k (PolI.tsize pol)) => Hineq.
     rewrite PolI.tnth_set_nth PolX.tnth_set_nth.
-    case: (k == u.2); first exact: PolI.Int.zero_correct.
+    case: (k == u.2); first by rewrite I.zero_correct; split; auto with real.
     exact: h2.
   rewrite PolI.tnth_set_nth PolX.tnth_set_nth.
-  case: (k == u.2); first exact: PolI.Int.zero_correct.
+  case: (k == u.2); first by rewrite I.zero_correct; split; auto with real.
   rewrite PolI.tnth_out // PolX.tnth_out //.
-  exact: PolI.Int.zero_correct.
+  by rewrite I.zero_correct; split; auto with real.
   by rewrite h1.
 move=> x Hx.
 have := h3 x Hx.
@@ -748,7 +748,7 @@ Definition sub (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   match t1, t2 with
     | Dummy, _ | _, Dummy => Dummy
     | Const c1, Const c2 => Const (I.sub u.1 c1 c2)
-  (*| Var, Var => Const (I.fromZ 0) : FIXME *)
+  (*| Var, Var => Const I.zero : FIXME *)
     | _, _ => sub_slow u X t1 t2
   end.
 

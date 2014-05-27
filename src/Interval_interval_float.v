@@ -40,6 +40,7 @@ Definition convert xi :=
 
 Definition nai := @Inan F.type.
 Definition bnd := @Ibnd F.type.
+Definition zero := Ibnd F.zero F.zero.
 
 Lemma bnd_correct :
   forall l u,
@@ -51,6 +52,10 @@ Lemma nai_correct :
   convert nai = Interval_interval.Inan.
 split.
 Qed.
+
+Lemma zero_correct :
+  convert zero = Interval_interval.Ibnd (Xreal 0) (Xreal 0).
+Proof. now simpl; unfold convert_bound; rewrite F.zero_correct. Qed.
 
 Definition bounded xi :=
   match xi with

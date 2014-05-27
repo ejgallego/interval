@@ -742,7 +742,8 @@ Proof.
 move=> Hfifx Hx.
 elim/PolX.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolX.teval_polyNil teval_polyNil.
-  by move=> *; apply: I.mask_correct =>//; exact: zero_correct.
+  by move=> *; apply: I.mask_correct =>//;
+    rewrite I.zero_correct; split; auto with real.
 - clear; move=> c p _ [K1 K2].
   by rewrite tsize_polyCons PolX.tsize_polyNil in K1.
 - clear; move=> [K1 K2].
@@ -784,7 +785,7 @@ rewrite /n in Hsize, Hnth.
 elim/tpoly_ind: pi px Habs1 Habs2 Hsize Hnth @n =>[|ai pi IHpi];
   elim/PolX.tpoly_ind =>[|ax px IHpx] Habs1 Habs2 Hsize Hnth.
   - rewrite teval_polyNil PolX.teval_polyNil; apply: I.mask_correct =>//;
-    exact: I.fromZ_correct.
+    rewrite I.zero_correct; split; auto with real.
   - by exfalso; apply: (Habs1 ax px).
   - by exfalso; apply: (Habs2 ai pi).
 rewrite teval_polyCons PolX.teval_polyCons.
@@ -821,8 +822,8 @@ elim/tpoly_ind: p pr Hsize Hnth =>[|a p IHp] pr Hsize Hnth.
   rewrite /tzero /tcst.
   apply: contains_subset.
     exists (Xreal 0).
-    by apply: I.fromZ_correct.
-  have := I.mask_correct (I.fromZ 0) X _ (Xreal 0) _ HX; exact.
+    by rewrite I.zero_correct; split; auto with real.
+  have := I.mask_correct (I.zero) X _ (Xreal 0) _ HX; exact.
 elim/PolX.tpoly_ind: pr Hsize Hnth =>[|ar pr IHpr] Hsize Hnth.
   by exfalso; rewrite tsize_polyCons PolX.tsize_polyNil in Hsize.
 rewrite tnth_polyCons // teval_polyCons.
@@ -2479,7 +2480,7 @@ apply TM_rec1_correct with
 + move=> x0 x ix0 ix k h0 h.
   rewrite /Rec.cst_rec /TX.Rec.cst_rec.
   apply: I.mask_correct =>//.
-  exact: I.fromZ_correct.
+  by rewrite I.zero_correct; split; auto with real.
 move=> r; case=> [/=|k].
   case: r=> [|r]=>//.
   case: cst Hcst => [|cst /=] Hcst=>//.
@@ -2634,9 +2635,9 @@ have Hr' := contains_not_empty _ _ Hr.
         apply: Imid_contains; exists r.
     move=> k; rewrite ltnS => Hk /=.
     rewrite tnth_set_nth PolX.tnth_set_nth /=.
-    case: (k.+1 == n.+1); first exact: Int.zero_correct.
+    case: (k.+1 == n.+1); first by rewrite I.zero_correct; split;auto with real.
     rewrite tnth_out ?sizes // PolX.tnth_out ?sizes //.
-    exact: Int.zero_correct.
+    by rewrite I.zero_correct; split; auto with real.
   + move=> x Hx /=.
     case: x Hx =>[|x] Hx.
       move/contains_Xnan: Hx.
@@ -2759,7 +2760,8 @@ apply TM_rec2_correct with
   by apply: I.mask_correct; first exact: I.fromZ_correct.
 + move=> x0 x x1 X1 X2 X3 h0 h h1;
   rewrite /Rec.var_rec /TX.Rec.var_rec.
-  by apply I.mask_correct; apply: I.mask_correct; first exact: I.fromZ_correct.
+  by apply I.mask_correct; apply: I.mask_correct;
+  first by rewrite I.zero_correct; split; auto with real.
 move=> r k.
 rewrite /TX.Rec.var_rec /FullXR.tcst /FullXR.tzero.
 rewrite [fact]lock /= -lock.
@@ -2980,7 +2982,7 @@ set o := (_ || _).
 case: o.
   exact: I.power_int_correct.
 apply: I.mask_correct =>//.
-exact: I.fromZ_correct.
+by rewrite I.zero_correct; split; auto with real.
 Qed.
 
 Lemma TM_inv_correct X0 X n :
@@ -4208,7 +4210,7 @@ Qed.
 Definition poly_eval_tm n p (Mf : rpa) (X0 X : I.type) : rpa :=
   @Pol.tfold rpa
   (fun a b => (TM_add (TM_cst a X0 X n) (TM_mul b Mf X0 X n)))
-  (TM_cst (I.fromZ 0) X0 X n) p.
+  (TM_cst I.zero X0 X n) p.
 
 Lemma size_TM_add Mf Mg :
   tsize (approx (TM_add Mf Mg)) =
@@ -4271,7 +4273,7 @@ elim/tpoly_ind: pi px Hsize Hnth =>[|ai pi IHpi];
     by move=> *; rewrite PolX.tfold_polyNil.
   apply: (@i_validTM_subset_X0 X0) =>//.
   apply: TM_cst_correct =>//.
-  exact: I.fromZ_correct.
+  by rewrite I.zero_correct; split; auto with real.
 + by rewrite PolX.tsize_polyCons tsize_polyNil in Hsize.
 + by rewrite tsize_polyCons PolX.tsize_polyNil in Hsize.
 clear IHpx.
@@ -4436,7 +4438,7 @@ Definition TMset0 (Mf : rpa) t :=
 Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
   let Bf := Bnd.ComputeBound prec (approx Mf) (I.sub prec X X0) in
   let Mg := TMg (Pol.tnth (approx Mf) 0) (I.add prec Bf (error Mf)) n in
-  let M1 := TMset0 Mf (I.fromZ 0) in
+  let M1 := TMset0 Mf I.zero in
   let M0 := poly_eval_tm n (approx Mg) M1 X0 X in
   RPA (approx M0) (I.add prec (error M0) (error Mg)).
 
@@ -4448,7 +4450,7 @@ Lemma TMset0_correct X0 X TMf f :
   forall nf, tsize (approx TMf) = nf.+1 ->
   forall fi0, contains (I.convert X0) fi0 ->
   exists a0, i_validTM (Interval_interval.Ibnd fi0 fi0) (I.convert X)
-  (TMset0 TMf (I.fromZ 0)) (fun x => f x - a0).
+  (TMset0 TMf I.zero) (fun x => f x - a0).
 Proof.
 move=> Ht [Hf0 Hf1 Hf2] nf Hnf.
 move=> fi0 Hfi0.
@@ -4473,7 +4475,7 @@ split.
   case ck : k => [|k'].
     rewrite tnth_set_nth.
     rewrite PolX.tnth_set_nth.
-    exact: I.fromZ_correct.
+    by rewrite I.zero_correct; split; auto with real.
   rewrite tnth_set_nth =>//.
   rewrite PolX.tnth_set_nth=>//.
   apply: Hnth.
@@ -4547,8 +4549,7 @@ split=>//.
       (I.add prec
         (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n.
   - have L := @ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hcp.
-    have H := (L _ (@subset_sub_contains_0 _ _ _ _ _ _)).
-    rewrite Hn in H; move/(_ erefl) in H.
+    have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
     have {H L} L := (H t Ht H1).
     apply: (subset_subset _
         (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
@@ -4566,7 +4567,7 @@ split=>//.
 (**************** start TMset0_correct ****************)
   have H_TMset0 :
    i_validTM (Interval_interval.Ibnd t t) (I.convert X)
-      (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - (PolX.tnth pr 0)).
+      (TMset0 TMf I.zero) (fun x : ExtendedR => f x - (PolX.tnth pr 0)).
     split; first done.
       have H0' := subset_contains _ _ H1 _ Ht.
       case cf: t => [|r];
@@ -4588,7 +4589,7 @@ split=>//.
         case ck : k => [|k'].
           rewrite tnth_set_nth.
           rewrite PolX.tnth_set_nth eqxx.
-          exact: Int.zero_correct.
+          by rewrite I.zero_correct; split; auto with real.
         rewrite tnth_set_nth=>//=.
         rewrite PolX.tnth_set_nth=>//.
         apply: Hnth.
@@ -4640,7 +4641,7 @@ split=>//.
   have [H1set0 H2set0 H3set0] := H_TMset0.
   have Hpe:=
    @poly_eval_tm_correct_gen (Interval_interval.Ibnd t t) X0 X
-   (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - PolX.tnth pr 0)
+   (TMset0 TMf (I.zero)) (fun x : ExtendedR => f x - PolX.tnth pr 0)
    (approx
             (Tyg (tnth (approx TMf) 0)
                (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
@@ -4670,8 +4671,7 @@ have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
     (Hg (tnth (approx TMf) 0)
     (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)) n).
 - have L := ComputeBound_nth0 prec (approx TMf) pr (I.sub prec X X0) Hcp.
-  have H := (L _ (@subset_sub_contains_0 _ _ _ _ _ _)).
-  rewrite Hn in H; move/(_ erefl) in H.
+  have H := (L (@subset_sub_contains_0 _ _ _ _ _ _)).
   have {H L} L := (H fi0 Hfi0 H1).
   apply: (subset_subset _
        (I.convert (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)))) =>//.
@@ -4688,7 +4688,7 @@ rewrite Hokg3 in Hprg1 Hprg2.
 (**************** start TMset0_correct ****************)
 have H_TMset0 :
  i_validTM (Interval_interval.Ibnd fi0 fi0) (I.convert X)
-        (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - (PolX.tnth pr 0)).
+        (TMset0 TMf I.zero) (fun x : ExtendedR => f x - (PolX.tnth pr 0)).
   split; first done.
     have H0' := subset_contains _ _ H1 _ Hfi0.
     case cf: fi0 => [|r];
@@ -4710,7 +4710,7 @@ have H_TMset0 :
     case ck : k => [|k'].
       rewrite tnth_set_nth.
       rewrite PolX.tnth_set_nth eqxx.
-      exact: Int.zero_correct.
+      by rewrite I.zero_correct; split; auto with real.
     rewrite tnth_set_nth=>//=.
     rewrite PolX.tnth_set_nth=>//.
     apply: Hnth.
@@ -4765,7 +4765,7 @@ have [H1set0 H2set0 H3set0] := H_TMset0.
 
 have Hpe:=
   @poly_eval_tm_correct_gen (Interval_interval.Ibnd fi0 fi0) X0 X
-  (TMset0 TMf (I.fromZ 0)) (fun x : ExtendedR => f x - PolX.tnth pr 0)
+  (TMset0 TMf I.zero) (fun x : ExtendedR => f x - PolX.tnth pr 0)
   (approx
               (Tyg (tnth (approx TMf) 0)
                  (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
@@ -4803,7 +4803,7 @@ case cf : fi0 => [|r].
       (approx
       (Tyg (tnth (approx TMf) 0)
       (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
-      (error TMf)) n)) (TMset0 TMf (I.fromZ 0)) X0 X)).
+      (error TMf)) n)) (TMset0 TMf I.zero) X0 X)).
   set erg := (error
       (Tyg (tnth (approx TMf) 0)
       (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf))
@@ -4839,7 +4839,7 @@ set erpe := (error
     (approx
     (Tyg (tnth (approx TMf) 0)
     (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0))
-    (error TMf)) n)) (TMset0 TMf (I.fromZ 0)) X0 X)).
+    (error TMf)) n)) (TMset0 TMf I.zero) X0 X)).
 set erg := (error
     (Tyg (tnth (approx TMf) 0)
     (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf))

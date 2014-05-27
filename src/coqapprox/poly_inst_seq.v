@@ -549,7 +549,7 @@ move=> [Hsizef Hf] [Hsizeg Hg] n Hnf Hng k Hkn.
 rewrite /tmul_trunc /PolX.tmul_trunc /tnth /PolX.tnth !nth_mkseq //.
 rewrite mul_coeffE' PolX.mul_coeffE'.
 apply big_ind2 with (id1 := Int.tzero) (R2 := Interval_xreal.ExtendedR).
-- by apply: Int.zero_correct.
+- by rewrite I.zero_correct; split; auto with real.
 - by move=> x1 x2 y1 y2 Hx Hy; apply: I.add_correct.
 move=> i _; apply:I.mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
   by apply:(@leq_ltn_trans k); rewrite ?leq_subr //; apply: (@leq_ltn_trans n).
@@ -569,7 +569,7 @@ rewrite /tmul_tail /PolX.tmul_tail /tnth /PolX.tnth /= !nth_mkseq //; last first
   by rewrite Hsizef Hsizeg /PolX.tsize in Hkn.
 rewrite mul_coeffE' PolX.mul_coeffE' /=.
 apply big_ind2 with (id1 := Int.tzero) (R2 := Interval_xreal.ExtendedR) => //.
-- exact: Int.zero_correct.
+- by rewrite I.zero_correct; split; auto with real.
 - by move=> x1 x2 y1 y2 Hx Hy; apply:I.add_correct.
 move=> [i Hi] _.
 case (boolP (n < (tsize fi).-1 + (tsize gi).-1)) => Hn; last first.
@@ -582,7 +582,7 @@ case: (boolP (i < tsize gi))=> Hig /=.
   rewrite nth_default; last by rewrite /tsize in Hif.
   set gii := (nth Int.tzero gi i).
   rewrite nth_default; last by move: Hif; rewrite Hsizef /PolX.tsize.
-  apply: I.mul_correct; first by apply: Int.zero_correct.
+  apply: I.mul_correct; first by rewrite I.zero_correct; split; auto with real.
   rewrite /gii; apply:Hg => //.
 rewrite -ltnNge ltnS in Hig.
 case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
@@ -590,12 +590,12 @@ case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
   rewrite nth_default; last by rewrite /tsize in Hig.
   set t:= nth FullXR.tzero fx _.
   rewrite nth_default; last by move: Hig; rewrite Hsizeg.
-  apply: I.mul_correct; last by apply: Int.zero_correct.
+  apply: I.mul_correct; last by rewrite I.zero_correct; split; auto with real.
   by apply:Hf.
 rewrite -ltnNge ltnS in Hif.
 move: (Hig) (Hif); rewrite Hsizef Hsizeg.
 move : Hig Hif; rewrite /tsize /PolX.tsize=>*; rewrite !nth_default =>//.
-by apply: I.mul_correct; apply: Int.zero_correct.
+by apply: I.mul_correct; rewrite I.zero_correct; split; auto with real.
 Qed.
 
 Lemma link_tsize_set_nth_nil n a b:

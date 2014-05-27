@@ -69,11 +69,21 @@ Module Import Aux := IntervalAux I.
 
 Theorem ComputeBound_nth0 prec p px X :
   Link.contains_pointwise p px ->
-  Pol.tsize p > 0 (* might be removed *) ->
   contains (I.convert X) (Xreal 0) ->
   I.subset_ (I.convert (tnth p 0)) (I.convert (ComputeBound prec p X)).
 Proof.
-move=> [Hsiz Hnth] Hp HX.
+move=> [Hsiz Hnth] HX.
+case Ep: (Pol.tsize p) =>[|n].
+  (* tsize p = 0 *)
+  rewrite Pol.tnth_out ?Ep// I.zero_correct.
+  apply: contains_subset; first by exists (Xreal 0); split; auto with real.
+  move=> [//|v] Hv; rewrite /contains in Hv.
+  have{v Hv}->: v = R0 by apply: Rle_antisym; case: Hv.
+  suff->: Xreal 0 = PolX.teval tt px (Xreal 0) by exact: ComputeBound_correct.
+  have {p Hsiz Hnth Ep} Epx : PolX.tsize px = 0 by rewrite -Hsiz.
+  elim/PolX.tpoly_ind: px Epx; first by rewrite PolX.teval_polyNil.
+  by move=> ax px; rewrite PolX.tsize_polyCons.
+have Hp: tsize p > 0 by rewrite Ep.
 apply: contains_subset; first by exists (PolX.tnth px 0); apply: Hnth.
 move=> a0 Ha0.
 red in Hnth.
@@ -104,8 +114,7 @@ rewrite Hsiz.
 clear; move=> Hreal.
 rewrite big1 ?Xadd_0_r//.
 move=> i _.
-rewrite PolX.tnth_set_nth /bump /=.
-rewrite SuccNat2Pos.id_succ /= Rmult_0_l.
+rewrite PolX.tnth_set_nth /bump /= SuccNat2Pos.id_succ /= Rmult_0_l.
 case Ex: PolX.tnth =>[|x]; last by simpl; f_equal; ring.
 exfalso; move: Hreal.
 by rewrite (bigD1 i) //= PolX.tnth_set_nth /bump /= Ex XaddC.
@@ -134,7 +143,8 @@ Proof.
 move=> Hfifx X x Hx; rewrite /ComputeBound.
 elim/PolX.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolX.teval_polyNil teval_polyNil.
-  by move=> *; apply: I.mask_correct =>//; exact: Int.zero_correct.
+  by move=> *; apply: I.mask_correct =>//;
+    rewrite I.zero_correct; split; auto with real.
 - clear; move=> c p _ [K1 K2].
   by rewrite tsize_polyCons PolX.tsize_polyNil in K1.
 - clear; move=> [K1 K2].
