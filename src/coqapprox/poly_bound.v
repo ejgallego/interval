@@ -27,7 +27,6 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
@@ -108,7 +107,6 @@ have Hsiz' := prednK Hp.
 move: E; rewrite PolX.is_horner /=.
   rewrite PolX.tsize_set_nth -Hsiz -Hsiz' maxnSS max0n.
 rewrite big_ord_recl /=.
-rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero.
 rewrite PolX.tnth_set_nth eqxx Xmul_1_r.
 rewrite Hsiz.
 clear; move=> Hreal.

@@ -27,7 +27,6 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
@@ -241,7 +240,7 @@ Definition i_validTM (X0 X : interval)
       forall k, (k < N)%nat ->
         contains (I.convert (Pol.tnth (approx M) k)) (PolX.tnth alf k) &
       forall x, contains X x -> contains (I.convert (error M))
-        (FullXR.tsub tt (f x) (PolX.teval tt alf (FullXR.tsub tt x x0)))]].
+        (Xsub (f x) (PolX.teval tt alf (Xsub x x0)))]].
 
 Lemma TM_fun_eq f g X0 X TMf :
   (forall x, contains X x -> f x = g x) ->
@@ -258,7 +257,7 @@ Qed.
 Lemma teval_in_nan p : PolX.teval tt p Xnan = Xnan.
 Proof.
 elim/PolX.tpoly_ind: p; first by rewrite PolX.teval_polyNil.
-by move=> *; rewrite PolX.teval_polyCons /FullXR.tmul Xmul_comm.
+by move=> *; rewrite PolX.teval_polyCons Xmul_comm.
 Qed.
 
 Lemma i_validTM_nan (v w : ExtendedR) (X0 X : interval) (tm : rpa)
@@ -278,7 +277,7 @@ move/(_ x Hx) in Hdelta.
 case: x Hx Hdelta => [|r] Hx Hdelta //.
 simpl in Hdelta |- *.
 rewrite teval_in_nan in Hdelta.
-rewrite [FullXR.tsub tt _ _]Xsub_Xnan_r in Hdelta.
+rewrite Xsub_Xnan_r in Hdelta.
 by move/contains_Xnan: Hdelta ->.
 Qed.
 
@@ -483,13 +482,12 @@ Qed.
 Lemma is_horner_pos (p : PolX.T) (x : ExtendedR) :
   0 < PolX.tsize p ->
   PolX.teval tt p x =
-  \big[Xadd/FullXR.tzero]_(i < PolX.tsize p)
-    FullXR.tmul tt (PolX.tnth p i)(FullXR.tpow tt x i).
+  \big[Xadd/Xreal 0]_(i < PolX.tsize p)
+    Xmul (PolX.tnth p i) (FullXR.tpow tt x i).
 Proof.
 move=> Hy.
 rewrite PolX.is_horner.
 case: x => [| rx] //.
-rewrite /FullXR.tadd /FullXR.tzero /FullXR.tpow /FullXR.tsub /FullXR.tmul.
 case cn : (PolX.tsize p) Hy => [|k]; first by rewrite ltn0.
 by rewrite 2!big_ord_recl Xmul_comm.
 Qed.
@@ -503,7 +501,7 @@ Qed.
 Lemma is_horner_mask (p : PolX.T) (x : FullXR.T) :
   PolX.teval tt p x =
   Xmask (\big[Xadd/Xreal 0]_(i < PolX.tsize p)
-    FullXR.tmul tt (PolX.tnth p i)(FullXR.tpow tt x i)) x.
+    Xmul (PolX.tnth p i) (FullXR.tpow tt x i)) x.
 Proof.
 case E : (PolX.tsize p) =>[|n].
   rewrite big_ord0.
@@ -513,7 +511,7 @@ rewrite is_horner_pos ?{}E //.
 elim: n => [|n IHn].
   rewrite !big_ord_recl !big_ord0.
   case: x => [|x] //=.
-    by rewrite /FullXR.tpow /FullXR.tmul Xmul_comm.
+    by rewrite Xmul_comm.
 by rewrite big_ord_recr {}IHn /=; case: x.
 Qed.
 
@@ -543,8 +541,8 @@ move=> [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
 have [q [Hsize Hcont Herr]] := Hmain _ Hx0.
 rewrite /ComputeBound.
 have := Herr x Hx.
-case E : (PolX.teval tt q (FullXR.tsub tt x x0)) =>[|r].
-  rewrite [FullXR.tsub _ _ _]Xsub_Xnan_r.
+case E : (PolX.teval tt q (Xsub x x0)) =>[|r].
+  rewrite Xsub_Xnan_r.
   move/contains_Xnan => Herr'.
   have Haux :
     contains (I.convert (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)))
@@ -554,8 +552,8 @@ case E : (PolX.teval tt q (FullXR.tsub tt x x0)) =>[|r].
   by rewrite (Iadd_Inan_propagate_r _ Haux).
 move=> Hr.
 have->: f x =
-  FullXR.tadd tt (PolX.teval tt q (FullXR.tsub tt x x0))
-  (FullXR.tsub tt (f x) (PolX.teval tt q (FullXR.tsub tt x x0))).
+  Xadd (PolX.teval tt q (Xsub x x0))
+  (Xsub (f x) (PolX.teval tt q (Xsub x x0))).
   rewrite E /=.
   by case: (f) =>[//|y]; simpl; congr Xreal; auto with real.
 apply: I.add_correct.
@@ -684,8 +682,7 @@ split=>//=.
 move=> xi0 Hxi0; exists (XP xi0 n); split; first exact: Poly_size.
   move=> k Hk; apply: Poly_nth; by [|rewrite Poly_size' in Hk].
 move=> x Hx.
-rewrite is_horner_pos XPoly_size
-  /FullXR.tadd /FullXR.tzero /FullXR.tpow /FullXR.tsub /FullXR.tmul //.
+rewrite is_horner_pos XPoly_size //.
 have Hbig : \big[Xadd/Xreal 0]_(i < n.+1)
   (PolX.tnth (XP xi0 n) i * (x - xi0) ^ i)%XR =
   \big[Xadd/(Xreal 0)]_(i < n.+1)
@@ -1192,10 +1189,10 @@ Definition Xdelta (n : nat) (xi0 x : ExtendedR) :=
 (* TODO: Notations for PolX.teval, etc., would be convenient *)
 
 Definition Xdelta_big (n : nat) (xi0 x : ExtendedR) :=
-  Xsub (XF0 x) (\big[Xadd/FullXR.tzero]_(i < n.+1) (PolX.tnth (XP xi0 n) i * (x - xi0) ^ i)%XR).
+  Xsub (XF0 x) (\big[Xadd/Xreal 0]_(i < n.+1) (PolX.tnth (XP xi0 n) i * (x - xi0) ^ i)%XR).
 
 Definition Xdelta_mask (n : nat) (xi0 x : ExtendedR) :=
-  Xsub (XF0 x) (Xmask (\big[Xadd/FullXR.tzero]_(i < n.+1) (PolX.tnth (XP xi0 n) i * (x - xi0) ^ i)%XR
+  Xsub (XF0 x) (Xmask (\big[Xadd/Xreal 0]_(i < n.+1) (PolX.tnth (XP xi0 n) i * (x - xi0) ^ i)%XR
 ) (x - xi0)%XR).
 
 Lemma Xdelta_idem (n : nat) (xi0 x : ExtendedR) :
@@ -1869,7 +1866,7 @@ case: n Hnot Hnot' =>[|nm1] Hnot Hnot'; last set n := nm1.+1.
       by move=> y; rewrite XDn_0.
     have := (Xderive_pt_mulXmask (proj_val (PolX.tnth (XP xi0 0) 0)) x).
     apply: Xderive_pt_eq_fun.
-    move=> y; rewrite is_horner_mask XPoly_size /FullXR.tmul /FullXR.tpow.
+    move=> y; rewrite is_horner_mask XPoly_size.
     case: y =>[//|r /=].
     rewrite (bigXadd_XP _(X:=I.convert X))// (bigXadd_real _(X:=I.convert X))//.
       rewrite XPoly_nth // big_ord_recl big_ord0; f_equal.
@@ -1898,7 +1895,7 @@ case: n Hnot Hnot' =>[|nm1] Hnot Hnot'; last set n := nm1.+1.
       by move=> y; rewrite XDn_0.
     have := (Xderive_pt_mulXmask (proj_val (PolX.tnth (XP xi0 0) 0)) x).
     apply: Xderive_pt_eq_fun.
-    move=> y; rewrite is_horner_mask XPoly_size /FullXR.tmul /FullXR.tpow.
+    move=> y; rewrite is_horner_mask XPoly_size.
     case: y =>[//|r /=].
     rewrite (bigXadd_XP _(X:=I.convert X))// (bigXadd_real _(X:=I.convert X))//.
       rewrite XPoly_nth // big_ord_recl big_ord0; f_equal.
@@ -2216,7 +2213,7 @@ have [Hex|Hnot] := Xnan_ex_or XDn n.+1 (I.convert X).
   rewrite Hn1 /= in HK.
   exact: contains_Xnan.
 rewrite /err /Ztech E1 E2 /=.
-set Delta := I.join (I.join _ _) _; rewrite /FullXR.tsub -/(Xdelta n xi0 x) -/(Xdelta0 x).
+set Delta := I.join (I.join _ _) _; rewrite -/(Xdelta n xi0 x) -/(Xdelta0 x).
 have [Hlower Hupper] := bounded_singleton_contains_lower_upper E2.
 have {Hlower} Hlower: contains
   (I.convert (Idelta (Ibnd2 (I.lower X))))
@@ -2485,7 +2482,7 @@ move=> r; case=> [/=|k].
   case: r=> [|r]=>//.
   case: cst Hcst => [|cst /=] Hcst=>//.
   rewrite zeroF; last by discrR.
-  by rewrite /= /FullXR.tzero; f_equal; field.
+  by rewrite /=; f_equal; field.
 rewrite /TX.Rec.cst_rec.
 case: cst Hcst; case: r => // a b Hb.
 rewrite [fact]lock /= -lock.
@@ -2675,7 +2672,7 @@ have Hr' := contains_not_empty _ _ Hr.
         set s := proj_val _.
         change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
         apply: I.sub_correct=>//.
-        rewrite /s PolX.tnth_polyCons // /FullXR.tmul Xmul_1_r Rplus_0_r /=.
+        rewrite /s PolX.tnth_polyCons // Xmul_1_r Rplus_0_r /=.
         have Hc : not_empty (I.convert c) by exists r.
         have := Imid_contains Hc.
         have Hc' : exists z : ExtendedR, contains (I.convert c) z
@@ -2686,7 +2683,6 @@ have Hr' := contains_not_empty _ _ Hr.
         change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
         apply: I.sub_correct=>//.
         rewrite /s PolX.tnth_set_nth /=.
-        rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
         rewrite PolX.tnth_polyCons // Xmul_1_r Rplus_0_r.
         have Hc : not_empty (I.convert c) by exists r.
         have := Imid_contains Hc.
@@ -2694,7 +2690,6 @@ have Hr' := contains_not_empty _ _ Hr.
           by exists (Xreal r).
         by have [{2}-> _] := I.midpoint_correct _ Hc'.
       move=> i _.
-      rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
       rewrite lift0 PolX.tnth_set_nth.
       case: (i.+1 == n.+1).
         case: i => m Hm.
@@ -2707,7 +2702,6 @@ have Hr' := contains_not_empty _ _ Hr.
         by rewrite Rmult_0_l.
       by rewrite !sizes.
     case => m /= Hm.
-    rewrite /FullXR.tadd /FullXR.tmul /FullXR.tzero /FullXR.tsub /FullXR.tcst.
     case: n Hm =>//=.
       rewrite !sizes ltnS leqn0.
       move/eqP->.
@@ -2719,11 +2713,10 @@ have Hr' := contains_not_empty _ _ Hr.
     rewrite !sizes maxnSS maxn0 ltnS => Hm.
     rewrite PolX.tnth_set_nth.
     case: (m == n.+1) =>//.
-      by rewrite [FullXR.tpow _ _ _]Xpow_idem Xpow_Xreal.
+      by rewrite [FullXR.tpow tt _ _]Xpow_idem Xpow_Xreal.
     case: m Hm => [|m Hm]; last by rewrite PolX.tnth_out ?sizes.
     move=> h0.
-    rewrite PolX.tnth_polyCons //.
-    rewrite /FullXR.tpow /=.
+    rewrite PolX.tnth_polyCons //=.
     have Hc' : exists z : ExtendedR, contains (I.convert c) z
       by exists (Xreal r).
     by have [{2}-> _] := I.midpoint_correct _ Hc'.
@@ -2763,25 +2756,25 @@ apply TM_rec2_correct with
   by apply I.mask_correct; apply: I.mask_correct;
   first by rewrite I.zero_correct; split; auto with real.
 move=> r k.
-rewrite /TX.Rec.var_rec /FullXR.tcst /FullXR.tzero.
+rewrite /TX.Rec.var_rec.
 rewrite [fact]lock /= -lock.
 case: r=> [|r].
   rewrite [fact]lock /= -lock.
   by case: k.
 case: k=> [|k].
   rewrite /= !zeroF; discrR.
-  by rewrite /= /FullXR.tzero; f_equal; field.
+  by rewrite /=; f_equal; field.
 rewrite [fact]lock /= -lock.
 rewrite !zeroF; discrR; first last.
     by apply: not_0_INR; apply: fact_neq_0.
   by apply: not_0_INR; apply: fact_neq_0.
 case: k=> [|k].
   rewrite /= !zeroF; discrR.
-  by rewrite /= /FullXR.tzero; f_equal; field.
+  by rewrite /=; f_equal; field.
 rewrite [fact]lock /= -lock.
 rewrite !zeroF; discrR.
   rewrite [fact]lock /= -lock.
-  rewrite /FullXR.tzero; f_equal; field.
+  f_equal; field.
   by apply: not_0_INR; apply: fact_neq_0.
 by apply: not_0_INR; apply: fact_neq_0.
 Qed.
@@ -2831,7 +2824,7 @@ Qed.
 Lemma tnth_pow_aux_rec (p : Z) (x : ExtendedR) n k :
   k <= n ->
   PolX.tnth
-  (PolX.trec1 (TX.Rec.pow_aux_rec tt p x) (FullXR.tpower_int tt x p) n) k =
+  (PolX.trec1 (TX.Rec.pow_aux_rec tt p x) (Xpower_int x p) n) k =
   if Z.ltb p Z0 || Z.geb p (Z.of_nat k) then
     Xpower_int x (p - Z.of_nat k)
   else Xmask (Xreal 0) x.
@@ -2906,7 +2899,7 @@ Lemma TM_power_int_correct (p : Z) X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
-  (fun x => FullXR.tpower_int tt x p).
+  (fun x => Xpower_int x p).
 Proof.
 move=> Hsubset [t Ht].
 eapply (i_validTM_Ztech
@@ -2930,7 +2923,6 @@ rewrite /T_power_int /TX.T_power_int.
 move=> x n' k Hk.
 rewrite PolX.tnth_dotmuldiv ?falling_seq_correct ?fact_seq_correct //.
 rewrite tnth_pow_aux_rec //.
-rewrite /FullXR.tmul /FullXR.tdiv /FullXR.tfromZ.
 rewrite big_mkord.
 rewrite bigXmul_Xreal_i.
 rewrite !Xdiv_split.
@@ -2969,9 +2961,9 @@ by rewrite size_rec1up.
 apply I.mul_correct.
 apply I.div_correct.
 rewrite falling_seq_correct.
-rewrite /tfromZ /FullXR.tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
+rewrite /tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
 by rewrite -ltnS.
-rewrite /tfromZ /FullXR.tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
+rewrite /tfromZ -Z2R_IZR;apply I.fromZ_correct. (*TODO:Refactor*)
 case: k m Hk=>[//|k] m Hk.
 rewrite trec1_spec0 PolX.trec1_spec0.
 exact: I.power_int_correct.
@@ -2988,7 +2980,7 @@ Qed.
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) (FullXR.tinv tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_inv /T_inv /=.
@@ -3005,7 +2997,7 @@ apply TM_rec1_correct' with
   apply: I.div_correct =>//.
   exact: I.neg_correct.
 move=> r k.
-rewrite /TX.Rec.inv_rec /FullXR.tdiv /FullXR.topp.
+rewrite /TX.Rec.inv_rec.
 rewrite !Xpow_idem !Xpow_Xreal.
 case r =>[|rr] //.
 rewrite !Xpow_Xreal /=.
@@ -3045,12 +3037,12 @@ Qed.
 Lemma TM_exp_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) (FullXR.texp tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) Xexp.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_exp /T_exp /=.
 apply TM_rec1_correct' with
-  (XDn := fun n x => FullXR.texp tt x)
+  (XDn := fun n x => Xexp x)
   (F_rec := fun _ => Rec.exp_rec prec)
   (XF_rec := fun _ => TX.Rec.exp_rec tt) =>//.
 - by move=> ?; apply: nth_Xderive_pt_exp.
@@ -3058,13 +3050,13 @@ apply TM_rec1_correct' with
 - move=> x0 x X1 X2 m HX1 HX2.
   rewrite /Rec.exp_rec /TX.Rec.exp_rec.
   apply: I.div_correct =>//.
-  rewrite /tnat /FullXR.tnat.
+  rewrite /tnat.
   rewrite INR_IZR_INZ -Z2R_IZR.
   exact: I.fromZ_correct.
 move=> r k.
-rewrite /TX.Rec.exp_rec /FullXR.texp /FullXR.tdiv /FullXR.tnat.
+rewrite /TX.Rec.exp_rec.
 case Cex: (Xexp r) =>[//|re].
-rewrite /Xdiv /FullXR.tnat !(fact_zeroF) zeroF.
+rewrite /Xdiv !(fact_zeroF) zeroF.
   congr Xreal.
   rewrite S_INR /= plus_INR mult_INR; field.
   split.
@@ -3087,7 +3079,7 @@ Qed.
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) (FullXR.tsqrt tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
 Proof.
 move=> Hsubset Hex.
 apply TM_rec1_correct' with
@@ -3100,14 +3092,13 @@ apply TM_rec1_correct' with
 - move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.sqrt_rec /TX.Rec.sqrt_rec.
   by apply:I.div_correct=>//; apply: I.mul_correct =>//;
    [apply: I.sub_correct; try apply: I.mul_correct | apply: I.mul_correct| ];
-   rewrite // /tnat /FullXR.tnat INR_IZR_INZ -Z2R_IZR;
+   rewrite // /tnat INR_IZR_INZ -Z2R_IZR;
    apply: I.fromZ_correct.
 move=> r k.
 have h2n0 : (2 <> 0)%Re.
   move/Rlt_not_eq: Rlt_0_2 => // Hdiff Heq.
   by rewrite Heq in Hdiff.
-rewrite /TX.Rec.sqrt_rec /FullXR.tsqrt /FullXR.tdiv /FullXR.tnat /FullXR.tmul
-       /FullXR.tsub.
+rewrite /TX.Rec.sqrt_rec.
 set b1 := \big[Xmul/Xreal 1]_(i < k) _.
 set b2 := \big[Xmul/Xreal 1]_(i < k.+1) _.
 set s := (_ - _)%XR.
@@ -3151,7 +3142,7 @@ by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
 Qed.
 
 Ltac Inc :=
-  rewrite /tnat /FullXR.tnat INR_IZR_INZ -Z2R_IZR;
+  rewrite /tnat INR_IZR_INZ -Z2R_IZR;
   apply: I.fromZ_correct.
 
 Lemma TM_invsqrt_correct X0 X n :
@@ -3166,7 +3157,7 @@ apply TM_rec1_correct' with
   (XF_rec := TX.Rec.invsqrt_rec tt)
 =>//.
 - by move=> x; apply: nth_Xderive_pt_invsqrt.
-- move=> x X1 HX1;rewrite /tinvsqrt /FullXR.tinvsqrt.
+- move=> x X1 HX1;rewrite /tinvsqrt.
   by apply: I.inv_correct; apply: I.sqrt_correct.
 - move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.invsqrt_rec /TX.Rec.invsqrt_rec.
   apply:I.div_correct; apply:I.mul_correct=> //;try Inc.
@@ -3174,8 +3165,7 @@ apply TM_rec1_correct' with
     by apply:I.mul_correct; Inc.
   by apply:I.mul_correct=>//; Inc.
 move=> r k.
-rewrite /TX.Rec.invsqrt_rec /FullXR.tmul /FullXR.topp /FullXR.tadd
-    /FullXR.tdiv /FullXR.tnat.
+rewrite /TX.Rec.invsqrt_rec.
 have -> : (k.+1.-1) = k by [].
 set b := \big[Xmul/Xreal 1]_ _ _.
 rewrite Xmul_comm !Xdiv_split big_ord_recr /b {b} !Xmul_assoc; congr Xmul.
@@ -3212,12 +3202,12 @@ Qed.
 Lemma TM_sin_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) (FullXR.tsin tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) Xsin.
 Proof.
 move=> Hsubset Hex.
 apply TM_rec2_correct' with
   (XDn := nth_Xsin)
-  (XF1 := FullXR.tcos tt)
+  (XF1 := Xcos)
   (F_rec := fun _ => Rec.sin_rec prec)
   (XF_rec := fun _ => TX.Rec.sin_rec tt)
 =>//.
@@ -3228,16 +3218,16 @@ apply TM_rec2_correct' with
   apply: I.div_correct.
   apply: I.neg_correct; first done.
   apply: I.mul_correct.
-    rewrite /tnat /FullXR.tnat.
+    rewrite /tnat.
     rewrite INR_IZR_INZ.
     rewrite -Z2R_IZR.
     by apply: I.fromZ_correct.
-  rewrite /tnat /FullXR.tnat.
+  rewrite /tnat.
   rewrite INR_IZR_INZ.
   rewrite -Z2R_IZR.
   by apply: I.fromZ_correct.
 move=> r k; rewrite /TX.Rec.sin_rec.
-rewrite succnK /FullXR.tdiv /FullXR.topp /FullXR.tmul /FullXR.tnat.
+rewrite succnK.
 suff->: nth_Xsin k.+2 r = (- nth_Xsin k r)%XR.
   case cn : (nth_Xsin k r) => [|sk] //.
   xtotal.
@@ -3265,12 +3255,12 @@ Qed.
 Lemma TM_cos_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) (FullXR.tcos tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) Xcos.
 Proof.
 move=> Hsubset Hex.
 apply TM_rec2_correct' with
   (XDn := nth_Xcos)
-  (XF1 := fun x => FullXR.topp (FullXR.tsin tt x))
+  (XF1 := fun x => Xneg (Xsin x))
   (F1 := fun x => topp (tsin prec x))
   (F_rec := fun _ => Rec.cos_rec prec)
   (XF_rec := fun _ => TX.Rec.cos_rec tt)
@@ -3282,16 +3272,16 @@ apply TM_rec2_correct' with
   apply: I.div_correct.
     exact: I.neg_correct.
   apply: I.mul_correct.
-    rewrite /tnat /FullXR.tnat.
+    rewrite /tnat.
     rewrite INR_IZR_INZ.
     rewrite -Z2R_IZR.
     exact: I.fromZ_correct.
-  rewrite /tnat /FullXR.tnat.
+  rewrite /tnat.
   rewrite INR_IZR_INZ.
   rewrite -Z2R_IZR.
   exact: I.fromZ_correct.
 move=> r k; rewrite /TX.Rec.cos_rec.
-rewrite succnK /FullXR.tdiv /FullXR.topp /FullXR.tmul /FullXR.tnat.
+rewrite succnK.
 suff->: nth_Xcos k.+2 r = (- nth_Xcos k r)%XR.
   case cn : (nth_Xcos k r) => [|sk] //.
   xtotal.
@@ -3316,8 +3306,8 @@ rewrite /=; case cn : (nth_Xcos k r) => [|ns] //=.
 f_equal; ring.
 Qed.
 
-Local Notation "a + b" := (FullXR.tadd tt a b).
-Local Notation "a - b" := (FullXR.tsub tt a b).
+Local Notation "a + b" := (Xadd a b).
+Local Notation "a - b" := (Xsub a b).
 
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
@@ -3334,11 +3324,12 @@ rewrite Heq maxnn in Hsize.
 case Eg : (PolX.tsize pg) => [| n'].
   rewrite !PolX.is_horner Heq Hsize Eg !big_ord0.
   by case x => [|rx] //=; rewrite Rplus_0_l.
-rewrite !is_horner_pos /FullXR.tadd /FullXR.tzero.
+rewrite !is_horner_pos.
 - rewrite Heq Hsize Eg.
   rewrite -big_split /=.
   apply: eq_bigr => i _; rewrite PolX.tnth_tadd.
-    by rewrite FullXR.tmul_distrl.
+    (* OLD CODE: by rewrite FullXR.tmul_distrl. *)
+    by rewrite Xmul_Xadd_distr_r.
 - by rewrite Heq Eg minnn.
 - by rewrite Eg.
 - by rewrite Heq Eg.
@@ -3354,7 +3345,7 @@ have Hsize := PolX.tsize_opp pf.
 case Ef : (PolX.tsize pf) => [| n'].
   rewrite !PolX.is_horner Hsize Ef !big_ord0.
   by case x => [|rx] //=; rewrite Ropp_0.
-rewrite !is_horner_pos /FullXR.tsub /FullXR.tzero; first last.
+rewrite !is_horner_pos; first last.
   by rewrite PolX.tsize_opp Ef.
   by rewrite Ef.
 rewrite Hsize Ef.
@@ -3362,7 +3353,7 @@ rewrite (big_morph Xneg (id1 := Xreal 0) (op1 := Xadd)).
 apply: eq_bigr.
 move=> i _.
 rewrite PolX.tnth_opp.
-by rewrite [FullXR.tmul _ _ _]Xmul_Xneg_distr_l.
+by rewrite Xmul_Xneg_distr_l.
 case: i.
 by rewrite Ef.
 by move=>*; rewrite Xneg_Xadd.
@@ -3381,7 +3372,7 @@ rewrite Heq maxnn in Hsize.
 case Eg : (PolX.tsize pg) => [| n'].
   rewrite !PolX.is_horner Heq Hsize Eg !big_ord0.
   by case x => [|rx] //=; rewrite Rminus_0_r.
-rewrite !is_horner_pos /FullXR.tsub /FullXR.tzero; first last.
+rewrite !is_horner_pos; first last.
   by rewrite PolX.tsize_sub Heq Eg maxnn.
   by rewrite Heq Eg.
   by rewrite Eg.
@@ -3391,8 +3382,8 @@ rewrite Heq Hsize Eg -big_split /=.
 apply: eq_bigr.
 move=> i _.
 rewrite PolX.tnth_sub.
-rewrite [FullXR.tsub _ _ _]Xsub_split.
-rewrite [FullXR.tmul _ _ _]Xmul_Xadd_distr_r //=.
+rewrite Xsub_split.
+rewrite Xmul_Xadd_distr_r //=.
 by rewrite Xmul_Xneg_distr_l.
 case: i.
 by move=>*; rewrite Heq Eg minnn.
@@ -3407,7 +3398,7 @@ Lemma TM_add_correct_gen (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
   i_validTM smallX0 (I.convert X) (TM_add TMf TMg)
-  (fun xr => FullXR.tadd tt (f xr) (g xr)).
+  (fun xr => Xadd (f xr) (g xr)).
 Proof.
 move=> HinX Heq [Hef H0 Hf] [Heg _ Hg].
 split=>//.
@@ -3433,8 +3424,8 @@ rewrite teval_add; last by rewrite Hf1 Hg1 Heq.
 suff->: f x + g x - (PolX.teval tt pf (x - x0) + PolX.teval tt pg (x - x0))
   = f x - PolX.teval tt pf (x - x0) + (g x - PolX.teval tt pg (x - x0)).
   by apply: I.add_correct; [apply: Hf3|apply: Hg3].
-rewrite /FullXR.tsub 4!Xsub_split Xadd_assoc.
-by rewrite Xneg_Xadd /FullXR.tadd Xadd_assoc 2!(Xadd_comm (g x)) !Xadd_assoc.
+rewrite 4!Xsub_split Xadd_assoc.
+by rewrite Xneg_Xadd Xadd_assoc 2!(Xadd_comm (g x)) !Xadd_assoc.
 Qed.
 
 Lemma TM_add_correct (X0 X : I.type) (TMf TMg : rpa) f g :
@@ -3442,7 +3433,7 @@ Lemma TM_add_correct (X0 X : I.type) (TMf TMg : rpa) f g :
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X) (TM_add TMf TMg)
-  (fun xr => FullXR.tadd tt (f xr) (g xr)).
+  (fun xr => Xadd (f xr) (g xr)).
 Proof.
 move=> Heq Hf Hg.
 case Hf => [_ H0 _].
@@ -3452,7 +3443,7 @@ Qed.
 Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
   i_validTM X0 X TMf f ->
   i_validTM X0 X (TM_opp TMf)
-  (fun xr => FullXR.topp (f xr)).
+  (fun xr => Xneg (f xr)).
 Proof.
 move=> [Hsubset Hzero /= Hmain].
 split=>//.
@@ -3471,7 +3462,7 @@ rewrite PolX.tnth_opp // tnth_opp //.
 apply: I.neg_correct.
 exact: Hcont.
 move=> x Hx.
-rewrite /FullXR.topp /FullXR.tsub Xsub_split -Xneg_Xadd.
+rewrite Xsub_split -Xneg_Xadd.
 apply: I.neg_correct.
 rewrite teval_opp -Xsub_split.
 exact: Hdelta.
@@ -3482,7 +3473,7 @@ Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
   i_validTM X0 X TMf f ->
   i_validTM X0 X TMg g ->
   i_validTM X0 X (TM_sub TMf TMg)
-  (fun xr => FullXR.tsub tt (f xr) (g xr)).
+  (fun xr => Xsub (f xr) (g xr)).
 Proof.
 move=> Hsame [Hzero1 Hsubset1 /= Hmain1] [Hzero2 _ /= Hmain2].
 split=>//.
@@ -3504,7 +3495,7 @@ move=> x Hx.
 have->: f x - g x - PolX.teval tt (PolX.tsub tt a b) (x - x0)
   = (f x - PolX.teval tt a (x - x0)) - (g x - PolX.teval tt b (x - x0)).
   rewrite teval_sub; last by rewrite Hsize1 Hsize2 Hsame.
-  rewrite /FullXR.tsub !(Xsub_split,Xneg_Xadd).
+  rewrite !(Xsub_split,Xneg_Xadd).
   rewrite !Xadd_assoc; congr Xadd.
   rewrite -!Xadd_assoc; congr Xadd.
   by rewrite Xadd_comm.
@@ -3596,13 +3587,13 @@ split.
   move/(_ x Hx) in Heval.
   clear - Heval Hy.
   rewrite !is_horner_mask in Heval *.
-  set sub2 := FullXR.tsub tt _ _.
-  set sub1 := FullXR.tsub tt _ _ in Heval.
+  set sub2 := Xsub _ _.
+  set sub1 := Xsub _ _ in Heval.
   suff->: sub2 = Xmul (Xreal y) sub1 by exact: I.mul_correct.
   rewrite XmulC.
-  rewrite /sub1 /FullXR.tsub Xsub_split Xmul_Xadd_distr_r.
+  rewrite /sub1 Xsub_split Xmul_Xadd_distr_r.
   rewrite /sub2 XmulC /=.
-  rewrite /FullXR.tsub {1}Xsub_split.
+  rewrite {1}Xsub_split.
   congr Xadd.
   rewrite Xmul_Xneg_distr_l.
   congr Xneg.
@@ -3610,11 +3601,10 @@ split.
   rewrite MapX.tsize_polymap.
   set lhs := @bigop _ _ _ _ _.
   have->: lhs = \big[Xadd/Xreal 0]_(i < PolX.tsize q)
-  (Xmul (FullXR.tmul tt (PolX.tnth q i)
+  (Xmul (Xmul (PolX.tnth q i)
   (FullXR.tpow tt (Xreal r) i)) (Xreal y)).
     apply: eq_bigr.
       move=> i _; rewrite MapX.tnth_polymap.
-      rewrite /FullXR.tmul.
       by rewrite XmulC XmulA XmulC XmulA.
     by case: i.
   by rewrite big_Xmul_Xadd_distr.
@@ -3716,12 +3706,12 @@ split.
   move/(_ x Hx) in Heval.
   clear - Heval Hy Hy0.
   rewrite !is_horner_mask in Heval *.
-  set sub2 := FullXR.tsub tt _ _.
-  set sub1 := FullXR.tsub tt _ _ in Heval.
+  set sub2 := Xsub _ _.
+  set sub1 := Xsub _ _ in Heval.
   suff->: sub2 = Xdiv sub1 (Xreal y) by exact: I.div_correct.
-  rewrite /sub1 /FullXR.tsub Xsub_split Xdiv_split Xmul_Xadd_distr_r.
+  rewrite /sub1 Xsub_split Xdiv_split Xmul_Xadd_distr_r.
   rewrite /sub2 XmulC /=.
-  rewrite /FullXR.tsub {1}Xsub_split.
+  rewrite {1}Xsub_split.
   congr Xadd.
   by rewrite Xdiv_split /= zeroF // XmulC.
   rewrite Xmul_Xneg_distr_l.
@@ -3730,11 +3720,11 @@ split.
   rewrite MapX.tsize_polymap.
   set lhs := @bigop _ _ _ _ _.
   have->: lhs = \big[Xadd/Xreal 0]_(i < PolX.tsize q)
-  (Xmul (FullXR.tmul tt (PolX.tnth q i)
+  (Xmul (Xmul (PolX.tnth q i)
   (FullXR.tpow tt (Xreal r) i)) (Xinv (Xreal y))).
     apply: eq_bigr.
       move=> i _; rewrite MapX.tnth_polymap.
-      rewrite /FullXR.tdiv !Xdiv_split /= zeroF // /FullXR.tmul.
+      rewrite !Xdiv_split /= zeroF //.
       by rewrite -!XmulA; congr Xmul; rewrite XmulC.
     by case: i.
   rewrite /= zeroF //.
@@ -3819,7 +3809,7 @@ elim/PolX.tpoly_ind: p k Hk Heq =>[|a p IHp] k Hk Heq.
 rewrite PolX.tsize_polyCons in Hk.
 case ck: k => [|k']; rewrite ck in IHp Heq.
   rewrite PolX.tnth_polyCons // in Heq.
-  by rewrite PolX.teval_polyCons Heq /FullXR.tadd Xadd_comm.
+  by rewrite PolX.teval_polyCons Heq Xadd_comm.
 rewrite ck /= in Hk.
 rewrite -(addn1 k') -(addn1 (PolX.tsize p)) ltn_add2r in Hk.
 rewrite PolX.tnth_polyCons // in Heq.
@@ -3897,7 +3887,7 @@ Lemma TM_mul_correct_gen (smallX0: interval) (X0 X: I.type) (TMf TMg: rpa) f g :
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
   i_validTM smallX0 (I.convert X) (TM_mul TMf TMg X0 X n.-1)
-  (fun xr => FullXR.tmul tt (f xr) (g xr)).
+  (fun xr => Xmul (f xr) (g xr)).
 Proof.
 move=> HinX0 HinX [t Ht] n Heq npos
         [Hef H0 Hf] [Heg _ Hg].
@@ -3913,7 +3903,7 @@ split=>//.
       exact: subset_sub_contains_0 Hint _.
     set ip := tmul_tail _ _ _.
     set rp := PolX.tmul_tail _ _ _.
-    rewrite /FullXR.tsub Xsub_split Xadd_Xneg.
+    rewrite Xsub_split Xadd_Xneg.
     apply: Bnd.ComputeBound_correct; first split.
     - by rewrite PolX.tsize_mul_tail tsize_mul_tail Af1 Ag1.
     - move=> k Hk; apply:Link.link_tmul_tail=>//.
@@ -3949,7 +3939,7 @@ split; first by rewrite PolX.tsize_mul_trunc /N /= tsize_mul_trunc.
 move=> x Hx /=.
 move:(Hg3 x Hx) (Hf3 x Hx)=> {Hf3} {Hg3} Hg3 Hf3.
 rewrite /mul_error.
-suff->: (FullXR.tmul tt (f x) (g x) -
+suff->: (Xmul (f x) (g x) -
   PolX.teval tt (PolX.tmul_trunc tt n.-1 pf pg) (x - x0))
   = (PolX.teval tt (PolX.tmul_tail tt n.-1 pf pg) (x-x0) * (x-x0)^n.-1.+1 +
   ((f x - PolX.teval tt pf (x - x0)) * (PolX.teval tt pg (x - x0)) +
@@ -3977,32 +3967,30 @@ clear Hf Hf2 Hf3 Hg Hg2 Hg3.
 set sf := PolX.teval tt pf (x - x0).
 set sg := PolX.teval tt pg (x - x0).
 (****************)
-rewrite /FullXR.tsub /FullXR.tmul.
 case cxx0 : (x - x0)%XR => [|rxx0] /=.
   rewrite [(_ * Xnan)%XR]Xmul_comm /=.
-  by rewrite teval_in_nan /FullXR.tsub Xsub_split Xadd_comm.
+  by rewrite teval_in_nan Xsub_split Xadd_comm.
 case cn : n => [|n'] /=.
   rewrite cn in Heq.
   rewrite -/n cn in Hf1.
   rewrite -Heq in Hg1.
   rewrite /sf /sg (@tpolyNil_size0 pf) // (@tpolyNil_size0 pg) //.
-  rewrite PolX.teval_polyNil /FullXR.tsub cxx0 /=.
+  rewrite PolX.teval_polyNil cxx0 /=.
   have Htail : PolX.tsize (PolX.tmul_tail tt 0 PolX.tpolyNil PolX.tpolyNil) = 0.
     by rewrite PolX.tsize_mul_tail PolX.tsize_polyNil //=.
-  rewrite (@tpolyNil_size0 _ Htail) PolX.teval_polyNil /FullXR.tzero /FullXR.tcst.
+  rewrite (@tpolyNil_size0 _ Htail) PolX.teval_polyNil.
   rewrite PolX.is_horner /=.
   rewrite PolX.tsize_mul_trunc
-    /FullXR.tadd /FullXR.tzero /FullXR.tmul /FullXR.tpow /=.
+    /=.
   rewrite big_ord_recr /= big_ord0 PolX.tmul_trunc_nth //.
-  rewrite big_ord_recr big_ord0 /FullXR.tmul /FullXR.tzero /= subnn.
+  rewrite big_ord_recr big_ord0 /= subnn.
   rewrite PolX.tnth_polyNil /=.
   case (f x) => [|rf] //=.
   case (g x) => [|rg] //=.
   by f_equal; ring.
 (**************** finished polyNil ****************)
 rewrite 2!PolX.is_horner /=.
-rewrite PolX.tsize_mul_trunc PolX.tsize_mul_tail
- /FullXR.tadd /FullXR.tzero /FullXR.tmul /FullXR.tpow /=.
+rewrite PolX.tsize_mul_trunc PolX.tsize_mul_tail /=.
  have ->:
 \big[Xadd/Xreal 0]_(i < n'.+1) (PolX.tnth (PolX.tmul_trunc tt n' pf pg) i *
                                  Xreal rxx0 ^ i)%XR =
@@ -4097,14 +4085,12 @@ case: Hfr => [rf Hrf].
 case: Hgr => [rg Hrg].
 have H1 : sf = Xreal (\big[Rplus/R0]_(i < n'.+1) (rf i * rxx0^i)%Re).
   rewrite /sf is_horner_pos Hf1 //.
-  rewrite /FullXR.tmul /FullXR.tadd /FullXR.tzero /FullXR.tpow /FullXR.tsub.
   have -> : \big[Xadd/Xreal 0]_(i < n'.+1) (PolX.tnth pf i * (x - x0) ^ i)%XR =
    \big[Xadd/Xreal 0]_(i < n'.+1) Xreal (rf i * rxx0^i)%Re.
     by apply: eq_bigr=> i _; rewrite cxx0 Hrf Xpow_idem Xpow_Xreal.
   by rewrite bigXadd_Xreal_i.
 have H2 : sg = Xreal (\big[Rplus/R0]_(i < n'.+1) (rg i * rxx0^i)%Re).
   rewrite /sg is_horner_pos Hg1 //.
-  rewrite /FullXR.tmul /FullXR.tadd /FullXR.tzero /FullXR.tpow /FullXR.tsub.
   have -> : \big[Xadd/Xreal 0]_(i < n'.+1) (PolX.tnth pg i * (x - x0) ^ i)%XR =
    \big[Xadd/Xreal 0]_(i < n'.+1) Xreal (rg i * rxx0^i)%Re.
     by apply: eq_bigr=> i _; rewrite cxx0 Hrg Xpow_idem Xpow_Xreal.
@@ -4197,7 +4183,7 @@ Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X) (TM_mul TMf TMg X0 X n.-1)
-  (fun xr => FullXR.tmul tt (f xr) (g xr)).
+  (fun xr => Xmul (f xr) (g xr)).
 Proof.
 move=> Ht H1 H2 Hpos [Hef H0 Hf] Hg.
 rewrite H1.
@@ -4257,8 +4243,8 @@ Lemma poly_eval_tm_correct_aux_gen smallX0 X0 X Mf f pi :
   (forall k, k < n -> contains (I.convert (tnth pi k)) (PolX.tnth pr k)) ->
   i_validTM smallX0 (I.convert X) (poly_eval_tm nf pi Mf X0 X)
   (fun x => @PolX.tfold _
-    (fun a b => FullXR.tadd tt a (FullXR.tmul tt b (f x)))
-    (Xmask FullXR.tzero x) pr).
+    (fun a b => Xadd a (Xmul b (f x)))
+    (Xmask (Xreal 0) x) pr).
 Proof.
 move=> Hsmall Hin Hts Hnan [Hf0 Hf1 Hf2] n nf Hnf px Hsize Hnth.
 have Ht : exists t, contains (I.convert X0) t.
@@ -4269,7 +4255,7 @@ rewrite /n {n} in Hsize Hnth.
 elim/tpoly_ind: pi px Hsize Hnth =>[|ai pi IHpi];
   elim/PolX.tpoly_ind => [|ax px IHpx] Hsize Hnth.
 + rewrite /poly_eval_tm tfold_polyNil.
-  apply: (TM_fun_eq (f := fun x => Xmask FullXR.tzero x)).
+  apply: (TM_fun_eq (f := fun x => Xmask (Xreal 0) x)).
     by move=> *; rewrite PolX.tfold_polyNil.
   apply: (@i_validTM_subset_X0 X0) =>//.
   apply: TM_cst_correct =>//.
@@ -4279,12 +4265,12 @@ elim/tpoly_ind: pi px Hsize Hnth =>[|ai pi IHpi];
 clear IHpx.
 rewrite /poly_eval_tm tfold_polyCons.
 apply: (TM_fun_eq (f := fun x =>
-  (Xmask ax x) + FullXR.tmul tt (@PolX.tfold ExtendedR
-  (fun (a1 : FullXR.T) (b : ExtendedR) => a1 + FullXR.tmul tt b (f x))
-  (Xmask FullXR.tzero x) px) (f x))).
+  (Xmask ax x) + Xmul (@PolX.tfold ExtendedR
+  (fun (a1 : FullXR.T) (b : ExtendedR) => a1 + Xmul b (f x))
+  (Xmask (Xreal 0) x) px) (f x))).
   move=> x; rewrite PolX.tfold_polyCons.
   case cx : x =>//.
-  by rewrite Hnan /FullXR.tmul /FullXR.tadd Xmul_comm /= Xadd_comm.
+  by rewrite Hnan Xmul_comm /= Xadd_comm.
 apply: TM_add_correct_gen =>//.
 - by rewrite size_TM_mul /TM_cst tsize_trec1.
 - apply: (@i_validTM_subset_X0 X0) =>//.
@@ -4297,8 +4283,8 @@ rewrite -/(poly_eval_tm nf pi Mf X0 X).
 have H1 := @TM_mul_correct_gen smallX0 X0 X (poly_eval_tm nf pi Mf X0 X) Mf
   (fun xr : ExtendedR =>
     (@PolX.tfold ExtendedR
-    (fun (a1 : FullXR.T) (b : ExtendedR) => a1 + FullXR.tmul tt b (f xr))
-    (Xmask FullXR.tzero xr) px)) f Hsmall Hin Hts.
+    (fun (a1 : FullXR.T) (b : ExtendedR) => a1 + Xmul b (f xr))
+    (Xmask (Xreal 0) xr) px)) f Hsmall Hin Hts.
 rewrite size_poly_eval_tm Hnf in H1.
 apply: H1 =>//.
 apply: IHpi.
@@ -4333,8 +4319,8 @@ have HH := @poly_eval_tm_correct_aux_gen smallX0
     X0 X Mf f p HinX0 HinX H Hnan H0 nf Hnf pr H1 H2.
 apply: (TM_fun_eq (f := (fun x : ExtendedR =>
     @PolX.tfold ExtendedR
-    (fun (a : FullXR.T) (b : ExtendedR) => a + FullXR.tmul tt b (f x))
-    (Xmask FullXR.tzero x) pr))) =>// x Hx.
+    (fun (a : FullXR.T) (b : ExtendedR) => a + Xmul b (f x))
+    (Xmask (Xreal 0) x) pr))) =>// x Hx.
 rewrite Hn in H1.
 clear H2 HH Hn.
 elim/PolX.tpoly_ind: pr n H1 => [|ar pr IHpr] n H1.
@@ -4345,12 +4331,11 @@ elim/PolX.tpoly_ind: pr ar H1 IHpr => [|a2 p2 IHp2] ar H1 IHpr.
     rewrite PolX.tfold_polyNil.
     rewrite big_ord_recl.
     rewrite PolX.tsize_polyNil big_ord0 PolX.tnth_polyCons //=.
-    rewrite /FullXR.tzero /FullXR.tpow /FullXR.tmul /=.
     case cx : x => [|rx].
-      by rewrite /= /FullXR.tadd Xadd_comm Xmul_comm Hnan.
+      by rewrite /= Xadd_comm Xmul_comm Hnan.
     case cfx : (f (Xreal rx)) => [|rfx].
-      by rewrite /= /FullXR.tadd Xadd_comm Xmul_comm.
-    rewrite /= /FullXR.tadd /Xpow /=.
+      by rewrite /= Xadd_comm Xmul_comm.
+    rewrite /= /Xpow /=.
     by case ca : ar => //=; f_equal; ring.
   by rewrite PolX.tsize_polyCons.
 clear IHp2.
@@ -4359,7 +4344,6 @@ rewrite is_horner_pos.
   move/(_ (PolX.tsize p2)) in IHpr.
   rewrite IHpr.
     rewrite big_ord_recl.
-    rewrite /FullXR.tmul /FullXR.tzero /FullXR.tadd.
     rewrite PolX.tnth_polyCons //=.
     case E: (f x)=> [|r].
       rewrite Xmul_comm /=.
@@ -4371,8 +4355,7 @@ rewrite is_horner_pos.
       case: (ar) =>//.
       by move=> r'; simpl; f_equal; ring.
     congr Xadd.
-    rewrite PolX.is_horner /= /FullXR.tadd /FullXR.tzero /FullXR.tmul
-      /FullXR.tpow.
+    rewrite PolX.is_horner /=.
     rewrite PolX.tsize_polyCons.
     have->: (\big[Xadd/Xreal 0]_(i < (PolX.tsize p2).+1)
       (PolX.tnth (PolX.tpolyCons a2 p2) i * Xreal r ^ i) * Xreal r)%XR
@@ -4404,8 +4387,8 @@ Lemma poly_eval_tm_correct_aux X0 X Mf f p :
   (forall k, k < n -> contains (I.convert (tnth p k)) (PolX.tnth pr k)) ->
   i_validTM (I.convert X0) (I.convert X) (poly_eval_tm nf p Mf X0 X)
   (fun x => @PolX.tfold _
-    (fun a b => FullXR.tadd tt a (FullXR.tmul tt b (f x)))
-    (Xmask FullXR.tzero x) pr).
+    (fun a b => Xadd a (Xmul b (f x)))
+    (Xmask (Xreal 0) x) pr).
 Proof.
 move=> Ht Hnan [Hf0 Hf1 Hf2] n nf Hnf px Hsize Hnth.
 apply: poly_eval_tm_correct_aux_gen =>//.
@@ -4490,9 +4473,6 @@ rewrite (appP idP maxn_idPr) //.
 rewrite big_ord_recl.
 rewrite big_ord_recl in Herr.
 rewrite /ord0 /= PolX.tnth_set_nth eqxx.
-rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero.
-rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero
-  in Herr.
 case E: fi0 => [|r].
   subst.
   rewrite !Xsub_split in Herr.
@@ -4602,9 +4582,6 @@ split=>//.
       rewrite big_ord_recl.
       rewrite big_ord_recl in Herr.
       rewrite /ord0 /= PolX.tnth_set_nth eqxx.
-      rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero.
-      rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero
-       in Herr.
       case E: t => [|r].
         subst.
         rewrite !Xsub_split in Herr.
@@ -4723,9 +4700,6 @@ have H_TMset0 :
   rewrite big_ord_recl.
   rewrite big_ord_recl in Herr.
   rewrite /ord0 /= PolX.tnth_set_nth eqxx.
-  rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero.
-  rewrite /FullXR.tadd /FullXR.tmul /FullXR.tsub /FullXR.tpow /FullXR.tzero
-   in Herr.
 
   case E: fi0 => [|r].
     subst.
@@ -4816,7 +4790,7 @@ case cf : fi0 => [|r].
       elim/PolX.tpoly_ind: prg Hprg1 Hprg2 Hprg3 Hpe Hpe3
           => [|ag pg Hpg] Hprg1 Hprg2 Hprg3 Hpe Hpe3.
         by rewrite PolX.teval_polyNil.
-      by rewrite PolX.teval_polyCons /= /FullXR.tmul Xmul_comm.
+      by rewrite PolX.teval_polyCons /= Xmul_comm.
     rewrite Heqnan in Hpe.
     case c : (I.convert erpe) => [|l u] //.
     by rewrite c in Hpe.
@@ -4861,7 +4835,7 @@ set a := (PolX.teval tt prg (f x - PolX.tnth pr 0)).
 rewrite -/a in Hpe H.
 case ca : a => [|ra].
   rewrite ca /= in Hpe H.
-  rewrite /FullXR.tsub Xsub_split Xadd_comm /= in H.
+  rewrite Xsub_split Xadd_comm /= in H.
   rewrite (@Iadd_Inan_propagate_l _ Xnan) => //=.
   by case: (I.convert erpe) Hpe.
 suff->: (g (f x) - PolX.teval tt cn (x - Xreal r))
@@ -4880,7 +4854,7 @@ Lemma TM_inv_comp_correct (X0 X : I.type) (TMf : rpa) f :
   forall n, Pol.tsize (approx TMf) = n.+1 ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X)
-  (TM_inv_comp TMf X0 X n) (fun xr => FullXR.tinv tt (f xr)).
+  (TM_inv_comp TMf X0 X n) (fun xr => Xinv (f xr)).
 Proof.
 move=> Hnan Ht n Hn Hf.
 apply: TM_comp_correct=> //.
@@ -4900,12 +4874,12 @@ Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X)
-  (TM_div TMf TMg X0 X n.-1) (fun xr => FullXR.tdiv tt (f xr) (g xr)).
+  (TM_div TMf TMg X0 X n.-1) (fun xr => Xdiv (f xr) (g xr)).
 Proof.
 move=> Hnan Hex Hn1 Hn2 Hnpos Hf Hg.
 apply: (TM_fun_eq (f :=
-  fun xr => FullXR.tmul tt (f xr) (FullXR.tinv tt (g xr)))).
-  by move=> x; rewrite /FullXR.tdiv Xdiv_split.
+  fun xr => Xmul (f xr) (Xinv (g xr)))).
+  by move=> x; rewrite Xdiv_split.
 rewrite /TM_div.
 apply: TM_mul_correct =>//; first by rewrite size_poly_eval_tm (prednK Hnpos).
 apply TM_inv_comp_correct =>//.

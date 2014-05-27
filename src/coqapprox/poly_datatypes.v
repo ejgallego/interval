@@ -40,12 +40,12 @@ Module Type BaseOps.
 Parameter U : Type.
 Parameter T : Type.
 
-Parameter tzero : T.
-Parameter tone : T.
-Parameter topp : T -> T.
-Parameter tadd : U -> T -> T -> T.
-Parameter tsub : U -> T -> T -> T.
-Parameter tmul : U -> T -> T -> T.
+Parameter Inline tzero : T.
+Parameter Inline tone : T.
+Parameter Inline topp : T -> T.
+Parameter Inline tadd : U -> T -> T -> T.
+Parameter Inline tsub : U -> T -> T -> T.
+Parameter Inline tmul : U -> T -> T -> T.
 End BaseOps.
 
 (* REM: We may use the new notation features of Coq 8.4 w.r.t. modules.
@@ -62,31 +62,31 @@ End Nota.
 *)
 
 Module Type SliceMaskBaseOps (Import A : BaseOps).
-Parameter tcst : T -> T -> T. (** the first argument is the constant *)
-Parameter tnat : nat -> T.
-Parameter tfromZ : Z -> T.
+Parameter Inline tcst : T -> T -> T. (** the first argument is the constant *)
+Parameter Inline tnat : nat -> T.
+Parameter Inline tfromZ : Z -> T.
 End SliceMaskBaseOps.
 
 Module Type SlicePowDivOps (Import A : BaseOps).
-Parameter tpower_int : U -> T -> Z -> T.
-Parameter tsqr : U -> T -> T.
-Parameter tinv : U -> T -> T.
-Parameter tdiv : U -> T -> T -> T.
+Parameter Inline tpower_int : U -> T -> Z -> T.
+Parameter Inline tsqr : U -> T -> T.
+Parameter Inline tinv : U -> T -> T.
+Parameter Inline tdiv : U -> T -> T -> T.
 End SlicePowDivOps.
 
 (* Local Notation tpow prec x n := (tpower_int prec x (Z_of_nat n)). *)
 
 Module Type SliceFullOps (Import A : BaseOps).
-Parameter tsqrt : U -> T -> T.
-Parameter tinvsqrt : U -> T -> T.
-Parameter texp : U -> T -> T.
-Parameter tsin : U -> T -> T.
-Parameter tcos : U -> T -> T.
+Parameter Inline tsqrt : U -> T -> T.
+Parameter Inline tinvsqrt : U -> T -> T.
+Parameter Inline texp : U -> T -> T.
+Parameter Inline tsin : U -> T -> T.
+Parameter Inline tcos : U -> T -> T.
 (*
-Parameter tatan : U -> T -> T.
-Parameter tln : U -> T -> T.
-Parameter tasin : U -> T -> T.
-Parameter tacos : U -> T -> T.
+Parameter Inline tatan : U -> T -> T.
+Parameter Inline tln : U -> T -> T.
+Parameter Inline tasin : U -> T -> T.
+Parameter Inline tacos : U -> T -> T.
 *)
 End SliceFullOps.
 

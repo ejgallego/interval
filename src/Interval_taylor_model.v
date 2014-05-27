@@ -255,20 +255,20 @@ rewrite !is_horner_mask => H'.
 rewrite PolX.tsize_set_nth.
 rewrite /tmsize /= -h1 in Hsize.
 rewrite -(big_mkord xpredT
-  (fun i => FullXR.tmul tt (PolX.tnth (PolX.tset_nth a u.2 (Xreal 0)) i)
-  (FullXR.tpow tt (FullXR.tsub tt x xi0) i))).
+  (fun i => Xmul (PolX.tnth (PolX.tset_nth a u.2 (Xreal 0)) i)
+  (FullXR.tpow tt (Xsub x xi0) i))).
 have [Hnan|[Hnan|[Hr1 Hr2]]] : x = Xnan \/ (xi0 = Xnan \/
   (x = Xreal (proj_val x) /\ xi0 = Xreal (proj_val xi0))).
   case: (x); case: (xi0); intuition done.
 - by rewrite Hnan /= in H' *.
-- by rewrite Hnan [FullXR.tsub tt x Xnan]Xsub_Xnan_r /= in H' *.
+- by rewrite Hnan Xsub_Xnan_r /= in H' *.
 rewrite (big_cat_nat Xadd_monoid (n := PolX.tsize a)) =>//.
   rewrite [in X in Xadd_monoid _ X]big1_seq /=.
     rewrite Xadd_0_r.
     rewrite big_mkord.
     rewrite (eq_bigr (fun i =>
-    FullXR.tmul tt (PolX.tnth a (fintype.nat_of_ord i))
-    (FullXR.tpow tt (FullXR.tsub tt x xi0) (fintype.nat_of_ord i)))).
+    Xmul (PolX.tnth a (fintype.nat_of_ord i))
+    (FullXR.tpow tt (Xsub x xi0) (fintype.nat_of_ord i)))).
       exact: H'.
     move=> i _; rewrite PolX.tnth_set_nth ifF //.
     apply/eqP=> Hi.
@@ -278,9 +278,9 @@ rewrite (big_cat_nat Xadd_monoid (n := PolX.tsize a)) =>//.
   rewrite PolX.tnth_set_nth.
   rewrite Hr1 Hr2 [FullXR.tpow _ _ _]Xpow_idem Xpow_Xreal.
   case: (i == u.2).
-    by rewrite /FullXR.tmul /= Rmult_0_l.
+    by rewrite /= Rmult_0_l.
   rewrite PolX.tnth_out.
-  by rewrite /FullXR.tmul /= Rmult_0_l.
+    by rewrite /= Rmult_0_l.
   by case/andP: Hi.
 rewrite (appP idP maxn_idPl); exact: ltnW.
 Qed.
@@ -599,11 +599,11 @@ move/(_ x) in Hdelta.
 apply I.subset_correct in HXY.
 move/(_ (subset_contains _ _ HXY _ Hx)) in Hdelta.
 have Hreal: f x <> Xnan /\ I.convert (RPA.error tm) <> IInan ->
-  PolX.teval tt qx (FullXR.tsub tt x c0) =
-  Xreal (proj_val (PolX.teval tt qx (FullXR.tsub tt x c0))).
+  PolX.teval tt qx (Xsub x c0) =
+  Xreal (proj_val (PolX.teval tt qx (Xsub x c0))).
   case=> Hfx HD.
   case Eqx : PolX.teval => [|r] //; [exfalso].
-  rewrite Eqx [FullXR.tsub tt _ _]Xsub_Xnan_r /contains in Hdelta.
+  rewrite Eqx Xsub_Xnan_r /contains in Hdelta.
   by case: I.convert Hdelta HD.
 case ED : (I.convert (RPA.error tm)) => [|a b].
 rewrite (Iadd_Inan_propagate_r _ _ ED (y := PolX.teval tt qx (Xsub x c0))) //.
@@ -614,8 +614,8 @@ apply Imid_contains.
 apply: not_emptyE.
 exists x.
 exact: subset_contains Hx.
-have->: f x = Xadd (PolX.teval tt qx (FullXR.tsub tt x c0))
-  (FullXR.tsub tt (f x) (PolX.teval tt qx (FullXR.tsub tt x c0))).
+have->: f x = Xadd (PolX.teval tt qx (Xsub x c0))
+  (Xsub (f x) (PolX.teval tt qx (Xsub x c0))).
 case Efx : (f x) => [|r]; first by rewrite XaddC.
 rewrite Efx ED in Hreal.
 rewrite Hreal //=.

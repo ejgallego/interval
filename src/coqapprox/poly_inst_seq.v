@@ -20,6 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith.
 Require Import NaryFunctions.
+Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
@@ -588,7 +589,7 @@ rewrite -ltnNge ltnS in Hig.
 case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
   set s := (nth Int.tzero fi _).
   rewrite nth_default; last by rewrite /tsize in Hig.
-  set t:= nth FullXR.tzero fx _.
+  set t:= nth (Xreal 0) fx _.
   rewrite nth_default; last by move: Hig; rewrite Hsizeg.
   apply: I.mul_correct; last by rewrite I.zero_correct; split; auto with real.
   by apply:Hf.

@@ -27,7 +27,6 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
@@ -220,7 +219,7 @@ move/(_ x Hx) in Hdelta.
 set T'x := x_eval (f2x_poly (i2f_poly (i_approx M))) (Xsub x xi0).
 pose Tx := x_eval alpha (Xsub x xi0).
 case E: Tx =>[|r].
-  rewrite /Tx in E; rewrite E /FullXR.tsub Xsub_Xnan_r in Hdelta.
+  rewrite /Tx in E; rewrite E Xsub_Xnan_r in Hdelta.
   have Hnan := contains_Xnan Hdelta.
   by rewrite (Iadd_Inan_propagate_l pr Hcut Hnan).
 have->: (f x - T'x = (f x - Tx) + (Tx - T'x))%XR.
@@ -253,7 +252,6 @@ have Hsize' : PolX.tsize alpha = tsize p.
 rewrite /i2f_poly !MapIF.tpolymap_polyCons.
 rewrite /f2x_poly !MapFX.tpolymap_polyCons.
 rewrite !teval_polyCons !PolX.teval_polyCons.
-rewrite /Int.tadd /Int.tmul /FullXR.tadd /FullXR.tmul.
 set t1 := (Xmul (x_eval _ _) _).
 set t2 := (Xmul _ _).
 set t3 := f2x _.
