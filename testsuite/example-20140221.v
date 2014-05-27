@@ -26,7 +26,8 @@ clear; intros H.
 Time interval_intro (exp x - 1) with (i_bisect_taylor x 2).
 clear H0.
 
-Time interval with (i_bisect_taylor x 3, i_prec 50, i_depth 7).
+Time interval with (i_bisect_taylor x 3, i_prec 50, i_depth 5).
+  (* with a basic Horner's scheme, needs i_depth 7 *)
 Qed.
 
 (*

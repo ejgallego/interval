@@ -161,6 +161,7 @@ Module Type PolyOps (C : BaseOps) <: BaseOps.
 Include Type BaseOps with Definition U := C.U. (* simplifying assumption *)
 Parameter tmul_trunc : U -> nat -> T -> T -> T.
 Parameter tmul_tail : U -> nat -> T -> T -> T.
+Parameter ttail : nat -> T -> T.
 (* Parameter tpolyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
 Parameter tpolyNil : T.
 Parameter tpolyCons : C.T -> T -> T.
@@ -264,6 +265,11 @@ Parameter tpoly_ind : forall (f : T -> Type),
   f tpolyNil ->
   (forall a p, f p -> f (tpolyCons a p)) ->
   forall p, f p.
+Parameter tsize_tail :
+  forall p k, tsize (ttail k p) = tsize p - k.
+Parameter tnth_tail :
+  forall p n k,
+  tnth (ttail k p) n = tnth p (k + n).
 End PolyOps.
 
 Module Type SliceMonomPolyOps (C : MaskBaseOps) (Import A : PolyOps C).

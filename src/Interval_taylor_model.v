@@ -16,6 +16,7 @@ Require Import coeff_inst.
 Require Import rpa_inst.
 Require Import xreal_ssr_compat.
 Require Import poly_bound.
+Require Import poly_bound_quad.
 Require Import Interval_univariate.
 
 Set Implicit Arguments.
@@ -42,7 +43,7 @@ Module TM (I : IntervalOps) <: UnivariateApprox I.
 Module PolX := ExactSeqPolyMonomUp FullXR.
 Module Link := LinkSeqPolyMonomUp I.
 Module PolI := SeqPolyMonomUpInt I.
-Module Bnd := PolyBoundHorner I PolI PolX Link.
+Module Bnd := PolyBoundHornerQuad I PolI PolX Link.
 Module Import TMI := TaylorModel I PolI PolX Link Bnd.
 
 (** ** Main type definitions *)
@@ -525,15 +526,6 @@ Theorem var_correct (X : I.type) :
   approximates X var id.
 Proof. done. Qed.
 
-(*
-Definition eval_slow (u : U) (t : T) (Y X : I.type) : I.type :=
-  if I.subset X Y (* && Inot_empty X *) then
-    let X0 := Imid Y in
-    let tm := tm_helper1 u Y t in
-    I.add u.1 (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0)) (RPA.error tm)
-  else I.nai (* or I.whole ? *).
-*)
-
 Definition eval (u : U) (t : T) (Y X : I.type) : I.type :=
   if I.subset X Y then
   match t with
@@ -544,7 +536,7 @@ Definition eval (u : U) (t : T) (Y X : I.type) : I.type :=
     let X0 := Imid Y in
     let tm := tm_helper1 u Y t in
     I.add u.1
-      (PolI.teval u.1 (RPA.approx tm) (I.sub u.1 X X0))
+      (Bnd.ComputeBound u.1 (RPA.approx tm) (I.sub u.1 X X0))
       (RPA.error tm)
   end
   else I.nai.
@@ -607,7 +599,7 @@ have Hreal: f x <> Xnan /\ I.convert (RPA.error tm) <> IInan ->
   by case: I.convert Hdelta HD.
 case ED : (I.convert (RPA.error tm)) => [|a b].
 rewrite (Iadd_Inan_propagate_r _ _ ED (y := PolX.teval tt qx (Xsub x c0))) //.
-apply: teval_contains =>//.
+apply: Bnd.ComputeBound_correct =>//.
 apply: I.sub_correct =>//.
 apply Imid_contains.
 (* duplicate *)
@@ -621,7 +613,7 @@ rewrite Efx ED in Hreal.
 rewrite Hreal //=.
 by congr Xreal; auto with real.
 apply I.add_correct =>//.
-apply: teval_contains; first by split.
+apply: Bnd.ComputeBound_correct; first by split.
 apply: I.sub_correct =>//.
 apply: Imid_contains.
 (* duplicate *)

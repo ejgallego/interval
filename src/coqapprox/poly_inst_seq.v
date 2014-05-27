@@ -363,6 +363,15 @@ apply: IHp.
 by rewrite /= minnSS ltnS in Hk.
 Qed.
 
+Definition ttail := @drop C.T.
+
+Lemma tsize_tail p k : tsize (ttail k p) = tsize p - k.
+Proof. by rewrite /tsize /ttail size_drop. Qed.
+
+Lemma tnth_tail p n k :
+  tnth (ttail k p) n = tnth p (k + n).
+Proof. by rewrite /tnth /ttail nth_drop. Qed.
+
 End SeqPolyMonomUp.
 
 Module SeqPolyPowDivMonomUp (Import C : PowDivOps) <: PowDivMonomPolyOps C.

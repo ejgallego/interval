@@ -27,6 +27,7 @@ CAFILES = \
 	interval_compl.v \
 	nary_tuple.v \
 	poly_bound.v \
+	poly_bound_quad.v \
 	poly_datatypes.v \
 	poly_inst_seq.v \
 	rpa_inst.v \
