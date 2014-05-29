@@ -59,7 +59,7 @@ configure config.status: configure.in
 
 %.vo: %.v
 	@COQDEP@ -R src Interval $< | @REMAKE@ -r $@
-	@COQC@ -R src Interval -dont-load-proofs $<
+	@COQC@ -R src Interval $<
 
 src/clean:
 	rm -f $(OBJS) $(CAOBJS) src/*.glob src/coqapprox/*.glob
