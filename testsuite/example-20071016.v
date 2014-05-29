@@ -44,5 +44,12 @@ Goal
     <= 5/65536)%R.
 Proof.
   intros.
-  interval with (i_bisect_diff x).
+  (* Time interval with (i_bisect_diff x).
+  (* Finished transaction in 11. secs (10.972096u,0.012069s) *)
+   *)
+  (* Time interval with (i_bisect_taylor x 3, i_depth 7). (* Horner *)
+  (* Finished transaction in 1. secs (1.416781u,0.00339s) *)
+   *)
+  Time interval with (i_bisect_taylor x 3, i_depth 5).
+  (* Finished transaction in 1. secs (1.136754u,0.003084s) *)
 Qed.
