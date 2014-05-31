@@ -75,7 +75,7 @@ Definition tsize (t : T) : nat :=
 
 Definition tm_helper1 (u : U) X (t : T) : RPA.rpa :=
   match t with
-    | Dummy => TM_const u.1 I.nai X u.2
+    | Dummy => TM_any u.1 I.nai X u.2
     | Const c => let X0 := Imid X in TM_cst u.1 c X0 X u.2
     | Var => let X0 := Imid X in (TM_var u.1 X0 X u.2)
     | Tm tm => tm (* ignore u, X in this branch *)
@@ -83,7 +83,7 @@ Definition tm_helper1 (u : U) X (t : T) : RPA.rpa :=
 
 Definition tm_helper2pad (u : U) X (t : T) :=
   match t with
-    | Dummy => TM_const u.1 I.nai X u.2
+    | Dummy => TM_any u.1 I.nai X u.2
     | Const c => let X0 := Imid X in (TM_cst u.1 c X0 X u.2)
     | Var => let X0 := Imid X in (TM_var u.1 X0 X u.2)
     | Tm {| RPA.approx := pol; RPA.error := delta |} =>
@@ -99,7 +99,7 @@ Lemma tsize_tm_helper1_leq u X t :
   tmsize (tm_helper1 u X t) <= maxn (tsize t) (u.2).+1.
 Proof.
 case: t =>//; rewrite /tm_helper1.
-by rewrite /tsize /tmsize size_TM_const leq_max ltnSn orbC.
+by rewrite /tsize /tmsize size_TM_any leq_max ltnSn orbC.
 by move=> c; rewrite /tsize /tmsize size_TM_cst leq_max ltnSn orbC.
 by rewrite /tsize /tmsize /= PolI.tsize_trec2.
 move=> r /=; exact: leq_maxl.
@@ -109,7 +109,7 @@ Lemma tsize_tm_helper1 u X t :
   tmsize (tm_helper1 u X t) = if t is Tm _ then tsize t else u.2.+1.
 Proof.
 case: t => [|c||tm] //.
-  by rewrite /tmsize size_TM_const.
+  by rewrite /tmsize size_TM_any.
   by rewrite /tmsize size_TM_cst.
 by rewrite /tmsize PolI.tsize_trec2.
 Qed.
@@ -123,7 +123,7 @@ Lemma tsize_tm_helper2pad_maxn u X t :
   tmsize (tm_helper2pad u X t) = maxn (tsize t) (u.2).+1.
 Proof.
 case: t; rewrite /tm_helper2pad.
-by rewrite /tsize /tmsize size_TM_const (appP idP maxn_idPr).
+by rewrite /tsize /tmsize size_TM_any (appP idP maxn_idPr).
 by move=> c; rewrite /tsize /tmsize size_TM_cst (appP idP maxn_idPr).
 by rewrite /tsize /tmsize /= PolI.tsize_trec2 (appP idP maxn_idPr) //.
 by move =>  [pol delta]; rewrite /tsize /tmsize /= PolI.tsize_set_nth maxnC.
@@ -183,8 +183,8 @@ Lemma tm_helper1_correct u Y tf f :
   approximates Y (Tm (tm_helper1 u Y tf)) f.
 Proof.
 case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
-- by rewrite /tmsize size_TM_const.
-  move=> ?; apply: TM_const_correct_strong.
+- by rewrite /tmsize size_TM_any.
+  move=> ?; apply: TM_any_correct.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
@@ -209,9 +209,9 @@ Lemma tm_helper2pad_correct u X tf f :
 Proof.
 case: tf => [|c||[pol delta]]; rewrite /approximates /=.
 - case=> Hnan _ _; split=>//.
-  by rewrite /tmsize -lt0n size_TM_const ltnS //.
+  by rewrite /tmsize -lt0n size_TM_any ltnS //.
   move=> Hne.
-  apply TM_const_correct_strong=>//.
+  apply TM_any_correct=>//.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
@@ -659,7 +659,7 @@ apply: TM_add_correct;
     (rewrite ![PolI.tsize _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c||tm][|c'||tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -709,7 +709,7 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply: TM_opp_correct.
 case: tf Hmain {Hnil} => * //;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -769,7 +769,7 @@ apply: TM_sub_correct;
     (rewrite ![PolI.tsize _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c|| tm][|c'|| tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -843,7 +843,7 @@ have := isTm_pad2 u Y (tf, tg).
 by case: pad2 => [[|c1| |t1][|c2| |t2]] [].
 (* . *)
 case: t'.1 H H'; case: t'.2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -852,7 +852,7 @@ case: t'.1 H H'; case: t'.2 =>// *;
   by auto 2.
 (* . *)
 case: t'.1 H H'; case: t'.2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -973,7 +973,7 @@ have := isTm_pad2 u Y (tf, tg).
 by case: pad2 => [[|c1| |t1][|c2| |t2]] [].
 (* . *)
 case: t'.1 H H'; case: t'.2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -982,7 +982,7 @@ case: t'.1 H H'; case: t'.2 =>// *;
   by auto 2.
 (* . *)
 case: t'.1 H H'; case: t'.2 =>// *;
-  try (apply: TM_const_correct_strong;
+  try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
@@ -1035,7 +1035,7 @@ Definition abs (u : U) (X : I.type) (t : T) : T :=
   match I.sign_large e with
   | Xeq | Xgt => t
   | Xlt => opp u X t
-  | Xund => Tm (TM_const u.1 (I.abs e) X u.2)
+  | Xund => Tm (TM_any u.1 (I.abs e) X u.2)
   end.
 
 Lemma Isign_large_Xabs (u : U) (tf : T) (Y X : I.type) f :
@@ -1088,7 +1088,7 @@ Defined.
 
 Local Ltac byp a b := move=> x Hx; rewrite a //; exact: b.
 Local Ltac foo :=
-  by move=> Hne; apply: TM_const_correct_strong;
+  by move=> Hne; apply: TM_any_correct;
   [ exact: not_empty_Imid | exact: Imid_subset
   | move=> x Hx; apply: I.abs_correct; exact: eval_correct].
 
@@ -1107,7 +1107,7 @@ split.
       rewrite /tmsize size_TM_opp.
       by rewrite size_TM_var.
     by rewrite /tmsize size_TM_opp.
-  by rewrite /not_nil /tmsize size_TM_const.
+  by rewrite /not_nil /tmsize size_TM_any.
 case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   case: tf Hf Hnil Hmain Habs {E} => [|cf| |tf] Hf Hnil Hmain Habs //.
 - have [[|y] Hy1 Hy2] := Hmain;
@@ -1312,7 +1312,7 @@ Qed.
 
 Definition atan (u : U) (X : I.type) (t : T) : T :=
 (* FIXME: this is a very naive definition, ideally we should rely on TM_atan *)
-  Tm (TM_const u.1 (I.atan u.1 (eval u t X X)) X u.2).
+  Tm (TM_any u.1 (I.atan u.1 (eval u t X X)) X u.2).
 
 Theorem atan_correct :
   forall u (Y : I.type) tf f,
@@ -1321,8 +1321,8 @@ Theorem atan_correct :
 Proof.
 move=> u Y tf f [Hnan Hnil Hmain].
 split=>//; first by rewrite Hnan.
-by rewrite /= /tmsize size_TM_const.
-move=> Hne; apply: TM_const_correct_strong.
+by rewrite /= /tmsize size_TM_any.
+move=> Hne; apply: TM_any_correct.
 exact: not_empty_Imid.
 exact: Imid_subset.
 move=> x Hx.

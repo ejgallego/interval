@@ -2507,22 +2507,21 @@ Qed.
 Lemma size_TM_cst c X0 X n : tsize (approx (TM_cst c X0 X n)) = n.+1.
 Proof. by rewrite tsize_trec1. Qed.
 
-(* FIXME: [TM_const] is a deprecated function, which should be renamed *)
-Definition TM_const (c : I.type) (X : I.type) (n : nat) :=
-  let pol := Pol.tpolyCons (Imid c) Pol.tpolyNil in
+Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
+  let pol := Pol.tpolyCons (Imid Y) Pol.tpolyNil in
   {| RPA.approx := if n == 0 then pol
                    else Pol.tset_nth pol n Pol.Int.tzero;
-     RPA.error := I.mask (I.sub prec c (Imid c)) X
-  (* which might be replaced with [I.sub prec c (Imid c)] *)
+     RPA.error := I.mask (I.sub prec Y (Imid Y)) X
+  (* which might be replaced with [I.sub prec Y (Imid Y)] *)
   |}.
 
 Definition sizes := (Pol.tsize_polyNil, Pol.tsize_polyCons,
                      PolX.tsize_polyNil, PolX.tsize_polyCons,
                      Pol.tsize_set_nth, PolX.tsize_set_nth).
 
-Lemma size_TM_const c X n : tsize (approx (TM_const c X n)) = n.+1.
+Lemma size_TM_any c X n : tsize (approx (TM_any c X n)) = n.+1.
 Proof.
-rewrite /TM_const /=.
+rewrite /TM_any /=.
 case: n =>[|n] /=.
   by rewrite !sizes.
 by rewrite tsize_set_nth !sizes maxnSS maxn0.
@@ -2568,25 +2567,25 @@ have->: y = Xmask y (Xreal v) by [].
 exact: I.mask_correct.
 Qed.
 
-Theorem TM_const_correct_strong
-  (c X0 X : I.type) (n : nat) (f : ExtendedR->ExtendedR) :
+Theorem TM_any_correct
+  (Y X0 X : I.type) (n : nat) (f : ExtendedR->ExtendedR) :
   not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
   (forall x : R, contains (I.convert X) (Xreal x) ->
-    contains (I.convert c) (f (Xreal x))) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_const c X n) f.
+    contains (I.convert Y) (f (Xreal x))) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_any Y X n) f.
 Proof.
 move=> H0 Hsubset Hf.
 have [x0 Hx0] := H0.
 have Hx0': contains(I.convert X)(Xreal x0) by exact:subset_contains Hsubset _ _.
 have Hrr := Hf _ Hx0'.
 set r := proj_val (f (Xreal x0)).
-have Hr : contains (I.convert c) (Xreal r).
+have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
 split=>//.
 have Hr' := contains_not_empty _ _ Hr.
   have Hmid := not_empty_Imid Hr'.
   have [v Hv] := Hmid.
-  rewrite /TM_const /=.
+  rewrite /TM_any /=.
   case E: (I.convert X) =>[|l u] //.
     (* we could use Imask_IInan *)
     have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
@@ -2605,10 +2604,10 @@ have Hr' := contains_not_empty _ _ Hr.
     exact: Imid_subset.
   by rewrite H1.
 - move=> N xi0 Hxi0.
-  set pol0 := PolX.tpolyCons (I.convert_bound (I.midpoint c)) PolX.tpolyNil.
+  set pol0 := PolX.tpolyCons (I.convert_bound (I.midpoint Y)) PolX.tpolyNil.
   set pol' := if n == 0 then pol0 else PolX.tset_nth pol0 n (Xreal 0).
   exists pol'.
-  rewrite /N {N} /pol' /pol0 /TM_const.
+  rewrite /N {N} /pol' /pol0 /TM_any.
   split=>//.
   + case: n.
       by rewrite !sizes.
@@ -2640,7 +2639,7 @@ have Hr' := contains_not_empty _ _ Hr.
       move/contains_Xnan: Hx.
       move=> top; rewrite (Imask_IInan_r _ top) //.
       apply: not_emptyE.
-      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
+      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint Y))).
       apply I.sub_correct =>//.
       apply: Imid_contains.
       by exists r.
@@ -2656,7 +2655,7 @@ have Hr' := contains_not_empty _ _ Hr.
     case E: (I.convert X) Hsubset Hx => [|l u] Hsubset Hx.
       rewrite (Imask_IInan_r _ E) //.
       apply: not_emptyE.
-      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint c))).
+      exists (Xsub (Xreal r) (I.convert_bound (I.midpoint Y))).
       apply: I.sub_correct =>//.
       apply: Imid_contains.
       by exists r.
@@ -2673,22 +2672,22 @@ have Hr' := contains_not_empty _ _ Hr.
         change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
         apply: I.sub_correct=>//.
         rewrite /s PolX.tnth_polyCons // Xmul_1_r Rplus_0_r /=.
-        have Hc : not_empty (I.convert c) by exists r.
-        have := Imid_contains Hc.
-        have Hc' : exists z : ExtendedR, contains (I.convert c) z
+        have HY : not_empty (I.convert Y) by exists r.
+        have := Imid_contains HY.
+        have HY' : exists z : ExtendedR, contains (I.convert Y) z
           by exists (Xreal r).
-        by have [{2}-> _] := I.midpoint_correct _ Hc'.
+        by have [{2}-> _] := I.midpoint_correct _ HY'.
       move=> n; rewrite !sizes big_ord_recl big1.
         set s := proj_val _.
         change (Xreal _) with (Xsub (Xreal y) (Xreal (s + 0))).
         apply: I.sub_correct=>//.
         rewrite /s PolX.tnth_set_nth /=.
         rewrite PolX.tnth_polyCons // Xmul_1_r Rplus_0_r.
-        have Hc : not_empty (I.convert c) by exists r.
-        have := Imid_contains Hc.
-        have Hc' : exists z : ExtendedR, contains (I.convert c) z
+        have HY : not_empty (I.convert Y) by exists r.
+        have := Imid_contains HY.
+        have HY' : exists z : ExtendedR, contains (I.convert Y) z
           by exists (Xreal r).
-        by have [{2}-> _] := I.midpoint_correct _ Hc'.
+        by have [{2}-> _] := I.midpoint_correct _ HY'.
       move=> i _.
       rewrite lift0 PolX.tnth_set_nth.
       case: (i.+1 == n.+1).
@@ -2706,9 +2705,9 @@ have Hr' := contains_not_empty _ _ Hr.
       rewrite !sizes ltnS leqn0.
       move/eqP->.
       rewrite PolX.tnth_polyCons //.
-      have Hc' : exists z : ExtendedR, contains (I.convert c) z
+      have HY' : exists z : ExtendedR, contains (I.convert Y) z
         by exists (Xreal r).
-      by have [{2}-> _] := I.midpoint_correct _ Hc'.
+      by have [{2}-> _] := I.midpoint_correct _ HY'.
     move=> n.
     rewrite !sizes maxnSS maxn0 ltnS => Hm.
     rewrite PolX.tnth_set_nth.
@@ -2717,17 +2716,10 @@ have Hr' := contains_not_empty _ _ Hr.
     case: m Hm => [|m Hm]; last by rewrite PolX.tnth_out ?sizes.
     move=> h0.
     rewrite PolX.tnth_polyCons //=.
-    have Hc' : exists z : ExtendedR, contains (I.convert c) z
+    have HY' : exists z : ExtendedR, contains (I.convert Y) z
       by exists (Xreal r).
-    by have [{2}-> _] := I.midpoint_correct _ Hc'.
+    by have [{2}-> _] := I.midpoint_correct _ HY'.
 Qed.
-
-Corollary TM_const_correct (c : I.type) (X0 X : I.type) (n : nat) :
-  not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
-  forall r : R, contains (I.convert c) (Xreal r) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_const c X n)
-  (fun _ : ExtendedR => Xreal r).
-Proof. move=> *; exact: TM_const_correct_strong =>//. Qed.
 
 Lemma size_TM_var X0 X n : tsize (approx (TM_var X0 X n)) = n.+1.
 Proof. exact: tsize_trec2. Qed.

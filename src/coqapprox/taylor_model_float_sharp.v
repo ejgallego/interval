@@ -85,6 +85,7 @@ Notation x_poly := PolX.T.
 
 Notation i_prec := I.precision.
 Notation i_eval := Pol.teval.
+(* FIXME=> Notation i_eval := Bnd.ComputeBound. *)
 Notation x_eval := (PolX.teval tt).
 (* Erik: [Pol.teval]/[PolX.teval] may take 1 more argument *)
 
