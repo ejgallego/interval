@@ -1617,13 +1617,6 @@ move:(Hsign c contains_c R0); rewrite /proj_fun -/(proj_val _)=> Hsignc.
 by apply:Rmult_le_neg_pos=>//; apply:Rdiv_neg_compat.
 Qed.
 
-(* FIXME: Subsumed by Interval_missing.pow_powerRZ *)
-Lemma powerRZ_pow (r : R) (n : nat) :
-  (powerRZ r (Z_of_nat n) = r ^ n)%Re.
-Proof.
-by elim: n =>[//|n IHn /=]; rewrite SuccNat2Pos.id_succ.
-Qed.
-
 Lemma pow_Rabs_sign (r : R) (n : nat) :
   (r ^ n = powerRZ
     (if Rle_bool R0 r then 1 else -1) (Z_of_nat n) * (Rabs r) ^ n)%Re.
@@ -1632,7 +1625,7 @@ elim: n =>[|n /= ->]; first by rewrite Rmult_1_l.
 case: Rle_bool_spec => Hr.
   rewrite powerRZ_R1 Rmult_1_l SuccNat2Pos.id_succ.
   by rewrite pow1 Rabs_pos_eq // Rmult_1_l.
-by rewrite {-1 3}Rabs_left // SuccNat2Pos.id_succ powerRZ_pow /=; ring.
+by rewrite {-1 3}Rabs_left // SuccNat2Pos.id_succ -pow_powerRZ /=; ring.
 Qed.
 
 Lemma powerRZ_1_even (k : Z) :(0 <= powerRZ (-1) (2 * k))%Re.
