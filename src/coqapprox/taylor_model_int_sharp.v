@@ -107,6 +107,9 @@ Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
 Module MapX := PolyMap FullXR PolX FullXR PolX.
 Module Import BndThm := PolyBoundThm I Pol PolX Link Bnd.
 
+(* Module Bnd0 := PolyBoundHorner I Pol PolX Link.
+Module Bnd0Thm := PolyBoundThm I Pol PolX Link Bnd. *)
+
 (*
 Eval compute in contains (Interval_interval.Ibnd (Xreal 0) (Xreal 0)) (Xreal 0).
 Eval compute in contains (Interval_interval.Ibnd (Xreal 0) (Xreal 0)) Xnan.
@@ -154,10 +157,10 @@ Definition Ztech (P : Pol.T) F X0 X n :=
   if isNNegOrNPos NthCoeff && I.bounded X then
     let a := I.lower X in let b := I.upper X in
     let A := I.bnd a a in let B := I.bnd b b in
-    (* TODO: We may replace teval with ComputeBound *)
+    (* If need be, we could replace Pol.teval with Bnd.ComputeBound *)
     let Da := I.sub prec (F A) (Pol.teval prec P (I.sub prec A X0)) in
     let Db := I.sub prec (F B) (Pol.teval prec P (I.sub prec B X0)) in
-    let Dx0 := I.sub prec (F X0) (Pol.teval prec P (I.sub prec X0 X0)) in
+    let Dx0 := I.sub prec (F X0) (Pol.tnth P 0) (* :-D *) in
     I.join (I.join Da Db) Dx0
   else
     let NthPower :=
@@ -642,6 +645,7 @@ Proof. now intuition. Qed.
 Definition Xnan_ex (D : nat -> ExtendedR -> ExtendedR)
   (n : nat) (X : interval) : Prop :=
   exists k : 'I_n.+1,
+(* FIXME: Use exists2 *)
   exists x : R, contains X (Xreal x) /\ D k (Xreal x) = Xnan.
 
 Lemma Xnan_ex_or D n X : Xnan_ex D n X \/ ~ Xnan_ex D n X.
@@ -731,6 +735,7 @@ case Cn : (I.convert (tnth (IP X n.+1) n.+1))=>[//|l u].
 by rewrite Cn in Hcomp; inversion Hcomp.
 Qed.
 
+(* FIXME: Replace with PolyBoundHorner.ComputeBound_correct *)
 Lemma teval_contains u fi fx (X : I.type) x :
   Link.contains_pointwise fi fx ->
   contains (I.convert X) x ->
@@ -807,6 +812,7 @@ rewrite PolX.tnth_polyCons in Hnth; last done.
 by rewrite tnth_polyCons in Hnth.
 Qed.
 
+(* FIXME: Replace with PolyBoundThm.ComputeBound_nth0 *)
 Lemma in_poly_bound p X pr :
   PolX.tsize pr = tsize p ->
   (forall i, i < tsize p -> contains (I.convert (tnth p i)) (PolX.tnth pr i)) ->
@@ -2171,23 +2177,10 @@ split=>//.
     rewrite E0 in C1.
     have {C1} C1 := contains_Xnan C1.
     rewrite {}/J.
-    apply: (@Isub_Inan_propagate_l _ (PolX.teval tt (XP x' n) (Xsub x' x'))) =>//.
-    apply: teval_contains.
-      (* TODO: Rewrite [Link.contains_pointwise] in terms of [validPoly] *)
-      split.
-        by rewrite (Poly_size X0).
-      red; move=> k Hk; apply: Poly_nth =>//.
-      by rewrite Poly_size' in Hk.
-    exact: I.sub_correct.
+    have L := @Poly_nth validPoly_ X0 x' n 0 Hr'0 erefl.
+    exact: (Isub_Inan_propagate_l _ L).
   have->: Xreal 0 = Xsub (Xreal r'0) (Xreal r'0) by simpl; f_equal; ring.
   apply: I.sub_correct; rewrite E0 // in C1.
-  have Hsubs : I.subset_ (I.convert (tnth (IP X0 n) 0))
-    (I.convert (teval prec (IP X0 n) (I.sub prec X0 X0))).
-    apply: in_poly_bound (IP X0 n) (I.sub prec X0 X0) (XP (Xreal r') n) _ _ _.
-    - exact: Poly_size.
-    - by move=> *; apply: Poly_nth =>//; rewrite -(Poly_size' X0 n).
-    exact: subset_sub_contains_0 Hr'0 (subset_refl (I.convert X0)).
-  apply: subset_contains Hsubs _ _.
   rewrite -{}E0 in C1 *.
   have HK := @Poly_nth validPoly_ X0 (Xreal r') n 0 Hr'0 erefl.
   by rewrite XPoly_nth0 in HK.
@@ -2235,10 +2228,31 @@ have {Hupper} Hupper : contains
   (I.convert Delta)
   (Xdelta0 (I.convert_bound (I.upper X))).
   by apply: I.join_correct; left; apply: I.join_correct; right.
-have {HX0} HX0 : contains (I.convert Delta) (Xdelta0 xi0).
-  by apply: I.join_correct; right.
 have H'xi0 : contains (I.convert X) xi0 by
   exact: (subset_contains (I.convert X0)).
+have {HX0} HX0 : contains (I.convert Delta) (Xdelta0 xi0).
+  apply: I.join_correct; right.
+  apply: I.sub_correct; first exact: F0_contains.
+  case: xi0 Hxi0 H'xi0 {Xdelta0 HX0 Hlower Hupper} =>[|xi0] Hxi0 H'xi0.
+    move/contains_Xnan in Hxi0.
+    rewrite Hxi0 /= in Hsub.
+    by case: (I.convert X) Hsub XNNan.
+  rewrite [Xsub _ _]/= Rminus_diag_eq //.
+  suff->: PolX.teval tt (XP (Xreal xi0) n) (Xreal 0) =
+    (PolX.tnth (XP (Xreal xi0) n) 0) by apply: Poly_nth.
+  rewrite PolX.is_horner XPoly_size big_ord_recl /=.
+  rewrite big1 ?Xadd_0_r// ?Xmul_1_r//.
+  move=> i _.
+  rewrite /bump /= SuccNat2Pos.id_succ /= Rmult_0_l.
+  case Ey: PolX.tnth =>[|y]; last by simpl; f_equal; ring.
+  exfalso; apply: Hnot; rewrite /Xnan_ex.
+  rewrite XPoly_nth in Ey; last by case: i.
+  exists (inord (lift ord0 i)); rewrite inordK //= /bump /=; last first.
+    by rewrite add1n; apply: ltnW; case: (i).
+  exists xi0; split=>//.
+  case: XDn Ey =>[//|r] /=.
+  replace (INR _) with (INR (fact i.+1)) by done.
+  by rewrite fact_zeroF.
 case: xi0 H'xi0 Hxi0 @Xdelta0 Hlower Hupper HX0 => [HK|]; first exfalso.
   apply: (bounded_IInan E2); exact: contains_Xnan.
 move=> xi0 H'xi0 Hxi0 Xdelta0 Hlower Hupper HX0.
