@@ -49,7 +49,7 @@ Module Type PolyBound
   (PolX : ExactMonomPolyOps FullXR)
   (Link : LinkIntX I Pol PolX).
 
-Parameter ComputeBound : forall (u : Pol.U) (p : Pol.T) (X : I.type), I.type.
+Parameter ComputeBound : Pol.U -> Pol.T -> I.type -> I.type.
 
 Parameter ComputeBound_correct : forall u p px,
   Link.contains_pointwise p px ->
