@@ -1228,9 +1228,9 @@ Theorem inv_correct :
   approximates Y (inv u Y tf) (fun x => Xinv (f x)).
 Proof.
 apply: fun_gen_correct =>//.
-exact: I.inv_correct.
-by move=>*; rewrite /tmsize PolI.tsize_trec1. (* TODO : refactor *)
-exact: TM_inv_correct.
+- exact: I.inv_correct.
+- exact: size_TM_inv.
+- exact: TM_inv_correct.
 Qed.
 
 Definition sqrt := Eval hnf in fun_gen I.sqrt TM_sqrt.
@@ -1241,9 +1241,9 @@ Theorem sqrt_correct :
   approximates Y (sqrt u Y tf) (fun x => Xsqrt (f x)).
 Proof.
 apply: fun_gen_correct =>//.
-exact: I.sqrt_correct.
-by move=>*; rewrite /tmsize PolI.tsize_trec1.
-exact: TM_sqrt_correct.
+- exact: I.sqrt_correct.
+- exact: size_TM_sqrt.
+- exact: TM_sqrt_correct.
 Qed.
 
 Definition exp := Eval hnf in fun_gen I.exp TM_exp.
@@ -1254,9 +1254,9 @@ Theorem exp_correct :
   approximates Y (exp u Y tf) (fun x => Xexp (f x)).
 Proof.
 apply: fun_gen_correct =>//.
-exact: I.exp_correct.
-by move=>*; rewrite /tmsize PolI.tsize_trec1.
-exact: TM_exp_correct.
+- exact: I.exp_correct.
+- exact: size_TM_exp.
+- exact: TM_exp_correct.
 Qed.
 
 Definition cos := Eval hnf in fun_gen I.cos TM_cos.
@@ -1267,9 +1267,9 @@ Theorem cos_correct :
   approximates Y (cos u Y tf) (fun x => Xcos (f x)).
 Proof.
 apply: fun_gen_correct =>//.
-exact: I.cos_correct.
-by move=>*; rewrite /tmsize PolI.tsize_trec2.
-exact: TM_cos_correct.
+- exact: I.cos_correct.
+- exact: size_TM_cos.
+- exact: TM_cos_correct.
 Qed.
 
 Definition sin := Eval hnf in fun_gen I.sin TM_sin.
@@ -1280,9 +1280,9 @@ Theorem sin_correct :
   approximates Y (sin u Y tf) (fun x => Xsin (f x)).
 Proof.
 apply: fun_gen_correct =>//.
-exact: I.sin_correct.
-by move=>*; rewrite /tmsize PolI.tsize_trec2.
-exact: TM_sin_correct.
+- exact: I.sin_correct.
+- exact: size_TM_sin.
+- exact: TM_sin_correct.
 Qed.
 
 Definition TM_tan_slow prec X0 X n :=
