@@ -1158,8 +1158,8 @@ Definition fun_gen
     | Dummy => Dummy
     | Const c => Const (fi u.1 c)
     | Var => let X0 := Imid X in Tm (ftm u.1 X0 X u.2)
-    | Tm tm => let X0 := Imid X in let n := (tmsize tm).-1 in
-      Tm (TM_comp u.1 (ftm u.1) tm X0 X n)
+    | Tm tm => let X0 := Imid X in
+      Tm (TM_comp u.1 (ftm u.1) tm X0 X (tmsize tm).-1)
   end.
 
 Lemma fun_gen_correct
@@ -1209,16 +1209,6 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   + move=> *; split; first exact: Hvalid.
     by rewrite -/(tmsize _) Hsiz.
 Qed.
-
-(*
-Definition inv (u : U) (X : I.type) (t : T) : T :=
-  match t with
-    | Const c => Const (I.inv u.1 c)
-    | Var => let X0 := Imid X in Tm (TM_inv u.1 X0 X u.2)
-    | Tm tm => let X0 := Imid X in let n := (tmsize tm).-1 in
-      Tm (TM_inv_comp u.1 tm X0 X n)
-  end.
-*)
 
 Definition inv := Eval hnf in fun_gen I.inv TM_inv.
 
