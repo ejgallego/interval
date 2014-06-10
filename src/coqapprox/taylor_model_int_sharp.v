@@ -3033,6 +3033,9 @@ change ((rr * rr ^ k))%Re with (rr ^ k.+1)%Re.
 exact: pow_nonzero.
 Qed.
 
+Lemma size_TM_inv X0 X (n : nat) : tsize (approx (TM_inv X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec1. Qed.
+
 Lemma TM_exp_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
@@ -3074,6 +3077,9 @@ rewrite /Xdiv !(fact_zeroF) zeroF.
   by apply: Rlt_gt; apply: lt_0_INR; apply/ltP; rewrite addn1.
 by apply: Rgt_not_eq; apply: lt_0_INR; apply/ltP.
 Qed.
+
+Lemma size_TM_exp X0 X (n : nat) : tsize (approx (TM_exp X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec1. Qed.
 
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -3140,6 +3146,9 @@ field.
 by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
 Qed.
 
+Lemma size_TM_sqrt X0 X (n : nat) : tsize (approx (TM_sqrt X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec1. Qed.
+
 Ltac Inc :=
   rewrite /tnat INR_IZR_INZ -Z2R_IZR;
   apply: I.fromZ_correct.
@@ -3198,6 +3207,10 @@ rewrite fact_simpl !mult_INR (S_INR k) -tech_pow_Rmult /= -(S_INR k).
 by field; split =>//; split.
 Qed.
 
+Lemma size_TM_invsqrt X0 X (n : nat) :
+  tsize (approx (TM_invsqrt X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec1. Qed.
+
 Lemma TM_sin_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   (exists t : ExtendedR, contains (I.convert X0) t) ->
@@ -3250,6 +3263,9 @@ suff->: nth_Xsin k.+2 r = (- nth_Xsin k r)%XR.
 rewrite /=; case cn : (nth_Xsin k r) => [|ns] //=.
 f_equal; ring.
 Qed.
+
+Lemma size_TM_sin X0 X (n : nat) : tsize (approx (TM_sin X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec2. Qed.
 
 Lemma TM_cos_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -3304,6 +3320,9 @@ suff->: nth_Xcos k.+2 r = (- nth_Xcos k r)%XR.
 rewrite /=; case cn : (nth_Xcos k r) => [|ns] //=.
 f_equal; ring.
 Qed.
+
+Lemma size_TM_cos X0 X (n : nat) : tsize (approx (TM_cos X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_trec2. Qed.
 
 Local Notation "a + b" := (Xadd a b).
 Local Notation "a - b" := (Xsub a b).
