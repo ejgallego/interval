@@ -73,9 +73,10 @@ Definition tsqr := --> fun x => Rmult x x.
 Definition tsqrt := --> sqrt.
 Definition tinvsqrt := --> fun x => (Rinv (sqrt x)).
 Definition tcst : T -> T -> T := fun c _ => c.
+Definition ttan := --> tan.
+Definition tatan := --> atan.
 (*
 Parameter tln : U -> T -> T.
-Parameter tatan : U -> T -> T.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)
@@ -105,9 +106,10 @@ Definition tsin := --> Xsin.
 Definition tsqr := --> fun x => Xmul x x.
 Definition tsqrt := --> Xsqrt.
 Definition tinvsqrt := --> fun x => Xinv (Xsqrt x).
+Definition ttan := --> Xtan.
+Definition tatan := --> Xatan.
 (*
 Parameter tln : U -> T -> T.
-Definition tatan := --> Xatan.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)
@@ -259,9 +261,10 @@ Definition tsqr := I.sqr.
 Definition tsqrt := I.sqrt.
 Definition tinvsqrt := fun prec x => I.inv prec (I.sqrt prec x).
 Definition tcst : T -> T -> T := I.mask.
+Definition ttan := I.tan.
+Definition tatan := I.atan.
 (*
 Parameter tln : U -> T -> T.
-Definition tatan := I.atan.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)

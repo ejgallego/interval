@@ -329,6 +329,16 @@ Proof. done. Qed.
 Lemma tnth_out p n: tsize p <= n -> tnth p n = C.tzero.
 Proof. by move=> H; rewrite /tnth nth_default. Qed.
 
+Fixpoint tderiv_loop (p : T) (i : nat) :=
+  match p with
+    | [::] => [::]
+    | a :: e =>
+      C.tmul u a (C.tnat i) :: tderiv_loop e i.+1
+  end.
+Definition tderiv (p : T) := tderiv_loop (behead p) 1%N.
+
+Definition tgrec1 (A : Type) := @grec1up A C.T.
+
 End PrecIsPropagated.
 
 Lemma tsize_opp p1 :
@@ -372,11 +382,20 @@ Lemma tnth_tail p n k :
   tnth (ttail k p) n = tnth p (k + n).
 Proof. by rewrite /tnth /ttail nth_drop. Qed.
 
+Definition tlift (n : nat) (p : T) :=
+  ncons n C.tzero p.
+
 End SeqPolyMonomUp.
 
 Module SeqPolyPowDivMonomUp (Import C : PowDivOps) <: PowDivMonomPolyOps C.
 
 Include SeqPolyMonomUp C.
+
+Definition tmul_mixed (u : U) (a : C.T) (p : T) :=
+  @foldr C.T T (fun x acc => (C.tmul u a x) :: acc) [::] p.
+
+Definition tdiv_mixed_r (u : U) (p : T) (b : C.T) :=
+  @foldr C.T T (fun x acc => (C.tdiv u x b) :: acc) [::] p.
 
 Fixpoint tdotmuldiv (u : U) (a b : seq Z) (p : T) : T :=
 match a, b, p with

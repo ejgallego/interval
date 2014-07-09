@@ -137,9 +137,12 @@ Parameter T_sqrt : P.U -> C.T -> nat -> P.T.
 
 Parameter T_invsqrt : P.U -> C.T -> nat -> P.T.
 
+Parameter T_tan : P.U -> C.T -> nat -> P.T.
+
+Parameter T_atan : P.U -> C.T -> nat -> P.T.
+
 (*
 Parameter T_ln : P.U -> C.T -> nat -> P.T.
-Parameter T_atan : P.U -> C.T -> nat -> P.T.
 Parameter T_asin : P.U -> C.T -> nat -> P.T.
 Parameter T_acos : P.U -> C.T -> nat -> P.T.
 *)
@@ -173,11 +176,35 @@ Definition T_power_int (p : Z) x (n : nat) :=
   P.tdotmuldiv u (falling_seq p n) (fact_seq n)
                (trec1 (pow_aux_rec u p x) (tpower_int u x p) n).
 
+Definition T_tan x :=
+  let polyX := tlift 1 P.tone (* in monomial basis *) in
+  let J := ttan u x in
+  let s := [::] in
+  let F q n :=
+    let q' := tderiv u q in
+    tdiv_mixed_r u (P.tadd u q' (tlift 2 q')) (tnat n) in
+  let G q _ := teval u q J (* in monomial basis *) in
+  tgrec1 F G polyX s.
+
+Definition T_atan x :=
+  let q1 := P.tone in
+  let J := tatan u x in
+  let s := [:: J] in
+  let F q n :=
+    let q2nX := tmul_mixed u (tnat ((n.-1).*2)) (tlift 1 q) in
+    let q' := tderiv u q in
+    tdiv_mixed_r u (P.tsub u (P.tadd u q' (tlift 2 q')) q2nX) (tnat n) in
+  let G q n :=
+    tdiv u (teval u q x)
+      (tpower_int u (tadd u tone (tsqr u x)) (Z_of_nat n)) in
+  tgrec1 F G q1 s.
+
 (*
 Definition T_ln x := trec2 (ln_rec u x) (tln u x) (tinv u x).
 Definition T_atan x := trec2 (atan_rec u x) (tatan u x) (Deriv_atan u x).
 Definition T_asin x := trec2 (asin_rec u x) (tasin u x) (Deriv_asin u x).
 Definition T_acos x := trec2 (acos_rec u x) (tacos u x) (Deriv_acos u x).
 *)
+
 End PrecIsPropagated.
 End TaylorPoly.

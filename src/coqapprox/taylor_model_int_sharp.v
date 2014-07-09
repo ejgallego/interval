@@ -103,6 +103,7 @@ Module Import RPA := RigPolyApproxInt I Pol.
 Module Import TI := TaylorPoly Pol.Int Pol.
 Import Int.
 Module TX := TaylorPoly FullXR PolX.
+(* TODO: the following 2 modules could be removed, using MonomPolyOps instead *)
 Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
 Module MapX := PolyMap FullXR PolX FullXR PolX.
 Module Import BndThm := PolyBoundThm I Pol PolX Link Bnd.
@@ -220,6 +221,14 @@ Definition TM_sin X0 X (n : nat) : rpa :=
 Definition TM_cos X0 X (n : nat) : rpa :=
   let P := (T_cos prec X0 n) in
   RPA P (Ztech prec (T_cos prec) P (tcos prec) X0 X n).
+
+Definition TM_tan X0 X (n : nat) : rpa :=
+  let P := (T_tan prec X0 n) in
+  RPA P (Ztech prec (T_tan prec) P (ttan prec) X0 X n).
+
+Definition TM_atan X0 X (n : nat) : rpa :=
+  let P := (T_atan prec X0 n) in
+  RPA P (Ztech prec (T_atan prec) P (tatan prec) X0 X n).
 
 Definition TM_add (Mf Mg : rpa) : rpa :=
   RPA (Pol.tadd prec (approx Mf) (approx Mg))
@@ -3323,6 +3332,8 @@ Qed.
 
 Lemma size_TM_cos X0 X (n : nat) : tsize (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.tsize_trec2. Qed.
+
+(* **************************************************************** *)
 
 Local Notation "a + b" := (Xadd a b).
 Local Notation "a - b" := (Xsub a b).

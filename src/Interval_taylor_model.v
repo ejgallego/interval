@@ -1275,6 +1275,9 @@ apply: fun_gen_correct =>//.
 - exact: TM_sin_correct.
 Qed.
 
+(*
+OLD CODE
+
 Definition TM_tan_slow prec X0 X n :=
   TM_div prec (TM_sin prec X0 X n) (TM_cos prec X0 X n) X0 X n.
 
@@ -1299,9 +1302,26 @@ eexists; exact Hx.
 apply: TM_cos_correct =>//.
 eexists; exact Hx.
 Qed.
+*)
+
+Definition tan := Eval hnf in fun_gen I.tan TM_tan.
+
+Theorem tan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (tan u Y tf) (fun x => Xtan (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.tan_correct.
+admit.
+admit.
+Qed.
+
+(*
+OLD CODE
 
 Definition atan (u : U) (X : I.type) (t : T) : T :=
-(* FIXME: this is a very naive definition, ideally we should rely on TM_atan *)
+(* this is a very naive definition, ideally we should rely on TM_atan *)
   Tm (TM_any u.1 (I.atan u.1 (eval u t X X)) X u.2).
 
 Theorem atan_correct :
@@ -1318,6 +1338,20 @@ exact: Imid_subset.
 move=> x Hx.
 apply: I.atan_correct.
 exact: eval_correct.
+Qed.
+*)
+
+Definition atan := Eval hnf in fun_gen I.atan TM_atan.
+
+Theorem atan_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (atan u Y tf) (fun x => Xatan (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+exact: I.atan_correct.
+admit.
+admit.
 Qed.
 
 Definition power_int p := Eval cbv delta[fun_gen] beta in

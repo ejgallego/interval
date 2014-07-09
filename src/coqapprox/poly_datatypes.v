@@ -82,8 +82,9 @@ Parameter Inline tinvsqrt : U -> T -> T.
 Parameter Inline texp : U -> T -> T.
 Parameter Inline tsin : U -> T -> T.
 Parameter Inline tcos : U -> T -> T.
-(*
+Parameter Inline ttan : U -> T -> T.
 Parameter Inline tatan : U -> T -> T.
+(*
 Parameter Inline tln : U -> T -> T.
 Parameter Inline tasin : U -> T -> T.
 Parameter Inline tacos : U -> T -> T.
@@ -161,6 +162,8 @@ Module Type PolyOps (C : BaseOps) <: BaseOps.
 Include Type BaseOps with Definition U := C.U. (* simplifying assumption *)
 Parameter tmul_trunc : U -> nat -> T -> T -> T.
 Parameter tmul_tail : U -> nat -> T -> T -> T.
+Parameter tlift : nat -> T -> T.
+(** [tlift j pol] represents [pol * X^j] if [pol] is in the monomial basis *)
 Parameter ttail : nat -> T -> T.
 (* Parameter tpolyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
 Parameter tpolyNil : T.
@@ -198,6 +201,11 @@ Parameter trecN_spec0 :
   forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
   (d : C.T),
   k <= n -> k < N -> tnth (trecN L0 F n) k = nth d (Ttoseq L0) k.
+
+Parameter tgrec1 :
+  forall A : Type,
+  (A -> nat -> A) ->
+  (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
 
 Parameter tlastN : C.T -> forall N : nat, T -> C.T ^ N.
 Parameter tlastN_spec :
@@ -270,6 +278,8 @@ Parameter tsize_tail :
 Parameter tnth_tail :
   forall p n k,
   tnth (ttail k p) n = tnth p (k + n).
+Parameter tderiv : U -> T -> T.
+(* Parameter tderiv_correct : ... *)
 End PolyOps.
 
 Module Type SliceMonomPolyOps (C : MaskBaseOps) (Import A : PolyOps C).
@@ -285,6 +295,8 @@ End SliceMonomPolyOps.
 Module Type MonomPolyOps (C : MaskBaseOps) := PolyOps C <+ SliceMonomPolyOps C.
 
 Module Type SlicePowDivPolyOps (C : PowDivOps) (Import A : PolyOps C).
+Parameter tmul_mixed : U -> C.T -> T -> T.
+Parameter tdiv_mixed_r : U -> T -> C.T -> T.
 Parameter tdotmuldiv : U -> seq Z -> seq Z -> T -> T.
 Parameter tsize_dotmuldiv :
   forall n u a b p, tsize p = n -> size a = n -> size b = n ->
