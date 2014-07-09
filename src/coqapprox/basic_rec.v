@@ -254,14 +254,18 @@ Section GenDefix1.
 Variables A T : Type.
 
 Variable F : A -> nat -> A. (* may involve symbolic differentiation *)
+(** to be instantiated by a function satisfying a(n+1)=F(a(n),n+1). *)
 
 Variable G : A -> nat -> T.
+(** to be instantiated by a function satisfying u(N+n)=G(a(n),N+n).
+Here, N is the size of the list [init]. *)
 
 Fixpoint gloop1 (n p : nat) (a : A) (s : seq T) {struct n} : seq T :=
   match n with
     | 0 => s
-    | m.+1 => let r := G a p in let c := F a p in
-      gloop1 m p.+1 c (r :: s)
+    | m.+1 => let r := G a p in
+              let p1 := p.+1 in
+              let c := F a p1 in gloop1 m p1 c (r :: s)
   end.
 
 Variable a0 : A.
@@ -271,13 +275,13 @@ Variable init : seq T.
 
 Definition grec1down n :=
   if (n.+1 - size init) is n'.+1
-    then gloop1 n'.+1 1 a0 (rev init)
+    then gloop1 n'.+1 (size init) a0 (rev init)
     else rev (take n.+1 init).
 
 Lemma grec1downE (n : nat) :
   grec1down n =
   if n >= size init
-    then gloop1 (n - size init).+1 1 a0 (rev init)
+    then gloop1 (n - size init).+1 (size init) a0 (rev init)
     else rev (take n.+1 init).
 Proof.
 rewrite /grec1down.
@@ -290,7 +294,7 @@ Definition grec1up n := rev (grec1down n).
 Lemma gloop1SE :
   forall n p a s,
   (gloop1 n.+1 p a s) =
-  let r := G a p in let c := F a p in gloop1 n p.+1 c (r :: s).
+  let r := G a p in let c := F a p.+1 in gloop1 n p.+1 c (r :: s).
 Proof. done. Qed.
 
 Lemma gloop1E : forall p a s, (gloop1 0 p a s) = s.
@@ -328,17 +332,17 @@ Proof. by rewrite /grec1up /grec1down -subn_eq0; move/eqP ->; rewrite revK. Qed.
 Theorem head_grec1down (d : T) (n : nat) :
   size init <= n ->
   head d (grec1down n) =
-  head d (gloop1 (n - size init).+1 1 a0 (rev init)).
+  head d (gloop1 (n - size init).+1 (size init) a0 (rev init)).
 Proof. by move=> Hn; rewrite /grec1down subSn. Qed.
 
 Theorem head_grec1up (d : T) (n : nat) :
   size init <= n ->
   last d (grec1up n) =
-  head d (gloop1 (n - size init).+1 1 a0 (rev init)).
+  head d (gloop1 (n - size init).+1 (size init) a0 (rev init)).
 Proof. by move=> Hn; rewrite /grec1up /grec1down subSn // last_rev. Qed.
 
 Theorem head_gloop1 (d : T) (n p : nat) (a : A) (s : seq T):
-  head d (gloop1 n.+1 p a s) = G (iteri n (fun i c => F c (i + p)) a) (n + p).
+  head d (gloop1 n.+1 p a s) = G (iteri n (fun i c => F c (i + p).+1) a) (n + p).
 Proof.
 elim: n p a s =>[//|n IHn] p a s.
 move E: (n.+1) => n'.
@@ -354,7 +358,7 @@ Lemma gloop1S_ex :
 Proof.
 elim=> [|n IH] p a s; first by exists (G a p).
 remember (S n) as n'; simpl.
-case: (IH p.+1 (F a p) (G a p :: s))=> [c Hc].
+case: (IH p.+1 (F a p.+1) (G a p :: s))=> [c Hc].
 rewrite Hc {}Heqn' /=.
 by exists c.
 Qed.
@@ -367,7 +371,7 @@ pose m := size init.
 rewrite !grec1downE.
 case: (leqP (size init) n) => H.
   rewrite leqW // subSn //.
-  have [c Hc] := gloop1S_ex (n - m).+1 1 a0 s.
+  have [c Hc] := gloop1S_ex (n - m).+1 m a0 s.
   by rewrite Hc.
 rewrite leq_eqVlt in H; case/orP: H; [move/eqP|] => H.
   rewrite -H subnn /= ifT H //.
