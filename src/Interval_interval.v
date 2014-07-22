@@ -550,6 +550,7 @@ Parameter precision : Type.
 
 Parameter neg : type -> type.
 Parameter abs : type -> type.
+Parameter pi : precision -> type.
 Parameter inv : precision -> type -> type.
 Parameter sqr : precision -> type -> type.
 Parameter sqrt : precision -> type -> type.
@@ -565,6 +566,7 @@ Parameter div : precision -> type -> type -> type.
 Parameter power_int : precision -> type -> Z -> type.
 
 Parameter neg_correct : extension Xneg neg.
+Parameter pi_correct : forall prec, contains (convert (pi prec)) (Xreal PI).
 Parameter inv_correct : forall prec, extension Xinv (inv prec).
 Parameter sqr_correct : forall prec, extension Xsqr (sqr prec).
 Parameter abs_correct : extension Xabs abs.

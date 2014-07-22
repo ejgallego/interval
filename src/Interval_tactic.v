@@ -315,6 +315,8 @@ Ltac xalgorithm lx :=
   | _ => xalgorithm_pre ; xalgorithm_post lx
   end.
 
+(* PREVIOUS VERSION:
+
 Ltac get_bounds l :=
   let rec aux l :=
     match l with
@@ -344,6 +346,40 @@ Ltac get_bounds l :=
       constr:(cons i m)
     end in
   aux l.
+*)
+
+Ltac get_bounds' l prec :=
+  let rec aux l prec :=
+    match l with
+    | nil => constr:(@nil A.bound_proof)
+    | cons ?x ?l =>
+      let i :=
+        match goal with
+        | H: Rle ?a x /\ Rle x ?b |- _ =>
+          let v := get_float a in
+          let w := get_float b in
+          constr:(A.Bproof x (I.bnd v w) H)
+        | H: Rle ?a x |- _ =>
+          let v := get_float a in
+          constr:(A.Bproof x (I.bnd v F.nan) (conj H I))
+        | H: Rle x ?b |- _ =>
+          let v := get_float b in
+          constr:(A.Bproof x (I.bnd F.nan v) (conj I H))
+        | H: Rle (Rabs x) ?b |- _ =>
+          let v := get_float b in
+          constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
+        | _ =>
+          let v := get_float x in
+          constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+        | _ => match x with
+          | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
+          | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
+          end
+        end in
+      let m := aux l prec in
+      constr:(cons i m)
+    end in
+  aux l prec.
 
 Lemma interval_helper_evaluate :
   forall bounds check formula prec n,
@@ -464,10 +500,10 @@ Ltac do_interval vars prec depth eval_tac :=
     xalgorithm vars ;
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
-      let bounds_ := get_bounds constants in
+      let prec := eval vm_compute in (prec_of_nat prec) in
+      let bounds_ := get_bounds' constants prec in
       let bounds := fresh "bounds" in
       pose (bounds := bounds_) ;
-      let prec := eval vm_compute in (prec_of_nat prec) in
       change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
       eval_tac bounds check formula prec depth n ;
       vm_cast_no_check (refl_equal true)
@@ -558,7 +594,7 @@ Ltac do_interval_intro t extend params vars prec depth eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
-    let bounds := get_bounds constants in
+    let bounds := get_bounds' constants prec in
     let v := eval_tac extend bounds formula prec depth in
     do_interval_generalize t v ;
     [ | do_interval_parse params ]
@@ -687,5 +723,12 @@ Proof.
 intros.
 interval_intro (1 + x)%R with (i_bisect_taylor x 2).
 interval with (i_bisect_taylor x 2).
+Qed.
+*)
+
+(*
+Lemma pi10 : (31415926535/10000000000 < PI < 31415926536/10000000000)%R.
+Proof.
+split; interval with (i_prec 40).
 Qed.
 *)

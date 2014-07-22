@@ -62,6 +62,21 @@ simpl.
 now case Fcore_Raux.Rcompare_spec.
 Qed.
 
+Definition pi prec :=
+  I.scale2 (T.pi4 prec) (F.ZtoS 2).
+
+Lemma pi_correct :
+  forall prec, contains (I.convert (pi prec)) (Xreal PI).
+Proof.
+intros prec.
+unfold pi.
+replace (Xreal PI) with (Xmul (Xreal (PI/4)) (Xreal (Fcore_Raux.bpow radix2 2))).
+  apply I.scale2_correct, T.pi4_correct.
+simpl.
+f_equal.
+now field.
+Qed.
+
 (* useful only for |xi| <= pi *)
 Definition cos prec xi :=
   match I.abs xi with
