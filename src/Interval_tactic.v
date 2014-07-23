@@ -354,6 +354,9 @@ Ltac get_bounds' l prec :=
     | nil => constr:(@nil A.bound_proof)
     | cons ?x ?l =>
       let i :=
+      match x with
+      | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
+      | _ =>
         match goal with
         | H: Rle ?a x /\ Rle x ?b |- _ =>
           let v := get_float a in
@@ -371,11 +374,9 @@ Ltac get_bounds' l prec :=
         | _ =>
           let v := get_float x in
           constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
-        | _ => match x with
-          | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
-          | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
-          end
-        end in
+        | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
+        end
+      end in
       let m := aux l prec in
       constr:(cons i m)
     end in
