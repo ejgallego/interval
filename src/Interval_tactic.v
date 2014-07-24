@@ -368,7 +368,16 @@ Ltac get_bounds l prec :=
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
           constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
-        | _ => fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
+        | _ =>
+          match goal with
+          | H: Rle ?a x /\ Rle x ?b |- _ => idtac
+          | H: Rle ?a x |- _ => idtac
+          | H: Rle x ?b |- _ => idtac
+          | H: Rle (Rabs x) ?b |- _ => idtac
+          end ;
+          fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
+        | _ =>
+          constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I))
         end
       end in
       let m := aux l prec in
