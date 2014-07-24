@@ -137,6 +137,16 @@ simpl A.check_p.
 now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => (0 < r)%R end) (fun x => (0 < x)%R)).
 Qed.
 
+Lemma xreal_to_nonzero :
+  forall prog terms n,
+  A.check_p A.nonzero_check (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
+  nth n (eval_real prog terms) R0 <> R0.
+Proof.
+intros prog terms n.
+simpl A.check_p.
+now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => r <> R0 end) (fun x => x <> R0)).
+Qed.
+
 Inductive expr :=
   | Econst : nat -> expr
   | Eunary : unary_op -> expr -> expr
@@ -294,6 +304,10 @@ Ltac xalgorithm_pre :=
   | |- Rlt ?a ?b =>
     apply Rminus_gt ;
     unfold Rgt
+  | |- (?a <> 0)%R =>
+    idtac
+  | |- (?a <> ?b)%R =>
+    apply Rminus_not_eq
   | _ => fail 100 "Goal is not an inequality with floating-point bounds."
   end.
 
@@ -312,6 +326,13 @@ Ltac xalgorithm_post lx :=
       let formula := fresh "formula" in
       pose (formula := a) ;
       refine (xreal_to_positive formula b O _)
+    end
+  | |- (?y <> 0)%R =>
+    match extract_algorithm y lx with
+    | (?a, ?b) =>
+      let formula := fresh "formula" in
+      pose (formula := a) ;
+      refine (xreal_to_nonzero formula b O _)
     end
   end.
 

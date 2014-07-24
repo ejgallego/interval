@@ -281,6 +281,22 @@ abstract (
   now rewrite H1).
 Defined.
 
+Definition nonzero_check : check.
+Proof.
+apply (Build_check
+  (fun i => match I.sign_strict i with Xgt => true | Xlt => true | _ => false end)
+  (fun y => match y with Xreal r => r <> R0 | _ => False end)).
+abstract (
+  intros y yi Hy Hb ;
+  generalize (I.sign_strict_correct yi) ;
+  destruct (I.sign_strict yi) ; try easy ;
+  intros H ;
+  destruct (H y Hy) as [H1 H2] ;
+  rewrite H1 ;
+  [ apply Rlt_not_eq | apply Rgt_not_eq ] ;
+  assumption).
+Defined.
+
 Definition bisect_1d_step l u (check : I.type -> bool) cont :=
   if check (I.bnd l u) then true
   else
