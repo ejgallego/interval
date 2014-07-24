@@ -268,6 +268,11 @@ Ltac extract_algorithm t l :=
 
 Ltac xalgorithm_pre :=
   match goal with
+  | |- Rge _ _ =>
+    apply Rle_ge ;
+    xalgorithm_pre
+  | |- Rgt _ _ =>
+    unfold Rgt
   | |- Rle ?a ?b /\ Rle ?b ?c =>
     let v := get_float a in
     let w := get_float c in
@@ -284,7 +289,8 @@ Ltac xalgorithm_pre :=
   | |- Rle ?a ?b =>
     apply Rminus_le ;
     refine (proj2 (_ : contains (I.convert (I.bnd F.nan F.zero)) (Xreal (a - b))))
-  | |- Rlt 0 ?b => idtac
+  | |- Rlt 0 ?b =>
+    idtac
   | |- Rlt ?a ?b =>
     apply Rminus_gt ;
     unfold Rgt
