@@ -267,25 +267,30 @@ case_eq (Fle xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
     apply Rle_trans with (1 := proj1 Ha) (2 := Hx).
   apply Rle_trans with (2 := Rmax_r _ _).
   apply Rle_trans with (2 := Hcu).
-    apply Rnot_le_lt, Rlt_le in Hx.
-    apply cos_incr_1 with (1 := Hx) (4 := Hxur) (5 := proj2 Ha).
-    apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
-    apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
+  apply Rnot_le_lt, Rlt_le in Hx.
+  apply cos_incr_1 with (1 := Hx) (4 := Hxur) (5 := proj2 Ha).
+  apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
+  apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
 intros _.
 unfold I.convert, I.convert_bound, I.bnd.
 rewrite 2!F.fromZ_correct.
 apply COS_bound.
 Qed.
 
-(* useful only for |xi| <= pi/2 *)
+(* useful only for |xi| <= 5/2*pi *)
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
-    let pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    let pi4 := T.pi4 prec in
+    let s1 := F.ZtoS 1%Z in
+    let pi2 := F.scale2 (I.lower pi4) s1 in
     match Fle (F.neg pi2) xl, Fle xu pi2 with
     | true, true =>
       I.bnd (I.lower (T.sin_fast prec xl)) (I.upper (T.sin_fast prec xu))
-    | _, _ => I.bnd (F.fromZ (-1)) (F.fromZ 1)
+    | true, false =>
+      cos prec (I.sub prec (I.scale2 pi4 s1) xi)
+    | _, _ =>
+      I.neg (cos prec (I.add prec xi (I.scale2 pi4 s1)))
     end
   | Inan => Inan
   end.
@@ -293,98 +298,108 @@ Definition sin prec xi :=
 Theorem sin_correct :
   forall prec, I.extension Xsin (sin prec).
 Proof.
-intros prec [|xl xu] [|x] ; try easy.
-intros (Hxl, Hxu).
+intros prec [|xl xu] [|x] Hx ; try easy.
+generalize Hx.
+intros [Hxl Hxu].
 simpl.
 set (pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1)).
-case_eq (Fle (F.neg pi2) xl) ; intros Hpl.
-generalize (Fle_correct _ _ Hpl).
-I.xreal_tac xl. now case (I.convert_bound (F.neg pi2)).
-clear Hpl. intros Hpl.
-case_eq (Fle xu pi2) ; intros Hpu.
-generalize (Fle_correct _ _ Hpu).
-I.xreal_tac xu. easy.
-I.xreal_tac pi2. easy.
-clear Hpu. intros Hpu.
-revert Hpl.
-unfold I.convert_bound.
-rewrite F.neg_correct, Interval_generic_proof.Fneg_correct.
-fold (I.convert_bound pi2).
-rewrite X1.
-simpl.
-intros Hpl.
-generalize (F.scale2_correct (I.lower (T.pi4 prec)) 1 (refl_equal _)).
-rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
-intros X2.
-change (I.convert_bound pi2 = Xmul (I.convert_bound (I.lower (T.pi4 prec))) (Xreal 2)) in X2.
-rewrite X1 in X2. clear X1.
-revert X2.
-generalize (T.pi4_correct prec).
-case (T.pi4 prec).
-simpl.
-now unfold I.convert_bound ; rewrite F.nan_correct.
-simpl.
-intros p.
-change (T.I.convert_bound p) with (I.convert_bound p).
-I.xreal_tac p. easy.
-intros _ (Hp,_) H.
-injection H.
-clear H X1. intros H.
-(* *)
-assert (Hpl': (-(PI/2) <= r)%R).
-apply Rle_trans with (2 := Hpl).
-apply Ropp_le_contravar.
-rewrite H.
+case_eq (Fle (F.neg pi2) xl).
+  intros Hpl.
+  generalize (Fle_correct _ _ Hpl).
+  I.xreal_tac xl.
+    now case (I.convert_bound (F.neg pi2)).
+  clear Hpl. intros Hpl.
+  case_eq (Fle xu pi2).
+    intros Hpu.
+    generalize (Fle_correct _ _ Hpu).
+    I.xreal_tac xu. easy.
+    I.xreal_tac pi2. easy.
+    clear Hpu. intros Hpu.
+    revert Hpl.
+    unfold I.convert_bound.
+    rewrite F.neg_correct, Interval_generic_proof.Fneg_correct.
+    fold (I.convert_bound pi2).
+    rewrite X1.
+    simpl.
+    intros Hpl.
+    generalize (F.scale2_correct (I.lower (T.pi4 prec)) 1 (refl_equal _)).
+    rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
+    intros X2.
+    change (I.convert_bound pi2 = Xmul (I.convert_bound (I.lower (T.pi4 prec))) (Xreal 2)) in X2.
+    rewrite X1 in X2. clear X1.
+    revert X2.
+    generalize (T.pi4_correct prec).
+    case (T.pi4 prec) ; simpl.
+      now unfold I.convert_bound ; rewrite F.nan_correct.
+    intros p.
+    change (T.I.convert_bound p) with (I.convert_bound p).
+    I.xreal_tac p. easy.
+    intros _ [Hp _] H.
+    injection H.
+    clear H X1. intros H.
+    assert (Hpl': (-(PI/2) <= r)%R).
+      apply Rle_trans with (2 := Hpl).
+      apply Ropp_le_contravar.
+      rewrite H.
+      replace (PI / 2)%R with (PI / 4 * 2)%R by field.
+      apply Rmult_le_compat_r with (2 := Hp).
+      now apply (Fcore_Raux.Z2R_le 0 2).
+    assert (Hpu': (r0 <= PI/2)%R).
+      apply Rle_trans with (1 := Hpu).
+      rewrite H.
+      replace (PI / 2)%R with (PI / 4 * 2)%R by field.
+      apply Rmult_le_compat_r with (2 := Hp).
+      now apply (Fcore_Raux.Z2R_le 0 2).
+    split.
+      generalize (T.sin_fast_correct prec xl).
+      destruct (T.sin_fast prec xl) as [|yl yu].
+        unfold I.convert_bound. simpl.
+        now rewrite F.nan_correct.
+      fold (I.convert_bound xl). rewrite X.
+      simpl.
+      change (T.I.convert_bound yl) with (I.convert_bound yl).
+      I.xreal_tac yl. easy.
+      change (T.I.convert_bound yu) with (I.convert_bound yu).
+      intros [Hy _].
+      apply Rle_trans with (1 := Hy).
+      assert (H' := Rle_trans _ _ _ Hxu Hpu').
+      apply sin_incr_1 ; try easy.
+      now apply Rle_trans with x.
+      now apply Rle_trans with r.
+    generalize (T.sin_fast_correct prec xu).
+    destruct (T.sin_fast prec xu) as [|yl yu].
+      unfold I.convert_bound. simpl.
+      now rewrite F.nan_correct.
+    fold (I.convert_bound xu). rewrite X0.
+    simpl.
+    change (T.I.convert_bound yu) with (I.convert_bound yu).
+    I.xreal_tac yu. easy.
+    intros [_ Hy].
+    apply Rle_trans with (2 := Hy).
+    assert (H' := Rle_trans _ _ _ Hpl' Hxl).
+    apply sin_incr_1 ; try easy.
+    now apply Rle_trans with r0.
+    now apply Rle_trans with x.
+  intros _.
+  rewrite <- cos_shift.
+  change (Xreal (Rtrigo_def.cos (PI / 2 - x))) with (Xcos (Xsub (Xreal (PI / 2)) (Xreal x))).
+  apply cos_correct.
+  apply I.sub_correct with (2 := Hx).
+  replace (PI / 2)%R with (PI / 4 * 2)%R by field.
+  apply (I.scale2_correct _ (Xreal (PI / 4)) 1%Z).
+  apply T.pi4_correct.
+intros _.
+rewrite <- (Ropp_involutive x).
+rewrite sin_neg.
+apply (I.neg_correct _ (Xreal _)).
+rewrite <- cos_shift.
+replace (PI / 2 - - x)%R with (x + PI / 2)%R by ring.
+change (Xreal (Rtrigo_def.cos (x + PI / 2))) with (Xcos (Xadd (Xreal x) (Xreal (PI / 2)))).
+apply cos_correct.
+apply (I.add_correct _ _ _ _ _ Hx).
 replace (PI / 2)%R with (PI / 4 * 2)%R by field.
-apply Rmult_le_compat_r with (2 := Hp).
-now apply (Fcore_Raux.Z2R_le 0 2).
-assert (Hpu': (r0 <= PI/2)%R).
-apply Rle_trans with (1 := Hpu).
-rewrite H.
-replace (PI / 2)%R with (PI / 4 * 2)%R by field.
-apply Rmult_le_compat_r with (2 := Hp).
-now apply (Fcore_Raux.Z2R_le 0 2).
-split.
-(* *)
-generalize (T.sin_fast_correct prec xl).
-destruct (T.sin_fast prec xl) as [|yl yu].
-unfold I.convert_bound. simpl.
-now rewrite F.nan_correct.
-fold (I.convert_bound xl). rewrite X.
-simpl.
-change (T.I.convert_bound yl) with (I.convert_bound yl).
-I.xreal_tac yl. easy.
-change (T.I.convert_bound yu) with (I.convert_bound yu).
-intros (Hy,_).
-apply Rle_trans with (1 := Hy).
-assert (H' := Rle_trans _ _ _ Hxu Hpu').
-apply sin_incr_1 ; try easy.
-now apply Rle_trans with x.
-now apply Rle_trans with r.
-(* *)
-generalize (T.sin_fast_correct prec xu).
-destruct (T.sin_fast prec xu) as [|yl yu].
-unfold I.convert_bound. simpl.
-now rewrite F.nan_correct.
-fold (I.convert_bound xu). rewrite X0.
-simpl.
-change (T.I.convert_bound yu) with (I.convert_bound yu).
-I.xreal_tac yu. easy.
-intros (_, Hy).
-apply Rle_trans with (2 := Hy).
-assert (H' := Rle_trans _ _ _ Hpl' Hxl).
-apply sin_incr_1 ; try easy.
-now apply Rle_trans with r0.
-now apply Rle_trans with x.
-(* *)
-simpl.
-unfold I.convert_bound.
-rewrite 2!F.fromZ_correct.
-apply SIN_bound.
-simpl.
-unfold I.convert_bound.
-rewrite 2!F.fromZ_correct.
-apply SIN_bound.
+apply (I.scale2_correct _ (Xreal (PI / 4)) 1%Z).
+apply T.pi4_correct.
 Qed.
 
 (* meaningful only for |xi| <= pi/2 *)
