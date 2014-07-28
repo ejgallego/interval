@@ -44,7 +44,7 @@ Goal
     <= 5/65536)%R.
 Proof.
   intros.
-  interval with (i_bisect_diff x).
+  interval with (i_bisect_taylor x 3).
 Qed.
 
 Goal
