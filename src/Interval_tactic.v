@@ -377,6 +377,8 @@ Ltac get_bounds l prec :=
           end ;
           fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
         | _ =>
+          idtac "Warning: Silently use the whole real line for the term" x
+                "but you may need to use the unfold tactic instead.";
           constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I))
         end
       end in
