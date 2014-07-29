@@ -342,32 +342,59 @@ Ltac xalgorithm lx :=
   | _ => xalgorithm_pre ; xalgorithm_post lx
   end.
 
-Ltac get_bounds l prec :=
-  let rec aux l prec :=
+Ltac list_warn l :=
+  let rec aux l :=
     match l with
-    | nil => constr:(@nil A.bound_proof)
+    | nil => idtac
+    | cons ?a ?l => idtac a ; aux l
+    end in
+  aux l.
+
+Ltac list_warn_rev l :=
+  let rec aux l :=
+    match l with
+    | nil => idtac
+    | cons ?a ?l => aux l ; idtac a
+    end in
+  aux l.
+
+Ltac warn_whole l :=
+  match l with
+  | nil => idtac
+  | cons _ nil =>
+    idtac "Warning: Silently use the whole real line for the following term:" ;
+    list_warn_rev l ; idtac "You may need to unfold this term."
+  | cons _ _ =>
+    idtac "Warning: Silently use the whole real line for the following terms:" ;
+    list_warn_rev l ; idtac "You may need to unfold some of these terms."
+  end.
+
+Ltac get_bounds l prec :=
+  let rec aux l prec lw :=
+    match l with
+    | nil => constr:(@nil A.bound_proof, @nil R)
     | cons ?x ?l =>
       let i :=
       match x with
-      | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
+      | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
       | _ =>
         let v := get_float x in
-        constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+        constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
       | _ =>
         match goal with
         | H: Rle ?a x /\ Rle x ?b |- _ =>
           let v := get_float a in
           let w := get_float b in
-          constr:(A.Bproof x (I.bnd v w) H)
+          constr:(A.Bproof x (I.bnd v w) H, @None R)
         | H: Rle ?a x |- _ =>
           let v := get_float a in
-          constr:(A.Bproof x (I.bnd v F.nan) (conj H I))
+          constr:(A.Bproof x (I.bnd v F.nan) (conj H I), @None R)
         | H: Rle x ?b |- _ =>
           let v := get_float b in
-          constr:(A.Bproof x (I.bnd F.nan v) (conj I H))
+          constr:(A.Bproof x (I.bnd F.nan v) (conj I H), @None R)
         | H: Rle (Rabs x) ?b |- _ =>
           let v := get_float b in
-          constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
+          constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H), @None R)
         | _ =>
           match goal with
           | H: Rle ?a x /\ Rle x ?b |- _ => idtac
@@ -377,15 +404,18 @@ Ltac get_bounds l prec :=
           end ;
           fail 100 "Atom" x "is neither a floating-point value nor bounded by floating-point values."
         | _ =>
-          idtac "Warning: Silently use the whole real line for the term" x
-                "but you may need to use the unfold tactic instead.";
-          constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I))
+          constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x)
         end
       end in
-      let m := aux l prec in
-      constr:(cons i m)
+      match aux l prec lw with
+      | (?m, ?lw) =>
+        match i with
+        | (?i, @None R) => constr:(cons i m, lw)
+        | (?i, @Some R ?aw) => constr:(cons i m, cons aw lw)
+        end
+      end
     end in
-  aux l prec.
+  aux l prec (@nil R).
 
 Lemma interval_helper_evaluate :
   forall bounds check formula prec n,
@@ -507,12 +537,15 @@ Ltac do_interval vars prec depth eval_tac :=
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
       let prec := eval vm_compute in (prec_of_nat prec) in
-      let bounds_ := get_bounds constants prec in
-      let bounds := fresh "bounds" in
-      pose (bounds := bounds_) ;
-      change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
-      eval_tac bounds check formula prec depth n ;
-      vm_cast_no_check (refl_equal true)
+      match get_bounds constants prec with
+      | (?bounds_, ?lw) =>
+        warn_whole lw ;
+        let bounds := fresh "bounds" in
+        pose (bounds := bounds_) ;
+        change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
+        eval_tac bounds check formula prec depth n ;
+        vm_cast_no_check (refl_equal true)
+      end
     end)) ||
   fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
 
@@ -600,10 +633,13 @@ Ltac do_interval_intro t extend params vars prec depth eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
-    let bounds := get_bounds constants prec in
-    let v := eval_tac extend bounds formula prec depth in
-    do_interval_generalize t v ;
-    [ | do_interval_parse params ]
+    match get_bounds constants prec with
+    | (?bounds, ?lw) =>
+      warn_whole lw ;
+      let v := eval_tac extend bounds formula prec depth in
+      do_interval_generalize t v ;
+      [ | do_interval_parse params ]
+    end
   end.
 
 Ltac do_interval_intro_parse t_ extend params_ :=
