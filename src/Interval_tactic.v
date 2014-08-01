@@ -282,7 +282,8 @@ Ltac xalgorithm_pre :=
     apply Rle_ge ;
     xalgorithm_pre
   | |- Rgt _ _ =>
-    unfold Rgt
+    unfold Rgt ;
+    xalgorithm_pre
   | |- Rle ?a ?b /\ Rle ?b ?c =>
     let v := get_float a in
     let w := get_float c in
