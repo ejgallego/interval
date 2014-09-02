@@ -43,7 +43,7 @@ AC_MSG_RESULT([$COQDEP])
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq_version BinNat." \
-         "Goal (20300 <= Flocq_version)%N. easy. Qed." > conftest.v
+         "Goal (20400 <= Flocq_version)%N. easy. Qed." > conftest.v
     "$COQC" conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])

@@ -66,7 +66,7 @@ Fixpoint digits_aux m nb { struct m } :=
 Definition mantissa_digits m := Zpos (digits_aux m xH).
 
 Definition mantissa_split_div m d pos :=
-  match Zdiv_eucl (Zpos m) (Zpos d) with
+  match Zfast_div_eucl (Zpos m) (Zpos d) with
   | (Zpos q, r) => (q, adjust_pos r d pos)
   | _ => (xH, pos_Eq) (* dummy *)
   end.
@@ -172,25 +172,16 @@ Lemma mantissa_digits_correct :
 Proof.
 intros x _.
 rewrite <- digits_conversion.
-rewrite <- Fcalc_digits.Z_of_nat_S_digits2_Pnat.
-unfold EtoZ, mantissa_digits, MtoP.
-rewrite inj_S.
-unfold Zsucc.
-generalize xH.
-induction x ; intros p.
-simpl digits_aux.
-simpl Fcore_digits.digits2_Pnat.
-rewrite inj_S.
-unfold Zsucc.
-rewrite <- Zplus_assoc.
-now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
-simpl digits_aux.
-simpl Fcore_digits.digits2_Pnat.
-rewrite inj_S.
-unfold Zsucc.
-rewrite <- Zplus_assoc.
-now rewrite <- Zpos_plus_distr, <- Pplus_one_succ_l.
-apply refl_equal.
+rewrite <- Fcore_digits.Zdigits2_Zdigits.
+unfold EtoZ, mantissa_digits, MtoP, Fcore_digits.Zdigits2.
+replace (Zpos (Fcore_digits.digits2_pos x)) with (Zpos (Fcore_digits.digits2_pos x) + 1 - 1)%Z by ring.
+generalize xH at 1 2.
+induction x ; intros p ; simpl digits_aux ; simpl Fcore_digits.digits2_pos.
+rewrite IHx, 2!Pos2Z.inj_succ.
+ring.
+rewrite IHx, 2!Pos2Z.inj_succ.
+ring.
+ring.
 Qed.
 
 Lemma mantissa_scale2_correct :
@@ -381,6 +372,7 @@ unfold MtoP.
 intros Hxy.
 unfold mantissa_div, mantissa_split_div.
 generalize (Z_div_mod (Z.pos x) (Z.pos y) (eq_refl Gt)).
+rewrite Zfast_div_eucl_correct.
 destruct Z.div_eucl as [q r].
 intros [H1 H2].
 assert (H: (0 < q)%Z).
