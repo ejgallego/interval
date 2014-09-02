@@ -50,6 +50,7 @@ Qed.
 Goal
   forall x, (-1 <= x)%R ->
   (x < 1 + powerRZ x 3)%R.
-intros.
-interval with (i_bisect_diff x).
+Proof.
+  intros.
+  interval with (i_bisect_diff x).
 Qed.

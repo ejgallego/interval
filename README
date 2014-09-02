@@ -32,7 +32,7 @@ The complete list of recognized goals is as follows:
   (Rabs e <= f)%R      handled as (-f <= e <= f)%R
   (e1 <= e2)%R         handled as (e1 - e2 <= 0)%R
   (e1 < e2)%R          handled as (0 < e2 - e1)%R
-  (e1 <> e2)%R	       handled as (e1 - e2 <> 0)%R
+  (e1 <> e2)%R         handled as (e1 - e2 <> 0)%R
 
 Operators recognized by the tactic are: PI, Ropp, Rabs, Rinv, Rsqr, sqrt,
 cos, sin, tan, atan, exp, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv. There
@@ -145,7 +145,8 @@ Qed.
 Goal
   forall x, (-1 <= x)%R ->
   (x < 1 + powerRZ x 3)%R.
-intros.
-interval with (i_bisect_diff x).
+Proof.
+  intros.
+  interval with (i_bisect_diff x).
 Qed.
 (*** END ***)

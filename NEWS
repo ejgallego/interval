@@ -1,3 +1,9 @@
+Version 1.1.0:
+ - moved to Flocq 2.4
+ - added support for disequalities to the tactic
+ - added support for the PI symbol
+ - enlarged the domain of the interval versions of cos and sin
+
 Version 1.0.0:
  - removed remaining axioms
 
