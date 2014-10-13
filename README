@@ -38,7 +38,7 @@ Operators recognized by the tactic are: PI, Ropp, Rabs, Rinv, Rsqr, sqrt,
 cos, sin, tan, atan, exp, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv. There
 are a some restrictions on the domain of a few functions: pow and powerRZ
 should be written with a numeric exponent; the input of cos and sin
-should be between -2*PI and 2*PI, the input of tan should be between
+should be between -2*PI and 2*PI; the input of tan should be between
 -PI/2 and PI/2.
 
 A helper tactic "interval_intro e" is also available. Instead of proving
@@ -71,7 +71,7 @@ are: (with the type of their arguments, if any)
 
 For both tactics, performing a bisection of depth 1 is not much slower
 than performing no bisection. If the current goal can be proven by
-"interval" with a bisection of depth n, then increasing the depth to n+1
+"interval" with a bisection of depth n, then increasing the depth to n + 1
 will not have any noticeable effect. For "interval_intro", increasing the
 depth from n to n + 1 can, however, double the computation time.
 
