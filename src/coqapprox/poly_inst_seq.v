@@ -339,6 +339,9 @@ Definition tderiv (p : T) := tderiv_loop (behead p) 1%N.
 
 Definition tgrec1 (A : Type) := @grec1up A C.T.
 
+Lemma tsize_grec1 A F G (q : A) s n : tsize (tgrec1 F G q s n) = n.+1.
+Proof. by apply size_grec1up. Qed.
+
 End PrecIsPropagated.
 
 Lemma tsize_opp p1 :

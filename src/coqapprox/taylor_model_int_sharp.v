@@ -3333,6 +3333,12 @@ Qed.
 Lemma size_TM_cos X0 X (n : nat) : tsize (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.tsize_trec2. Qed.
 
+Lemma size_TM_tan X0 X (n : nat) : tsize (approx (TM_tan X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_grec1. Qed.
+
+Lemma size_TM_atan X0 X (n : nat) : tsize (approx (TM_atan X0 X n)) = n.+1.
+Proof. by rewrite Pol.tsize_grec1. Qed.
+
 (* **************************************************************** *)
 
 Local Notation "a + b" := (Xadd a b).

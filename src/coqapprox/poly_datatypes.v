@@ -207,6 +207,11 @@ Parameter tgrec1 :
   (A -> nat -> A) ->
   (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
 
+Parameter tsize_grec1 :
+  forall (A : Type)
+  (F : A -> nat -> A) (G : A -> nat -> C.T) (q : A) (s : seq C.T) (n : nat),
+  tsize (tgrec1 F G q s n) = n.+1.
+
 Parameter tlastN : C.T -> forall N : nat, T -> C.T ^ N.
 Parameter tlastN_spec :
   forall (d := C.tzero) N (p : T) (i : 'I_N),

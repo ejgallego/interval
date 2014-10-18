@@ -1313,7 +1313,7 @@ Theorem tan_correct :
 Proof.
 apply: fun_gen_correct =>//.
 exact: I.tan_correct.
-admit.
+exact: size_TM_tan.
 admit.
 Qed.
 
@@ -1350,7 +1350,7 @@ Theorem atan_correct :
 Proof.
 apply: fun_gen_correct =>//.
 exact: I.atan_correct.
-admit.
+exact: size_TM_atan.
 admit.
 Qed.
 
