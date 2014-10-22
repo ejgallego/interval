@@ -234,6 +234,12 @@ Definition Xexp x :=
   | Xnan => Xnan
   end.
 
+Definition Xln x :=
+  match x with
+  | Xreal u => if is_positive u then Xreal (ln u) else Xnan
+  | Xnan => Xnan
+  end.
+
 Definition Xpower_int x n :=
   match x with
   | Xreal u =>
@@ -245,7 +251,9 @@ Definition Xpower_int x n :=
   | Xnan => Xnan
   end.
 
-Lemma Xpower_int_correct : forall n, extension (fun x => powerRZ x n) (fun x => Xpower_int x n).
+Lemma Xpower_int_correct :
+  forall n, extension (fun x => powerRZ x n) (fun x => Xpower_int x n).
+Proof.
 intros [|n|n] [|x] ; try split.
 unfold Xpower_int.
 now case (is_zero x).
