@@ -1,4 +1,4 @@
-Require Import Reals.
+Require Import Reals Psatz.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -972,6 +972,629 @@ rewrite Hx.
 apply Rlt_le, FtoR_Rpos.
 unfold toR.
 now rewrite Hx.
+Qed.
+
+(* 0 <= inputs *)
+Fixpoint ln1p_fast0_aux prec thre powl powu xl xu div (nb : nat) { struct nb } :=
+  let npwu := F.mul rnd_UP prec powu xu in
+  let valu := F.div rnd_UP prec npwu div in
+  match F.cmp valu thre, nb with
+  | Xlt, _
+  | _, O => I.bnd F.zero valu
+  | _, S n =>
+    let npwl := F.mul rnd_DN prec powl xl in
+    let vall := F.div rnd_DN prec npwl div in
+    I.sub prec (I.bnd vall valu)
+      (ln1p_fast0_aux prec thre npwl npwu xl xu (F.add_exact div c1) n)
+  end.
+
+(* 0 <= input <= 1/2 *)
+Definition ln1p_fast0i prec xi :=
+  match xi with
+  | Inan => Inan
+  | Ibnd xl xu =>
+    let p := F.prec prec in
+    let thre := F.scale c1 (F.ZtoS (Zneg p)) in
+    let rem := ln1p_fast0_aux prec thre c1 c1 xl xu c2 (nat_of_P p) in
+    I.mul prec (I.sub prec (I.bnd c1 c1) rem) xi
+  end.
+
+(* 1 <= input *)
+Definition ln_fast1P prec xi :=
+  let th := F.add_exact c1 (F.scale2 c1 sm8) in
+  match le (I.upper xi) th with
+  | true =>
+    ln1p_fast0i prec (I.sub prec xi (I.bnd c1 c1))
+  | false =>
+    let m := F.StoZ (F.mag (I.upper xi)) in
+    let prec := F.incr_prec prec (Z2P (9 + m)) in
+    let fix reduce xi (nb : nat) {struct nb} :=
+      match le (I.upper xi) th, nb with
+      | true, _ => ln1p_fast0i prec (I.sub prec xi (I.bnd c1 c1))
+      | _, O => I.bnd F.zero F.nan
+      | _, S n => I.scale2 (reduce (I.sqrt prec xi) n) s1
+      end in
+    reduce xi (8 + Z2nat m)
+  end.
+
+Definition ln_fast prec x :=
+  match F.cmp x F.zero with
+  | Xgt =>
+    match F.cmp x c1 with
+    | Xeq => I.bnd F.zero F.zero
+    | Xlt =>
+      let prec := F.incr_prec prec 1 in
+      let il := F.div rnd_DN prec c1 x in
+      let iu := F.div rnd_UP prec c1 x in
+      I.neg (ln_fast1P prec (I.bnd il iu))
+    | Xgt => ln_fast1P prec (I.bnd x x)
+    | Xund => I.nai
+    end
+  | _ => I.nai
+  end.
+
+Lemma ln1p_fast0i_correct :
+  forall prec xl xu x,
+  FtoX (F.toF xl) = Xreal (toR xl) ->
+  (0 <= toR xl)%R ->
+  (x <= /2)%R ->
+  contains (I.convert (I.bnd xl xu)) (Xreal x) ->
+  contains (I.convert (ln1p_fast0i prec (I.bnd xl xu))) (Xreal (ln (1 + x))).
+Proof.
+intros prec xl xu x Hxl Hxl' Bx Ix.
+assert (Bx': (0 <= x)%R).
+  simpl in Ix.
+  unfold I.convert_bound in Ix.
+  rewrite Hxl in Ix.
+  now apply Rle_trans with (1 := Hxl').
+unfold ln1p_fast0i.
+rewrite ln1p_ln1pc.
+replace (ln1pc x) with (1 - (1 - ln1pc x))%R by ring.
+rewrite Rmult_comm.
+change (Xreal (_ * _)) with (Xmul (Xreal (1 - (1 - ln1pc x))) (Xreal x)).
+apply I.mul_correct with (2 := Ix).
+apply (I.sub_correct _ _ _ (Xreal _) (Xreal _)).
+rewrite I.bnd_correct.
+unfold I.convert_bound, c1.
+rewrite F.fromZ_correct.
+split ; apply Rle_refl.
+pose (Ai := fun x => sum_f_R0 (fun n : nat => ((-1) ^ n / INR (n + 1) * x ^ n)%R)).
+assert (Hexit : forall k powu ft,
+    le_upper (Xreal (x ^ k)) (FtoX (F.toF powu)) ->
+    FtoX (F.toF ft) = FtoX (F.toF (F.fromZ (Z.of_nat ((k + 1) + 1)))) ->
+    contains (I.convert (I.bnd F.zero (F.div rnd_UP prec (F.mul rnd_UP prec powu xu) ft)))
+      (Xreal ((-1) ^ (k + 1) * (ln1pc x - Ai x k)))).
+  intros k powu ft Hpu Hft.
+  rewrite I.bnd_correct.
+  unfold I.convert_bound.
+  rewrite F.zero_correct.
+  rewrite F.div_correct, Fdiv_correct.
+  rewrite F.mul_correct, Fmul_correct.
+  rewrite Hft.
+  rewrite F.fromZ_correct.
+  assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / Z2R (Z.of_nat ((k + 1) + 1)))%R).
+    rewrite Z2R_IZR, <- INR_IZR_INZ.
+    replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (n + 1) * x ^ n)%R) k).
+    unfold Rdiv.
+    rewrite (Rmult_comm (x ^ _)).
+    replace (k + 1) with (S k) by ring.
+    apply alternated_series_ineq'.
+    apply Un_decreasing_ln1pc.
+    apply (conj Bx').
+    apply Rle_trans with (1 := Bx).
+    rewrite <- (Rinv_1) at 3.
+    apply Rinv_le.
+    apply Rlt_0_1.
+    now apply (Z2R_le 1 2).
+    apply Un_cv_ln1pc.
+    rewrite Rabs_pos_eq with (1 := Bx').
+    apply Rle_trans with (1 := Bx).
+    rewrite <- (Rinv_1) at 3.
+    apply Rinv_le.
+    apply Rlt_0_1.
+    now apply (Z2R_le 1 2).
+    unfold ln1pc.
+    case ln1pc_in_int ; intros Hx.
+    case ln1pc_exists ; simpl projT1 ; intros l C.
+    exact C.
+    elim Hx.
+    apply (conj Bx').
+    apply Rle_lt_trans with (1 := Bx).
+    rewrite <- (Rinv_1) at 3.
+    apply Rinv_lt.
+    apply Rlt_0_1.
+    now apply (Z2R_lt 1 2).
+    apply sum_eq.
+    intros n _.
+    unfold tg_alt.
+    apply sym_eq, Rmult_assoc.
+  split.
+    apply A.
+  case_eq (FtoX (F.toF powu)).
+  easy.
+  intros powu' Hpu'.
+  simpl in Ix.
+  unfold I.convert_bound in Ix.
+  destruct (FtoX (F.toF xu)) as [|xur].
+  easy.
+  simpl.
+  case is_zero_spec.
+  easy.
+  intros H1.
+  simpl.
+  bound_tac.
+  apply Rle_trans with (1 := proj2 A).
+  apply Rmult_le_compat_r.
+  apply Rlt_le, Rinv_0_lt_compat.
+  apply (Z2R_lt 0), (inj_lt 0).
+  rewrite plus_comm.
+  apply lt_0_Sn.
+  bound_tac.
+  rewrite pow_add.
+  simpl.
+  rewrite Rmult_1_r.
+  apply Rmult_le_compat with (2 := Bx').
+  now apply pow_le.
+  unfold toR in Hpu.
+  now rewrite Hpu' in Hpu.
+  apply Ix.
+unfold c1, c2.
+generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
+intros thre n.
+replace R1 with (Ai x 0) by (unfold Ai ; simpl ; field).
+generalize (eq_refl (F.fromZ 1)).
+generalize (F.fromZ 1) at 1 3.
+intros powl Hpl.
+assert (Rpl: FtoX (F.toF powl) = Xreal (toR powl)).
+  rewrite Hpl.
+  unfold toR.
+  now rewrite F.fromZ_correct.
+apply (f_equal toR) in Hpl.
+assert (H: (0 <= toR powl)%R).
+  rewrite Hpl.
+  unfold toR.
+  rewrite F.fromZ_correct.
+  apply Rle_0_1.
+apply Req_le in Hpl.
+apply (conj H) in Hpl.
+clear H.
+generalize (eq_refl (F.fromZ 1)).
+generalize (F.fromZ 1) at 2 3.
+intros powu Hpu'.
+assert (Hpu: le_upper (FtoX (F.toF (F.fromZ 1))) (FtoX (F.toF powu))).
+  rewrite Hpu'.
+  unfold le_upper.
+  case FtoX.
+  exact I.
+  exact Rle_refl.
+clear Hpu'.
+revert Hpl Hpu.
+unfold toR at 3.
+rewrite F.fromZ_correct.
+change (Z2R 1) with (pow x 0).
+change 2%Z with (Z_of_nat ((0 + 1) + 1)).
+replace (Ai x 0%nat - ln1pc x)%R with ((-1) * 1 * (ln1pc x - Ai x 0%nat))%R by ring.
+change (-1 * 1)%R with (pow (-1) (0 + 1)).
+rewrite <- (minus_diag n) at 1 2 3 6 8.
+generalize (le_refl n).
+generalize n at 1 4 6 8 9 11 13.
+intros m.
+generalize (f_equal (fun v => FtoX (F.toF v)) (eq_refl (F.fromZ (Z.of_nat ((n - m + 1) + 1))))).
+generalize (F.fromZ (Z.of_nat ((n - m + 1) + 1))) at 1 3.
+intros tp1.
+revert powl powu tp1 Rpl.
+induction m as [|m IHm] ; intros powl powu tp1 Rpl Htp1 Hm Hpl Hpu.
+  simpl.
+  cut (contains (I.convert (I.bnd F.zero (F.div rnd_UP prec (F.mul rnd_UP prec powu xu)
+    tp1))) (Xreal ((-1) ^ (n - 0 + 1) * (ln1pc x - Ai x (n - 0))))).
+  now destruct F.cmp.
+  now apply Hexit.
+simpl.
+specialize (IHm (F.mul rnd_DN prec powl xl) (F.mul rnd_UP prec powu xu) (F.add_exact tp1 c1)).
+assert (H: forall p, n - S m + S p = n - m + p).
+  intros p.
+  clear -Hm ; omega.
+destruct ((ln1p_fast0_aux prec thre (F.mul rnd_DN prec powl xl)
+    (F.mul rnd_UP prec powu xu) xl xu (F.add_exact tp1 c1) m)).
+  case F.cmp ; try easy.
+  now apply Hexit.
+cut (contains (I.convert (Ibnd
+      (F.sub rnd_DN prec (F.div rnd_DN prec (F.mul rnd_DN prec powl xl) tp1) u)
+      (F.sub rnd_UP prec (F.div rnd_UP prec (F.mul rnd_UP prec powu xu) tp1) l)))
+    (Xreal ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m))))).
+  case F.cmp ; try easy.
+  intros H'.
+  now apply Hexit.
+replace ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m)%nat))%R
+  with ((-1) ^ (n - S m + 1) * (-1) ^ S (n - S m) * x ^ (S (n - S m)) * / INR (S (n - S m) + 1) - (((-1) * (-1) ^ (n - S m + 1)) * (ln1pc x - (Ai x (n - S m)%nat + ((-1) ^ S (n - S m) * / INR (S (n - S m) + 1) * x ^ (S (n - S m)))))))%R by ring.
+apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
+  rewrite <- pow_add.
+  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
+  rewrite pow_1_even, Rmult_1_l.
+  replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
+  unfold I.convert, I.convert_bound.
+  rewrite 2!F.div_correct, 2!Fdiv_correct.
+  rewrite 2!F.mul_correct, 2!Fmul_correct.
+  rewrite Htp1.
+  rewrite F.fromZ_correct.
+  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite pow_add.
+  change (x ^ 1)%R with (x * 1)%R.
+  rewrite Rmult_1_r.
+  split.
+  case_eq (FtoX (F.toF powl)).
+  easy.
+  intros pl Hpl'.
+  rewrite Hxl.
+  unfold Xmul, Xdiv, xround.
+  case is_zero_spec.
+  easy.
+  intros _.
+  bound_tac.
+  apply Rmult_le_compat_r.
+  apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0).
+  rewrite plus_comm.
+  apply lt_0_Sn.
+  bound_tac.
+  apply Rle_trans with (pl * x)%R.
+  apply Rmult_le_compat_l.
+  unfold toR in Hpl.
+  now rewrite Hpl' in Hpl.
+  simpl in Ix.
+  unfold I.convert_bound in Ix.
+  now rewrite Hxl in Ix.
+  apply Rmult_le_compat_r with (1 := Bx').
+  unfold toR in Hpl.
+  now rewrite Hpl' in Hpl.
+  case_eq (FtoX (F.toF powu)).
+  easy.
+  intros pu Hpu'.
+  case_eq (FtoX (F.toF xu)).
+  easy.
+  intros xur Hxu'.
+  unfold Xmul, Xdiv, xround.
+  case is_zero_spec.
+  easy.
+  intros _.
+  bound_tac.
+  apply Rmult_le_compat_r.
+  apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0).
+  rewrite plus_comm.
+  apply lt_0_Sn.
+  bound_tac.
+  apply Rmult_le_compat with (2 := Bx').
+  now apply pow_le.
+  unfold toR in Hpu.
+  now rewrite Hpu' in Hpu.
+  simpl in Ix.
+  unfold I.convert_bound in Ix.
+  now rewrite Hxu' in Ix.
+match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+apply IHm.
+unfold toR.
+rewrite F.mul_correct, Fmul_correct.
+now rewrite Rpl, Hxl.
+rewrite F.add_exact_correct, Fadd_exact_correct.
+rewrite Htp1.
+unfold c1.
+rewrite 3!F.fromZ_correct.
+simpl.
+rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
+apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite H.
+now rewrite plus_0_r.
+clear -Hm ; omega.
+unfold toR.
+rewrite F.mul_correct, Fmul_correct.
+rewrite Rpl, Hxl.
+simpl.
+split.
+apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Fcore_generic_fmt.generic_format_0.
+now apply Rmult_le_pos.
+bound_tac.
+replace (n - m) with (n - S m + 1) by (clear -Hm ; omega).
+rewrite pow_add.
+apply Rmult_le_compat ; try easy.
+unfold pow.
+rewrite Rmult_1_r.
+simpl in Ix.
+unfold I.convert_bound in Ix.
+now rewrite Hxl in Ix.
+rewrite F.mul_correct, Fmul_correct.
+destruct (FtoX (F.toF powu)) as [|pur].
+exact I.
+simpl in Ix.
+unfold I.convert_bound in Ix.
+destruct (FtoX (F.toF xu)) as [|xur].
+exact I.
+simpl.
+bound_tac.
+replace (n - m) with (n - S m + 1) by (clear -Hm ; omega).
+rewrite pow_add.
+simpl.
+rewrite Rmult_1_r.
+apply Rmult_le_compat ; try easy.
+now apply pow_le.
+apply f_equal.
+change (Ai x (n - S m)%nat + (-1) ^ S (n - S m) * / INR (S (n - S m) + 1) * x ^ (S (n - S m)))%R
+  with (Ai x (S (n - S m))).
+change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
+rewrite <- plus_Sn_m.
+now rewrite -> minus_Sn_m.
+Qed.
+
+Lemma ln_fast1P_correct :
+  forall prec xl xu x,
+  FtoX (F.toF xl) = Xreal (toR xl) ->
+  (1 <= toR xl)%R ->
+  contains (I.convert (I.bnd xl xu)) (Xreal x) ->
+  contains (I.convert (ln_fast1P prec (I.bnd xl xu))) (Xreal (ln x)).
+Proof.
+assert (forall prec xl xu x,
+  FtoX (F.toF xl) = Xreal (toR xl) ->
+  (1 <= toR xl)%R ->
+  (le xu (F.add_exact c1 (F.scale2 c1 sm8)) = true) ->
+  contains (I.convert (I.bnd xl xu)) (Xreal x) ->
+  contains (I.convert (ln1p_fast0i prec (I.sub prec (I.bnd xl xu) (I.bnd c1 c1)))) (Xreal (ln x))).
+intros prec xl xu x Hxl1 Hxl2 Hxu [Hx1 Hx2].
+replace x with (1 + (x - 1))%R by ring.
+apply ln1p_fast0i_correct.
+unfold toR.
+rewrite F.sub_correct, Fsub_correct.
+rewrite Hxl1.
+unfold c1.
+now rewrite F.fromZ_correct.
+unfold toR.
+rewrite F.sub_correct, Fsub_correct.
+rewrite Hxl1.
+unfold c1.
+rewrite F.fromZ_correct.
+simpl.
+rewrite <- (Fcore_generic_fmt.round_0 F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN)).
+apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+now apply Rle_0_minus.
+revert Hxu.
+case le_spec ; try easy.
+intros Hxu1 Hc Hxu2 _.
+apply Rle_trans with (toR xu - 1)%R.
+apply Rplus_le_compat_r.
+unfold I.convert_bound in Hx2.
+now rewrite Hxu1 in Hx2.
+cut (toR xu <= 1 + / 256)%R.
+clear ; lra.
+revert Hxu2.
+unfold toR.
+rewrite F.add_exact_correct, Fadd_exact_correct.
+unfold sm8.
+rewrite F.scale2_correct, Fscale2_correct ; trivial.
+unfold c1.
+rewrite F.fromZ_correct.
+simpl.
+now rewrite Rmult_1_l.
+exact F.even_radix_correct.
+apply (I.sub_correct prec (I.bnd xl xu) (I.bnd c1 c1) (Xreal x) (Xreal 1)).
+now split.
+simpl.
+unfold I.convert_bound, c1.
+rewrite F.fromZ_correct.
+split ; apply Rle_refl.
+(* . *)
+intros prec xl xu x Hxl1 Hxl2 Hx.
+unfold ln_fast1P.
+set (thre := F.add_exact c1 (F.scale2 c1 sm8)).
+case_eq (le (I.upper (I.bnd xl xu)) thre) ; intros Hxu.
+now apply H.
+clear Hxu.
+generalize (F.incr_prec prec (Z2P (9 + F.StoZ (F.mag (I.upper (I.bnd xl xu)))))).
+clear prec. intro prec.
+generalize (8 + Z2nat (F.StoZ (F.mag (I.upper (I.bnd xl xu))))).
+intro nb.
+revert xl xu x Hxl1 Hxl2 Hx.
+induction nb ; intros.
+(* nb = 0 *)
+simpl.
+case_eq (le xu thre) ; intros Hxu.
+now apply H.
+simpl.
+unfold I.convert_bound.
+rewrite F.zero_correct, F.nan_correct.
+simpl.
+refine (conj _ I).
+destruct (Rlt_dec 1 x) as [Hx'|Hx'].
+rewrite <- ln_1.
+apply Rlt_le, ln_increasing.
+exact Rlt_0_1.
+exact Hx'.
+replace x with R1.
+rewrite ln_1.
+apply Rle_refl.
+apply Rle_antisym.
+apply Rle_trans with (1 := Hxl2).
+simpl in Hx.
+unfold I.convert_bound in Hx.
+now rewrite Hxl1 in Hx.
+now apply Rnot_lt_le.
+(* nb > 0 *)
+case_eq (le (I.upper (I.bnd xl xu)) thre) ; intros Hxu.
+now apply H.
+clear H Hxu.
+destruct Hx as [Hx1 Hx2].
+unfold I.convert_bound in Hx1.
+rewrite Hxl1 in Hx1.
+replace (ln x) with (ln (sqrt x) * 2)%R.
+change (Xreal (ln (sqrt x) * 2)) with (Xmul (Xreal (ln (sqrt x))) (Xreal (bpow radix2 1))).
+apply I.scale2_correct.
+simpl I.sqrt.
+rewrite F.cmp_correct, Fcmp_correct.
+rewrite F.zero_correct.
+rewrite Hxl1.
+simpl Xcmp.
+rewrite Rcompare_Gt.
+2: apply Rlt_le_trans with (1 := Rlt_0_1) (2 := Hxl2).
+apply IHnb.
+unfold toR.
+rewrite F.sqrt_correct, Fsqrt_correct.
+rewrite Hxl1.
+simpl.
+case is_negative_spec ; trivial.
+intros H'.
+elim Rle_not_lt with (1 := Hxl2).
+apply Rlt_le_trans with (1 := H').
+apply Rle_0_1.
+unfold toR.
+rewrite F.sqrt_correct, Fsqrt_correct.
+rewrite Hxl1.
+simpl.
+case is_negative_spec ; trivial.
+intros H'.
+elim Rle_not_lt with (1 := Hxl2).
+apply Rlt_le_trans with (1 := H').
+exact Rle_0_1.
+intros _.
+simpl.
+rewrite <- (Fcore_generic_fmt.round_generic F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1).
+apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+rewrite <- sqrt_1.
+now apply sqrt_le_1_alt.
+apply Fcore_FLX.generic_format_FLX.
+exists (Fcore_defs.Float F.radix 1 0).
+split.
+apply sym_eq, Rmult_1_r.
+simpl Z.abs.
+now apply Zpower_gt_1.
+split ;
+  unfold I.convert_bound ;
+  rewrite F.sqrt_correct, Fsqrt_correct.
+rewrite Hxl1.
+simpl.
+case is_negative_spec.
+intros H'.
+elim Rle_not_lt with (1 := Hxl2).
+apply Rlt_le_trans with (1 := H').
+exact Rle_0_1.
+intros _.
+simpl.
+bound_tac.
+now apply sqrt_le_1_alt.
+unfold I.convert_bound in Hx2.
+destruct (FtoX (F.toF xu)) as [|xur].
+exact I.
+simpl.
+case is_negative_spec.
+intros H'.
+clear IHnb Hxl1 ; lra.
+intros _.
+simpl.
+bound_tac.
+now apply sqrt_le_1_alt.
+rewrite <- (sqrt_sqrt x) at 2.
+assert (0 < sqrt x)%R.
+  apply sqrt_lt_R0.
+  apply Rlt_le_trans with (1 := Rlt_0_1).
+  now apply Rle_trans with (toR xl).
+rewrite ln_mult by easy.
+ring.
+clear -Hxl2 Hx1 ; lra.
+Qed.
+
+Theorem ln_fast_correct :
+  forall prec x,
+  contains (I.convert (ln_fast prec x)) (Xln (FtoX (F.toF x))).
+Proof.
+intros prec x.
+unfold ln_fast.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct.
+rewrite F.zero_correct.
+unfold c1.
+rewrite F.fromZ_correct.
+case_eq (Xcmp (FtoX (F.toF x)) (FtoX (Fzero F.radix))) ; try easy.
+case_eq (FtoX (F.toF x)) ; try easy.
+intros xr Hxr.
+simpl Xcmp.
+case Rcompare_spec ; try easy.
+intros Hx _.
+case Rcompare_spec.
+(* x < 1 *)
+intros Hx'.
+simpl Xln.
+case is_positive_spec.
+2: intros Hx'' ; now elim Rlt_not_le with (1 := Hx).
+intros _.
+generalize (F.incr_prec prec 1).
+clear prec.
+intros prec.
+rewrite <- (Rinv_involutive xr).
+rewrite ln_Rinv.
+apply (I.neg_correct _ (Xreal (ln (/xr)))).
+apply ln_fast1P_correct.
+unfold toR.
+rewrite F.div_correct, Fdiv_correct.
+rewrite F.fromZ_correct, Hxr.
+simpl.
+case is_zero_spec.
+intros ->.
+elim Rlt_irrefl with (1 := Hx).
+easy.
+unfold toR.
+rewrite F.div_correct, Fdiv_correct.
+rewrite F.fromZ_correct, Hxr.
+simpl.
+case is_zero_spec.
+intros ->.
+elim Rlt_irrefl with (1 := Hx).
+intros _.
+simpl.
+rewrite <- (Fcore_generic_fmt.round_generic F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1) at 1.
+apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+unfold Rdiv.
+rewrite Rmult_1_l.
+rewrite <- Rinv_1.
+apply Rinv_le.
+exact Hx.
+now apply Rlt_le.
+apply Fcore_FLX.generic_format_FLX.
+exists (Fcore_defs.Float F.radix 1 0).
+split.
+apply sym_eq, Rmult_1_r.
+simpl Z.abs.
+now apply Zpower_gt_1.
+split ; unfold I.convert_bound ;
+  rewrite F.div_correct, Fdiv_correct ;
+  rewrite F.fromZ_correct, Hxr ;
+  simpl ;
+  case is_zero_spec ;
+    try (intros -> ; elim Rlt_irrefl with (1 := Hx)) ;
+  intros _ ;
+  simpl ; bound_tac ;
+  unfold Rdiv ; rewrite Rmult_1_l ;
+  apply Rle_refl.
+now apply Rinv_0_lt_compat.
+now apply Rgt_not_eq.
+(* x = 1 *)
+intros ->.
+simpl.
+case is_positive_spec.
+unfold I.convert_bound.
+rewrite F.zero_correct.
+rewrite ln_1.
+split ; apply Rle_refl.
+now apply Rlt_not_le.
+(* x > 1 *)
+intros Hx'.
+simpl Xln.
+case is_positive_spec.
+intros _.
+apply ln_fast1P_correct.
+unfold toR.
+now rewrite Hxr.
+unfold toR.
+rewrite Hxr.
+now apply Rlt_le.
+split ; unfold I.convert_bound ;
+  rewrite Hxr ; apply Rle_refl.
+intros Hx''.
+now elim Rlt_not_le with (1 := Hx).
 Qed.
 
 (*
