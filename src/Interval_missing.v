@@ -1081,3 +1081,216 @@ apply sym_eq, Ropp_mult_distr_l_reverse.
 rewrite <- Ropp_0.
 now apply Ropp_lt_contravar.
 Qed.
+
+Lemma Un_decreasing_ln1pc :
+  forall x : R,
+  (0 <= x <= 1)%R ->
+  Un_decreasing (fun n : nat => (/ INR (n + 1) * x ^ n))%R.
+Proof.
+intros x Hx n.
+change (S n) with (1 + n) at 2.
+rewrite pow_add.
+simpl (pow x 1).
+rewrite Rmult_1_r, <- Rmult_assoc.
+apply Rmult_le_compat_r.
+now apply pow_le.
+rewrite <- (Rmult_1_r (/ INR (n + 1))).
+apply Rmult_le_compat ; try easy.
+apply Rlt_le.
+apply Rinv_0_lt_compat.
+apply (lt_INR 0).
+apply lt_O_Sn.
+apply Rlt_le.
+apply Rinv_lt.
+apply (lt_INR 0).
+rewrite plus_comm.
+apply lt_O_Sn.
+apply lt_INR.
+apply lt_n_Sn.
+Qed.
+
+Lemma Un_cv_ln1pc :
+  forall x : R,
+  (Rabs x <= 1)%R ->
+  Un_cv (fun n : nat => (/ INR (n + 1) * x ^ n))%R 0.
+Proof.
+intros x Hx eps Heps.
+unfold R_dist.
+destruct (archimed_cor1 eps Heps) as [N [HN1 HN2]].
+exists N.
+intros n Hn.
+assert (H: (0 < / INR (n + 1))%R).
+  apply Rinv_0_lt_compat.
+  apply (lt_INR 0).
+  rewrite plus_comm.
+  apply lt_O_Sn.
+rewrite Rminus_0_r.
+rewrite Rabs_mult, Rabs_pos_eq.
+apply Rle_lt_trans with (/ INR (n + 1) * 1)%R.
+apply Rmult_le_compat_l.
+now apply Rlt_le.
+rewrite <- (pow1 n).
+rewrite <- RPow_abs.
+apply pow_maj_Rabs.
+now rewrite Rabs_Rabsolu.
+rewrite Rmult_1_r.
+apply Rlt_trans with (2 := HN1).
+apply Rinv_lt.
+now apply (lt_INR 0).
+apply lt_INR.
+apply le_lt_trans with (1 := Hn).
+rewrite plus_comm.
+apply lt_n_Sn.
+now apply Rlt_le.
+Qed.
+
+Lemma ln1pc_exists :
+  forall x,
+  (0 <= x < 1)%R ->
+  { l : R | Un_cv (sum_f_R0 (tg_alt (fun n => / INR (n + 1) * x ^ n)%R)) l }.
+Proof.
+intros x Hx.
+apply alternated_series.
+apply Un_decreasing_ln1pc.
+apply (conj (proj1 Hx)).
+now apply Rlt_le.
+apply Un_cv_ln1pc.
+rewrite Rabs_pos_eq by easy.
+now apply Rlt_le.
+Qed.
+
+Lemma ln1pc_in_int :
+  forall x,
+  { (0 <= x < 1)%R } + { ~(0 <= x < 1)%R }.
+Proof.
+intros x.
+destruct (Rle_dec 0 x) as [H1|H1].
+destruct (Rlt_dec x 1) as [H2|H2].
+left.
+now split.
+right.
+now contradict H2.
+right.
+now contradict H1.
+Qed.
+
+Definition ln1pc x :=
+  match ln1pc_in_int x with
+  | left H => projT1 (ln1pc_exists x H)
+  | right _ => (ln (1 + x) / x)%R
+  end.
+
+Axiom ln1p_ln1pc :
+  forall x,
+  ln (1 + x) = (x * ln1pc x)%R.
+
+(*
+Require Import Coquelicot.
+
+Lemma ln1p_ln1pc :
+  forall x,
+  ln (1 + x) = (x * ln1pc x)%R.
+Proof.
+intros x.
+unfold ln1pc.
+destruct ln1pc_in_int as [Hx|Hx].
+2: field ; contradict Hx ; rewrite Hx ; split ;
+  [ apply Rle_refl | apply Rlt_0_1 ].
+destruct ln1pc_exists as [y Hy].
+simpl.
+replace y with (PSeries (fun n => (-1)^n / INR (n + 1)) x).
+rewrite <- PSeries_incr_1.
+replace (ln (1 + x)) with (RInt (fun t => / (1 + t)) 0 x).
+rewrite <- (PSeries_ext (PS_Int (fun n => (-1)^n))).
+rewrite <- RInt_PSeries.
+apply RInt_ext.
+intros t.
+rewrite Rmin_left, Rmax_right by easy.
+intros Ht.
+rewrite <- (Ropp_involutive t) at 1.
+unfold PSeries.
+rewrite <- (Series_ext (fun k => (-t)^k)).
+apply eq_sym, Series_geom.
+rewrite Rabs_Ropp, Rabs_pos_eq by easy.
+now apply Rle_lt_trans with x.
+intros n.
+now rewrite <- Rpow_mult_distr, Ropp_mult_distr_l_reverse, Rmult_1_l.
+rewrite (CV_radius_finite_DAlembert _ R1).
+now rewrite Rinv_1, Rabs_pos_eq.
+intros n.
+apply pow_nonzero.
+now apply (Z2R_neq (-1) 0).
+exact Rlt_0_1.
+apply is_lim_seq_ext with (fun _ => R1).
+  intros n.
+  simpl pow.
+  unfold Rdiv.
+  rewrite Rmult_assoc, Rinv_r, Rmult_1_r, Rabs_Ropp.
+  apply eq_sym, Rabs_R1.
+  apply pow_nonzero.
+  now apply (Z2R_neq (-1) 0).
+apply is_lim_seq_const.
+intros [|n].
+easy.
+unfold PS_incr_1.
+now rewrite Plus.plus_comm.
+apply is_RInt_unique.
+assert (H: forall t, -1 < t -> is_derive (fun t : R => ln (1 + t)) t (/ (1 + t))).
+  intros t Ht.
+  auto_derive.
+  rewrite <- (Rplus_opp_r 1).
+  now apply Rplus_lt_compat_l.
+  apply Rmult_1_l.
+apply (is_RInt_ext (Derive (fun t => ln (1 + t)))).
+  intros t.
+  rewrite Rmin_left by easy.
+  intros [Ht _].
+  apply is_derive_unique.
+  apply H.
+  apply Rlt_trans with (2 := Ht).
+  now apply (Z2R_lt (-1) 0).
+replace (ln (1 + x)) with (ln (1 + x) - ln (1 + 0))%R.
+apply (is_RInt_Derive (fun t => ln (1 + t))).
+  intros t.
+  rewrite Rmin_left by easy.
+  intros [Ht _].
+  eexists.
+  apply H.
+  apply Rlt_le_trans with (2 := Ht).
+  now apply (Z2R_lt (-1) 0).
+intros t.
+rewrite Rmin_left by easy.
+intros [Ht _].
+apply continuous_ext_loc with (fun t : R => /(1 + t)).
+apply locally_interval with (-1)%R p_infty.
+apply Rlt_le_trans with (2 := Ht).
+now apply (Z2R_lt (-1) 0).
+easy.
+clear t Ht.
+intros t Ht _.
+apply sym_eq, is_derive_unique.
+now apply H.
+apply continuous_comp.
+apply (continuous_plus (fun t : R => 1)).
+apply filterlim_const.
+apply filterlim_id.
+apply (filterlim_Rbar_inv (1 + t)).
+apply Rbar_finite_neq.
+apply Rgt_not_eq.
+rewrite <- (Rplus_0_l 0).
+apply Rplus_lt_le_compat with (1 := Rlt_0_1) (2 := Ht).
+rewrite Rplus_0_r, ln_1.
+apply Rminus_0_r.
+apply is_pseries_unique.
+apply is_lim_seq_Reals.
+apply Un_cv_ext with (2 := Hy).
+intros n.
+rewrite <- sum_n_sum_f_R0.
+apply sum_n_ext.
+intros m.
+rewrite pow_n_pow.
+unfold tg_alt.
+rewrite <- Rmult_assoc.
+apply Rmult_comm.
+Qed.
+*)
