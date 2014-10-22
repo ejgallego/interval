@@ -655,6 +655,99 @@ apply Rle_trans with (2 := H).
 now apply Fcore_Raux.exp_le.
 Qed.
 
+Definition ln prec xi :=
+  match xi with
+  | Ibnd xl xu =>
+    if Flt F.zero xl then
+      Ibnd
+        (I.lower (T.ln_fast prec xl))
+        (if F.real xu then I.upper (T.ln_fast prec xu) else F.nan)
+    else Inan
+  | Inan => Inan
+  end.
+
+Theorem ln_correct :
+  forall prec, I.extension Xln (ln prec).
+Proof.
+intros prec [|xl xu].
+easy.
+intros [|x].
+easy.
+simpl.
+intros [Hl Hu].
+unfold ln.
+case_eq (Flt F.zero xl) ; intros Hlt ; try easy.
+apply Flt_correct in Hlt.
+unfold I.convert_bound in *.
+rewrite F.zero_correct in Hlt.
+simpl in Hlt.
+case is_positive_spec.
+intros Hx.
+split.
+generalize (T.ln_fast_correct prec xl).
+case T.ln_fast.
+intros _.
+unfold I.convert_bound.
+simpl.
+now rewrite F.nan_correct.
+intros l u.
+simpl.
+case_eq (Xln (FtoX (F.toF xl))).
+easy.
+intros lnx Hlnx.
+unfold T.I.convert_bound.
+intros [H _].
+unfold I.convert_bound.
+destruct (FtoX (F.toF l)) as [|lr].
+easy.
+apply Rle_trans with (1 := H).
+destruct (FtoX (F.toF xl)) as [|xlr].
+easy.
+revert Hlnx.
+simpl.
+case is_positive_spec.
+intros _ H'.
+injection H'.
+intros <-.
+destruct Hl as [Hl|Hl].
+now apply Rlt_le, ln_increasing.
+rewrite Hl.
+apply Rle_refl.
+easy.
+rewrite I.real_correct.
+unfold I.convert_bound.
+case_eq (FtoX (F.toF xu)).
+now rewrite F.nan_correct.
+intros xur Hxu.
+rewrite Hxu in Hu.
+generalize (T.ln_fast_correct prec xu).
+case T.ln_fast.
+intros _.
+simpl.
+now rewrite F.nan_correct.
+intros l u.
+simpl.
+rewrite Hxu.
+simpl.
+case is_positive_spec.
+intros _.
+unfold T.I.convert_bound.
+intros [_ H].
+destruct (FtoX (F.toF u)) as [|ur].
+easy.
+apply Rle_trans with (2 := H).
+destruct Hu as [Hu|Hu].
+now apply Rlt_le, ln_increasing.
+rewrite Hu.
+apply Rle_refl.
+easy.
+intros Hx.
+destruct (FtoX (F.toF xl)) as [|xlr].
+easy.
+elim Rle_not_lt with (1 := Hx).
+now apply Rlt_le_trans with xlr.
+Qed.
+
 Definition bound_type := I.bound_type.
 Definition convert_bound := I.convert_bound.
 Definition type := I.type.
