@@ -733,6 +733,53 @@ rewrite X.
 apply (derivable_pt_lim_exp r1).
 Qed.
 
+Theorem Xderive_pt_ln :
+  forall f f' x,
+  Xderive_pt f x f' ->
+  Xderive_pt (fun x => Xln (f x)) x (match Xcmp (f x) (Xreal 0) with Xgt => Xdiv f' (f x) | _ => Xnan end).
+Proof.
+intros f f' x Hf.
+xtotal.
+revert X.
+now case Xcmp.
+revert X.
+now case Xcmp.
+revert X.
+now case Xcmp.
+revert X0.
+now case Xcmp.
+revert X0.
+now case Xcmp.
+simpl Xcmp in X0.
+destruct (Rcompare_spec r1 0) ; try easy.
+simpl in X1.
+destruct (is_positive_spec r1) ; try easy.
+now elim Rle_not_lt with (1 := H0).
+simpl Xcmp in X0.
+destruct (Rcompare_spec r1 0) ; try easy.
+simpl in X1.
+intro v.
+apply derivable_pt_lim_eq_locally with (comp ln (proj_fun v f)).
+apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ R0 X H Hf).
+intros x (w, (Hw1, Hw2)).
+unfold comp, proj_fun.
+rewrite Hw2.
+simpl Xln.
+destruct (is_positive_spec w).
+easy.
+now elim (Rlt_not_le _ _ Hw1).
+injection X0.
+clear X0.
+intros <-.
+unfold Rdiv.
+rewrite Rmult_comm.
+apply derivable_pt_lim_comp.
+apply Hf.
+unfold proj_fun.
+rewrite X.
+now apply derivable_pt_lim_ln.
+Qed.
+
 Theorem Xderive_pt_atan :
   forall f f' x,
   Xderive_pt f x f' ->
