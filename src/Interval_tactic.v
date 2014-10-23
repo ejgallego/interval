@@ -191,6 +191,7 @@ Ltac remove_constants t l :=
       | tan ?a => aux_u Tan a
       | atan ?a => aux_u Atan a
       | exp ?a => aux_u Exp a
+      | ln ?a => aux_u Ln a
       | powerRZ ?a ?b => aux_u (PowerInt b) a
       | pow ?a ?b => aux_u (PowerInt (Z_of_nat b)) a
       | Rplus ?a ?b => aux_b Add a b
