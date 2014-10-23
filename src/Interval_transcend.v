@@ -1006,8 +1006,8 @@ Definition ln_fast1P prec xi :=
   | true =>
     ln1p_fast0i prec (I.sub prec xi (I.bnd c1 c1))
   | false =>
-    let m := F.StoZ (F.mag (I.upper xi)) in
-    let prec := F.incr_prec prec (Z2P (9 + m)) in
+    let m := Fcore_digits.Zdigits2 (F.StoZ (F.mag (I.upper xi))) in
+    let prec := F.incr_prec prec 10 in
     let fix reduce xi (nb : nat) {struct nb} :=
       match le (I.upper xi) th, nb with
       | true, _ => ln1p_fast0i prec (I.sub prec xi (I.bnd c1 c1))
@@ -1023,7 +1023,8 @@ Definition ln_fast prec x :=
     match F.cmp x c1 with
     | Xeq => I.bnd F.zero F.zero
     | Xlt =>
-      let prec := F.incr_prec prec 1 in
+      let m := Zopp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
+      let prec := F.incr_prec prec (Z2P m) in
       let il := F.div rnd_DN prec c1 x in
       let iu := F.div rnd_UP prec c1 x in
       I.neg (ln_fast1P prec (I.bnd il iu))
@@ -1386,9 +1387,11 @@ set (thre := F.add_exact c1 (F.scale2 c1 sm8)).
 case_eq (le (I.upper (I.bnd xl xu)) thre) ; intros Hxu.
 now apply H.
 clear Hxu.
-generalize (F.incr_prec prec (Z2P (9 + F.StoZ (F.mag (I.upper (I.bnd xl xu)))))).
+set (m := Fcore_digits.Zdigits2 (F.StoZ (F.mag (I.upper (I.bnd xl xu))))).
+clearbody m.
+generalize (F.incr_prec prec 10).
 clear prec. intro prec.
-generalize (8 + Z2nat (F.StoZ (F.mag (I.upper (I.bnd xl xu))))).
+generalize (8 + Z2nat m).
 intro nb.
 revert xl xu x Hxl1 Hxl2 Hx.
 induction nb ; intros.
@@ -1521,7 +1524,7 @@ simpl Xln.
 case is_positive_spec.
 2: intros Hx'' ; now elim Rlt_not_le with (1 := Hx).
 intros _.
-generalize (F.incr_prec prec 1).
+generalize (F.incr_prec prec (Z2P (Zopp (F.StoZ (F.mag (F.sub rnd_UP prec (F.fromZ 1) x)))))).
 clear prec.
 intros prec.
 rewrite <- (Rinv_involutive xr).
@@ -3500,6 +3503,8 @@ Time Eval vm_compute in (A.atan_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.cos_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.tan_fast 50%Z (Float 3619%Z (-8)%Z)).
 Time Eval vm_compute in (A.sin_fast 50%Z (Float 201%Z (-8)%Z)).
+Time Eval vm_compute in (A.ln_fast 50%Z (Float 1%Z 20009%Z)).
+Time Eval vm_compute in (A.ln_fast 50%Z (Float 1125899906842623%Z (-50)%Z)).
 *)
 
 (*
