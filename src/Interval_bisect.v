@@ -1454,8 +1454,9 @@ Definition operations prec deg xi :=
     | Tan => TM.tan (prec, deg) xi
     | Atan => TM.atan (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
+    | Ln => TM.ln (prec, deg) xi
     | PowerInt n => TM.power_int n (prec, deg) xi
-    | _ => fun _ => TM.dummy
+ (* | _ => fun _ => TM.dummy *)
     end)
    (fun o =>
     match o with
@@ -1526,7 +1527,7 @@ induction (rev prog) as [|t l].
     apply TM.tan_correct.
     apply TM.atan_correct.
     apply TM.exp_correct.
-    admit.
+    apply TM.ln_correct.
     apply TM.power_int_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.

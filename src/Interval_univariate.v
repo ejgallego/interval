@@ -103,6 +103,13 @@ Parameter exp_correct :
   approximates Y tf f ->
   approximates Y (exp u Y tf) (fun x => Xexp (f x)).
 
+Parameter ln : U -> I.type -> T -> T.
+
+Parameter ln_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (ln u Y tf) (fun x => Xln (f x)).
+
 Parameter cos : U -> I.type -> T -> T.
 
 Parameter cos_correct :

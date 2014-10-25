@@ -1249,6 +1249,26 @@ apply: fun_gen_correct =>//.
 - exact: TM_exp_correct.
 Qed.
 
+Definition ln (u : U) (X : I.type) (t : T) : T :=
+(* FIXME: this is a very naive definition, ideally we should rely on TM_ln *)
+  Tm (TM_any u.1 (I.ln u.1 (eval u t X X)) X u.2).
+
+Theorem ln_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (ln u Y tf) (fun x => Xln (f x)).
+Proof.
+move=> u Y tf f [Hnan Hnil Hmain].
+split=>//; first by rewrite Hnan.
+by rewrite /= /tmsize size_TM_any.
+move=> Hne; apply: TM_any_correct.
+exact: not_empty_Imid.
+exact: Imid_subset.
+move=> x Hx.
+apply: I.ln_correct.
+exact: eval_correct.
+Qed.
+
 Definition cos := Eval hnf in fun_gen I.cos TM_cos.
 
 Theorem cos_correct :
