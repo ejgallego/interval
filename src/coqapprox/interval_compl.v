@@ -21,12 +21,15 @@ liability. See the COPYING file for more details.
 Require Import ZArith Reals Psatz.
 Require Import Interval_xreal.
 Require Import Interval_interval.
-Require Import ssreflect.
+Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
 Require Import xreal_ssr_compat.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
+Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
 
 Lemma Xneg_as_Xmul (x : ExtendedR) : Xneg x = Xmul x (Xreal (-1)).
 Proof. destruct x as [|x]; trivial; simpl; f_equal; ring. Qed.

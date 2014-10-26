@@ -82,9 +82,9 @@ Parameter Inline tinvsqrt : U -> T -> T.
 Parameter Inline texp : U -> T -> T.
 Parameter Inline tsin : U -> T -> T.
 Parameter Inline tcos : U -> T -> T.
+Parameter Inline tln : U -> T -> T.
 (*
 Parameter Inline tatan : U -> T -> T.
-Parameter Inline tln : U -> T -> T.
 Parameter Inline tasin : U -> T -> T.
 Parameter Inline tacos : U -> T -> T.
 *)

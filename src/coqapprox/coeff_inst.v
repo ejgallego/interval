@@ -64,6 +64,7 @@ Definition tmul := --> Rmult.
 Definition tdiv := --> Rdiv.
 Definition tpower_int := --> powerRZ.
 Definition texp := --> exp.
+Definition tln := --> ln.
 Definition tnat := INR.
 Definition tfromZ := IZR.
 Definition tinv := --> Rinv.
@@ -74,7 +75,6 @@ Definition tsqrt := --> sqrt.
 Definition tinvsqrt := --> fun x => (Rinv (sqrt x)).
 Definition tcst : T -> T -> T := fun c _ => c.
 (*
-Parameter tln : U -> T -> T.
 Parameter tatan : U -> T -> T.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
@@ -97,6 +97,7 @@ Definition tpower_int := --> Xpower_int.
 Definition tpow := --> fun x n => Xpower_int x (Z_of_nat n).
 Arguments tpow _ x n : simpl nomatch.
 Definition texp := --> Xexp.
+Definition tln := --> Xln.
 Definition tnat := fun n => Xreal (INR n).
 Definition tfromZ := fun n => Xreal (IZR n).
 Definition tinv := --> Xinv.
@@ -106,7 +107,6 @@ Definition tsqr := --> fun x => Xmul x x.
 Definition tsqrt := --> Xsqrt.
 Definition tinvsqrt := --> fun x => Xinv (Xsqrt x).
 (*
-Parameter tln : U -> T -> T.
 Definition tatan := --> Xatan.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
@@ -250,6 +250,7 @@ Definition tmul := I.mul.
 Definition tdiv := I.div.
 Definition tpower_int := I.power_int.
 Definition texp := I.exp.
+Definition tln := I.ln.
 Definition tnat := fun n => I.fromZ (Z_of_nat n).
 Definition tfromZ := I.fromZ.
 Definition tinv := I.inv.
@@ -260,7 +261,6 @@ Definition tsqrt := I.sqrt.
 Definition tinvsqrt := fun prec x => I.inv prec (I.sqrt prec x).
 Definition tcst : T -> T -> T := I.mask.
 (*
-Parameter tln : U -> T -> T.
 Definition tatan := I.atan.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.

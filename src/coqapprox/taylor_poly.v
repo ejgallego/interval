@@ -173,6 +173,16 @@ Definition T_power_int (p : Z) x (n : nat) :=
   P.tdotmuldiv u (falling_seq p n) (fact_seq n)
                (trec1 (pow_aux_rec u p x) (tpower_int u x p) n).
 
+Definition T_ln x n :=
+  let lg := tln u x in
+  let y := C.tcst x lg in
+  P.tpolyCons lg
+  (if n is n'.+1 then
+     let p1 := (-1)%Z in
+     P.tdotmuldiv u (falling_seq p1 n') (behead (fact_seq n))
+                  (trec1 (pow_aux_rec u p1 y) (tpower_int u y p1) n')
+   else P.tpolyNil).
+
 (*
 Definition T_ln x := trec2 (ln_rec u x) (tln u x) (tinv u x).
 Definition T_atan x := trec2 (atan_rec u x) (tatan u x) (Deriv_atan u x).
