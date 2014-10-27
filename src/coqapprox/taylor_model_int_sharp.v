@@ -539,12 +539,12 @@ Definition ComputeBound (M : rpa) (X0 X : I.type) :=
   I.add prec (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)) (error M).
 
 Theorem ComputeBound_correct M (X0 X : I.type) f :
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) M f ->
   forall x, contains (I.convert X) x ->
   contains (I.convert (ComputeBound M X0 X)) (f x).
 Proof.
-move=> [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
+move/not_empty'E => [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
 have [q [Hsize Hcont Herr]] := Hmain _ Hx0.
 rewrite /ComputeBound.
 have := Herr x Hx.
@@ -671,11 +671,11 @@ Qed.
 
 Theorem i_validTM_TLrem X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (TLrem prec IP X0 X n)) XF0.
 Proof.
-move=> Hsub [t Ht].
+move=> Hsub /not_empty'E [t Ht].
 pose err := TLrem prec IP X0 X n.
 have XDn_0_Xnan : XDn 0 Xnan = Xnan by rewrite XDn_0.
 split=>//=.
@@ -957,7 +957,7 @@ Qed.
 (* Check (contains_subset, subset_contains). *)
 
 Lemma contains_Xgt (a b : ExtendedR) :
-  (exists x, contains (IIbnd a b) x) ->
+  not_empty (IIbnd a b) ->
   Xcmp a b <> Xgt.
 Proof.
 move=> [x Hx].
@@ -965,7 +965,6 @@ case E : (Xcmp a b) =>//.
 move=> _.
 rewrite /contains in Hx.
 case: a b E Hx => [//|ra [//|rb /=]].
-case: x => [//|rx].
 by case: Rcompare_spec =>//; psatzl R.
 Qed.
 
@@ -2063,7 +2062,7 @@ by rewrite /l /u I.lower_correct I.upper_correct in Hneg.
 Qed.
 
 Lemma Ztech_derive_sign (X : I.type) (n : nat) :
-  (exists t, contains (I.convert X) t) ->
+  not_empty (I.convert X) ->
   ~ Xnan_ex XDn n.+1 (I.convert X) ->
   I.bounded X = true ->
   isNNegOrNPos (tnth (IP X n.+1) n.+1) = true ->
@@ -2145,7 +2144,7 @@ Qed.
 
 Theorem i_validTM_Ztech X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (Ztech prec IP (IP X0 n) F0 X0 X n)) XF0.
 Proof.
@@ -2159,7 +2158,7 @@ case E2 : (I.bounded X); last first.
 have [t Ht] := tHt.
 have XDn_0_Xnan : XDn 0 Xnan = Xnan by rewrite XDn_0.
 set err := Ztech prec IP (IP X0 n) F0 X0 X n.
-have [r' Hr'0] : exists r : R, contains (I.convert X0) (Xreal r).
+have [r' Hr'0] : not_empty (I.convert X0).
   exact: contains_not_empty Ht.
 have Hr' : contains (I.convert X) (Xreal r').
   exact: subset_contains Hsub _ Hr'0.
@@ -2273,7 +2272,7 @@ have [Hlow|Hup] := @contains_lower_or_upper X (Xreal xi0) x XNNan Hx H'xi0.
     exact: (@bounded_contains_lower X (Xreal xi0) _ _).
   + apply: proj1 (@Zumkeller_monot_rem X xi0 n E2 H'xi0 Hnot _).
     apply: Ztech_derive_sign =>//.
-    by exists (Xreal xi0).
+    by exists xi0.
   + exact: contains_trans (I.convert Delta) _ _ (Xdelta0 x) Hlower HX0 H1.
   exact: contains_trans (I.convert Delta) _ _ (Xdelta0 x) HX0 Hlower H2.
 have [||H1|H2] := @Xmonot_contains_weak Xdelta0 _ _ _ _ Hneq0 Hneq2 _ Hup.
@@ -2281,7 +2280,7 @@ have [||H1|H2] := @Xmonot_contains_weak Xdelta0 _ _ _ _ Hneq0 Hneq2 _ Hup.
   exact: (@bounded_contains_upper X (Xreal xi0) _ _).
 + apply: proj2 (@Zumkeller_monot_rem X xi0 n E2 H'xi0 Hnot _).
   apply: Ztech_derive_sign =>//.
-  by exists (Xreal xi0).
+  by exists xi0.
 + exact: contains_trans (I.convert Delta) _ _ (Xdelta0 x) HX0 Hupper H1.
 exact: contains_trans (I.convert Delta) _ _ (Xdelta0 x) Hupper HX0 H2.
 Qed.
@@ -2347,7 +2346,7 @@ Qed.
 Corollary TM_rec1_correct X0 X n :
   let err := TLrem prec (fun t => trec1 (F_rec X) (F0 t)) X0 X n in
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
 Proof. exact: i_validTM_TLrem. (* Rely on typeclass_instances *) Qed.
@@ -2356,7 +2355,7 @@ Corollary TM_rec1_correct' X0 X n :
   let err := Ztech prec (fun t => trec1 (F_rec X) (F0 t))
     (trec1 (F_rec X0) (F0 X0) n) F0 X0 X n in
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
 Proof. exact: i_validTM_Ztech. (* Rely on typeclass_instances *) Qed.
@@ -2450,7 +2449,7 @@ Corollary TM_rec2_correct X0 X n :
   let err := TLrem prec
     (fun t => trec2 (F_rec X) (F0 t) (F1 t)) X0 X n in
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
 Proof. exact: i_validTM_TLrem. (* Rely on typeclass_instances *) Qed.
@@ -2459,7 +2458,7 @@ Corollary TM_rec2_correct' X0 X n :
   let err := Ztech prec (fun t i => trec2 (F_rec X) (F0 t) (F1 t) i)
     (trec2 (F_rec X0) (F0 X0) (F1 X0) n) F0 X0 X n in
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
 Proof. exact: i_validTM_Ztech. (* Rely on typeclass_instances *) Qed.
@@ -2470,7 +2469,7 @@ End ProofOfRec.
 
 Theorem TM_cst_correct n (icst X0 X : I.type) (cst : ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   contains (I.convert icst) cst ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst icst X0 X n) (Xmask cst).
 Proof.
@@ -2505,7 +2504,7 @@ Qed.
 
 Theorem TM_cst_correct_strong n (icst X0 X : I.type) (f:ExtendedR->ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   is_const f X icst ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst icst X0 X n) f.
 Proof.
@@ -2737,7 +2736,7 @@ Proof. exact: tsize_trec2. Qed.
 
 Lemma TM_var_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X0 X n) (fun x => x).
 Proof.
 move=> Hss Hex.
@@ -2784,7 +2783,7 @@ Qed.
 
 Theorem TM_var_correct_strong X0 X n (f : ExtendedR -> ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = (Xreal x)) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X0 X n) f.
 Proof.
@@ -2900,7 +2899,7 @@ Qed.
 
 Lemma TM_power_int_correct (p : Z) X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
   (fun x => Xpower_int x p).
 Proof.
@@ -2983,7 +2982,7 @@ Qed.
 
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv.
 Proof.
 move=> Hsubset Hex.
@@ -3043,7 +3042,7 @@ Proof. by rewrite Pol.tsize_trec1. Qed.
 
 Lemma TM_exp_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) Xexp.
 Proof.
 move=> Hsubset Hex.
@@ -3129,7 +3128,7 @@ Proof. by move=> Hr; rewrite /Xpower_int Hr /= Rmult_1_r. Qed.
 
 Lemma TM_ln_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln.
 Proof.
 move=> Hsubset [t Ht].
@@ -3258,7 +3257,7 @@ Qed.
 
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
 Proof.
 move=> Hsubset Hex.
@@ -3330,7 +3329,7 @@ Ltac Inc :=
 
 Lemma TM_invsqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)(FullXR.tinvsqrt tt).
 Proof.
 move=> Hsubset Hex.
@@ -3388,7 +3387,7 @@ Proof. by rewrite Pol.tsize_trec1. Qed.
 
 Lemma TM_sin_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) Xsin.
 Proof.
 move=> Hsubset Hex.
@@ -3444,7 +3443,7 @@ Proof. by rewrite Pol.tsize_trec2. Qed.
 
 Lemma TM_cos_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) Xcos.
 Proof.
 move=> Hsubset Hex.
@@ -3804,7 +3803,7 @@ split.
 Qed.
 
 Lemma TM_mul_mixed_nan1 a M f X0 X:
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   contains (I.convert a) Xnan ->
   i_validTM (I.convert X0) (I.convert X) M f ->
   let pol := approx (TM_mul_mixed a M) in
@@ -3832,7 +3831,7 @@ exact: Imul_Inan_propagate_l Hnan _.
 Qed.
 
 Corollary TM_mul_mixed_correct_strong a M X0 X f g :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   is_const f X a ->
   i_validTM (I.convert X0) (I.convert X) M g ->
   i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
@@ -3925,7 +3924,7 @@ by rewrite big_Xmul_Xadd_distr.
 Qed.
 
 Lemma TM_div_mixed_r_nan1 M b f X0 X:
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   contains (I.convert b) Xnan ->
   i_validTM (I.convert X0) (I.convert X) M f ->
   let pol := approx (TM_div_mixed_r M b) in
@@ -3953,7 +3952,7 @@ exact: Idiv_Inan_propagate_r Hnan _.
 Qed.
 
 Corollary TM_div_mixed_r_correct_strong M b X0 X f g :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) M f ->
   is_const g X b ->
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
@@ -4074,7 +4073,7 @@ Qed.
 Lemma TM_mul_correct_gen (smallX0: interval) (X0 X: I.type) (TMf TMg: rpa) f g :
   I.subset_ smallX0 (I.convert X0) ->
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains smallX0 t) ->
+  not_empty smallX0 ->
   let n := Pol.tsize (approx TMf) in
   n = Pol.tsize (approx TMg)-> 0 < n ->
   i_validTM smallX0 (I.convert X) TMf f ->
@@ -4082,10 +4081,10 @@ Lemma TM_mul_correct_gen (smallX0: interval) (X0 X: I.type) (TMf TMg: rpa) f g :
   i_validTM smallX0 (I.convert X) (TM_mul TMf TMg X0 X n.-1)
   (fun xr => Xmul (f xr) (g xr)).
 Proof.
-move=> HinX0 HinX [t Ht] n Heq npos
+move=> HinX0 HinX /not_empty'E [t Ht] n Heq npos
         [Hef H0 Hf] [Heg _ Hg].
 have Hint : contains (I.convert X0) t by apply: (subset_contains smallX0).
-case:(Hf t Ht) => [Af [Af1 Af2 Af3]].
+case: (Hf t Ht) => [Af [Af1 Af2 Af3]].
 case: (Hg t Ht) => [Ag [Ag1 Ag2 Ag3]].
 split=>//.
   have H00: (Xreal 0)=(Xreal 0 + Xreal 0) by rewrite /= Rplus_0_l.
@@ -4370,7 +4369,7 @@ by rewrite -Hrg PolX.tnth_out // Hg1.
 Qed.
 
 Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   n = Pol.tsize (approx TMf) ->
   n = Pol.tsize (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
@@ -4427,7 +4426,7 @@ la taille du TM (e.g. Mf) est decorrelee de celle du poly pour le fold
 Lemma poly_eval_tm_correct_aux_gen smallX0 X0 X Mf f pi :
   I.subset_ smallX0 (I.convert X0) ->
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains smallX0 t) ->
+  not_empty smallX0 ->
   f Xnan = Xnan ->
   i_validTM smallX0 (I.convert X) Mf f ->
   let n := tsize pi in
@@ -4440,7 +4439,7 @@ Lemma poly_eval_tm_correct_aux_gen smallX0 X0 X Mf f pi :
     (Xmask (Xreal 0) x) pr).
 Proof.
 move=> Hsmall Hin Hts Hnan [Hf0 Hf1 Hf2] n nf Hnf px Hsize Hnth.
-have Ht : exists t, contains (I.convert X0) t.
+have Ht : not_empty (I.convert X0).
   case Hts => t Hts'.
   exists t.
   exact: (subset_contains smallX0).
@@ -4495,7 +4494,7 @@ Qed.
 Lemma poly_eval_tm_correct_gen (smallX0 : interval) (X0 X : I.type) Mf f p :
   I.subset_ smallX0 (I.convert X0) ->
   I.subset_ (I.convert X0) (I.convert X) ->
-  (exists t : ExtendedR, contains smallX0 t) ->
+  not_empty smallX0 ->
   f Xnan = Xnan ->
   i_validTM smallX0 (I.convert X) Mf f ->
   forall n, tsize p = n.+1 ->
@@ -4571,7 +4570,7 @@ by rewrite PolX.tsize_polyCons.
 Qed.
 
 Lemma poly_eval_tm_correct_aux X0 X Mf f p :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   f Xnan = Xnan ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
   let n := tsize p in
@@ -4589,7 +4588,7 @@ exact: subset_refl.
 Qed.
 
 Lemma poly_eval_tm_correct X0 X Mf f p :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   f Xnan = Xnan ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
   forall n, tsize p = n.+1 ->
@@ -4621,7 +4620,7 @@ Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
 (** REMARK: the TM is supposed not void *)
 
 Lemma TMset0_correct X0 X TMf f :
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   forall nf, tsize (approx TMf) = nf.+1 ->
   forall fi0, contains (I.convert X0) fi0 ->
@@ -4700,18 +4699,18 @@ Qed.
 
 Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
   f Xnan = Xnan ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   forall n, Pol.tsize (approx TMf) = n.+1 ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   (forall Y0 Y k, I.subset_ (I.convert Y0) (I.convert Y) ->
-    (exists t : ExtendedR, contains (I.convert Y0) t) ->
+    not_empty (I.convert Y0) ->
     i_validTM (I.convert Y0) (I.convert Y) (Tyg Y0 Y k) g
     /\ tsize (approx (Tyg Y0 Y k)) = k.+1) ->
   i_validTM (I.convert X0) (I.convert X)
   (TM_comp Tyg TMf X0 X n) (fun xr => (g (f xr))).
 Proof.
 move=> Hnan Ht n Hn Hf Hg.
-have {Ht} [t Ht] := Ht.
+have {Ht} /not_empty'E [t Ht] := Ht.
 case Hf => [H0 H1 H2].
 split=>//.
   rewrite /= (_ : (Xreal 0) = (Xreal 0 + Xreal 0)); last by rewrite /= Rplus_0_l.
@@ -4730,7 +4729,7 @@ split=>//.
     exists (PolX.teval tt pr (Xreal 0)).
     apply: Bnd.ComputeBound_correct =>//.
     exact: (@subset_sub_contains_0 _ t).
-  - exists (PolX.tnth pr 0).
+  - apply: not_emptyE; exists (PolX.tnth pr 0).
     by apply: Hnth; rewrite Hn.
   have {Hokg4} Hokg4 := Hokg4 (PolX.tnth pr 0).
   have [|prg [Hprg1 Hprg2 Hprg3]] := Hokg4.
@@ -4824,10 +4823,10 @@ split=>//.
     split; case: Ht; rewrite /le_lower /le_upper.
       by case: (l0) =>[|rl] //=; psatzl R.
     by case: (u0) =>[|ru].
-  have hex : exists t0 : ExtendedR, contains (Interval_interval.Ibnd t t) t0.
+  have hex : not_empty (Interval_interval.Ibnd t t).
     case ct : t => [|rt].
-      by exists (Xreal 0).
-    by exists (Xreal rt) => /=; split; apply: Rle_refl.
+      by exists R0.
+    by exists rt => /=; split; apply: Rle_refl.
   have {Hpe H'} Hpe := Hpe H' H1 hex.
   rewrite Hnan /= in Hpe.
   have {Hpe} Hpe := Hpe (refl_equal Xnan) H_TMset0 n _ n _ prg.
@@ -4849,7 +4848,7 @@ have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
     exists (PolX.teval tt pr (Xreal 0)).
     apply: Bnd.ComputeBound_correct =>//.
     exact: (@subset_sub_contains_0 _ t).
-  exists (PolX.tnth pr 0).
+  apply: not_emptyE; exists (PolX.tnth pr 0).
   by apply: Hnth; rewrite Hn.
 have {Hokg4} Hokg4 := Hokg4 (PolX.tnth pr 0).
 have [|prg [Hprg1 Hprg2 Hprg3]] := Hokg4.
@@ -4945,10 +4944,10 @@ have H' : I.subset_ (Interval_interval.Ibnd fi0 fi0) (I.convert X0).
   split; case: Hfi0; rewrite /le_lower /le_upper.
     by case: l0 Hf Ht H1 H2 Hpe => [|rl] //=; psatzl R.
   by case: (u0).
-have hex: exists t : ExtendedR, contains (Interval_interval.Ibnd fi0 fi0) t.
+have hex: not_empty (Interval_interval.Ibnd fi0 fi0).
   case cf: fi0 => [|rf].
-    by exists (Xreal 0).
-  by exists (Xreal rf) => /=; split; apply: Rle_refl.
+    by exists R0.
+  by exists rf => /=; split; apply: Rle_refl.
 have {Hpe H'} Hpe := Hpe H' H1 hex.
 rewrite Hnan /= in Hpe.
 have {Hpe} Hpe := Hpe (refl_equal Xnan) H_TMset0 n _ n _ prg.
@@ -5043,7 +5042,7 @@ Definition TM_inv_comp Mf X0 X (n : nat) := TM_comp TM_inv Mf X0 X n.
 
 Lemma TM_inv_comp_correct (X0 X : I.type) (TMf : rpa) f :
   f Xnan = Xnan ->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   forall n, Pol.tsize (approx TMf) = n.+1 ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X)
@@ -5061,7 +5060,7 @@ Definition TM_div Mf Mg X0 X n :=
 
 Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   g Xnan = Xnan->
-  (exists t : ExtendedR, contains (I.convert X0) t) ->
+  not_empty (I.convert X0) ->
   n = Pol.tsize (approx TMf) ->
   n = Pol.tsize (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
