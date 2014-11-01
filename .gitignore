@@ -11,3 +11,6 @@ Remakefile
 *.vo
 *.vd
 *.glob
+*.aux
+*.v.bak
+.coq-native
