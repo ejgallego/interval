@@ -44,7 +44,7 @@ Ltac get_float t :=
       | 2%R => xH
       | (2 * ?v)%R =>
         let w := aux v in
-        eval vm_compute in (Psucc w)
+        constr:(Psucc w)
       end in
     let e := aux d in
     let m := get_mantissa n in
@@ -53,7 +53,7 @@ Ltac get_float t :=
     let rec aux m e :=
       match m with
       | xO ?v =>
-        let u := eval vm_compute in (Zsucc e) in
+        let u := constr:(Zsucc e) in
         aux v u
       | _ => constr:(m, e)
       end in
@@ -147,6 +147,8 @@ simpl A.check_p.
 now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => r <> R0 end) (fun x => x <> R0)).
 Qed.
 
+Definition toR := I.T.toR.
+
 Inductive expr :=
   | Econst : nat -> expr
   | Eunary : unary_op -> expr -> expr
@@ -164,7 +166,7 @@ Ltac list_add a l :=
     end in
   aux a l O.
 
-Ltac remove_constants t l :=
+Ltac reify t l :=
   let rec aux t l :=
     match get_float t with
     | false =>
@@ -205,8 +207,9 @@ Ltac remove_constants t l :=
         | (?n, ?l) => constr:(Econst n, l)
         end
       end
-    | _ =>
-      match list_add t l with
+    | ?f =>
+      let u := constr:(toR f) in
+      match list_add u l with
       | (?n, ?l) => constr:(Econst n, l)
       end
     end in
@@ -271,7 +274,7 @@ Ltac generate_machine l :=
   aux l (@nil term).
 
 Ltac extract_algorithm t l :=
-  match remove_constants t l with
+  match reify t l with
   | (?t, ?lc) =>
     let lm := generate_machine ltac:(get_non_constants t) in
     constr:(lm, lc)
@@ -379,8 +382,7 @@ Ltac get_bounds l prec :=
       let i :=
       match x with
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
-      | _ =>
-        let v := get_float x in
+      | toR ?v =>
         constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
       | _ =>
         match goal with
