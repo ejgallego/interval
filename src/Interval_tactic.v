@@ -115,6 +115,129 @@ now rewrite Hf.
 now rewrite Hf.
 Qed.
 
+Lemma contains_eval :
+  forall prec prog bounds n,
+  contains (I.convert (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (map A.real_from_bp bounds)) R0)).
+Proof.
+intros prec prog bounds n.
+set (xi := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
+now case (I.convert xi).
+easy.
+unfold xi.
+replace (map Xreal (map A.real_from_bp bounds)) with (map A.xreal_from_bp bounds).
+apply A.BndValuator.eval_correct.
+clear.
+induction bounds.
+easy.
+simpl.
+rewrite IHbounds.
+now case a.
+Qed.
+
+Lemma contains_bound_lr :
+  forall x prec proga boundsa na progb boundsb nb,
+  Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) R0) x /\
+  Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) R0) ->
+  contains (I.convert (I.meet (I.upper_extent (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai)) (I.lower_extent (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai)))) (Xreal x).
+Proof.
+intros x prec proga boundsa na progb boundsb nb [Hx1 Hx2].
+generalize (contains_eval prec proga boundsa na).
+case (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai).
+easy.
+simpl.
+intros l _ [Hl _].
+generalize (contains_eval prec progb boundsb nb).
+case (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai).
+easy.
+simpl.
+intros _ u [_ Hu].
+rewrite 4!I.I.real_correct.
+unfold I.I.convert_bound in *.
+rewrite F.nan_correct.
+simpl.
+split.
+case_eq (FtoX (F.toF l)).
+intros _.
+now rewrite F.nan_correct.
+intros lr Hlr.
+rewrite Hlr in Hl.
+rewrite Hlr.
+now apply Rle_trans with (2 := Hx1).
+destruct (FtoX (F.toF u)) as [|ur].
+exact I.
+now apply Rle_trans with (1 := Hx2).
+Qed.
+
+Lemma contains_bound_l :
+  forall x prec prog bounds n,
+  Rle (nth n (eval_real prog (map A.real_from_bp bounds)) R0) x ->
+  contains (I.convert (I.upper_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
+Proof.
+intros x prec prog bounds n Hx.
+generalize (contains_eval prec prog bounds n).
+case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+easy.
+simpl.
+intros l _ [Hl _].
+split.
+destruct (I.I.convert_bound l) as [|lr].
+exact I.
+now apply Rle_trans with (2 := Hx).
+unfold I.I.convert_bound.
+now rewrite F.nan_correct.
+Qed.
+
+Lemma contains_bound_r :
+  forall x prec prog bounds n,
+  Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) R0) ->
+  contains (I.convert (I.lower_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
+Proof.
+intros x prec prog bounds n Hx.
+generalize (contains_eval prec prog bounds n).
+case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+easy.
+simpl.
+intros _ u [_ Hu].
+split.
+unfold I.I.convert_bound.
+now rewrite F.nan_correct.
+destruct (I.I.convert_bound u) as [|ur].
+exact I.
+now apply Rle_trans with (1 := Hx).
+Qed.
+
+Lemma contains_bound_ar :
+  forall x prec prog bounds n,
+  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) R0) ->
+  let xi := I.lower_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai) in
+  contains (I.convert (I.meet (I.neg xi) xi)) (Xreal x).
+Proof.
+intros x prec prog bounds n Hx.
+generalize (contains_eval prec prog bounds n).
+case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+easy.
+simpl.
+intros _ u [_ Hu].
+rewrite 4!I.I.real_correct.
+unfold I.I.convert_bound in *.
+rewrite 2!F.neg_correct, 2!Fneg_correct.
+rewrite F.nan_correct.
+simpl.
+case_eq (FtoX (F.toF u)).
+intros _.
+simpl.
+now rewrite F.nan_correct.
+simpl.
+intros ur Hur.
+rewrite F.neg_correct, Fneg_correct.
+rewrite Hur in Hu.
+rewrite Hur.
+simpl.
+apply Rabs_def2_le.
+now apply Rle_trans with (1 := Hx).
+Qed.
+
 Lemma xreal_to_contains :
   forall prog terms n xi,
   A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
@@ -374,6 +497,74 @@ Ltac warn_whole l :=
     list_warn_rev l ; idtac "You may need to unfold some of these terms."
   end.
 
+Ltac get_trivial_bounds l prec :=
+  let rec aux l prec :=
+    match l with
+    | nil => constr:(@nil A.bound_proof)
+    | cons ?x ?l =>
+      let i :=
+      match x with
+      | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
+      | toR ?v =>
+        constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+      end in
+      match aux l prec with
+      | ?m => constr:(cons i m)
+      end
+    end in
+  aux l prec.
+
+Ltac get_bounds_aux x prec :=
+  match goal with
+  | H: Rle ?a x /\ Rle x ?b |- _ =>
+    let v := get_float a in
+    let w := get_float b in
+    constr:(A.Bproof x (I.bnd v w) H)
+  | H: Rle ?a x /\ Rle x ?b |- _ =>
+    let va := extract_algorithm a (@nil R) in
+    let vb := extract_algorithm b (@nil R) in
+    match va with
+    | (?pa, ?la) =>
+      let lca := get_trivial_bounds la prec in
+      match vb with
+      | (?pb, ?lb) =>
+        let lcb := get_trivial_bounds lb prec in
+        constr:(let proga := pa in let boundsa := lca in let progb := pb in let boundsb := lcb in
+          A.Bproof x _ (contains_bound_lr x prec proga boundsa 0 progb boundsb 0 H))
+      end
+    end
+  | H: Rle ?a x |- _ =>
+    let v := get_float a in
+    constr:(A.Bproof x (I.bnd v F.nan) (conj H I))
+  | H: Rle ?a x |- _ =>
+    let v := extract_algorithm a (@nil R) in
+    match v with
+    | (?p, ?l) =>
+      let lc := get_trivial_bounds l prec in
+      constr:(let prog := p in let bounds := lc in A.Bproof x _ (contains_bound_l x prec prog bounds 0 H))
+    end
+  | H: Rle x ?b |- _ =>
+    let v := get_float b in
+    constr:(A.Bproof x (I.bnd F.nan v) (conj I H))
+  | H: Rle x ?b |- _ =>
+    let v := extract_algorithm b (@nil R) in
+    match v with
+    | (?p, ?l) =>
+      let lc := get_trivial_bounds l prec in
+      constr:(let prog := p in let bounds := lc in A.Bproof x _ (contains_bound_r x prec prog bounds 0 H))
+    end
+  | H: Rle (Rabs x) ?b |- _ =>
+    let v := get_float b in
+    constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H))
+  | H: Rle (Rabs x) ?b |- _ =>
+    let v := extract_algorithm b (@nil R) in
+    match v with
+    | (?p, ?l) =>
+      let lc := get_trivial_bounds l prec in
+      constr:(let prog := p in let bounds := lc in A.Bproof x _ (contains_bound_ar x prec prog bounds 0 H))
+    end
+  end.
+
 Ltac get_bounds l prec :=
   let rec aux l prec lw :=
     match l with
@@ -386,19 +577,9 @@ Ltac get_bounds l prec :=
         constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
       | _ =>
         match goal with
-        | H: Rle ?a x /\ Rle x ?b |- _ =>
-          let v := get_float a in
-          let w := get_float b in
-          constr:(A.Bproof x (I.bnd v w) H, @None R)
-        | H: Rle ?a x |- _ =>
-          let v := get_float a in
-          constr:(A.Bproof x (I.bnd v F.nan) (conj H I), @None R)
-        | H: Rle x ?b |- _ =>
-          let v := get_float b in
-          constr:(A.Bproof x (I.bnd F.nan v) (conj I H), @None R)
-        | H: Rle (Rabs x) ?b |- _ =>
-          let v := get_float b in
-          constr:(A.Bproof x (I.bnd (F.neg v) v) (Rabs_contains_rev v x H), @None R)
+        | _ =>
+          let v := get_bounds_aux x prec in
+          constr:(v, @None R)
         | _ =>
           match goal with
           | H: Rle ?a x /\ Rle x ?b |- _ => idtac
@@ -723,7 +904,7 @@ Export ITGFSZ2.
 
 (*
 Lemma blo1 :
-  forall x, (Rabs x <= 5)%R ->
+  forall x, (Rabs x <= 15/3)%R ->
   (-4 <= x + 1)%R.
 intros.
 interval.
