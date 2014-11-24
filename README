@@ -3,8 +3,8 @@ simplifying the proofs of inequalities on expressions of real numbers
 for the Coq proof assistant.
 
 This package is free software; you can redistribute it and/or modify it
-under the terms of GNU Lesser General Public License (see the COPYING
-file). Author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
+under the terms of CeCILL-C Free Software License (see the COPYING file).
+Main author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
 
 
 I. Invocation
@@ -35,10 +35,10 @@ The complete list of recognized goals is as follows:
   (e1 <> e2)%R         handled as (e1 - e2 <> 0)%R
 
 Operators recognized by the tactic are: PI, Ropp, Rabs, Rinv, Rsqr, sqrt,
-cos, sin, tan, atan, exp, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv. There
-are a some restrictions on the domain of a few functions: pow and powerRZ
-should be written with a numeric exponent; the input of cos and sin
-should be between -2*PI and 2*PI; the input of tan should be between
+cos, sin, tan, atan, exp, ln, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv.
+There are some restrictions on the domain of a few functions: pow and
+powerRZ should be written with a numeric exponent; the input of cos and
+sin should be between -2*PI and 2*PI; the input of tan should be between
 -PI/2 and PI/2.
 
 A helper tactic "interval_intro e" is also available. Instead of proving
@@ -64,9 +64,9 @@ are: (with the type of their arguments, if any)
   i_prec (p:nat)      sets precision of the floating-point computations
   i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
   i_bisect (x:R)      splits input interval on x and repeat until proven
-  i_bisect_diff (x:R) same as bisect, but studies variations along x too
+  i_bisect_diff (x:R) same as i_bisect, but studies variations along x too
   i_bisect_taylor (x:R) (d:nat)
-                      same as bisect_diff, but computes degree-d Talor
+                      same as i_bisect_diff, but computes degree-d Taylor
                       models instead of performing automatic differentiation
 
 For both tactics, performing a bisection of depth 1 is not much slower

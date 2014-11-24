@@ -1,3 +1,8 @@
+Version 2.0.0:
+ - added support for Taylor models (i_bisect_taylor)
+ - added support for logarithm
+ - improved tactic so that it handles hypotheses with non floating-point bounds
+
 Version 1.1.0:
  - moved to Flocq 2.4
  - added support for disequalities to the tactic
