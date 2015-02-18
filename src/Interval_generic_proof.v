@@ -129,19 +129,20 @@ Lemma shift_correct :
   Zpos (shift beta m e) = (Zpos m * Zpower_pos beta e)%Z.
 Proof.
 intros beta m e.
-unfold shift, Zpower_pos.
+rewrite Z.pow_pos_fold.
+unfold shift.
 set (r := match radix_val beta with Zpos r => r | _ => xH end).
-rewrite 2!iter_nat_of_P.
+rewrite iter_pos_nat.
+rewrite Zpower_Zpower_nat by easy.
+simpl Zabs_nat.
 induction (nat_of_P e).
 simpl.
 now rewrite Pmult_comm.
-simpl iter_nat.
-rewrite Zmult_assoc.
-rewrite (Zmult_comm (Zpos m)).
-rewrite <- Zmult_assoc.
-rewrite <- IHn.
+rewrite iter_nat_S, Zpower_nat_S.
 rewrite Zpos_mult_morphism.
-apply (f_equal (fun v => v * _)%Z).
+rewrite IHn.
+replace (Zpos r) with (radix_val beta).
+ring.
 unfold r.
 generalize (radix_val beta) (radix_prop beta).
 clear.
@@ -268,9 +269,9 @@ cut (FtoX
   match d with
   | 0%Z => Float beta s m e
   | Zpos nb =>
-      Float beta s (iter_pos nb positive (fun x : positive => xO x) m) e
+      Float beta s (iter_pos (fun x : positive => xO x) nb m) e
   | Zneg nb =>
-      Float beta s (iter_pos nb positive (fun x : positive => Pmult p x) m) (e + d)
+      Float beta s (iter_pos (fun x : positive => Pmult p x) nb m) (e + d)
   end = Xreal (FtoR beta s m e * bpow radix2 d)).
 (* *)
 intro H.
@@ -294,19 +295,7 @@ simpl.
 rewrite Zplus_0_r.
 rewrite <- cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) e))).
-clear.
-rewrite Zpower_pos_nat.
-rewrite iter_nat_of_P.
-rewrite Zmult_comm.
-apply sym_eq.
-revert m.
-induction (nat_of_P nb).
-now intros m.
-intros m.
-simpl.
-apply sym_eq.
-rewrite Zpos_xO, <- IHn.
-now rewrite Zmult_assoc.
+apply (shift_correct radix2).
 (* . *)
 unfold FtoX.
 apply f_equal.
@@ -328,30 +317,23 @@ rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
 ring_simplify (e - (e - Zpos nb))%Z.
 rewrite <- 2!cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) _))).
-unfold Zpower, beta.
+rewrite Z.pow_pos_fold.
+rewrite iter_pos_nat.
+rewrite 2!Zpower_Zpower_nat by easy.
+simpl Zabs_nat.
+unfold beta.
 simpl radix_val.
 clear.
-rewrite 2!Zpower_pos_nat.
-rewrite iter_nat_of_P.
-rewrite Zmult_comm.
-apply sym_eq.
 revert m.
 induction (nat_of_P nb).
+easy.
 intros m.
-simpl.
-now rewrite Pmult_1_r.
-intros m.
-simpl iter_nat.
+rewrite iter_nat_S, 2!Zpower_nat_S.
 rewrite Zpos_mult_morphism.
-change (S n) with (1 + n).
-rewrite 2!Zpower_nat_is_exp.
-rewrite Zmult_assoc, (Zmult_comm (Zpos m)), <- Zmult_assoc.
-rewrite IHn.
-replace (Zpower_nat (Zpos p~0) 1) with (Zpower_nat 2 1 * Zpos p)%Z.
+replace (Zpos m * (Zpos (xO p) * Zpower_nat (Zpos (xO p)) n))%Z with (Zpos m * Zpower_nat (Zpos (xO p)) n * Zpos (xO p))%Z by ring.
+rewrite <- IHn.
+change (Zpos (xO p)) with (2 * Zpos p)%Z.
 ring.
-unfold Zpower_nat, nat_iter.
-simpl.
-now rewrite Pmult_1_r.
 Qed.
 
 (*

@@ -366,7 +366,7 @@ Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
   end.
 
 Definition lookup_1d fi l u extend steps :=
-  let m := iter_nat steps _ (fun u => I.midpoint (I.bnd l u)) u in
+  let m := iter_nat (fun u => I.midpoint (I.bnd l u)) steps u in
   let output := extend (fi (I.bnd l m)) in
   match steps with
   | O => I.whole

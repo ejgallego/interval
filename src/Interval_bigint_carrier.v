@@ -370,7 +370,9 @@ repeat split.
 refl_exists.
 unfold EtoZ in Hz.
 rewrite spec_to_Z, Hz.
-now rewrite <- shift_equiv.
+rewrite Z.shiftl_mul_pow2 by easy.
+rewrite shift_correct.
+now rewrite Z.pow_pos_fold.
 Qed.
 
 Lemma mantissa_sign_correct :

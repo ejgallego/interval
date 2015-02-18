@@ -76,9 +76,9 @@ Definition Fscale2 beta (f : float beta) d :=
     | Zpos (xO xH), _ => Float beta s m (e + d)
     | _, Z0 => f
     | _, Zpos nb =>
-      Float beta s (iter_pos nb _ (fun x => xO x) m) e
+      Float beta s (iter_pos (fun x => xO x) nb m) e
     | Zpos (xO r), Zneg nb =>
-      Float beta s (iter_pos nb _ (fun x => Pmult r x) m) (e + d)
+      Float beta s (iter_pos (fun x => Pmult r x) nb m) (e + d)
     | _, _ => Fnan beta
     end
   | _ => f
@@ -96,7 +96,7 @@ Implicit Arguments Fscale2.
 
 Definition shift beta m nb :=
   let r := match radix_val beta with Zpos r => r | _ => xH end in
-  iter_pos nb _ (Pmult r) m.
+  iter_pos (Pmult r) nb m.
 
 Definition Fcmp_aux1 m1 m2 :=
   match Zcompare (Zpos m1) (Zpos m2) with
@@ -500,7 +500,7 @@ Implicit Arguments Fadd_exact.
  *)
 
 Definition truncate beta m1 nb :=
-  let d := iter_pos nb _ (fun x => Pmult (match radix_val beta with Zpos r => r | _ => xH end) x) xH in
+  let d := iter_pos (fun x => Pmult (match radix_val beta with Zpos r => r | _ => xH end) x) nb xH in
   match Zdiv_eucl (Zpos m1) (Zpos d) with
   | (Zpos m2, r) => (m2, adjust_pos r d pos_Eq)
   | _ => (xH, pos_Lo) (* dummy *)

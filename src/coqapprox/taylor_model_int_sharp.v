@@ -3362,7 +3362,7 @@ have rge0: (0 <= r)%Re.
   case/Rle_lt_or_eq_dec; first by move/Rlt_bool_true ->.
   by move -> => _; apply:Rle_refl.
 case:(boolP (r == R0))=> /eqP r0.
-  by rewrite r0 !Xpow_idem Xinv_Xmul_distr /Xinv !is_zero_correct_zero !(Xmul_comm _ Xnan).
+  by rewrite r0 !Xpow_idem /Xpow_iter iter_nat_S Xinv_Xmul_distr /Xinv !is_zero_correct_zero !(Xmul_comm _ Xnan).
 rewrite /Xsqrt rpos.
 case: (boolP (sqrt r == R0)).
   by move/eqP /(sqrt_eq_0 _ rge0) => re0; rewrite re0 in r0.
