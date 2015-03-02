@@ -1,6 +1,6 @@
 Require Import Reals.
 Require Import ZArith.
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_missing.
 

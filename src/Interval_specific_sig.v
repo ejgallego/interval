@@ -1,4 +1,4 @@
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import ZArith.
 Require Import Interval_definitions.
 Require Import Interval_generic.

@@ -8,7 +8,7 @@ Require Import Interval_bigint_carrier.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import interval_compl.
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq MathComp.bigop.
 Require Import poly_datatypes.
 Require Import poly_inst_seq.
 Require Import taylor_model_int_sharp.

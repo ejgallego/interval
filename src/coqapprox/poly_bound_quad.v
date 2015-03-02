@@ -19,7 +19,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Psatz.
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
 Require Import Interval_definitions.
@@ -30,7 +30,7 @@ Require Import Interval_interval_float_full.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.

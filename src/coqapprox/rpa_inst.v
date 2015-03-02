@@ -27,7 +27,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
 Require Import coeff_inst.
 Require Import poly_datatypes.
 Require Import taylor_poly.

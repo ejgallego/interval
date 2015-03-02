@@ -1,5 +1,5 @@
-Require Import Fcore_Raux.
-Require Import Fcore_digits.
+Require Import Flocq.Core.Fcore_Raux.
+Require Import Flocq.Core.Fcore_digits.
 Require Import BigN.
 Require Import BigZ.
 Require Import Bool.

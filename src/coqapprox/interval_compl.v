@@ -21,7 +21,7 @@ liability. See the COPYING file for more details.
 Require Import ZArith Reals Psatz.
 Require Import Interval_xreal.
 Require Import Interval_interval.
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat.
 Require Import xreal_ssr_compat.
 
 Set Implicit Arguments.

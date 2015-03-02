@@ -1,4 +1,15 @@
-Require Export Fcore_Raux.
+Require Export Flocq.Core.Fcore_Raux.
+
+Ltac evar_last :=
+  match goal with
+  | |- ?f ?x =>
+    let tx := type of x in
+    let tx := eval simpl in tx in
+    let tmp := fresh "tmp" in
+    evar (tmp : tx) ;
+    refine (@eq_ind tx tmp f _ x _) ;
+    unfold tmp ; clear tmp
+  end.
 
 Lemma Rplus_lt_reg_l :
   forall r r1 r2 : R,
@@ -547,6 +558,21 @@ apply sym_eq.
 now apply H.
 Qed.
 
+Lemma even_or_odd :
+  forall n : nat, exists k, n = 2 * k \/ n = S (2 * k).
+Proof.
+induction n.
+exists 0.
+now left.
+destruct IHn as [k [Hk|Hk]].
+exists k.
+right.
+now apply f_equal.
+exists (S k).
+left.
+omega.
+Qed.
+
 Lemma alternated_series_ineq' :
   forall u l,
   Un_decreasing u ->
@@ -556,10 +582,8 @@ Lemma alternated_series_ineq' :
   (0 <= (-1)^(S n) * (l - sum_f_R0 (tg_alt u) n) <= u (S n))%R.
 Proof.
 intros u l Du Cu Cl n.
-destruct (Even.even_or_odd n) as [H|H].
-- destruct (Div2.even_2n n H) as [p Hp].
-  rewrite NPeano.double_twice in Hp.
-  destruct (alternated_series_ineq u l p Du Cu Cl) as [H1 H2].
+destruct (even_or_odd n) as [p [Hp|Hp]].
+- destruct (alternated_series_ineq u l p Du Cu Cl) as [H1 H2].
   rewrite Hp, pow_1_odd.
   split.
   + rewrite Ropp_mult_distr_l_reverse, Rmult_1_l.
@@ -571,9 +595,7 @@ destruct (Even.even_or_odd n) as [H|H].
       with (- (sum_f_R0 (tg_alt u) (2 * p) + (-1) * u (S (2 * p))))%R by ring.
     rewrite <- (pow_1_odd p).
     now apply Ropp_le_contravar.
-- destruct (Div2.odd_S2n n H) as [p Hp].
-  rewrite NPeano.double_twice in Hp.
-  assert (H0: S (S (2 * p)) = 2 * (p + 1)) by ring.
+- assert (H0: S (S (2 * p)) = 2 * (p + 1)) by ring.
   rewrite Hp.
   rewrite H0 at 1 2.
   rewrite pow_1_even, Rmult_1_l.
@@ -688,7 +710,7 @@ specialize (Hf n).
 omega.
 Qed.
 
-Definition sinc (x : R) := projT1 (exist_sin (Rsqr x)).
+Definition sinc (x : R) := proj1_sig (exist_sin (Rsqr x)).
 
 Lemma sin_sinc :
   forall x,
@@ -949,7 +971,7 @@ Qed.
 
 Definition atanc x :=
   match Ratan.in_int x with
-  | left H => projT1 (atanc_exists x (Rabs_le _ _ H))
+  | left H => proj1_sig (atanc_exists x (Rabs_le _ _ H))
   | right _ => (atan x / x)%R
   end.
 
@@ -1176,7 +1198,7 @@ Qed.
 
 Definition ln1pc x :=
   match ln1pc_in_int x with
-  | left H => projT1 (ln1pc_exists x H)
+  | left H => proj1_sig (ln1pc_exists x H)
   | right _ => (ln (1 + x) / x)%R
   end.
 
@@ -1185,7 +1207,7 @@ Axiom ln1p_ln1pc :
   ln (1 + x) = (x * ln1pc x)%R.
 
 (*
-Require Import Coquelicot.
+Require Import Coquelicot.Coquelicot.
 
 Lemma ln1p_ln1pc :
   forall x,

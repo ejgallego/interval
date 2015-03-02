@@ -42,7 +42,7 @@ AC_MSG_RESULT([$COQDEP])
 
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
-  [ echo "Require Import Flocq_version BinNat." \
+  [ echo "Require Import Flocq.Flocq_version BinNat." \
          "Goal (20400 <= Flocq_version)%N. easy. Qed." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
@@ -52,7 +52,7 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Ssreflect])
 AS_IF(
-  [ echo "Require Import ssreflect." > conftest.v
+  [ echo "Require Import Ssreflect.ssreflect." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
@@ -61,7 +61,7 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for MathComp])
 AS_IF(
-  [ echo "Require Import bigop." > conftest.v
+  [ echo "Require Import MathComp.bigop." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])

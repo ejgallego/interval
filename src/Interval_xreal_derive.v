@@ -10,6 +10,7 @@ Theorem derivable_imp_defined :
   f (Xreal r) = Xreal u -> u <> v ->
   derivable_pt_lim (proj_fun v f) r d ->
   locally_true r (fun a => exists w, f (Xreal a) = Xreal w).
+Proof.
 intros.
 (* by continuity ... *)
 assert (continuity_pt (proj_fun v f) r).
@@ -44,6 +45,7 @@ Theorem derivable_imp_nan :
   f (Xreal r) = Xnan ->
  (forall v, derivable_pt_lim (proj_fun v f) r d) ->
   locally_true r (fun a => f (Xreal a) = Xnan).
+Proof.
 intros.
 (* by continuity ... *)
 assert (forall v, continuity_pt (proj_fun v f) r).
@@ -87,6 +89,7 @@ Theorem derivable_imp_nan_zero :
   f (Xreal r) = Xnan ->
  (forall v, derivable_pt_lim (proj_fun v f) r d) ->
   d = R0.
+Proof.
 intros.
 assert (derivable_pt_lim (fct_cte R0) r d).
 eapply derivable_pt_lim_eq_locally with (2 := H0 R0).
@@ -103,6 +106,7 @@ Theorem derivable_imp_defined_any :
   f (Xreal r) = Xreal u ->
  (forall v, derivable_pt_lim (proj_fun v f) r d) ->
   locally_true r (fun a => exists w, f (Xreal a) = Xreal w).
+Proof.
 intros.
 eapply derivable_imp_defined.
 apply H.
@@ -120,6 +124,7 @@ Theorem derivable_imp_defined_any_2 :
   locally_true r (fun a =>
     (exists w1, f1 (Xreal a) = Xreal w1) /\
     (exists w2, f2 (Xreal a) = Xreal w2)).
+Proof.
 intros.
 apply locally_true_and.
 apply (derivable_imp_defined_any _ _ _ _ H H1).
@@ -131,6 +136,7 @@ Theorem derivable_imp_defined_gt :
   f (Xreal r) = Xreal u -> (t < u)%R ->
  (forall v, derivable_pt_lim (proj_fun v f) r d) ->
   locally_true r (fun a => exists w, (t < w)%R /\ f (Xreal a) = Xreal w).
+Proof.
 intros.
 apply locally_true_imp with
   (fun a => (exists w, f (Xreal a) = Xreal w) /\ (t < proj_fun R0 f a)%R).
@@ -191,6 +197,7 @@ Theorem derivable_imp_defined_ne :
   f (Xreal r) = Xreal u -> (u <> t)%R ->
  (forall v, derivable_pt_lim (proj_fun v f) r d) ->
   locally_true r (fun a => exists w, (w <> t)%R /\ f (Xreal a) = Xreal w).
+Proof.
 intros.
 apply locally_true_imp with
   (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun R0 f a <> t)%R).
@@ -362,6 +369,7 @@ Theorem Xderive_pt_compose :
   forall f f' g g' x,
   Xderive_pt f x f' -> Xderive_pt g (f x) g' ->
   Xderive_pt (fun x => g (f x)) x (Xmul f' g').
+Proof.
 intros f f' g g' x Hf Hg.
 xtotal.
 intro v.
@@ -382,6 +390,7 @@ Theorem Xderive_compose :
   forall f f' g g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => g (f x)) (fun x => Xmul (f' x) (g' (f x))).
+Proof.
 intros f f' g g' Hf Hg x.
 now apply Xderive_pt_compose.
 Qed.
@@ -390,6 +399,7 @@ Theorem Xderive_pt_add :
   forall f g f' g' x,
   Xderive_pt f x f' -> Xderive_pt g x g' ->
   Xderive_pt (fun x => Xadd (f x) (g x)) x (Xadd f' g').
+Proof.
 intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
@@ -405,6 +415,7 @@ Theorem Xderive_add :
   forall f g f' g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xadd (f x) (g x)) (fun x => Xadd (f' x) (g' x)).
+Proof.
 intros f g f' g' Hf Hg x.
 now apply Xderive_pt_add.
 Qed.
@@ -413,6 +424,7 @@ Theorem Xderive_pt_sub :
   forall f g f' g' x,
   Xderive_pt f x f' -> Xderive_pt g x g' ->
   Xderive_pt (fun x => Xsub (f x) (g x)) x (Xsub f' g').
+Proof.
 intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
@@ -428,6 +440,7 @@ Theorem Xderive_sub :
   forall f g f' g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xsub (f x) (g x)) (fun x => Xsub (f' x) (g' x)).
+Proof.
 intros f g f' g' Hf Hg x.
 now apply Xderive_pt_sub.
 Qed.
@@ -436,6 +449,7 @@ Theorem Xderive_pt_mul :
   forall f g f' g' x,
   Xderive_pt f x f' -> Xderive_pt g x g' ->
   Xderive_pt (fun x => Xmul (f x) (g x)) x (Xadd (Xmul f' (g x)) (Xmul g' (f x))).
+Proof.
 intros f g f' g' x Hf Hg.
 xtotal.
 intro v.
@@ -458,6 +472,7 @@ Theorem Xderive_mul :
   forall f g f' g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xmul (f x) (g x)) (fun x => Xadd (Xmul (f' x) (g x)) (Xmul (g' x) (f x))).
+Proof.
 intros f g f' g' Hf Hg x.
 now apply Xderive_pt_mul.
 Qed.
@@ -466,6 +481,7 @@ Theorem Xderive_pt_div :
   forall f g f' g' x,
   Xderive_pt f x f' -> Xderive_pt g x g' ->
   Xderive_pt (fun x => Xdiv (f x) (g x)) x (Xdiv (Xsub (Xmul f' (g x)) (Xmul g' (f x))) (Xmul (g x) (g x))).
+Proof.
 intros f g f' g' x Hf Hg.
 xtotal.
 elim Y.
@@ -500,6 +516,7 @@ Theorem Xderive_div :
   forall f g f' g',
   Xderive f f' -> Xderive g g' ->
   Xderive (fun x => Xdiv (f x) (g x)) (fun x => Xdiv (Xsub (Xmul (f' x) (g x)) (Xmul (g' x) (f x))) (Xmul (g x) (g x))).
+Proof.
 intros f g f' g' Hf Hg x.
 now apply Xderive_pt_div.
 Qed.
@@ -508,6 +525,7 @@ Theorem Xderive_pt_neg :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xneg (f x)) x (Xneg f').
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -576,6 +594,7 @@ Theorem Xderive_pt_inv :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xinv (f x)) x (Xneg (Xdiv f' (Xsqr (f x)))).
+Proof.
 intros f f' x Hf.
 xtotal.
 elim Y.
@@ -608,6 +627,7 @@ Theorem Xderive_pt_sqrt :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xsqrt (f x)) x (Xdiv f' (Xadd (Xsqrt (f x)) (Xsqrt (f x)))).
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -639,6 +659,7 @@ Theorem Xderive_pt_sin :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xsin (f x)) x (Xmul f' (Xcos (f x))).
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -659,6 +680,7 @@ Theorem Xderive_pt_cos :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xcos (f x)) x (Xmul f' (Xneg (Xsin (f x)))).
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -679,6 +701,7 @@ Theorem Xderive_pt_tan :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xtan (f x)) x (Xmul f' (Xadd (Xreal 1) (Xsqr (Xtan (f x))))).
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -717,6 +740,7 @@ Theorem Xderive_pt_exp :
   forall f f' x,
   Xderive_pt f x f' ->
   Xderive_pt (fun x => Xexp (f x)) x (Xmul f' (Xexp (f x))).
+Proof.
 intros f f' x Hf.
 xtotal.
 intro v.
@@ -912,6 +936,7 @@ Theorem Xderive_partial_diff :
  (forall x y, f' x = Xreal y -> g' x = Xreal y) ->
   Xderive f g' ->
   Xderive f f'.
+Proof.
 intros g' f f' Heq Hf x.
 generalize (Heq x).
 clear Heq. intro Heq.
@@ -929,6 +954,7 @@ Theorem Xderive_eq_diff :
  (forall x, f' x = g' x) ->
   Xderive f g' ->
   Xderive f f'.
+Proof.
 intros.
 apply Xderive_partial_diff with (2 := H0).
 intros.
@@ -941,6 +967,7 @@ Theorem Xderive_pt_partial_fun :
   forall x,
   Xderive_pt g x f' ->
   Xderive_pt f x f'.
+Proof.
 intros g f f' Heq x Hg.
 assert (Heqx := Heq x).
 xtotal.
@@ -959,6 +986,7 @@ Theorem Xderive_partial_fun :
  (forall x y, g x = Xreal y -> f x = Xreal y) ->
   Xderive g f' ->
   Xderive f f'.
+Proof.
 intros g f f' Heq Hg x.
 now apply Xderive_pt_partial_fun with (1 := Heq).
 Qed.
@@ -969,6 +997,7 @@ Theorem Xderive_pt_eq_fun :
   forall x,
   Xderive_pt g x f' ->
   Xderive_pt f x f'.
+Proof.
 intros g f f' Heq x Hg.
 apply Xderive_pt_partial_fun with (2 := Hg).
 intros.
@@ -986,6 +1015,7 @@ Qed.
 
 Theorem Xderive_pt_identity :
   forall x, Xderive_pt (fun x => x) x (Xmask (Xreal 1) x).
+Proof.
 intros [|x].
 exact I.
 intro.
@@ -995,6 +1025,7 @@ Qed.
 Theorem Xderive_pt_constant :
   forall v x,
   Xderive_pt (fun _ => Xreal v) x (Xmask (Xreal 0) x).
+Proof.
 intros v [|x].
 exact I.
 unfold proj_fun.
@@ -1012,6 +1043,7 @@ Theorem Xderive_MVT :
   forall x, dom x ->
   exists c, dom c /\
   f (Xreal x) = Xadd (f (Xreal m)) (Xmul (f' (Xreal c)) (Xsub (Xreal x) (Xreal m))).
+Proof.
 intros f f' Hd dom Hdom Hf'.
 set (fr := proj_fun 0 f).
 set (fr' := proj_fun 0 f').
@@ -1045,7 +1077,7 @@ apply refl_equal.
 assert (H9: forall u v, dom u -> dom v -> (u < v)%R ->
         exists c, dom c /\ f (Xreal v) = Xadd (f (Xreal u)) (Xmul (f' (Xreal c)) (Xsub (Xreal v) (Xreal u)))).
 intros u v Hu Hv Huv.
-refine (match MVT_cor3 fr fr' u v Huv _ with ex_intro c (conj P1 (conj P2 P3)) => _ end).
+destruct (MVT_cor3 fr fr' u v Huv) as [c [P1 [P2 P3]]].
 intros c Hc1 Hc2.
 assert (Hc := Hdom _ _ Hu Hv _ (conj Hc1 Hc2)).
 generalize (Hd (Xreal c)).

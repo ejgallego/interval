@@ -46,8 +46,8 @@ Parameter mul : rounding_mode -> precision -> type -> type -> type.
 Parameter div : rounding_mode -> precision -> type -> type -> type.
 Parameter sqrt : rounding_mode -> precision -> type -> type.
 
-Parameter zero_correct : toF zero = Fzero radix.
-Parameter nan_correct : toF nan = Fnan radix.
+Parameter zero_correct : toF zero = @Fzero radix.
+Parameter nan_correct : toF nan = @Fnan radix.
 Parameter fromZ_correct :
   forall n, FtoX (toF (fromZ n)) = Xreal (Z2R n).
 

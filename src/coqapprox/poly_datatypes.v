@@ -21,7 +21,7 @@ liability. See the COPYING file for more details.
 Require Import ZArith.
 Require Import Reals.
 Require Import NaryFunctions.
-Require Import Fcore.
+Require Import Flocq.Core.Fcore.
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -29,7 +29,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import nary_tuple.
 
 Set Implicit Arguments.

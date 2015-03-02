@@ -24,7 +24,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 
@@ -129,7 +129,7 @@ reflexivity.
 case/orP: E =>[->//|].
 do 2! case: Z.geb_spec =>//.
 by rewrite orbC.
-intros; zify; romega.
+intros; zify; omega.
 
 set e:= (Xpower_int x (n - Z.of_nat k.+1) * Xreal (IZR (n - Z.of_nat k)))%XR.
 have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * b))%XR.
@@ -140,18 +140,18 @@ have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * 
   set x0 := Xmask _ _.
 rewrite /= /x0 /=.
 case: (Req_EM_T r R0) => Hr; case Enk: (n - Z.of_nat k.+1)%Z @b @x0 =>[|p|p] b x0.
-have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; omega.
 simpl.
 by rewrite Rplus_0_l.
-have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; omega.
 by rewrite Xadd_0_l.
 by rewrite zeroT //= Xadd_comm.
-have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; omega.
 by rewrite Xadd_0_l.
-have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; omega.
 by rewrite Xadd_0_l.
 rewrite zeroF //.
-case E': (n - Z.of_nat k)%Z => [|q|q]; try (zify; romega).
+case E': (n - Z.of_nat k)%Z => [|q|q]; try (zify; omega).
 by rewrite /= Rplus_0_l.
 by rewrite /= Rplus_0_l.
 (* . *)
@@ -162,7 +162,7 @@ congr Xderive_pt.
 case: x {e} =>[//|r].
 simpl.
 set nk := (n - Z.pos (Pos.of_succ_nat k))%Z.
-have->: Z.pred (n - Z.of_nat k)%Z = nk by rewrite /nk; zify; romega.
+have->: Z.pred (n - Z.of_nat k)%Z = nk by rewrite /nk; zify; omega.
 case: nk =>//=.
 by rewrite Z2R_IZR Rmult_1_r.
 by move=> p; rewrite Rmult_1_l Rmult_comm Z2R_IZR.

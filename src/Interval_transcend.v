@@ -444,7 +444,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold toR in Hpu.
   now rewrite Hpu' in Hpu.
   now rewrite Hsu' in Hsu.
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 unfold toR.
 rewrite F.mul_correct, Fmul_correct.
@@ -709,7 +709,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   apply Rle_0_sqr.
   apply Rle_0_sqr.
   apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 unfold toR, sqrl.
 do 2 rewrite F.mul_correct, Fmul_correct.
@@ -1270,7 +1270,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   simpl in Ix.
   unfold I.convert_bound in Ix.
   now rewrite Hxu' in Ix.
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 unfold toR.
 rewrite F.mul_correct, Fmul_correct.
@@ -1511,7 +1511,7 @@ rewrite 2!F.cmp_correct, 2!Fcmp_correct.
 rewrite F.zero_correct.
 unfold c1.
 rewrite F.fromZ_correct.
-case_eq (Xcmp (FtoX (F.toF x)) (FtoX (Fzero F.radix))) ; try easy.
+case_eq (Xcmp (FtoX (F.toF x)) (FtoX (@Fzero F.radix))) ; try easy.
 case_eq (FtoX (F.toF x)) ; try easy.
 intros xr Hxr.
 simpl Xcmp.
@@ -1909,7 +1909,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   apply Rle_0_sqr.
   apply Rle_0_sqr.
   apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 unfold toR, sqrl.
 do 2 rewrite F.mul_correct, Fmul_correct.
@@ -2472,7 +2472,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   apply Rle_0_sqr.
   apply Rle_0_sqr.
   apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 unfold toR, sqrl.
 do 2 rewrite F.mul_correct, Fmul_correct.
@@ -2912,7 +2912,7 @@ case le_spec.
   destruct (is_zero_spec (cos (toR x))).
   now case I.convert.
   intros H'.
-  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  evar_last.
   apply H'.
   apply (f_equal Xreal).
   apply Rabs_pos_eq.
@@ -2928,7 +2928,7 @@ case le_spec.
   destruct (is_zero_spec (cos (toR x))).
   now case I.convert.
   intros H'.
-  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  evar_last.
   apply H'.
   apply (f_equal Xreal).
   apply Rabs_left1.
@@ -2944,7 +2944,7 @@ case le_spec.
   destruct (is_zero_spec (cos (toR x))).
   now case I.convert.
   intros H'.
-  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  evar_last.
   apply H'.
   apply (f_equal Xreal).
   apply Rabs_left1.
@@ -2958,7 +2958,7 @@ case le_spec.
   destruct (is_zero_spec (cos (toR x))).
   now case I.convert.
   intros H'.
-  match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+  evar_last.
   apply H'.
   apply (f_equal Xreal).
   apply Rabs_pos_eq.
@@ -3271,7 +3271,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
     (try apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0), lt_O_fact) ;
     bound_tac ;
     now apply Rmult_le_compat_r.
-match goal with |- ?f ?x => refine (@eq_ind _ _ f _ x _) end.
+evar_last.
 apply IHm.
 rewrite F.mul_exact_correct, Fmul_exact_correct.
 rewrite Hfp2, Hp3, 2!H.
@@ -3428,7 +3428,7 @@ unfold I.convert_bound, c1.
 rewrite F.fromZ_correct.
 rewrite exp_0.
 split ; apply Rle_refl.
-replace (Xexp  (FtoX (Float F.radix b p z)))
+replace (Xexp (FtoX (@Float F.radix b p z)))
   with (Xreal (exp (- toR (F.neg x)))).
 destruct b.
 (* neg *)

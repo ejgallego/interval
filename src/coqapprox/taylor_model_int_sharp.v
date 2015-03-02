@@ -19,7 +19,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Psatz.
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
 Require Import Interval_definitions.
@@ -31,7 +31,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Rstruct Classical.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
@@ -1668,7 +1668,7 @@ move=> [k Hk] Hneg.
 rewrite pow_Rabs_sign; case: Rle_bool_spec =>[Hr|Hr].
   have->: r = R0 by psatzl R.
   rewrite Rabs_R0 pow_ne_zero ?Rmult_0_r; first by auto with real.
-  by zify; romega. (* odd => nonzero *)
+  by zify; omega. (* odd => nonzero *)
 rewrite Hk.
 apply: Rmult_le_neg_pos; last by apply: pow_le; exact: Rabs_pos.
 rewrite powerRZ_add; discrR.
@@ -2349,7 +2349,7 @@ Corollary TM_rec1_correct X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
-Proof. exact: i_validTM_TLrem. (* Rely on typeclass_instances *) Qed.
+Proof. exact: (@i_validTM_TLrem XP_rec1). (* Rely on typeclass_instances *) Qed.
 
 Corollary TM_rec1_correct' X0 X n :
   let err := Ztech prec (fun t => trec1 (F_rec X) (F0 t))
@@ -2358,7 +2358,7 @@ Corollary TM_rec1_correct' X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
-Proof. exact: i_validTM_Ztech. (* Rely on typeclass_instances *) Qed.
+Proof. exact: (@i_validTM_Ztech XP_rec1). (* Rely on typeclass_instances *) Qed.
 
 End rec1_correct.
 
@@ -2452,7 +2452,7 @@ Corollary TM_rec2_correct X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
-Proof. exact: i_validTM_TLrem. (* Rely on typeclass_instances *) Qed.
+Proof. exact: (@i_validTM_TLrem XP_rec2). (* Rely on typeclass_instances *) Qed.
 
 Corollary TM_rec2_correct' X0 X n :
   let err := Ztech prec (fun t i => trec2 (F_rec X) (F0 t) (F1 t) i)
@@ -2461,7 +2461,7 @@ Corollary TM_rec2_correct' X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
-Proof. exact: i_validTM_Ztech. (* Rely on typeclass_instances *) Qed.
+Proof. exact: (@i_validTM_Ztech XP_rec2). (* Rely on typeclass_instances *) Qed.
 
 End rec2_correct.
 
@@ -2851,10 +2851,11 @@ Proof.
 
 Lemma powerRZ_0_l (x : R) (p : Z) :
   x = R0 -> (p > 0)%Z -> powerRZ x p = R0.
+Proof.
 move=> Hx Hp.
 case: p Hp =>[|p|p] Hp; rewrite // /powerRZ.
 rewrite Hx pow_ne_zero //.
-zify; romega.
+zify; omega.
 Qed.
 
 Inductive Xpower_int_spec (x : ExtendedR) (p : Z) : ExtendedR -> Type :=
@@ -2911,12 +2912,10 @@ eapply (i_validTM_Ztech
                        else Xmask (Xreal 0) x)))%XR); last by eexists; exact Ht.
 6: done.
 done.
-(* Show Existentials. *)
-Existential 5 := (TX.T_power_int tt p).
-(* Show. *)
 red=> x; simpl.
 apply nth_Xderive_pt_power_int.
 apply: I.power_int_correct.
+instantiate (1 := TX.T_power_int tt p).
 split.
 move=> x k.
 rewrite (@PolX.tsize_dotmuldiv k.+1) 1?(@tsize_dotmuldiv k.+1) //
@@ -3143,14 +3142,12 @@ eapply (i_validTM_Ztech
       else Xnan)%XR)); last by eexists; exact Ht.
 6: done.
 done.
-(* Show Existentials. *)
-Existential 5 := (TX.T_ln tt).
-(* Show. *)
 red=> x; simpl.
 apply nth_Xderive_pt_ln.
 apply: I.ln_correct.
 
 (* validXPoly *)
+instantiate (1 := TX.T_ln tt).
 split.
 move=> x [ |k]; rewrite /TX.T_ln !sizes ?PolX_tsize_dotmuldiv //.
 rewrite /T_ln /TX.T_ln.

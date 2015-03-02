@@ -1,16 +1,20 @@
 Require Import Reals.
 Require Import Bool.
 Require Import ZArith.
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
-Require Import Fcalc_div.
-Require Import Fcalc_sqrt.
+Require Import Flocq.Calc.Fcalc_div.
+Require Import Flocq.Calc.Fcalc_sqrt.
 
 Inductive float (beta : radix) : Set :=
   | Fnan : float beta
   | Fzero : float beta
   | Float : bool -> positive -> Z -> float beta.
+
+Implicit Arguments Fnan [[beta]].
+Implicit Arguments Fzero [[beta]].
+Implicit Arguments Float [[beta]].
 
 Inductive position : Set :=
   pos_Eq | pos_Lo | pos_Mi | pos_Up.
@@ -19,6 +23,10 @@ Inductive ufloat (beta : radix) : Set :=
   | Unan : ufloat beta
   | Uzero : ufloat beta
   | Ufloat : bool -> positive -> Z -> position -> ufloat beta.
+
+Implicit Arguments Unan [[beta]].
+Implicit Arguments Uzero [[beta]].
+Implicit Arguments Ufloat [[beta]].
 
 Definition FtoX beta (f : float beta) :=
   match f with
@@ -35,7 +43,7 @@ Implicit Arguments FtoX.
 
 Definition Fneg beta (f : float beta) :=
   match f with
-  | Float s m e => Float beta (negb s) m e
+  | Float s m e => Float (negb s) m e
   | _ => f
   end.
 
@@ -47,7 +55,7 @@ Implicit Arguments Fneg.
 
 Definition Fabs beta (f : float beta) :=
   match f with
-  | Float s m e => Float beta false m e
+  | Float s m e => Float false m e
   | _ => f
   end.
 
@@ -59,7 +67,7 @@ Implicit Arguments Fabs.
 
 Definition Fscale beta (f : float beta) d :=
   match f with
-  | Float s m e => Float beta s m (e + d)
+  | Float s m e => Float s m (e + d)
   | _ => f
   end.
 
@@ -73,13 +81,13 @@ Definition Fscale2 beta (f : float beta) d :=
   match f with
   | Float s m e =>
     match radix_val beta, d with
-    | Zpos (xO xH), _ => Float beta s m (e + d)
+    | Zpos (xO xH), _ => Float s m (e + d)
     | _, Z0 => f
     | _, Zpos nb =>
-      Float beta s (iter_pos (fun x => xO x) nb m) e
+      Float s (iter_pos (fun x => xO x) nb m) e
     | Zpos (xO r), Zneg nb =>
-      Float beta s (iter_pos (fun x => Pmult r x) nb m) (e + d)
-    | _, _ => Fnan beta
+      Float s (iter_pos (fun x => Pmult r x) nb m) (e + d)
+    | _, _ => Fnan
     end
   | _ => f
   end.
@@ -145,7 +153,7 @@ Definition Fmin beta (f1 f2 : float beta) :=
   | Xlt => f1
   | Xeq => f1
   | Xgt => f2
-  | Xund => Fnan beta
+  | Xund => Fnan
   end.
 
 Implicit Arguments Fmin.
@@ -159,7 +167,7 @@ Definition Fmax beta (f1 f2 : float beta) :=
   | Xlt => f2
   | Xeq => f2
   | Xgt => f1
-  | Xund => Fnan beta
+  | Xund => Fnan
   end.
 
 Implicit Arguments Fmax.
@@ -180,11 +188,11 @@ Definition convert_location l :=
     match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
   end.
 
-Definition float_to_ufloat beta (x : float beta) :=
+Definition float_to_ufloat beta (x : float beta) : ufloat beta :=
   match x with
-  | Fnan => Unan beta
-  | Fzero => Uzero beta
-  | Float s m e => Ufloat beta s m e pos_Eq
+  | Fnan => Unan
+  | Fzero => Uzero
+  | Float s m e => Ufloat s m e pos_Eq
   end.
 
 Implicit Arguments float_to_ufloat.
@@ -215,11 +223,11 @@ Definition adjust_pos r d pos :=
  * Fround_none
  *)
 
-Definition Fround_none beta (uf : ufloat beta) :=
+Definition Fround_none beta (uf : ufloat beta) : float beta :=
   match uf with
-  | Uzero => Fzero beta
-  | Ufloat s m e pos_Eq => Float beta s m e
-  | _ => Fnan beta
+  | Uzero => Fzero
+  | Ufloat s m e pos_Eq => Float s m e
+  | _ => Fnan
   end.
 
 Implicit Arguments Fround_none.
@@ -263,10 +271,10 @@ Definition need_change_radix2 beta mode m :=
   need_change_radix (match radix_val beta with Zpos (xO _) => true | _ => false end)
     mode (match m with xO _ => true | _ => false end).
 
-Definition Fround_at_prec beta mode prec (uf : ufloat beta) :=
+Definition Fround_at_prec beta mode prec (uf : ufloat beta) : float beta :=
   match uf with
-  | Unan => Fnan beta
-  | Uzero => Fzero beta
+  | Unan => Fnan
+  | Uzero => Fzero
   | Ufloat sign m1 e1 pos =>
     match (Zpos (count_digits beta m1) - Zpos prec)%Z with
     | Zpos nb =>
@@ -275,14 +283,14 @@ Definition Fround_at_prec beta mode prec (uf : ufloat beta) :=
       | (Zpos m2, r) =>
         let pos2 := adjust_pos r d pos in
         let e2 := (e1 + Zpos nb)%Z in
-        Float beta sign (adjust_mantissa mode m2 pos2 sign) e2
-      | _ => Fnan beta (* dummy *)
+        Float sign (adjust_mantissa mode m2 pos2 sign) e2
+      | _ => Fnan (* dummy *)
       end
-    | Z0 => Float beta sign (adjust_mantissa mode m1 pos sign) e1
+    | Z0 => Float sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
       if need_change_radix2 beta mode m1 pos sign then
-        Float beta sign (Psucc (shift beta m1 nb)) (e1 + Zneg nb)
-      else Float beta sign m1 e1
+        Float sign (Psucc (shift beta m1 nb)) (e1 + Zneg nb)
+      else Float sign m1 e1
     end
   end.
 
@@ -306,10 +314,10 @@ Definition need_change_zero mode pos sign :=
     end
   end.
 
-Definition Fround_at_exp beta mode e2 (uf : ufloat beta) :=
+Definition Fround_at_exp beta mode e2 (uf : ufloat beta) : float beta :=
   match uf with
-  | Unan => Fnan beta
-  | Uzero => Fzero beta
+  | Unan => Fnan
+  | Uzero => Fzero
   | Ufloat sign m1 e1 pos =>
     match (e2 - e1)%Z with
     | Zpos nb =>
@@ -319,26 +327,26 @@ Definition Fround_at_exp beta mode e2 (uf : ufloat beta) :=
         match Zdiv_eucl (Zpos m1) (Zpos d) with
         | (Zpos m2, r) =>
           let pos2 := adjust_pos r d pos in
-          Float beta sign (adjust_mantissa mode m2 pos2 sign) e2
-        | _ => Fnan beta (* dummy *)
+          Float sign (adjust_mantissa mode m2 pos2 sign) e2
+        | _ => Fnan (* dummy *)
         end
       | Eq =>
         let d := shift beta xH nb in
         let pos2 := adjust_pos (Zpos m1) d pos in
         if need_change_zero mode pos2 sign then
-          Float beta sign xH e2
-        else Fzero beta
+          Float sign xH e2
+        else Fzero
       | Lt =>
         let pos2 := match pos with pos_Eq => pos_Eq | _ => pos_Lo end in
         if need_change_zero mode pos2 sign then
-          Float beta sign xH e2
-        else Fzero beta
+          Float sign xH e2
+        else Fzero
       end
-    | Z0 => Float beta sign (adjust_mantissa mode m1 pos sign) e1
+    | Z0 => Float sign (adjust_mantissa mode m1 pos sign) e1
     | Zneg nb =>
       if need_change_radix2 beta mode m1 pos sign then
-        Float beta sign (Psucc (shift beta m1 nb)) e2
-      else Float beta sign m1 e1
+        Float sign (Psucc (shift beta m1 nb)) e2
+      else Float sign m1 e1
     end
   end.
 
@@ -372,7 +380,7 @@ Definition Fint beta mode prec x :=
     match Zcompare (Zpos (count_digits beta mx) + ex) (Zpos prec) with
     | Gt => Fround_at_prec mode prec
     | _ => Fround_at_exp mode 0
-    end (Ufloat beta sx mx ex pos_Eq)
+    end (@Ufloat beta sx mx ex pos_Eq)
   | _ => x
   end.
 
@@ -382,14 +390,14 @@ Implicit Arguments Fint.
  * Fmul, Fmul_exact
  *)
 
-Definition Fmul_aux beta (x y : float beta) :=
+Definition Fmul_aux beta (x y : float beta) : ufloat beta :=
   match x, y with
-  | Fnan, _ => Unan beta
-  | _, Fnan => Unan beta
-  | Fzero, _ => Uzero beta
-  | _, Fzero => Uzero beta
+  | Fnan, _ => Unan
+  | _, Fnan => Unan
+  | Fzero, _ => Uzero
+  | _, Fzero => Uzero
   | Float sx mx ex, Float sy my ey =>
-    Ufloat beta (xorb sx sy) (Pmult mx my) (ex + ey) pos_Eq
+    Ufloat (xorb sx sy) (Pmult mx my) (ex + ey) pos_Eq
   end.
 
 Implicit Arguments Fmul_aux.
@@ -414,14 +422,14 @@ Implicit Arguments Fmul_exact.
  * Complexity is fine as long as px <= p and py <= p and exponents are close.
  *)
 
-Definition Fadd_slow_aux1 beta sx sy mx my e :=
+Definition Fadd_slow_aux1 beta sx sy mx my e : ufloat beta :=
   if eqb sx sy then
-    Ufloat beta sx (Pplus mx my) e pos_Eq
+    Ufloat sx (Pplus mx my) e pos_Eq
   else
     match (Zpos mx + Zneg my)%Z with
-    | Z0 => Uzero beta
-    | Zpos p => Ufloat beta sx p e pos_Eq
-    | Zneg p => Ufloat beta sy p e pos_Eq
+    | Z0 => Uzero
+    | Zpos p => Ufloat sx p e pos_Eq
+    | Zneg p => Ufloat sy p e pos_Eq
     end.
 
 Definition Fadd_slow_aux2 beta sx sy mx my ex ey :=
@@ -433,13 +441,13 @@ Definition Fadd_slow_aux2 beta sx sy mx my ex ey :=
 
 Definition Fadd_slow_aux beta (x y : float beta) :=
   match x, y with
-  | Fnan, _ => Unan beta
-  | _, Fnan => Unan beta
-  | Fzero, Fzero => Uzero beta
+  | Fnan, _ => Unan
+  | _, Fnan => Unan
+  | Fzero, Fzero => Uzero
   | Fzero, Float sy my ey =>
-    Ufloat beta sy my ey pos_Eq
+    Ufloat sy my ey pos_Eq
   | Float sx mx ex, Fzero =>
-    Ufloat beta sx mx ex pos_Eq
+    Ufloat sx mx ex pos_Eq
   | Float sx mx ex, Float sy my ey =>
     Fadd_slow_aux2 beta sx sy mx my ex ey
   end.
@@ -506,12 +514,12 @@ Definition truncate beta m1 nb :=
   | _ => (xH, pos_Lo) (* dummy *)
   end.
 
-Definition Fadd_fast_aux1 beta s m1 m2 e d2 u2 e1 e2 :=
+Definition Fadd_fast_aux1 beta s m1 m2 e d2 u2 e1 e2 : ufloat beta :=
   match Zcompare u2 e with
   | Lt => (* negligible value *)
-    Ufloat beta s m1 e1 pos_Lo
+    Ufloat s m1 e1 pos_Lo
   | Eq => (* almost negligible *)
-    Ufloat beta s m1 e1 (adjust_pos (Zpos m2) (shift beta xH d2) pos_Eq)
+    Ufloat s m1 e1 (adjust_pos (Zpos m2) (shift beta xH d2) pos_Eq)
   | Gt =>
     match (e - e2)%Z with
     | Zpos p =>
@@ -522,12 +530,12 @@ Definition Fadd_fast_aux1 beta s m1 m2 e d2 u2 e1 e2 :=
         | Z0 => m1
         | _ => xH (* dummy *)
         end in
-      Ufloat beta s (Pplus n1 n2) e pos
-    | _ => Unan beta (* dummy *)
+      Ufloat s (Pplus n1 n2) e pos
+    | _ => Unan (* dummy *)
     end
   end.
 
-Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 :=
+Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 : ufloat beta :=
   match (e - e2)%Z with
   | Zpos p =>
     let (n2, pos) :=
@@ -543,8 +551,8 @@ Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 :=
       | Z0 => m1
       | _ => xH (* dummy *)
       end in
-    Ufloat beta s (Pminus n1 n2) e pos
-  | _ => Unan beta (* dummy *)
+    Ufloat s (Pminus n1 n2) e pos
+  | _ => Unan (* dummy *)
   end.
 
 Definition Fsub_fast_aux2 beta prec s m1 m2 u1 u2 e1 e2 :=
@@ -562,7 +570,7 @@ Definition Fsub_fast_aux2 beta prec s m1 m2 u1 u2 e1 e2 :=
           | Z0 => m1
           | _ => xH (* dummy *)
           end in
-        Ufloat beta s (Pminus n1 m2) ee pos_Eq
+        Ufloat s (Pminus n1 m2) ee pos_Eq
       else
         Fsub_fast_aux1 beta s m1 m2 ee e1 e2
     | Gt =>
@@ -578,8 +586,8 @@ Definition Fsub_fast_aux2 beta prec s m1 m2 u1 u2 e1 e2 :=
         | Z0 => m2
         | _ => xH (* dummy *)
         end in
-      Ufloat beta s (Pminus n1 n2) e pos
-    | _ => Unan beta (* dummy *)
+      Ufloat s (Pminus n1 n2) e pos
+    | _ => Unan (* dummy *)
     end
   else
     Fadd_slow_aux2 beta s (negb s) m1 m2 e1 e2.
@@ -610,13 +618,13 @@ Definition Fadd_fast_aux2 beta prec s1 s2 m1 m2 e1 e2 :=
 
 Definition Fadd_fast_aux beta prec (x y : float beta) :=
   match x, y with
-  | Fnan, _ => Unan beta
-  | _, Fnan => Unan beta
-  | Fzero, Fzero => Uzero beta
+  | Fnan, _ => Unan
+  | _, Fnan => Unan
+  | Fzero, Fzero => Uzero
   | Fzero, Float sy my ey =>
-    Ufloat beta sy my ey pos_Eq
+    Ufloat sy my ey pos_Eq
   | Float sx mx ex, Fzero =>
-    Ufloat beta sx mx ex pos_Eq
+    Ufloat sx mx ex pos_Eq
   | Float sx mx ex, Float sy my ey =>
     Fadd_fast_aux2 beta prec sx sy mx my ex ey
   end.
@@ -638,11 +646,11 @@ Implicit Arguments Fadd.
 
 Definition Fsub_slow_aux beta (x y : float beta) :=
   match x, y with
-  | Fnan, _ => Unan beta
-  | _, Fnan => Unan beta
-  | Fzero, Fzero => Uzero beta
-  | Fzero, Float sy my ey => Ufloat beta (negb sy) my ey pos_Eq
-  | Float sx mx ex, Fzero => Ufloat beta sx mx ex pos_Eq
+  | Fnan, _ => Unan
+  | _, Fnan => Unan
+  | Fzero, Fzero => Uzero
+  | Fzero, Float sy my ey => Ufloat (negb sy) my ey pos_Eq
+  | Float sx mx ex, Fzero => Ufloat sx mx ex pos_Eq
   | Float sx mx ex, Float sy my ey =>
     Fadd_slow_aux2 beta sx (negb sy) mx my ex ey
   end.
@@ -674,17 +682,17 @@ Implicit Arguments Fsub_exact.
  * Complexity is fine as long as px <= 2p and py <= p.
  *)
 
-Definition Fdiv_aux beta prec (x y : float beta) :=
+Definition Fdiv_aux beta prec (x y : float beta) : ufloat beta :=
   match x, y with
-  | Fnan, _ => Unan beta
-  | _, Fnan => Unan beta
-  | _, Fzero => Unan beta
-  | Fzero, _ => Uzero beta
+  | Fnan, _ => Unan
+  | _, Fnan => Unan
+  | _, Fzero => Unan
+  | Fzero, _ => Uzero
   | Float sx mx ex, Float sy my ey =>
     match Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey with
     | (Zpos m, e, l) =>
-      Ufloat beta (xorb sx sy) m e (convert_location l)
-    | _ => Unan beta (* dummy *)
+      Ufloat (xorb sx sy) m e (convert_location l)
+    | _ => Unan (* dummy *)
     end
   end.
 
@@ -705,7 +713,7 @@ Implicit Arguments Fdiv.
  * 5. Round remainder to p digits.
  *)
 
-Definition Frem_aux1 beta mx my s e :=
+Definition Frem_aux1 beta mx my s e : float beta * ufloat beta :=
   let (q1, r1) := Zdiv_eucl (Zpos mx) (Zpos my) in
   let (q2, r2) :=
     match
@@ -734,22 +742,22 @@ Definition Frem_aux1 beta mx my s e :=
     | true => (q1 + 1, r1 - Zpos my)%Z
     end in
  (match q2 with
-  | Zpos p => Float beta s p 0
-  | Z0 => Fzero beta
-  | _ => Fnan beta (* dummy *)
+  | Zpos p => Float s p 0
+  | Z0 => Fzero
+  | _ => Fnan (* dummy *)
   end,
   match r2 with
-  | Zpos p => Ufloat beta s p e pos_Eq
-  | Z0 => Uzero beta
-  | Zneg p => Ufloat beta (negb s) p e pos_Eq
+  | Zpos p => Ufloat s p e pos_Eq
+  | Z0 => Uzero
+  | Zneg p => Ufloat (negb s) p e pos_Eq
   end).
 
 Definition Frem_aux beta (x y : float beta) :=
   match x, y with
-  | Fnan, _ => (Fnan beta, Unan beta)
-  | _, Fnan => (Fnan beta, Unan beta)
-  | _, Fzero => (Fnan beta, Unan beta)
-  | Fzero, _ => (Fzero beta, Uzero beta)
+  | Fnan, _ => (Fnan, Unan)
+  | _, Fnan => (Fnan, Unan)
+  | _, Fzero => (Fnan, Unan)
+  | Fzero, _ => (Fzero, Uzero)
   | Float sx mx ex, Float sy my ey =>
     let s := xorb sx sy in
     match (ex - ey)%Z with
@@ -782,17 +790,17 @@ Implicit Arguments Frem.
  * Complexity is fine as long as p1 <= 2p-1.
  *)
 
-Definition Fsqrt_aux beta prec (f : float beta) :=
+Definition Fsqrt_aux beta prec (f : float beta) : ufloat beta :=
   match f with
   | Float false m e =>
     match Fsqrt_core beta (Zpos prec) (Zpos m) e with
     | (Zpos m, e, l) =>
-      Ufloat beta false m e (convert_location l)
-    | _ => Unan beta (* dummy *)
+      Ufloat false m e (convert_location l)
+    | _ => Unan (* dummy *)
     end
-  | Float true _ _ => Unan beta
-  | Fzero => Uzero beta
-  | Fnan => Unan beta
+  | Float true _ _ => Unan
+  | Fzero => Uzero
+  | Fnan => Unan
   end.
 
 Implicit Arguments Fsqrt_aux.

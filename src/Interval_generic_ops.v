@@ -19,6 +19,7 @@ Module Radix10 <: Radix.
 End Radix10.
 
 Module GenericFloat (Rad : Radix) <: FloatOps.
+
   Definition radix := Rad.val.
   Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
   Definition even_radix_correct := refl_equal even_radix.
@@ -32,8 +33,8 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition StoZ := fun x : Z => x.
   Definition PtoP := fun x : positive => x.
   Definition incr_prec := Pplus.
-  Definition zero := Fzero radix.
-  Definition nan := Fnan radix.
+  Definition zero := @Fzero radix.
+  Definition nan := @Fnan radix.
   Definition mag := @Fmag radix.
   Definition cmp := @Fcmp radix.
   Definition min := @Fmin radix.
@@ -69,14 +70,18 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition div_correct := fun mode prec x y => refl_equal (FtoX (div mode prec x y)).
   Definition sqrt_correct := fun mode prec x => refl_equal (FtoX (sqrt mode prec x)).
 
-  Definition fromZ n := match n with Zpos p => Float radix false p Z0 | Zneg p => Float radix true p Z0 | Z0 => Fzero radix end.
+  Definition fromZ n : float radix := match n with Zpos p => Float false p Z0 | Zneg p => Float true p Z0 | Z0 => Fzero end.
+
   Lemma fromZ_correct : forall n, FtoX (toF (fromZ n)) = Xreal (Z2R n).
+  Proof.
     intros. case n ; split.
   Qed.
 
   Definition real (f : float radix) := match f with Fnan => false | _ => true end.
+
   Lemma real_correct :
     forall f, match toF f with Fnan => real f = false | _ => real f = true end.
+  Proof.
   intros f.
   now case f.
   Qed.

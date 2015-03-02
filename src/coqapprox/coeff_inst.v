@@ -27,7 +27,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import interval_compl.
 Require Import xreal_ssr_compat.
 Require Import poly_datatypes.
@@ -155,7 +155,7 @@ case: x =>//= r; case: n =>//=.
 - by rewrite zeroF; auto with real.
 - move=> p; case: (is_zero_spec r).
   + move->; rewrite pow_ne_zero ?zeroT //.
-    zify; romega.
+    zify; omega.
   + move=> Hr; rewrite zeroF //.
     exact: pow_nonzero.
 - move=> p; case: (is_zero_spec r) =>[->//|Hr _].

@@ -1,7 +1,7 @@
 Require Import ZArith.
 Require Import Bool.
-Require Import Fcore_digits.
-Require Import Fcalc_bracket.
+Require Import Flocq.Core.Fcore_digits.
+Require Import Flocq.Calc.Fcalc_bracket.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -27,13 +27,13 @@ Definition even_radix_correct := refl_equal even_radix.
 
 Definition type := s_float smantissa_type exponent_type.
 
-Definition toF (x : type) :=
+Definition toF (x : type) : float radix :=
   match x with
-  | Fnan => Interval_generic.Fnan radix
+  | Fnan => Interval_generic.Fnan
   | Float m e =>
     match mantissa_sign m with
-    | Mzero => Interval_generic.Fzero radix
-    | Mnumber s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)
+    | Mzero => Interval_generic.Fzero
+    | Mnumber s p => Interval_generic.Float s (MtoP p) (EtoZ e)
     end
   end.
 
@@ -55,10 +55,11 @@ Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 
 Definition zero := Float mantissa_zero exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
-Definition nan_correct := refl_equal (Interval_generic.Fnan radix).
+Definition nan_correct := refl_equal (@Interval_generic.Fnan radix).
 
 Lemma zero_correct :
-  toF zero = Interval_generic.Fzero radix.
+  toF zero = Interval_generic.Fzero.
+Proof.
 generalize (mantissa_sign_correct mantissa_zero).
 simpl.
 case (mantissa_sign mantissa_zero).
@@ -79,8 +80,10 @@ Definition mag (x : type) :=
   end.
 
 Definition real (f : type) := match f with Fnan => false | _ => true end.
+
 Lemma real_correct :
   forall f, match toF f with Interval_generic.Fnan => real f = false | _ => real f = true end.
+Proof.
 intros.
 case f ; simpl.
 apply refl_equal.
@@ -92,6 +95,7 @@ Definition fromZ n := Float (ZtoM n) exponent_zero.
 
 Lemma fromZ_correct :
   forall n, FtoX (toF (fromZ n)) = Xreal (Z2R n).
+Proof.
 intros.
 simpl.
 generalize (mantissa_sign_correct (ZtoM n)).
@@ -108,6 +112,7 @@ Lemma match_helper_1 :
   forall x y1,
   f (match mantissa_sign x with Mzero => y1 | Mnumber s p => y2 s p end) =
   match mantissa_sign x with Mzero => f y1 | Mnumber s p => f (y2 s p) end.
+Proof.
 intros.
 now case (mantissa_sign x).
 Qed.
@@ -150,7 +155,8 @@ Definition float_aux s m e : type :=
 
 Lemma toF_float :
   forall s p e, valid_mantissa p ->
-  toF (float_aux s p e) = Interval_generic.Float radix s (MtoP p) (EtoZ e).
+  toF (float_aux s p e) = Interval_generic.Float s (MtoP p) (EtoZ e).
+Proof.
 intros.
 simpl.
 generalize (mantissa_sign_correct ((if s then mantissa_neg else mantissa_pos) p)).
@@ -192,12 +198,13 @@ Definition neg (f : type) :=
 
 Lemma neg_correct :
   forall x, FtoX (toF (neg x)) = FtoX (Fneg (toF x)).
+Proof.
 intros.
 destruct x as [| m e].
 apply refl_equal.
 simpl.
 rewrite (match_helper_1 _ _ (fun (s : bool) p => Float ((if s then mantissa_pos else mantissa_neg) p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fneg a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ e)) (fun a => FtoX (Fneg a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
@@ -227,12 +234,13 @@ Definition abs (f : type) :=
 
 Lemma abs_correct :
   forall x, FtoX (toF (abs x)) = FtoX (Fabs (toF x)).
+Proof.
 intros.
 destruct x as [| m e].
 apply refl_equal.
 simpl.
 rewrite (match_helper_1 _ _ (fun (s : bool) p => Float (mantissa_pos p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ e)) (fun a => FtoX (Fabs a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ e)) (fun a => FtoX (Fabs a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
@@ -256,6 +264,7 @@ Definition scale (f : type) d :=
 
 Lemma scale_correct :
   forall x d, FtoX (toF (scale x (ZtoE d))) = FtoX (Fscale (toF x) d).
+Proof.
 intros.
 case x.
 apply refl_equal.
@@ -349,6 +358,7 @@ Lemma cmp_aux2_correct :
   forall m1 e1 m2 e2,
   valid_mantissa m1 -> valid_mantissa m2 ->
   cmp_aux2 m1 e1 m2 e2 = Fcmp_aux2 radix (MtoP m1) (EtoZ e1) (MtoP m2) (EtoZ e2).
+Proof.
 intros m1 e1 m2 e2 H1 H2.
 unfold cmp_aux2, Fcmp_aux2.
 rewrite exponent_cmp_correct.
@@ -408,6 +418,7 @@ Definition cmp (f1 f2 : type) :=
 
 Lemma cmp_correct :
   forall x y, cmp x y = Fcmp (toF x) (toF y).
+Proof.
 intros.
 destruct x as [| mx ex].
 apply refl_equal.
@@ -443,6 +454,7 @@ Definition min x y :=
 Lemma min_correct :
   forall x y,
   FtoX (toF (min x y)) = FtoX (Fmin (toF x) (toF y)).
+Proof.
 intros.
 unfold min, Fmin.
 rewrite cmp_correct.
@@ -464,6 +476,7 @@ Definition max x y :=
 Lemma max_correct :
   forall x y,
   FtoX (toF (max x y)) = FtoX (Fmax (toF x) (toF y)).
+Proof.
 intros.
 unfold max, Fmax.
 rewrite cmp_correct.
@@ -515,7 +528,7 @@ Theorem round_aux_correct :
   forall mode p sign m1 e1 pos,
   valid_mantissa m1 ->
   FtoX (toF (round_aux mode p sign m1 e1 pos)) =
-  FtoX (Fround_at_prec mode (prec p) (Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
+  FtoX (Fround_at_prec mode (prec p) (@Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
 Proof.
 intros mode p' sign m1 e1 pos Hm1.
 apply f_equal.
@@ -613,6 +626,7 @@ Definition mul_exact (x y : type) :=
 
 Lemma mul_exact_correct :
   forall x y, FtoX (toF (mul_exact x y)) = FtoX (Fmul_exact (toF x) (toF y)).
+Proof.
 intros x y.
 destruct x as [| mx ex].
 apply refl_equal.
@@ -686,6 +700,7 @@ Definition mul mode prec (x y : type) :=
 Lemma mul_correct :
   forall mode p x y,
   FtoX (toF (mul mode p x y)) = FtoX (Fmul mode (prec p) (toF x) (toF y)).
+Proof.
 intros.
 destruct x as [| mx ex].
 apply refl_equal.
@@ -702,8 +717,8 @@ now case (mantissa_sign my).
 intros sx px Hx (Hx1, Hx2).
 rewrite (match_helper_1 _ _ (fun s py => round_aux mode p (Datatypes.xorb sx s) (mantissa_mul px py)
   (exponent_add ex ey) pos_Eq) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float radix s (MtoP p) (EtoZ ey))
-  (fun a => FtoX (Fmul mode (prec p) (Interval_generic.Float radix sx (MtoP px) (EtoZ ex)) a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ ey))
+  (fun a => FtoX (Fmul mode (prec p) (Interval_generic.Float sx (MtoP px) (EtoZ ex)) a))).
 simpl.
 generalize (mantissa_sign_correct my).
 case (mantissa_sign my).
@@ -808,6 +823,7 @@ Qed.
 
 Lemma add_exact_correct :
   forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).
+Proof.
 intros [|mx ex] y.
 apply refl_equal.
 destruct y as [|my ey].
@@ -1013,6 +1029,7 @@ Definition sub_exact (x y : type) := add_exact x (neg y).
 
 Lemma sub_exact_correct :
   forall x y, FtoX (toF (sub_exact x y)) = FtoX (Fsub_exact (toF x) (toF y)).
+Proof.
 intros x y.
 unfold sub_exact.
 rewrite add_exact_correct.
@@ -1033,6 +1050,7 @@ Definition sub mode prec (x y : type) := add mode prec x (neg y).
 Lemma sub_correct :
   forall mode p x y,
   FtoX (toF (sub mode p x y)) = FtoX (Fsub mode (prec p) (toF x) (toF y)).
+Proof.
 intros.
 rewrite Fsub_split.
 unfold sub.
@@ -1141,6 +1159,7 @@ intros p0.
 unfold d.
 clear ; zify ; omega.
 (* *)
+try clearbody Hmd.
 clear Hs.
 destruct (mantissa_div (match d with Zpos _ => mantissa_shl nx nd | _ => nx end) ny) as (nq, nl).
 assert (H: Zpos (MtoP (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)) =
@@ -1354,7 +1373,7 @@ rewrite round_aux_correct with (1 := H2).
 unfold prec at 1.
 rewrite Hp.
 clear -H1.
-apply (f_equal (fun l => FtoX (Fround_at_prec mode (prec p) (Ufloat _ _ _ _ l)))).
+apply (f_equal (fun l => FtoX (Fround_at_prec mode (prec p) (Ufloat _ _ _ l)))).
 destruct l.
 now rewrite Zeq_bool_true.
 rewrite Zeq_bool_false.
