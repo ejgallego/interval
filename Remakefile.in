@@ -63,6 +63,9 @@ configure config.status: configure.in
 
 src/clean:
 	rm -f $(OBJS) $(CAOBJS) src/*.glob src/coqapprox/*.glob
+	for d in src src/coqapprox; do \
+	  rm -f $d/.coq-native/*.o $d/.coq-native/*.cm*; done
+	find src -type d -name ".coq-native" -empty -prune -exec rmdir "{}" \;
 
 testsuite/check: src/Interval_tactic.vo
 	set +e
@@ -79,6 +82,7 @@ testsuite/check: src/Interval_tactic.vo
 	    echo "$f exited with error code ${return_code}" >> log.tmp
 	  fi
 	  rm -f check_tmp.v check_tmp.vo check_tmp.glob output.tmp
+	  rm -f .coq-native/N*check_tmp.o .coq-native/N*check_tmp.cm*
 	done
 	return_code=0
 	if [ -s log.tmp ]; then
@@ -101,6 +105,7 @@ install:
 	cp $(OBJS) @libdir@
 	mkdir -p @libdir@/coqapprox
 	cp $(CAOBJS) @libdir@/coqapprox
+	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "@libdir@/{}" \; )
 
 EXTRA_DIST = \
 	configure
