@@ -17,13 +17,6 @@ Goal
 Proof.
 intros x H.
 (*
-destruct H as [_x x_].
-interval_intro (-10831/1000000) lower as H1.
-interval_intro (10831/1000000) upper as H2.
-apply Rle_trans with (1 := H1) in _x; clear H1.
-apply Rle_trans with (2 := H2) in x_; clear H2.
-(* Erik: the following line should be optional *)
-pose proof (conj _x x_) as Hx; clear _x x_.
 (* Erik: the following 2 lines are required only for i_bisect_diff *)
 interval_intro (23 / 27 / 2 ^ 33) lower as H0.
 apply Rle_trans with (2 := H0); clear H0.
