@@ -17,9 +17,6 @@ Goal
 Proof.
 intros x H.
 (*
-(* Erik: the following 2 lines are required only for i_bisect_diff *)
-interval_intro (23 / 27 / 2 ^ 33) lower as H0.
-apply Rle_trans with (2 := H0); clear H0.
 Time interval with (i_bisect_diff x, i_prec 50, i_depth 16). (* 31 s *)
 *)
 Time interval with (i_bisect_taylor x 3, i_prec 50). (* 0.48 s *)
