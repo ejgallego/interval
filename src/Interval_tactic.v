@@ -238,6 +238,35 @@ apply Rabs_def2_le.
 now apply Rle_trans with (1 := Hx).
 Qed.
 
+Lemma contains_bound_ar' :
+  forall x prec prog bounds n,
+  let i := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai in
+  I.lower_bounded i = true ->
+  contains (I.convert (let l := I.lower i in I.bnd (F.neg l) l)) (Xreal x) ->
+  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) R0).
+Proof.
+intros x prec prog bounds n.
+generalize (contains_eval prec prog bounds n).
+case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+easy.
+intros l u [Hl _].
+generalize (I.lower_bounded_correct (Interval_interval_float.Ibnd l u)).
+simpl.
+case F.real.
+2: easy.
+intros H _.
+specialize (H eq_refl).
+revert Hl.
+destruct H as [Hl _].
+unfold I.I.convert_bound in Hl |- *.
+rewrite F.neg_correct, Fneg_correct.
+rewrite Hl.
+intros H1 [H2 H3].
+apply Rle_trans with (2 := H1).
+apply Rabs_le.
+now split.
+Qed.
+
 Lemma xreal_to_contains :
   forall prog terms n xi,
   A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
@@ -403,42 +432,6 @@ Ltac extract_algorithm t l :=
     constr:(lm, lc)
   end.
 
-Ltac xalgorithm_pre :=
-  match goal with
-  | |- Rge _ _ =>
-    apply Rle_ge ;
-    xalgorithm_pre
-  | |- Rgt _ _ =>
-    unfold Rgt ;
-    xalgorithm_pre
-  | |- Rle ?a ?b /\ Rle ?b ?c =>
-    let v := get_float a in
-    let w := get_float c in
-    change (contains (I.convert (I.bnd v w)) (Xreal b))
-  | |- Rle (Rabs ?a) ?b =>
-    let v := get_float b in
-    refine (Rabs_contains v a _)
-  | |- Rle ?a ?b =>
-    let v := get_float b in
-    refine (proj2 (_ : contains (I.convert (I.bnd F.nan v)) (Xreal a)))
-  | |- Rle ?a ?b =>
-    let v := get_float a in
-    refine (proj1 (_ : contains (I.convert (I.bnd v F.nan)) (Xreal b)))
-  | |- Rle ?a ?b =>
-    apply Rminus_le ;
-    refine (proj2 (_ : contains (I.convert (I.bnd F.nan F.zero)) (Xreal (a - b))))
-  | |- Rlt 0 ?b =>
-    idtac
-  | |- Rlt ?a ?b =>
-    apply Rminus_gt ;
-    unfold Rgt
-  | |- (?a <> 0)%R =>
-    idtac
-  | |- (?a <> ?b)%R =>
-    apply Rminus_not_eq
-  | _ => fail 100 "Goal is not an inequality with floating-point bounds."
-  end.
-
 Ltac xalgorithm_post lx :=
   match goal with
   | |- contains (I.convert ?xi) (Xreal ?y) =>
@@ -462,12 +455,6 @@ Ltac xalgorithm_post lx :=
       pose (formula := a) ;
       refine (xreal_to_nonzero formula b O _)
     end
-  end.
-
-Ltac xalgorithm lx :=
-  match goal with
-  | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) => idtac
-  | _ => xalgorithm_pre ; xalgorithm_post lx
   end.
 
 Ltac list_warn l :=
@@ -602,6 +589,56 @@ Ltac get_bounds l prec :=
     end in
   aux l prec (@nil R).
 
+Ltac xalgorithm_pre prec :=
+  match goal with
+  | |- Rge _ _ =>
+    apply Rle_ge ;
+    xalgorithm_pre prec
+  | |- Rgt _ _ =>
+    unfold Rgt ;
+    xalgorithm_pre prec
+  | |- Rle ?a ?b /\ Rle ?b ?c =>
+    let v := get_float a in
+    let w := get_float c in
+    change (contains (I.convert (I.bnd v w)) (Xreal b))
+  | |- Rle (Rabs ?a) ?b =>
+    let v := get_float b in
+    refine (Rabs_contains v a _)
+  | |- Rle (Rabs ?a) ?b =>
+    let v := extract_algorithm b (@nil R) in
+    match v with
+    | (?p, ?l) =>
+      let lc := get_trivial_bounds l prec in
+      refine (let prog := p in let bounds := lc in contains_bound_ar' a prec prog bounds 0 _ _) ;
+      [ vm_cast_no_check (eq_refl true) | idtac ]
+    end
+  | |- Rle ?a ?b =>
+    let v := get_float b in
+    refine (proj2 (_ : contains (I.convert (I.bnd F.nan v)) (Xreal a)))
+  | |- Rle ?a ?b =>
+    let v := get_float a in
+    refine (proj1 (_ : contains (I.convert (I.bnd v F.nan)) (Xreal b)))
+  | |- Rle ?a ?b =>
+    apply Rminus_le ;
+    refine (proj2 (_ : contains (I.convert (I.bnd F.nan F.zero)) (Xreal (a - b))))
+  | |- Rlt 0 ?b =>
+    idtac
+  | |- Rlt ?a ?b =>
+    apply Rminus_gt ;
+    unfold Rgt
+  | |- (?a <> 0)%R =>
+    idtac
+  | |- (?a <> ?b)%R =>
+    apply Rminus_not_eq
+  | _ => fail 100 "Goal is not an inequality with floating-point bounds."
+  end.
+
+Ltac xalgorithm lx prec :=
+  match goal with
+  | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) => idtac
+  | _ => xalgorithm_pre prec ; xalgorithm_post lx
+  end.
+
 Lemma interval_helper_evaluate :
   forall bounds check formula prec n,
   A.check_f check (nth n (A.BndValuator.eval prec formula (map A.interval_from_bp bounds)) I.nai) = true ->
@@ -718,10 +755,10 @@ Definition prec_of_nat prec :=
 
 Ltac do_interval vars prec depth eval_tac :=
   (abstract (
-    xalgorithm vars ;
+    let prec := eval vm_compute in (prec_of_nat prec) in
+    xalgorithm vars prec ;
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
-      let prec := eval vm_compute in (prec_of_nat prec) in
       match get_bounds constants prec with
       | (?bounds_, ?lw) =>
         warn_whole lw ;
