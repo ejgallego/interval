@@ -14,22 +14,21 @@ In order to use the tactics of the library, one has to import the
 "Interval_tactic" file into a Coq proof script. The main tactic is named
 "interval".
 
-The tactic can be applied on a goal of the form "(f1 <= e <= f2)%R" with
+The tactic can be applied on a goal of the form "(c1 <= e <= c2)%R" with
 "e" an expression involving real-valued operators. Sub-expressions that
 are not recognized by the tactic should be either terms "t" appearing in
-hypothesis inequalities "(f3 <= t <= f4)%R" or simple integers. The
-bounds "f1" "f2" ... are binary floating-point numbers: either relative
-integers or quotients of relative integers by power-of-two, e.g. (42)%R
-or (-17/8)%R.
+hypothesis inequalities "(c3 <= t <= c4)%R" or simple integers. The
+bounds "c1" "c2" ... are expressions that contain only constant leaves,
+e.g. (5 / sqrt (1 + PI))%R.
 
 The complete list of recognized goals is as follows:
 
-  (f1 <= e <= f2)%R
-  (e <= f)%R
-  (f <= e)%R
+  (c1 <= e <= c2)%R
+  (e <= c2)%R
+  (c1 <= e)%R
   (0 < e)%R
   (e <> 0)%R
-  (Rabs e <= f)%R      handled as (-f <= e <= f)%R
+  (Rabs e <= c2)%R     handled as (-c2 <= e <= c2)%R
   (e1 <= e2)%R         handled as (e1 - e2 <= 0)%R
   (e1 < e2)%R          handled as (0 < e2 - e1)%R
   (e1 <> e2)%R         handled as (e1 - e2 <> 0)%R
@@ -47,8 +46,8 @@ as argument and it introduces the inequalities into the proof context.
 If only one bound is needed, the keywords "lower" and "upper" can be
 passed to the tactic, so that it does not perform useless computations.
 For example, "interval_intro e lower" introduces only a floating-point
-lower bound of "e" in the context. Unless "as" followed by an intro
-pattern is used, the "interval_intro" tactic will use a generated name
+lower bound of "e" in the context. Unless one uses "as" followed by an
+intro pattern, the "interval_intro" tactic generates a fresh name
 for the hypothesis added to the context.
 
 
