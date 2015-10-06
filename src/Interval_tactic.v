@@ -1,5 +1,6 @@
 Require Import Reals.
 Require Import List.
+Require Import Coquelicot.
 Require Import Interval_missing.
 Require Import ZArith.
 Require Import Interval_xreal.
@@ -9,6 +10,7 @@ Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float_full.
+Require Import Interval_integral.
 Require Import Interval_bisect.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
@@ -24,6 +26,7 @@ Module Private.
 
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
+Module Int := IntegralTactic F.
 
 Ltac get_float t :=
   let get_mantissa t :=
@@ -352,6 +355,23 @@ apply Rabs_le.
 now split.
 Qed.
 
+Lemma integral_correct :
+  forall prec (depth : nat) proga boundsa progb boundsb prog bounds,
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
+  ex_RInt f a b /\
+  contains
+    (I.convert ((Int.integral_intBounds prec
+       (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai)
+        depth
+        (nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai)
+        (nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai))))
+    (Xreal (RInt f a b)).
+Proof.
+intros prec depth proga boundsa progb boundsb prog bounds f a b.
+Admitted.
+
 Lemma xreal_to_contains :
   forall prog terms n xi,
   A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
@@ -637,6 +657,11 @@ Ltac get_bounds_aux x prec :=
     end
   end.
 
+Definition reify_var : R.
+Proof.
+exact R0.
+Qed.
+
 Ltac get_bounds l prec :=
   let rec aux l prec lw :=
     match l with
@@ -647,6 +672,24 @@ Ltac get_bounds l prec :=
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
       | toR ?v =>
         constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
+      | RInt ?f ?a ?b =>
+        let f := eval cbv beta in (f reify_var) in
+        let vf := extract_algorithm f (cons reify_var nil) in
+        let va := extract_algorithm a (@nil R) in
+        let vb := extract_algorithm b (@nil R) in
+        match va with
+        | (?pa, ?la) =>
+          let lca := get_trivial_bounds la prec in
+          match vb with
+          | (?pb, ?lb) =>
+            let lcb := get_trivial_bounds lb prec in
+            match vf with
+            | (?pf, _ :: ?lf) =>
+              let lcf := get_trivial_bounds lf prec in
+              constr:(A.Bproof x _ (proj2 (integral_correct prec 2 pa lca pb lcb pf lcf)), @None R)
+            end
+          end
+        end
       | _ =>
         match goal with
         | _ =>
