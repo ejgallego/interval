@@ -360,17 +360,30 @@ Lemma integral_correct :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
   let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
-  ex_RInt f a b /\
-  contains
-    (I.convert ((Int.integral_intBounds prec
-       (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai)
-        depth
-        (nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai)
-        (nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai))))
-    (Xreal (RInt f a b)).
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
+  let i := Int.integral_intBounds prec
+    (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai)
+    depth ia ib in
+  (match i with Interval_interval_float.Inan => false | _ => true end = true ->
+  ex_RInt f a b) /\
+  contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
-intros prec depth proga boundsa progb boundsb prog bounds f a b.
-Admitted.
+intros prec depth proga boundsa progb boundsb prog bounds f a b ia ib i.
+case_eq i.
+now split.
+intros l u Hi.
+rewrite <- Hi.
+assert (ex_RInt f a b).
+admit.
+apply (conj (fun _ => H)).
+apply Int.integral_correct.
+intros xi x Bx.
+apply (contains_eval prec prog (A.Bproof x xi Bx :: bounds)).
+apply contains_eval.
+apply contains_eval.
+exact H.
+Qed.
 
 Lemma xreal_to_contains :
   forall prog terms n xi,
