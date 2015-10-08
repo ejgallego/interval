@@ -501,3 +501,17 @@ Definition Xadd_propagate := extension_propagate_2 _ _ Xadd_correct.
 Definition Xsub_propagate := extension_propagate_2 _ _ Xsub_correct.
 Definition Xmul_propagate := extension_propagate_2 _ _ Xmul_correct.
 Definition Xdiv_propagate := extension_propagate_2 _ _ Xdiv_correct.
+
+Section ExtensionOfFunctionsToXreal.
+Require Import ssreflect.
+
+Variable (f : R -> R).
+
+Definition toXreal_fun : ExtendedR -> ExtendedR :=
+  fun x => match x with Xnan => Xnan | Xreal r => Xreal (f r) end.
+
+(* Interval_xreal.extension should be boolean *)
+Lemma xreal_extension_toXreal_fun : extension f toXreal_fun.
+Proof. by case. Qed.
+
+End ExtensionOfFunctionsToXreal.
