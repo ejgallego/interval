@@ -5,17 +5,15 @@ Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
-Require Import Interval_bisect.
 Require Import ssreflect ssrfun ssrbool.
+Require Import xreal_ssr_compat.
+Require Import Interval_transcend.
 (* Require Import Interval_generic_proof Interval_generic Interval_xreal Fcore_Raux. *)
 
 Module IntegralTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatInterval F.
-Module FInt := FloatIntervalFull F.
-Module IntA := IntervalAlgos FInt.
-Import FInt.
+Module T := TranscendentalFloatFast F.
 
 Section IntervalIntegral.
 
@@ -209,7 +207,7 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
     rewrite -elu; apply: HiFIntExt;  move/F_realP: ha<-.
     by apply: contains_convert_bnd_l.
   + have -> : Xreal Iab = Xmul (Xreal (Iab / (rb - ra))) (Xreal (rb - ra)).
-       rewrite xreal_ssr_compat.Xmul_Xreal; congr Xreal; field.
+       rewrite Xmul_Xreal; congr Xreal; field.
        by apply: Rminus_eq_contra; apply: Rlt_dichotomy_converse; right.
     apply: I.mul_correct; last first.
     - rewrite -[Xreal (rb - ra)]/(Xsub (Xreal rb) (Xreal ra)). (* 1 *)
@@ -233,7 +231,7 @@ Fixpoint integral_float (depth : nat) (a b : F.type) :=
 
 Definition integral_float_signed (depth : nat) (a b : F.type) :=
   match F.cmp a b with
-    | Xgt => neg (integral_float depth b a)
+    | Xgt => I.neg (integral_float depth b a)
     | _ => integral_float depth a b
   end.
 
