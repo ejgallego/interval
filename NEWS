@@ -1,5 +1,6 @@
 Version 2.2.0:
  - improved tactic so that it handles goals with non floating-point bounds
+ - added a dependency on Coquelicot to remove an assumption about ln
 
 Version 2.1.0:
  - moved to Flocq 2.5

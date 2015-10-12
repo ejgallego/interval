@@ -59,6 +59,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find the Ssreflect library (http://www.msr-inria.fr/projects/mathematical-components/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for Coquelicot])
+AS_IF(
+  [ echo "Require Import Coquelicot.Coquelicot." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Coquelicot (http://coquelicot.saclay.inria.fr/)])])
+rm -f conftest.v conftest.vo conftest.err
+
 AC_MSG_CHECKING([for MathComp])
 AS_IF(
   [ echo "Require Import MathComp.bigop." > conftest.v

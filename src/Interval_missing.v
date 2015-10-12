@@ -681,7 +681,7 @@ rewrite pow_sqr.
 apply pow_le.
 apply Rle_0_sqr.
 change (fact (2 + 2 * n)) with ((2 + 2 * n) * ((1 + 2 * n) * fact (2 * n))).
-rewrite mult_assoc, mult_comm.
+rewrite  mult_assoc, mult_comm.
 rewrite mult_INR.
 rewrite <- (Rmult_1_r (/ INR (fact _))).
 rewrite Rinv_mult_distr.
@@ -1221,11 +1221,6 @@ Definition ln1pc x :=
   | right _ => (ln (1 + x) / x)%R
   end.
 
-Axiom ln1p_ln1pc :
-  forall x,
-  ln (1 + x) = (x * ln1pc x)%R.
-
-(*
 Require Import Coquelicot.Coquelicot.
 
 Lemma ln1p_ln1pc :
@@ -1291,10 +1286,11 @@ apply (is_RInt_ext (Derive (fun t => ln (1 + t)))).
   apply Rlt_trans with (2 := Ht).
   now apply (Z2R_lt (-1) 0).
 replace (ln (1 + x)) with (ln (1 + x) - ln (1 + 0))%R.
-apply (is_RInt_Derive (fun t => ln (1 + t))).
+apply (is_RInt_derive (fun t => ln (1 + t))).
   intros t.
   rewrite Rmin_left by easy.
   intros [Ht _].
+  apply Derive_correct.
   eexists.
   apply H.
   apply Rlt_le_trans with (2 := Ht).
@@ -1326,7 +1322,7 @@ apply is_pseries_unique.
 apply is_lim_seq_Reals.
 apply Un_cv_ext with (2 := Hy).
 intros n.
-rewrite <- sum_n_sum_f_R0.
+rewrite <- sum_n_Reals.
 apply sum_n_ext.
 intros m.
 rewrite pow_n_pow.
@@ -1334,4 +1330,3 @@ unfold tg_alt.
 rewrite <- Rmult_assoc.
 apply Rmult_comm.
 Qed.
-*)
