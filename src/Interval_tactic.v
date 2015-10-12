@@ -374,15 +374,13 @@ case_eq i.
 now split.
 intros l u Hi.
 rewrite <- Hi.
-assert (Int.iex_RInt f ia ib).
+assert (ex_RInt f a b).
 admit.
-split.
-  move => _. apply: (H a b); apply: contains_eval.
+apply (conj (fun _ => H)).
 apply Int.integral_correct.
 apply contains_eval.
 apply contains_eval.
-intros x1 x2 Hx1 Hx2.
-by apply: H.
+exact H.
 Qed.
 
 Lemma xreal_to_contains :

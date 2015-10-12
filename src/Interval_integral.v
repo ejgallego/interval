@@ -271,7 +271,8 @@ Lemma integral_float_signed_correct_neg (depth : nat) (a b : F.type) :
 Proof.
 move => Hfint Hgeab HaR HbR.
 rewrite /integral_float_signed.
-have -> : F.cmp a b = Xgt.
+have -> : F.cmp a b = Xgt. (* rewrite F.cmp_correct. *)
+(* rewrite Interval_generic_proof.Fcmp_correct. *)
   admit.
 rewrite -RInt_swap.
 set it := (RInt _ _ _).
@@ -332,56 +333,50 @@ Definition integral_intBounds depth (a b : I.type) :=
 
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
-Definition iex_RInt ia ib :=
-  (forall x1 x2,
-    contains (I.convert ia) (Xreal x1) ->
-    contains (I.convert ib) (Xreal x2) ->
-    ex_RInt f x1 x2).
-
 Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  iex_RInt ia ib ->
+  ex_RInt f a b ->
   contains
     (I.convert (integral_intBounds depth ia ib))
     (Xreal (RInt f a b)).
 Proof.
-(* generalize HiFIntExt. *)
-case Hia: ia => [|lba uba] //.
-case Hib: ib => [|lbb ubb] // Ha Hb Hintf.
-rewrite /integral_intBounds.
-case ubaReal : (F.real uba).
-  - case ubaReal1 : (F.real uba); last by rewrite ubaReal1 in ubaReal. (* hack to keep F.real uba in context for a later "slash slash" *)
-    case lbbReal : (F.real lbb).
-    + case lbbReal1 : (F.real lbb); last by rewrite lbbReal1 in lbbReal.
-      move/F_realP: ubaReal => Huba.
-      move/F_realP: lbbReal => Hlbb.
-      have -> :
-        Xreal (RInt f a b) =
-        Xadd
-          (Xadd (XRInt f  a (T.toR uba)) (XRInt f (T.toR uba) (T.toR lbb)))
-          (XRInt f (T.toR lbb) b).
-        * rewrite /= .
-          rewrite 2?RInt_Chasles => // .
-          - by admit.
-          - by admit.
-          - by admit.
-          - by admit.
-      apply: I.add_correct.
-        apply: I.add_correct.
-          apply: all_integrals_correct => // .
-          by admit.
-        apply: integral_float_signed_correct => // .
-        apply: Hintf.
-          by admit.
-        by admit.
-    + apply: all_integrals_correct => //.
-       admit.
-case Hflbb : (F.toF lbb); have := (F.real_correct lbb);
-rewrite Hflbb lbbReal=> // _.
-(* some intermediary lemmas are needed here *)
-(* for example one saying that the integral is *)
-(* Inan as soon as one of the bounds is not a real *)
+(* (* generalize HiFIntExt. *) *)
+(* case Hia: ia => [|lba uba] //. *)
+(* case Hib: ib => [|lbb ubb] // Ha Hb Hintf. *)
+(* rewrite /integral_intBounds. *)
+(* case ubaReal : (F.real uba). *)
+(*   - case ubaReal1 : (F.real uba); last by rewrite ubaReal1 in ubaReal. (* hack to keep F.real uba in context for a later "slash slash" *) *)
+(*     case lbbReal : (F.real lbb). *)
+(*     + case lbbReal1 : (F.real lbb); last by rewrite lbbReal1 in lbbReal. *)
+(*       move/F_realP: ubaReal => Huba. *)
+(*       move/F_realP: lbbReal => Hlbb. *)
+(*       have -> : *)
+(*         Xreal (RInt f a b) = *)
+(*         Xadd *)
+(*           (Xadd (XRInt f  a (T.toR uba)) (XRInt f (T.toR uba) (T.toR lbb))) *)
+(*           (XRInt f (T.toR lbb) b). *)
+(*         * rewrite /= . *)
+(*           rewrite 2?RInt_Chasles => // . *)
+(*           - by admit. *)
+(*           - by admit. *)
+(*           - by admit. *)
+(*           - by admit. *)
+(*       apply: I.add_correct. *)
+(*         apply: I.add_correct. *)
+(*           apply: all_integrals_correct => // . *)
+(*           by admit. *)
+(*         apply: integral_float_signed_correct => // . *)
+(*         apply: Hintf. *)
+(*           by admit. *)
+(*         by admit. *)
+(*     + apply: all_integrals_correct => //. *)
+(*        admit. *)
+(* case Hflbb : (F.toF lbb); have := (F.real_correct lbb); *)
+(* rewrite Hflbb lbbReal=> // _. *)
+(* (* some intermediary lemmas are needed here *) *)
+(* (* for example one saying that the integral is *) *)
+(* (* Inan as soon as one of the bounds is not a real *) *)
 Admitted.
 
 End IntervalIntegral.
