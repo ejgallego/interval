@@ -30,7 +30,11 @@ Lemma eval_implies_integrable prog a b boundsa boundsb proga progb prec bounds i
  contains (I.convert i) (Xreal b) ->
  ex_RInt f a b.
 Proof.
+elim: prog.
+Print term.
+Print binary_op.
 move => ia ib f fi Hreasonable Hconta Hcontb.
+
 About eval_inductive_prop.
 Search _ term eval_real.
 Check eval_generic.
