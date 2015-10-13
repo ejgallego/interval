@@ -8,6 +8,7 @@ Require Import Interval_interval_float.
 Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_transcend.
+Require Import Interval_missing.
 (* Require Import Interval_generic_proof Interval_generic Interval_xreal Fcore_Raux. *)
 
 Module IntegralTactic (F : FloatOps with Definition even_radix := true).
@@ -307,31 +308,65 @@ Definition diam x :=
     | Ibnd a b => F.sub_exact b a
   end.
 
-Definition all_integrals (a : I.type) :=
-I.mul prec (thin (diam a)) (I.join (I.neg (iF a)) (iF a)).
+(* Definition all_integrals (ia : I.type) := *)
+(* I.mul prec (thin (diam ia)) (I.join (I.neg (iF ia)) (iF ia)). *)
 
-Lemma all_integrals_correct (a : I.type) (t1 t2 : R) :
-  (contains (I.convert a) (Xreal t1)) ->
-  (contains (I.convert a) (Xreal t2)) ->
-  (contains (I.convert (all_integrals a)) (Xreal (RInt f t1 t2))).
+(* Lemma all_integrals_correct (ia : I.type) (t1 t2 : R) : *)
+(*   (contains (I.convert ia) (Xreal t1)) -> *)
+(*   (contains (I.convert ia) (Xreal t2)) -> *)
+(*   (contains (I.convert (all_integrals ia)) (Xreal (RInt f t1 t2))). *)
+(* Proof. *)
+(* move => Hat1 Hat2. *)
+(* rewrite /all_integrals. *)
+(* wlog : t1 t2 Hat1 Hat2 / t1 <= t2 => Hleq. *)
+(* Admitted. *)
+
+(* Definition integral_intBounds depth (a b : I.type) := *)
+(*   if a is Ibnd _ b1 then *)
+(*     if b is Ibnd a2 _ then *)
+(*       let sab := all_integrals a in *)
+(*       let scd := all_integrals b in *)
+(*       I.add prec (I.add prec sab (integral_float_signed depth b1 a2)) scd *)
+(*     else *)
+(*       Inan *)
+(*   else *)
+(*     Inan. *)
+
+Axiom convex_hull :  I.type -> I.type -> I.type.
+Axiom convex_hull_correct : forall (ia ib : I.type) (x1 x2 y : R) ,
+x1 <= y <= x2 ->
+contains (I.convert ia) (Xreal x1) ->
+contains (I.convert ib) (Xreal x2) ->
+contains (I.convert (convex_hull ia ib)) (Xreal y).
+
+Definition all_integrals (ia ib : I.type) :=
+I.mul prec (iF (convex_hull ia ib)) (I.sub prec ib ia).
+
+Lemma all_integrals_correct (ia ib : I.type) (x1 x2 y1 y2 : R) :
+  contains (I.convert ia) (Xreal x1) ->
+  contains (I.convert ib) (Xreal x2) ->
+  ex_RInt f x1 x2 ->
+  (x1 <= y1 /\ y1 <= y2 /\ y2 <= x2) ->
+  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f y1 y2)).
 Proof.
-move => Hat1 Hat2.
-rewrite /all_integrals.
-wlog : t1 t2 Hat1 Hat2 / t1 <= t2 => Hleq.
+move => Hcont1 Hcont2 Hfint.
 Admitted.
 
-Definition integral_intBounds depth (a b : I.type) :=
-  if a is Ibnd _ b1 then
-    if b is Ibnd a2 _ then
-      let sab := all_integrals a in
-      let scd := all_integrals b in
-      I.add prec (I.add prec sab (integral_float_signed depth b1 a2)) scd
+
+Notation XRInt := (fun f a b => Xreal (RInt f a b)).
+
+Definition integral_intBounds depth (ia ib : I.type) :=
+  if ia is Ibnd a1 b1 then
+    if ib is Ibnd a2 b2 then
+      match F.cmp b1 a2 with
+        | Xeq | Xlt => let sab := all_integrals (thin a1) (thin b1) in
+                       let scd := all_integrals (thin a2) (thin b2) in
+                       I.add prec (I.add prec sab (integral_float_signed depth b1 a2)) scd
+        | _ => Inan end
     else
       Inan
   else
     Inan.
-
-Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
 Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
   contains (I.convert ia) (Xreal a) ->
@@ -341,6 +376,35 @@ Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
     (I.convert (integral_intBounds depth ia ib))
     (Xreal (RInt f a b)).
 Proof.
+move => Hconta Hcontb HFInt.
+case Ha : ia Hconta => // [la ua] Hconta.
+case Hb : ib Hcontb => // [lb ub] Hcontb.
+have Hfint_la_ua : ex_RInt f (T.toR la) (T.toR ua) by admit.
+have Hfint_lb_ub : ex_RInt f (T.toR lb) (T.toR ub) by admit.
+have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb) by admit.
+have Hfint_a_ua : ex_RInt f a (T.toR ua) by admit.
+have Hfint_b_lb : ex_RInt f (T.toR lb) b by admit.
+have Hfint_a_lb : ex_RInt f a (T.toR lb) by admit.
+rewrite /integral_intBounds.
+case ualb : (F.cmp ua lb) => //.
+-  have -> : Xreal (RInt f a b) = 
+        Xadd
+          (Xadd (XRInt f  a (T.toR ua)) (XRInt f (T.toR ua) (T.toR lb)))
+          (XRInt f (T.toR lb) b).
+     by rewrite /= 2?RInt_Chasles => // .
+   apply: I.add_correct.
+   + apply: I.add_correct.
+     * apply: (all_integrals_correct _ _ (T.toR la) (T.toR ua)) => //; admit .
+     * case HR_ua : (F.real ua); case HR_lb : (F.real lb).
+       - apply: integral_float_signed_correct => // .
+       - admit.
+       - admit.
+       - admit.
+   + apply: (all_integrals_correct _ _ (T.toR lb) (T.toR ub)) => //; admit.
+- (* bis repetita *)
+Admitted.
+
+
 (* (* generalize HiFIntExt. *) *)
 (* case Hia: ia => [|lba uba] //. *)
 (* case Hib: ib => [|lbb ubb] // Ha Hb Hintf. *)
@@ -377,7 +441,7 @@ Proof.
 (* (* some intermediary lemmas are needed here *) *)
 (* (* for example one saying that the integral is *) *)
 (* (* Inan as soon as one of the bounds is not a real *) *)
-Admitted.
+(* Admitted. *)
 
 End IntervalIntegral.
 
