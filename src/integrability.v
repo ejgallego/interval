@@ -1,8 +1,9 @@
-Require Import Reals.
 Require Import List.
-Require Import Coquelicot.
-Require Import Interval_missing.
 Require Import ZArith.
+(* Require Import Reals. *)
+Require Import Coquelicot.
+
+Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -13,6 +14,8 @@ Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
 
+Require Import ssreflect ssrnat.
+
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatIntervalFull F.
@@ -20,24 +23,367 @@ Module A := IntervalAlgos I.
 
 Section Integrability.
 
-Lemma eval_implies_integrable prog a b boundsa boundsb proga progb prec bounds i:
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let fi := nth 0 (A.BndValuator.eval prec prog (i::map A.interval_from_bp bounds)) I.nai in 
-  (match fi with Interval_interval_float.Inan => false | _ => true end = true) ->
- contains (I.convert i) (Xreal a) ->
- contains (I.convert i) (Xreal b) ->
- ex_RInt f a b.
+Lemma ex_RInt_Id a b : ex_RInt (fun x => x) a b.
 Proof.
-elim: prog.
-Print term.
-Print binary_op.
-move => ia ib f fi Hreasonable Hconta Hcontb.
+Admitted. (* can't find a useful theorem *)
 
-About eval_inductive_prop.
-Search _ term eval_real.
-Check eval_generic.
-Search _ term.
+Section revEq.
+Require Import seq.
+
+Lemma revEq : forall A l, @List.rev A l = rev l.
+move => A.
+elim => [|a l HI] //.
+rewrite /= rev_cons.
+by rewrite -cats1 HI.
+Qed.
+
+Lemma nthEq A n (l : seq A) def : List.nth n l def = nth def l n.
+move: l.
+elim Hn : n => [|n0 HIn] l.
+  by case: l.
+case: l HIn => [ | a0 l] HIn // .
+by rewrite /= -HIn.
+Qed.
+
+End revEq.
+
+Parameter prec : I.precision.
+Definition evalInt := A.BndValuator.eval prec.
+Definition boundsToInt b := map A.interval_from_bp b.
+Definition boundsToR b := map A.real_from_bp b.
+
+Definition notInan (fi : Interval_interval_float.f_interval F.type) :=
+  match fi with
+    | Interval_interval_float.Inan => false
+    | _ => true end = true.
+
+Section MissingIntegrability.
+
+Lemma ex_RInt_Rabs f a b : ex_RInt f a b -> ex_RInt (fun x => Rabs (f x)) a b.
+Admitted.
+
+Lemma ex_RInt_Rmult f g a b : ex_RInt f a b ->
+                              ex_RInt g a b ->
+                              ex_RInt (fun x => f x * g x) a b.
+Admitted.
+
+End MissingIntegrability.
+
+Section Preliminary.
+Require Import seq.
+
+Lemma evalRealOpRight op prog bounds m x : (* raw form, will probably change *)
+  nth R0 (eval_real (rcons prog op) (x::boundsToR bounds)) m =
+  nth 0
+      (eval_generic_body
+         0
+         real_operations
+         (eval_generic 0 real_operations (prog) (x :: boundsToR bounds)) op) m.
+Proof.
+by rewrite /eval_real rev_formula revEq rev_rcons /= rev_formula revEq.
+Qed.
+
+Lemma evalRealOpRightFold op prog bounds m x : (* raw form, will probably change *)
+  nth R0 (eval_real (rcons prog op) (x::boundsToR bounds)) m =
+  nth 0
+      (eval_generic_body
+         0
+         real_operations
+         (fold_right
+            (fun (y : term) (x0 : seq R) =>
+               eval_generic_body 0 real_operations x0 y)
+            (x :: boundsToR bounds) (rev prog)) op) m.
+Proof.
+by rewrite /eval_real rev_formula revEq rev_rcons /=.
+Qed.
+
+Lemma unNamed1 unop n prog a b bounds m:
+   (forall m, ex_RInt
+     (fun x => nth R0 (eval_real prog (x::boundsToR bounds)) m )
+     a
+     b)
+   ->
+   ex_RInt
+     (fun x => nth R0 (eval_real (rcons prog (Unary unop n)) (x::boundsToR bounds)) m)
+     a
+     b.
+Proof.
+move => Hprog.
+apply: ex_RInt_ext.
+(* first we get rid of the rcons and put the operation upfront *)
+exact: (fun x => nth 0
+      (eval_generic_body
+         0
+         real_operations
+         (eval_generic 0 real_operations (prog) (x :: boundsToR bounds)) (Unary unop n)) m).
+move => x _.
+by rewrite evalRealOpRight.
+
+(* now we distinguish the easy case (m>0),
+which is actually free from the hypothesis,
+and the core of the proof, (m=0) *)
+case Hm : m => [|m0]; last first.
+
+(* easy case: m > 0 *)
+- apply: ex_RInt_ext.
+    exact:
+      (fun x : R =>
+         nth 0
+             (eval_generic
+                0
+                real_operations
+                prog
+                (x :: boundsToR bounds)%SEQ)
+             m0).
+    move => x Huseless.
+    by rewrite -nth_behead.
+  by apply: Hprog.
+
+(* now the meat of the proof: m=0 *)
+(* first get the operation up front *)
+- apply: ex_RInt_ext.
+  exact:
+    (fun x =>
+       (unary
+          real_operations
+          unop
+          (nth
+             0
+             (eval_real prog (x :: boundsToR bounds)%SEQ)
+             n)
+       )
+    ).
+  move => x Huseless.
+  by rewrite /= nthEq.
+
+  case Hunop: unop => /=. (* and now 12 cases to treat *)
+  + by apply: ex_RInt_opp; apply: Hprog.
+  + by apply: ex_RInt_Rabs; apply: Hprog.
+  + admit. (* false here, we need to add some hypotheses*)
+  + by apply: ex_RInt_Rmult; apply: Hprog.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
+Qed.
+
+End Preliminary.
+
+Lemma eval_implies_integrable prog a b boundsa boundsb proga progb bounds i m:
+  let iA := (boundsToInt boundsa) in
+  let iB := (boundsToInt boundsb) in
+  let ia := nth 0 (evalInt proga iA) I.nai in
+  let ib := nth 0 (evalInt progb iB) I.nai in
+  let f := (fun x => nth m (eval_real prog (x::boundsToR bounds)) R0) in
+  let fi :=
+      nth m
+          (evalInt prog (i::boundsToInt bounds))
+          I.nai
+  in
+  notInan fi ->
+  contains (I.convert i) (Xreal a) ->
+  contains (I.convert i) (Xreal b) ->
+  ex_RInt f a b.
+Proof.
+Require Import seq. (* here because it breaks the lemma statement *)
+move: m.
+elim/last_ind: prog => [m iA iB ia ib f fi Hreasonable Hconta Hcontb |
+ lprog a0 Ha0l m iA iB  ia ib f fi Hreasonable Hconta Hcontb].
+- case Hm : m Hreasonable => [| m0] Hreasonable.
+  + apply: (ex_RInt_ext (fun x => x)) => [x H|].
+      by rewrite /f Hm /= .
+    exact: ex_RInt_Id.
+  + apply: (ex_RInt_ext (fun _ => (List.nth m0 (List.map A.real_from_bp bounds) 0))).
+    move => x _.
+    by rewrite /f Hm /= .
+    exact: ex_RInt_const.
+- rewrite /f /eval_real.
+  set g :=
+    (fun x : R =>
+       List.nth m
+                (fold_right
+                   (fun (y : term) (x0 : seq R) =>
+                      eval_generic_body 0 real_operations x0 y)
+                   (x :: List.map A.real_from_bp bounds)
+                   (List.rev (rcons lprog a0))) 0).
+  apply: (ex_RInt_ext g).
+    by move => x _; rewrite /g rev_formula.
+rewrite /g revEq rev_rcons.
+  case Ha0 : a0 Hreasonable Hconta Hcontb => [unop n| binop m1 n] Hreasonable Hconta Hcontb.
+  case Hm: m.
+  +
+
+(*   + case Hunop : unop Ha0 => Ha0 /= . *)
+(*     * case Hm: m => [| n0 ]. *)
+(*       apply: ex_RInt_opp.  *)
+(*       apply: (ex_RInt_ext (fun x : R => *)
+(*            List.nth n *)
+(*              (eval_real lprog (x :: List.map A.real_from_bp bounds)%SEQ) 0)).  *)
+(*         move => x _. *)
+(*         by rewrite /eval_real rev_formula revEq. *)
+(*         apply: Ha0l => // . *)
+(*         move: Hreasonable. *)
+(*         rewrite /fi /evalInt /A.BndValuator.eval. *)
+(*         rewrite rev_formula revEq rev_rcons. *)
+(*         rewrite Ha0 Hm /= . *)
+(*         set i0 := (X in I.neg X). *)
+(*         case Hi0 : i0 => [| lb ub] //= _. *)
+(*         have -> : List.nth n *)
+(*        (eval_generic I.nai (A.BndValuator.operations prec) lprog *)
+(*           (i :: List.map A.interval_from_bp bounds)%SEQ) I.nai = i0. *)
+(*         by rewrite /i0 rev_formula revEq. *)
+(*         by rewrite Hi0. *)
+(*         (* move : (Ha0l n0). *) *)
+
+(*         apply: (ex_RInt_ext (fun x : R => *)
+(*           List.nth n0 (eval_real lprog (x :: boundsToR bounds)%SEQ) 0)). *)
+(*         move => x _. *)
+(*         by rewrite /eval_real rev_formula revEq. *)
+(*         apply: (Ha0l n0) => // . *)
+(*         suff: notInan *)
+(*                 (nth I.nai *)
+(*                      (fold_right *)
+(*                         (fun (y : term) (x : seq I.type) => *)
+(*                            eval_generic_body I.nai (A.BndValuator.operations prec) x y) *)
+(*                         (i :: boundsToInt bounds) (rev lprog)) n0). *)
+(*         by rewrite nthEq /evalInt /A.BndValuator.eval rev_formula revEq. *)
+(*         move: Hreasonable. *)
+(*         rewrite /fi Hm /evalInt /A.BndValuator.eval.  *)
+(*         rewrite rev_formula revEq rev_rcons Ha0.  *)
+(*         rewrite nthEq /=. *)
+(*         by rewrite /fold_right /eval_generic_body. *)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* Require Import seq. (* here because it breaks the lemma statement *) *)
+(* move: m. *)
+(* elim/last_ind: prog => [m iA iB ia ib f fi Hreasonable Hconta Hcontb | *)
+(*  lprog a0 Ha0l m iA iB  ia ib f fi Hreasonable Hconta Hcontb]. *)
+(* - case Hm : m Hreasonable => [| m0] Hreasonable. *)
+(*   + apply: (ex_RInt_ext (fun x => x)) => [x H|]. *)
+(*       by rewrite /f Hm /= . *)
+(*     exact: ex_RInt_Id. *)
+(*   + apply: (ex_RInt_ext (fun _ => (List.nth m0 (List.map A.real_from_bp bounds) 0))). *)
+(*     move => x _.  *)
+(*     by rewrite /f Hm /= . *)
+(*     exact: ex_RInt_const. *)
+(* - rewrite /f /eval_real. *)
+(*   set g :=  *)
+(*     (fun x : R => *)
+(*        List.nth m *)
+(*                 (fold_right *)
+(*                    (fun (y : term) (x0 : seq R) => *)
+(*                       eval_generic_body 0 real_operations x0 y) *)
+(*                    (x :: List.map A.real_from_bp bounds)  *)
+(*                    (List.rev (rcons lprog a0))) 0). *)
+(*   apply: (ex_RInt_ext g). *)
+(*     by move => x _; rewrite /g rev_formula. *)
+(* rewrite /g revEq rev_rcons. *)
+(*   case Ha0 : a0 Hreasonable Hconta Hcontb => [unop n| binop m1 n] Hreasonable Hconta Hcontb. *)
+(*   (* case Hm: m. *) *)
+(*   + case Hunop : unop Ha0 => Ha0 /= . *)
+(*     * case Hm: m => [| n0 ]. *)
+(*       apply: ex_RInt_opp.  *)
+(*       apply: (ex_RInt_ext (fun x : R => *)
+(*            List.nth n *)
+(*              (eval_real lprog (x :: List.map A.real_from_bp bounds)%SEQ) 0)).  *)
+(*         move => x _. *)
+(*         by rewrite /eval_real rev_formula revEq. *)
+(*         apply: Ha0l => // . *)
+(*         move: Hreasonable. *)
+(*         rewrite /fi /evalInt /A.BndValuator.eval. *)
+(*         rewrite rev_formula revEq rev_rcons. *)
+(*         rewrite Ha0 Hm /= . *)
+(*         set i0 := (X in I.neg X). *)
+(*         case Hi0 : i0 => [| lb ub] //= _. *)
+(*         have -> : List.nth n *)
+(*        (eval_generic I.nai (A.BndValuator.operations prec) lprog *)
+(*           (i :: List.map A.interval_from_bp bounds)%SEQ) I.nai = i0. *)
+(*         by rewrite /i0 rev_formula revEq. *)
+(*         by rewrite Hi0. *)
+(*         (* move : (Ha0l n0). *) *)
+
+(*         apply: (ex_RInt_ext (fun x : R => *)
+(*           List.nth n0 (eval_real lprog (x :: boundsToR bounds)%SEQ) 0)). *)
+(*         move => x _. *)
+(*         by rewrite /eval_real rev_formula revEq. *)
+(*         apply: (Ha0l n0) => // . *)
+(*         suff: notInan *)
+(*                 (nth I.nai *)
+(*                      (fold_right *)
+(*                         (fun (y : term) (x : seq I.type) => *)
+(*                            eval_generic_body I.nai (A.BndValuator.operations prec) x y) *)
+(*                         (i :: boundsToInt bounds) (rev lprog)) n0). *)
+(*         by rewrite nthEq /evalInt /A.BndValuator.eval rev_formula revEq. *)
+(*         move: Hreasonable. *)
+(*         rewrite /fi Hm /evalInt /A.BndValuator.eval.  *)
+(*         rewrite rev_formula revEq rev_rcons Ha0.  *)
+(*         rewrite nthEq /=. *)
+(*         by rewrite /fold_right /eval_generic_body. *)
+
+
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+(*     * admit. *)
+
+
+
+(* Qed. *)
+
+(* case Ha0 : a0. *)
+(* case. *)
+(* Search _ RInt. *)
+(* Search _ ex_RInt (fun _ => _). *)
+
+(* About eval_inductive_prop. *)
+(* Search _ term eval_real. *)
+(* Check eval_generic. *)
+(* Search _ term. *)
+Admitted.
 
 End Integrability.
