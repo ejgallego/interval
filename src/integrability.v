@@ -57,6 +57,185 @@ Definition notInan (fi : Interval_interval_float.f_interval F.type) :=
     | Interval_interval_float.Inan => false
     | _ => true end = true.
 
+Section MissingContinuity.
+Axiom Pi : R. (* until I find it *)
+
+(* Lemma continuous_on_comp {U V W : UniformSpace} D E (f : U -> V) (g : V -> W) : *)
+(*   continuous_on D f -> continuous_on E g *)
+(*   -> continuous_on D (fun x => g (f x)). *)
+(* Proof. *)
+(* move => Hf Hg. *)
+(* apply: continuous_on_forall. *)
+(* move => x HDx. *)
+(* apply: continuous_comp. *)
+(* apply: (continuous_continuous_on D). *)
+(* Search (locally _ _). *)
+
+(* Search _ ex_RInt. *)
+
+(* this should probably be generalized in some fashion relatively to opp *)
+(* Lemma continuous_on_Ropp D (f : R -> R) : *)
+(*   continuous_on D f -> *)
+(*   continuous_on D (fun x => - (f x)). *)
+(* Proof. *)
+(* Admitted. *)
+Definition continuous_all (D : R -> Prop) (f : R -> R) := forall x, D x -> continuous f x.
+
+Lemma continuous_all_ext (D : R -> Prop) (f g : R -> R) :
+  (forall x, f x = g x) -> (* why can't I relax this more? (forall x in D *)
+  continuous_all D f ->
+  continuous_all D g.
+Proof.
+move => HDfg HDf.
+move => x HDx.
+apply: (continuous_ext f) => // .
+by apply: HDf.
+Qed.
+
+Lemma continuous_on_Ropp D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => - (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_Rabs D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => Rabs (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_Rinv D (f : R -> R) :
+  continuous_all D f ->
+  (forall x, D x -> f x > 0) \/ (forall x, D x -> f x < 0) ->
+  continuous_all D (fun x => / (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_Rmult D (f : R -> R) (g : R -> R) :
+  continuous_all D f ->
+  continuous_all D g ->
+  continuous_all D (fun x => f x * g x).
+Proof.
+Admitted.
+
+Lemma continuous_on_sqrt D (f : R -> R) :
+  continuous_all D f ->
+  (forall x, D x -> f x > 0) ->
+  continuous_all D (fun x => sqrt (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_cos D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => cos (f x)).
+Proof.
+Admitted.
+
+
+Lemma continuous_on_sin D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => sin (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_tan D (f : R -> R) :
+  continuous_all D f ->
+  (forall x, D x -> (f x > - Pi / 2 /\ f x < Pi / 2)) ->
+  continuous_all D (fun x => tan (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_atan D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => atan (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_exp D (f : R -> R) :
+  continuous_all D f ->
+  continuous_all D (fun x => exp (f x)).
+Proof.
+Admitted.
+
+
+Lemma continuous_on_ln D (f : R -> R) :
+  continuous_all D f ->
+  (forall x, D x -> f x > 0) ->
+  continuous_all D (fun x => ln (f x)).
+Proof.
+Admitted.
+
+Lemma continuous_on_powerRZ D (f : R -> R) n :
+  continuous_all D f ->
+  (match n with
+                       | Zpos m => True
+                       | Z0 => True
+                       | Zneg m  => (forall x, D x -> x < 0) \/ (forall x, D x -> x > 0)
+                     end
+                    ) ->
+  continuous_all D (fun x => powerRZ (f x) n).
+Proof.
+Admitted.
+
+
+(* We need to capture preconditions for (unop f) to be continuous *)
+Definition domain unop g (P : R -> Prop) :=
+  match unop with
+    | Neg => True
+    | Abs => True
+    | Inv => (forall x, P x -> g x < 0) \/ (forall x, P x -> g x > 0)
+    | Sqr => True
+    | Sqrt => (forall x, P x -> g x > 0)
+    | Cos => True
+    | Sin => True
+    | Tan => forall x, P x -> (g x > - Pi / 2 /\ g x < Pi / 2)
+    | Atan => True
+    | Exp => True
+    | Ln => (forall x, P x -> g x > 0)
+    | PowerInt n => (match n with
+                       | Zpos m => True
+                       | Z0 => True
+                       | Zneg m  => (forall x, P x -> x < 0) \/ (forall x, P x -> x > 0)
+                     end
+                    )
+  end.
+
+Lemma domain_correct unop D g: continuous_all D g -> (domain unop g D) -> continuous_all D (fun x => unary real_operations unop (g x)).
+Proof.
+move => Hgcont.
+case Hunop: unop => HD; rewrite /domain in HD.
+(* and now 12 cases, one for each unary operator *)
+- by apply: continuous_on_Ropp.
+- by apply: continuous_on_Rabs.
+(* - case: HD => [Hpos|Hneg]. *)
+-  apply: continuous_on_Rinv => //; case: HD.
+     by right.
+   by left.
+- by apply: continuous_on_Rmult => //.
+- by apply: continuous_on_sqrt => //.
+- by apply: continuous_on_cos => //.
+- by apply: continuous_on_sin => //.
+- by apply: continuous_on_tan => //.
+- by apply: continuous_on_atan => // .
+- by apply: continuous_on_exp => //.
+- by apply: continuous_on_ln => //.
+- by apply: continuous_on_powerRZ => // .
+Qed.
+  
+(* Lemma sqrt_continuous x: x > 0 -> continuous sqrt x. *)
+(* Admitted. *)
+
+
+(* Lemma tan_continuous x : (x > - Pi / 2 /\ x < Pi / 2) -> continuous tan x. *)
+(* Admitted. *)
+(* Lemma atan_continuous x : continuous atan x. *)
+(* Admitted. *)
+(* Lemma ln_continuous x : (x > 0) -> continuous ln x. *)
+(* Admitted. *)
+
+
+End MissingContinuity.
+
 Section MissingIntegrability.
 
 Lemma ex_RInt_Rabs f a b : ex_RInt f a b -> ex_RInt (fun x => Rabs (f x)) a b.
@@ -78,10 +257,24 @@ Lemma evalRealOpRight op prog bounds m x : (* raw form, will probably change *)
       (eval_generic_body
          0
          real_operations
-         (eval_generic 0 real_operations (prog) (x :: boundsToR bounds)) op) m.
+         (eval_generic 0 real_operations prog (x :: boundsToR bounds)) op) m.
 Proof.
 by rewrite /eval_real rev_formula revEq rev_rcons /= rev_formula revEq.
 Qed.
+
+Definition interval_operations := (A.BndValuator.operations prec).
+
+Lemma evalIntOpRight op prog bounds m x : 
+  nth I.nai (evalInt (rcons prog op) (x::boundsToInt bounds)) m =
+  nth I.nai
+      (eval_generic_body
+         I.nai
+         interval_operations
+         (eval_generic I.nai interval_operations prog (x :: boundsToInt bounds)) op) m.
+Proof.
+by rewrite /evalInt /A.BndValuator.eval rev_formula revEq rev_rcons /= rev_formula revEq.
+Qed.
+
 
 Lemma evalRealOpRightFold op prog bounds m x : (* raw form, will probably change *)
   nth R0 (eval_real (rcons prog op) (x::boundsToR bounds)) m =
@@ -153,13 +346,13 @@ case Hm : m => [|m0]; last first.
              n)
        )
     ).
-  move => x Huseless.
+  move => x _.
   by rewrite /= nthEq.
 
   case Hunop: unop => /=. (* and now 12 cases to treat *)
   + by apply: ex_RInt_opp; apply: Hprog.
   + by apply: ex_RInt_Rabs; apply: Hprog.
-  + admit. (* false here, we need to add some hypotheses*)
+  + admit. (* false here, we need to add some hypotheses ("0 \notin I")*)
   + by apply: ex_RInt_Rmult; apply: Hprog.
   + admit.
   + admit.
@@ -169,7 +362,104 @@ case Hm : m => [|m0]; last first.
   + admit.
   + admit.
   + admit.
+Admitted.
+
+(* Lemma continuous_on_comp :  *)
+(*   forall (U V W : UniformSpace) (f : U -> V) (g : V -> W), *)
+(* continuous_on U f -> continuous_on V g -> continuous_on U (fun x0 : U => g (f x0)). *)
+
+Lemma continuousProg unop n prog bounds m (U : R -> Prop) i:
+  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
+  notInan (nth I.nai
+          (evalInt (rcons prog (Unary unop n)) (i::boundsToInt bounds))
+          m) ->
+   (forall m, continuous_all U
+     (fun x => nth R0 (eval_real prog (x::boundsToR bounds)) m ))
+   ->
+   continuous_all U
+     (fun x => nth R0 (eval_real (rcons prog (Unary unop n)) (x::boundsToR bounds)) m).
+Proof.
+move => Hi HnotInan Hprog.
+apply: continuous_all_ext.
+(* first we get rid of the rcons and put the operation upfront *)
+exact: (fun x => nth 0
+      (eval_generic_body
+         0
+         real_operations
+         (eval_generic 0 real_operations (prog) (x :: boundsToR bounds)) (Unary unop n)) m).
+move => x.
+by rewrite evalRealOpRight.
+
+(* now we distinguish the easy case (m>0),
+which is actually free from the hypothesis,
+and the core of the proof, (m=0) *)
+case Hm : m => [|m0]; last first.
+
+(* easy case: m > 0 *)
+- apply: continuous_all_ext.
+    exact:
+      (fun x : R =>
+         nth 0
+             (eval_generic
+                0
+                real_operations
+                prog
+                (x :: boundsToR bounds)%SEQ)
+             m0).
+    move => x.
+    by rewrite -nth_behead.
+  by apply: Hprog.
+
+(* now the meat of the proof: m=0 *)
+(* first get the operation up front *)
+- apply: continuous_all_ext.
+  exact:
+    (fun x =>
+       (unary
+          real_operations
+          unop
+          (nth
+             0
+             (eval_real prog (x :: boundsToR bounds)%SEQ)
+             n)
+       )
+    ).
+  move => x.
+  by rewrite /= nthEq.
+  apply: domain_correct.
+    by apply: Hprog.
+  case Hunop: unop => //= . (* and now 5 cases to treat *)
+  + have lemma : 
+      forall x : R, 
+        (nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) n = 0) -> 
+        I.convert (nth I.nai (evalInt (rcons prog (Unary unop n)) (i :: boundsToInt bounds)%SEQ) 0) = Inan.
+    * move => x H0.
+      rewrite evalIntOpRight Hunop /= .
+      apply: xreal_ssr_compat.contains_Xnan.
+      suff: contains 
+            (I.convert 
+               (List.nth n
+                         (eval_generic 
+                            I.nai 
+                            interval_operations 
+                            prog
+                            (i :: boundsToInt bounds)%SEQ) I.nai)) 
+            (Xreal 0).
+        move => Hcontains0.
+        have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
+        apply: I.inv_correct.
+        by apply: Hcontains0.
+      have -> : Xreal 0 = nth Xnan (eval_ext prog (Xreal x :: (map Xreal (boundsToR bounds)))) n by admit.
+      admit.
+  (* almost there, but some technical details must be sorted out for the 
+     present goal to be provable *) 
+    admit.
+  + admit.
+  + admit.
+  + admit.
+  + admit.
 Qed.
+
 
 End Preliminary.
 
