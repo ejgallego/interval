@@ -3,8 +3,8 @@ simplifying the proofs of inequalities on expressions of real numbers
 for the Coq proof assistant.
 
 This package is free software; you can redistribute it and/or modify it
-under the terms of GNU Lesser General Public License (see the COPYING
-file). Author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
+under the terms of CeCILL-C Free Software License (see the COPYING file).
+Main author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
 
 
 I. Invocation
@@ -14,31 +14,30 @@ In order to use the tactics of the library, one has to import the
 "Interval_tactic" file into a Coq proof script. The main tactic is named
 "interval".
 
-The tactic can be applied on a goal of the form "(f1 <= e <= f2)%R" with
+The tactic can be applied on a goal of the form "(c1 <= e <= c2)%R" with
 "e" an expression involving real-valued operators. Sub-expressions that
 are not recognized by the tactic should be either terms "t" appearing in
-hypothesis inequalities "(f3 <= t <= f4)%R" or simple integers. The
-bounds "f1" "f2" ... are binary floating-point numbers: either relative
-integers or quotients of relative integers by power-of-two, e.g. (42)%R
-or (-17/8)%R.
+hypothesis inequalities "(c3 <= t <= c4)%R" or simple integers. The
+bounds "c1" "c2" ... are expressions that contain only constant leaves,
+e.g. (5 / sqrt (1 + PI))%R.
 
 The complete list of recognized goals is as follows:
 
-  (f1 <= e <= f2)%R
-  (e <= f)%R
-  (f <= e)%R
+  (c1 <= e <= c2)%R
+  (e <= c2)%R
+  (c1 <= e)%R
   (0 < e)%R
   (e <> 0)%R
-  (Rabs e <= f)%R      handled as (-f <= e <= f)%R
+  (Rabs e <= c2)%R     handled as (-c2 <= e <= c2)%R
   (e1 <= e2)%R         handled as (e1 - e2 <= 0)%R
   (e1 < e2)%R          handled as (0 < e2 - e1)%R
   (e1 <> e2)%R         handled as (e1 - e2 <> 0)%R
 
 Operators recognized by the tactic are: PI, Ropp, Rabs, Rinv, Rsqr, sqrt,
-cos, sin, tan, atan, exp, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv. There
-are a some restrictions on the domain of a few functions: pow and powerRZ
-should be written with a numeric exponent; the input of cos and sin
-should be between -2*PI and 2*PI, the input of tan should be between
+cos, sin, tan, atan, exp, ln, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv.
+There are some restrictions on the domain of a few functions: pow and
+powerRZ should be written with a numeric exponent; the input of cos and
+sin should be between -2*PI and 2*PI; the input of tan should be between
 -PI/2 and PI/2.
 
 A helper tactic "interval_intro e" is also available. Instead of proving
@@ -47,8 +46,8 @@ as argument and it introduces the inequalities into the proof context.
 If only one bound is needed, the keywords "lower" and "upper" can be
 passed to the tactic, so that it does not perform useless computations.
 For example, "interval_intro e lower" introduces only a floating-point
-lower bound of "e" in the context. Unless "as" followed by an intro
-pattern is used, the "interval_intro" tactic will use a generated name
+lower bound of "e" in the context. Unless one uses "as" followed by an
+intro pattern, the "interval_intro" tactic generates a fresh name
 for the hypothesis added to the context.
 
 
@@ -64,14 +63,14 @@ are: (with the type of their arguments, if any)
   i_prec (p:nat)      sets precision of the floating-point computations
   i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
   i_bisect (x:R)      splits input interval on x and repeat until proven
-  i_bisect_diff (x:R) same as bisect, but studies variations along x too
+  i_bisect_diff (x:R) same as i_bisect, but studies variations along x too
   i_bisect_taylor (x:R) (d:nat)
-                      same as bisect_diff, but computes degree-d Talor
+                      same as i_bisect_diff, but computes degree-d Taylor
                       models instead of performing automatic differentiation
 
 For both tactics, performing a bisection of depth 1 is not much slower
 than performing no bisection. If the current goal can be proven by
-"interval" with a bisection of depth n, then increasing the depth to n+1
+"interval" with a bisection of depth n, then increasing the depth to n + 1
 will not have any noticeable effect. For "interval_intro", increasing the
 depth from n to n + 1 can, however, double the computation time.
 

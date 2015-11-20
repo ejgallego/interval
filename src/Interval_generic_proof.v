@@ -1,13 +1,32 @@
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2007-2015, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 Require Import Reals.
 Require Import Interval_missing.
 Require Import Bool.
 Require Import ZArith.
-Require Import Fcore.
-Require Import Fcore_digits.
-Require Import Fcalc_digits.
-Require Import Fcalc_bracket.
-Require Import Fcalc_round.
-Require Import Fcalc_ops.
+Require Import Flocq.Core.Fcore.
+Require Import Flocq.Core.Fcore_digits.
+Require Import Flocq.Calc.Fcalc_digits.
+Require Import Flocq.Calc.Fcalc_bracket.
+Require Import Flocq.Calc.Fcalc_round.
+Require Import Flocq.Calc.Fcalc_ops.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -129,19 +148,20 @@ Lemma shift_correct :
   Zpos (shift beta m e) = (Zpos m * Zpower_pos beta e)%Z.
 Proof.
 intros beta m e.
-unfold shift, Zpower_pos.
+rewrite Z.pow_pos_fold.
+unfold shift.
 set (r := match radix_val beta with Zpos r => r | _ => xH end).
-rewrite 2!iter_nat_of_P.
+rewrite iter_pos_nat.
+rewrite Zpower_Zpower_nat by easy.
+simpl Zabs_nat.
 induction (nat_of_P e).
 simpl.
 now rewrite Pmult_comm.
-simpl iter_nat.
-rewrite Zmult_assoc.
-rewrite (Zmult_comm (Zpos m)).
-rewrite <- Zmult_assoc.
-rewrite <- IHn.
+rewrite iter_nat_S, Zpower_nat_S.
 rewrite Zpos_mult_morphism.
-apply (f_equal (fun v => v * _)%Z).
+rewrite IHn.
+replace (Zpos r) with (radix_val beta).
+ring.
 unfold r.
 generalize (radix_val beta) (radix_prop beta).
 clear.
@@ -190,6 +210,7 @@ Qed.
 Theorem Fneg_correct :
   forall beta (f : float beta),
   FtoX (Fneg f) = Xneg (FtoX f).
+Proof.
 intros.
 case f ; intros.
 apply refl_equal.
@@ -208,6 +229,7 @@ Qed.
 Theorem Fabs_correct :
   forall beta (f : float beta),
   FtoX (Fabs f) = Xabs (FtoX f).
+Proof.
 intros.
 case f ; intros.
 apply refl_equal.
@@ -265,12 +287,12 @@ destruct beta as [|[p|p|]|p] ; try easy.
 intros _.
 set (beta := Build_radix (Zpos p~0) Hb).
 cut (FtoX
-  match d with
-  | 0%Z => Float beta s m e
+  match d return (float beta) with
+  | 0%Z => Float s m e
   | Zpos nb =>
-      Float beta s (iter_pos nb positive (fun x : positive => xO x) m) e
+      Float s (iter_pos (fun x : positive => xO x) nb m) e
   | Zneg nb =>
-      Float beta s (iter_pos nb positive (fun x : positive => Pmult p x) m) (e + d)
+      Float s (iter_pos (fun x : positive => Pmult p x) nb m) (e + d)
   end = Xreal (FtoR beta s m e * bpow radix2 d)).
 (* *)
 intro H.
@@ -294,19 +316,7 @@ simpl.
 rewrite Zplus_0_r.
 rewrite <- cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) e))).
-clear.
-rewrite Zpower_pos_nat.
-rewrite iter_nat_of_P.
-rewrite Zmult_comm.
-apply sym_eq.
-revert m.
-induction (nat_of_P nb).
-now intros m.
-intros m.
-simpl.
-apply sym_eq.
-rewrite Zpos_xO, <- IHn.
-now rewrite Zmult_assoc.
+apply (shift_correct radix2).
 (* . *)
 unfold FtoX.
 apply f_equal.
@@ -328,30 +338,23 @@ rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
 ring_simplify (e - (e - Zpos nb))%Z.
 rewrite <- 2!cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Fcore_defs.Float beta (cond_Zopp s v) _))).
-unfold Zpower, beta.
+rewrite Z.pow_pos_fold.
+rewrite iter_pos_nat.
+rewrite 2!Zpower_Zpower_nat by easy.
+simpl Zabs_nat.
+unfold beta.
 simpl radix_val.
 clear.
-rewrite 2!Zpower_pos_nat.
-rewrite iter_nat_of_P.
-rewrite Zmult_comm.
-apply sym_eq.
 revert m.
 induction (nat_of_P nb).
+easy.
 intros m.
-simpl.
-now rewrite Pmult_1_r.
-intros m.
-simpl iter_nat.
+rewrite iter_nat_S, 2!Zpower_nat_S.
 rewrite Zpos_mult_morphism.
-change (S n) with (1 + n).
-rewrite 2!Zpower_nat_is_exp.
-rewrite Zmult_assoc, (Zmult_comm (Zpos m)), <- Zmult_assoc.
-rewrite IHn.
-replace (Zpower_nat (Zpos p~0) 1) with (Zpower_nat 2 1 * Zpos p)%Z.
+replace (Zpos m * (Zpos (xO p) * Zpower_nat (Zpos (xO p)) n))%Z with (Zpos m * Zpower_nat (Zpos (xO p)) n * Zpos (xO p))%Z by ring.
+rewrite <- IHn.
+change (Zpos (xO p)) with (2 * Zpos p)%Z.
 ring.
-unfold Zpower_nat, nat_iter.
-simpl.
-now rewrite Pmult_1_r.
 Qed.
 
 (*
@@ -427,6 +430,7 @@ Qed.
 Theorem Fcmp_correct :
   forall beta (x y : float beta),
   Fcmp x y = Xcmp (FtoX x) (FtoX y).
+Proof.
 intros.
 case x ; intros ; simpl ; try apply refl_equal ;
   case y ; intros ; simpl ; try apply refl_equal ; clear.
@@ -485,6 +489,7 @@ Qed.
 Theorem Fmin_correct :
   forall beta (x y : float beta),
   FtoX (Fmin x y) = Xmin (FtoX x) (FtoX y).
+Proof.
 intros.
 unfold Fmin, Xmin, Rmin.
 rewrite (Fcmp_correct beta x y).
@@ -508,6 +513,7 @@ Qed.
 Theorem Fmax_correct :
   forall beta (x y : float beta),
   FtoX (Fmax x y) = Xmax (FtoX x) (FtoX y).
+Proof.
 intros.
 unfold Fmax, Xmax, Rmax.
 rewrite (Fcmp_correct beta x y).
@@ -677,7 +683,7 @@ Lemma Fround_at_prec_correct :
   (0 < x)%R ->
   ( let (m2, e2) := normalize beta prec m1 e1 in
     inbetween_float beta (Zpos m2) e2 x (convert_location_inv pos) ) ->
-  FtoX (Fround_at_prec mode prec (Ufloat beta s m1 e1 pos)) =
+  FtoX (Fround_at_prec mode prec (@Ufloat beta s m1 e1 pos)) =
     Xreal (round beta mode prec (if s then Ropp x else x)).
 Proof with auto with typeclass_instances.
 intros beta mode prec s m1 e1 pos x Hx.
@@ -857,7 +863,7 @@ Definition ufloat_pos_Eq beta (x : ufloat beta) :=
 
 Lemma UtoX_pos_Eq :
   forall beta (x : ufloat beta),
-  (UtoX x = Xnan -> x = Unan beta) ->
+  (UtoX x = Xnan -> x = Unan) ->
   ufloat_pos_Eq beta x.
 Proof.
 now intros beta [| |s m e [| | |]] H ; try exact I ; specialize (H (refl_equal _)).
@@ -893,7 +899,8 @@ Qed.
 Lemma Fadd_slow_aux1_correct :
   forall beta sx sy mx my e,
   UtoX (Fadd_slow_aux1 beta sx sy mx my e) =
-  Xadd (FtoX (Float beta sx mx e)) (FtoX (Float beta sy my e)).
+  Xadd (FtoX (@Float beta sx mx e)) (FtoX (@Float beta sy my e)).
+Proof.
 intros.
 unfold Xadd, FtoX.
 unfold Fadd_slow_aux1.
@@ -940,7 +947,8 @@ Qed.
 Lemma Fadd_slow_aux2_correct :
   forall beta sx sy mx my ex ey,
   UtoX (Fadd_slow_aux2 beta sx sy mx my ex ey) =
-  Xadd (FtoX (Float beta sx mx ex)) (FtoX (Float beta sy my ey)).
+  Xadd (FtoX (@Float beta sx mx ex)) (FtoX (@Float beta sy my ey)).
+Proof.
 intros.
 unfold Xadd, FtoX.
 unfold Fadd_slow_aux2.
@@ -969,6 +977,7 @@ Qed.
 Theorem Fadd_slow_aux_correct :
   forall beta (x y : float beta),
   UtoX (Fadd_slow_aux x y) = Xadd (FtoX x) (FtoX y).
+Proof.
 intros.
 case x.
 (* . *)
@@ -1022,6 +1031,7 @@ Definition Fadd_correct := Fadd_slow_correct.
 Theorem Fadd_exact_correct :
   forall beta (x y : float beta),
   FtoX (Fadd_exact x y) = Xadd (FtoX x) (FtoX y).
+Proof.
 intros.
 unfold Fadd_exact.
 rewrite <- (Fadd_slow_aux_correct _ x y).
@@ -1037,6 +1047,7 @@ Qed.
 Lemma Fsub_split :
   forall beta mode prec (x y : float beta),
   FtoX (Fsub mode prec x y) = (FtoX (Fadd mode prec x (Fneg y))).
+Proof.
 intros.
 unfold Fneg, Fadd, Fsub, Fadd_slow, Fsub_slow.
 case y ; trivial.
@@ -1045,6 +1056,7 @@ Qed.
 Theorem Fsub_correct :
   forall beta mode prec (x y : float beta),
   FtoX (Fsub mode prec x y) = xround beta mode prec (Xsub (FtoX x) (FtoX y)).
+Proof.
 intros.
 rewrite Fsub_split.
 rewrite Xsub_split.
@@ -1082,6 +1094,7 @@ Qed.
 Theorem Fmul_aux_correct :
   forall beta (x y : float beta),
   UtoX (Fmul_aux x y) = Xmul (FtoX x) (FtoX y).
+Proof.
 intros beta [ | | sx mx ex ] [ | | sy my ey ] ; simpl ; try apply refl_equal.
 (* . *)
 rewrite Rmult_0_l.
@@ -1131,6 +1144,7 @@ Qed.
 
 Lemma is_zero_correct_zero :
   is_zero 0 = true.
+Proof.
 destruct (is_zero_spec 0).
 apply refl_equal.
 now elim H.
@@ -1139,6 +1153,7 @@ Qed.
 Lemma is_zero_correct_float :
   forall beta s m e,
   is_zero (FtoR beta s m e) = false.
+Proof.
 intros beta s m e.
 destruct (is_zero_spec (FtoR beta s m e)).
 destruct s.

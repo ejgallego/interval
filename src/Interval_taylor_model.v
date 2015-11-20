@@ -1,3 +1,22 @@
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2013-2015, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 Require Import Reals ZArith.
 Require Import Interval_interval.
 Require Import Interval_xreal.
@@ -8,7 +27,7 @@ Require Import Interval_bigint_carrier.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import interval_compl.
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq MathComp.bigop.
 Require Import poly_datatypes.
 Require Import poly_inst_seq.
 Require Import taylor_model_int_sharp.
@@ -24,9 +43,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 (** * Auxiliary lemmas on natural numbers *)
-
-Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
-Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
 
 Lemma maxnS (m n : nat) : 0 < maxn m n.+1.
 Proof. by case: m =>[//|m]; rewrite maxnSS. Qed.
@@ -192,14 +208,12 @@ case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
 - move=> Hne.
   apply TM_cst_correct_strong =>//.
   exact: Imid_subset.
-  apply: not_empty'E.
   exact: not_empty_Imid.
 - by rewrite /tmsize PolI.tsize_trec2.
 - move=> Hne.
   apply: TM_var_correct_strong=>//.
     exact: Imid_subset.
-  apply not_empty_Imid in Hne.
-  by have [v Hv] := Hne; exists (Xreal v).
+  by move/not_empty_Imid: Hne.
 Qed.
 
 Lemma tm_helper2pad_correct u X tf f :
@@ -220,7 +234,7 @@ case: tf => [|c||[pol delta]]; rewrite /approximates /=.
   move=> Hne.
   apply TM_cst_correct_strong=>//.
   exact: Imid_subset.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 - case=> Hnan Hnil H Hu; split=>//.
   by rewrite /tmsize -lt0n PolI.tsize_trec2 ltnS //.
   move=> Hne.
@@ -228,8 +242,7 @@ case: tf => [|c||[pol delta]]; rewrite /approximates /=.
     by move=> *; symmetry; apply: H.
   apply: TM_var_correct =>//.
   exact: Imid_subset.
-  apply not_empty_Imid in Hne.
-  by have [v Hv] := Hne; exists (Xreal v).
+  by move/not_empty_Imid: Hne.
 case=> [NN SS H] Hsize.
 do 1!split=>//.
 rewrite /tmsize /= PolI.tsize_set_nth /= maxnC -lt0n; exact: maxnS.
@@ -825,7 +838,6 @@ move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_mul_correct=>//.
-by exists (Xreal v).
 (* . *)
 rewrite /t' ![PolI.tsize _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
@@ -883,10 +895,10 @@ split=>//;
   first (by rewrite /= /tmsize size_TM_mul_mixed size_TM_var);
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
-apply: not_empty'E; exact: not_empty_Imid.
+exact: not_empty_Imid.
 (* Const . Tm *)
 have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
@@ -895,7 +907,7 @@ split=>//;
   first (by rewrite /= /tmsize size_TM_mul_mixed (*size_TM_var*));
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 exact: H2.
 (* Var . Const *)
 have [Hnan1 Hnil1 H1] := Hf;
@@ -906,10 +918,10 @@ split=>//;
   red=>Hne.
 apply: TM_fun_eq (fun x _ => XmulC (g x) (f x)) _.
 apply: TM_mul_mixed_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
-apply: not_empty'E; exact: not_empty_Imid.
+exact: not_empty_Imid.
 (* Tm . Const *)
 have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
@@ -919,7 +931,7 @@ split=>//;
   red=>Hne.
 apply: TM_fun_eq (fun x _ => XmulC (g x) (f x)) _.
 apply: TM_mul_mixed_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 exact: H1.
 Qed.
 
@@ -955,7 +967,6 @@ move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_div_correct=>//.
-by exists (Xreal v).
 (* . *)
 rewrite /t' ![PolI.tsize _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
@@ -1013,10 +1024,10 @@ split=>//;
   first (by rewrite /= /tmsize size_TM_div_mixed_r size_TM_var);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
-apply: not_empty'E; exact: not_empty_Imid.
+exact: not_empty_Imid.
 (* Const . Tm *)
 have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
@@ -1025,7 +1036,7 @@ split=>//;
   first (by rewrite /= /tmsize size_TM_div_mixed_r);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
-  apply: not_empty'E; exact: not_empty_Imid.
+  exact: not_empty_Imid.
 exact: H1.
 Qed.
 
@@ -1130,7 +1141,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
   apply Imid_contains in Hne.
-  by eexists; apply Hne.
+  apply: not_emptyE; by eexists; apply Hne.
 - red=> Hne.
   apply: (@TM_fun_eq_real (fun x => Xneg (f x))).
   move=> *; symmetry; exact: Habs.
@@ -1172,7 +1183,7 @@ Lemma fun_gen_correct
   (forall prec X0 X n, tmsize (ftm prec X0 X n) = n.+1) ->
   (forall prec X0 X n,
     subset (I.convert X0) (I.convert X) ->
-    (exists t : ExtendedR, contains (I.convert X0) t) ->
+    not_empty (I.convert X0) ->
     i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
   forall (u : U) (X : I.type) (tf : T) (f : ExtendedR -> ExtendedR),
   approximates X tf f ->
@@ -1194,7 +1205,7 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply: Hvalid.
   exact: Imid_subset.
   apply not_empty_Imid in HneY.
-  have [y Hy] := HneY; by exists (Xreal y).
+  have [y Hy] := HneY; by exists y.
 - split; first by rewrite Hnan.
   by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
   move=> HneY; move/(_ HneY) in Hmain.
@@ -1202,7 +1213,6 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   have Hne' := not_empty_Imid HneY.
   have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
-  + by exists (Xreal m).
   + rewrite /tmsize.
     rewrite /= /tmsize in Hnil.
     by case: PolI.tsize Hnil.
@@ -1247,6 +1257,19 @@ apply: fun_gen_correct =>//.
 - exact: I.exp_correct.
 - exact: size_TM_exp.
 - exact: TM_exp_correct.
+Qed.
+
+Definition ln := Eval hnf in fun_gen I.ln TM_ln.
+
+Theorem ln_correct :
+  forall u (Y : I.type) tf f,
+  approximates Y tf f ->
+  approximates Y (ln u Y tf) (fun x => Xln (f x)).
+Proof.
+apply: fun_gen_correct =>//.
+- exact: I.ln_correct.
+- exact: size_TM_ln.
+- exact: TM_ln_correct.
 Qed.
 
 Definition cos := Eval hnf in fun_gen I.cos TM_cos.

@@ -27,8 +27,8 @@ Require Import Interval_xreal_derive.
 Require Import Interval_interval.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
-Require Import div fintype finfun path bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
+Require Import MathComp.div Ssreflect.fintype MathComp.finfun MathComp.path MathComp.bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -60,13 +60,13 @@ Implicit Type r : R.
 Implicit Types x y : ExtendedR.
 Implicit Type X : interval.
 
-Definition Xpow_iter x n := iter_nat n _ (Xmul x) (Xmask (Xreal 1) x).
+Definition Xpow_iter x n := iter_nat (Xmul x) n (Xmask (Xreal 1) x).
 
 (* "Transitional result" (may be removed in a later version) *)
 Lemma Xpow_idem x n : Xpow x n = Xpow_iter x n.
 Proof.
 elim: n =>[//|n IHn].
-rewrite /Xpow_iter /= -/(Xpow_iter x n) -IHn.
+rewrite /Xpow_iter iter_nat_S /= -/(Xpow_iter x n) -IHn.
 case: {IHn} x =>//= r.
 (* and similarly to the proof of FullXR.tpow_S *)
 case: n =>// n.
@@ -75,11 +75,13 @@ Qed.
 
 Lemma Xpow_Xreal r n : Xpow_iter (Xreal r) n = Xreal (pow r n).
 Proof.
-by elim: n=>// n; rewrite /Xpow_iter => /= ->.
+by elim: n=>// n; rewrite /Xpow_iter iter_nat_S => /= ->.
 Qed.
 
 Lemma Xpow_Xnan n : Xpow_iter Xnan n = Xnan.
-Proof. by case: n. Qed.
+Proof.
+by elim: n=>// n; rewrite /Xpow_iter iter_nat_S => /= ->.
+Qed.
 
 Lemma Xmul_Xreal a b : Xreal a * Xreal b = Xreal (a * b).
 Proof. by []. Qed.

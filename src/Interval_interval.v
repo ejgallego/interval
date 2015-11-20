@@ -1,3 +1,22 @@
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2007-2015, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 Require Import Bool.
 Require Import Reals.
 Require Import Interval_missing.
@@ -559,6 +578,7 @@ Parameter sin : precision -> type -> type.
 Parameter tan : precision -> type -> type.
 Parameter atan : precision -> type -> type.
 Parameter exp : precision -> type -> type.
+Parameter ln : precision -> type -> type.
 Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
@@ -576,6 +596,7 @@ Parameter sin_correct : forall prec, extension Xsin (sin prec).
 Parameter tan_correct : forall prec, extension Xtan (tan prec).
 Parameter atan_correct : forall prec, extension Xatan (atan prec).
 Parameter exp_correct : forall prec, extension Xexp (exp prec).
+Parameter ln_correct : forall prec, extension Xln (ln prec).
 Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).

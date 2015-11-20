@@ -1,4 +1,23 @@
-Require Import Fcore_Raux.
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2007-2015, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
+Require Import Flocq.Core.Fcore_Raux.
 Require Import ZArith.
 Require Import Bool.
 Require Import Interval_definitions.
@@ -52,7 +71,7 @@ Definition mantissa_even m :=
   end.
 
 Definition mantissa_shl m d :=
-  match d with Zpos nb => iter_pos nb _ (fun x => xO x) m | _ => xH end.
+  match d with Zpos nb => iter_pos (fun x => xO x) nb m | _ => xH end.
 
 Definition mantissa_scale2 (m : mantissa_type) (d : exponent_type) := (m, d).
 
@@ -83,7 +102,7 @@ Definition mantissa_shr_aux v :=
 Definition mantissa_shr m d pos :=
   match d with
   | Zpos nb =>
-    iter_pos nb _ mantissa_shr_aux (m, pos)
+    iter_pos mantissa_shr_aux nb (m, pos)
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
@@ -221,8 +240,8 @@ clear Ezx.
 unfold MtoP.
 intros -> Hy.
 unfold mantissa_shr.
-rewrite Pos2Nat.inj_iter.
-case_eq (nat_iter (Pos.to_nat x) mantissa_shr_aux (y, k)).
+rewrite iter_pos_nat.
+case_eq (iter_nat mantissa_shr_aux (Pos.to_nat x) (y, k)).
 intros sq l H1.
 generalize (Z.div_str_pos _ _ (conj (refl_equal Lt : (0 < Zpos _)%Z) Hy)).
 generalize (Z_div_mod (Z.pos y) (Z.pos (shift radix 1 x)) (eq_refl Gt)).
@@ -254,8 +273,8 @@ induction (Pos.to_nat x) as [|p IHp].
   exact H1.
   now destruct k.
 - intros sq' l' q' r'.
-  simpl nat_iter.
-  destruct (nat_iter p mantissa_shr_aux (y, k)) as [sq l].
+  rewrite iter_nat_S.
+  destruct (iter_nat mantissa_shr_aux p (y, k)) as [sq l].
   specialize (IHp sq l).
   intros H1 H0 H2 H3 Hy.
   revert H2.
@@ -263,7 +282,7 @@ induction (Pos.to_nat x) as [|p IHp].
   case_eq (Zpower_nat radix (S p)) ; try easy.
   intros m'.
   revert H3.
-  rewrite Zpower_nat_succ_r.
+  rewrite Zpower_nat_S.
   revert IHp.
   destruct (Zpower_nat radix p) as [|m|m] ; try easy.
   intros IHp H3 H4 _ H2.

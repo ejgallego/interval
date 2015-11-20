@@ -1,4 +1,4 @@
-AC_INIT([Interval], [1.1.0],
+AC_INIT([Interval], [2.2.0],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 
@@ -42,27 +42,36 @@ AC_MSG_RESULT([$COQDEP])
 
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
-  [ echo "Require Import Flocq_version BinNat." \
-         "Goal (20400 <= Flocq_version)%N. easy. Qed." > conftest.v
-    "$COQC" conftest.v > conftest.err ],
+  [ echo "Require Import Flocq.Flocq_version BinNat." \
+         "Goal (20500 <= Flocq_version)%N. easy. Qed." > conftest.v
+    $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find the Flocq library (http://flocq.gforge.inria.fr/)])])
+    AC_MSG_ERROR([ *** Unable to find library Flocq >= 2.5 (http://flocq.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Ssreflect])
 AS_IF(
-  [ echo "Require Import ssreflect." > conftest.v
-    "$COQC" conftest.v > conftest.err ],
+  [ echo "Require Import Ssreflect.ssreflect." > conftest.v
+    $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find the Ssreflect library (http://www.msr-inria.fr/projects/mathematical-components/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for Coquelicot])
+AS_IF(
+  [ echo "Require Import Coquelicot.Coquelicot." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Coquelicot (http://coquelicot.saclay.inria.fr/)])])
+rm -f conftest.v conftest.vo conftest.err
+
 AC_MSG_CHECKING([for MathComp])
 AS_IF(
-  [ echo "Require Import bigop." > conftest.v
-    "$COQC" conftest.v > conftest.err ],
+  [ echo "Require Import MathComp.bigop." > conftest.v
+    $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find the MathComp library (http://www.msr-inria.fr/projects/mathematical-components/)])])

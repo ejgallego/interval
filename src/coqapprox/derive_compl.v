@@ -24,7 +24,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 
@@ -129,7 +129,7 @@ reflexivity.
 case/orP: E =>[->//|].
 do 2! case: Z.geb_spec =>//.
 by rewrite orbC.
-intros; zify; romega.
+intros; zify; omega.
 
 set e:= (Xpower_int x (n - Z.of_nat k.+1) * Xreal (IZR (n - Z.of_nat k)))%XR.
 have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * b))%XR.
@@ -140,18 +140,18 @@ have -> : (e * b)%XR= ((Xmask (Xreal 0) x * Xpower_int x (n - Z.of_nat k) + e * 
   set x0 := Xmask _ _.
 rewrite /= /x0 /=.
 case: (Req_EM_T r R0) => Hr; case Enk: (n - Z.of_nat k.+1)%Z @b @x0 =>[|p|p] b x0.
-have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; omega.
 simpl.
 by rewrite Rplus_0_l.
-have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; omega.
 by rewrite Xadd_0_l.
 by rewrite zeroT //= Xadd_comm.
-have->: (n - Z.of_nat k)%Z = 1%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = 1%Z by zify; omega.
 by rewrite Xadd_0_l.
-have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; romega.
+have->: (n - Z.of_nat k)%Z = Z.pos (Pos.succ p)%Z by zify; omega.
 by rewrite Xadd_0_l.
 rewrite zeroF //.
-case E': (n - Z.of_nat k)%Z => [|q|q]; try (zify; romega).
+case E': (n - Z.of_nat k)%Z => [|q|q]; try (zify; omega).
 by rewrite /= Rplus_0_l.
 by rewrite /= Rplus_0_l.
 (* . *)
@@ -162,7 +162,7 @@ congr Xderive_pt.
 case: x {e} =>[//|r].
 simpl.
 set nk := (n - Z.pos (Pos.of_succ_nat k))%Z.
-have->: Z.pred (n - Z.of_nat k)%Z = nk by rewrite /nk; zify; romega.
+have->: Z.pred (n - Z.of_nat k)%Z = nk by rewrite /nk; zify; omega.
 case: nk =>//=.
 by rewrite Z2R_IZR Rmult_1_r.
 by move=> p; rewrite Rmult_1_l Rmult_comm Z2R_IZR.
@@ -212,6 +212,95 @@ by split; [apply pow_nonzero|].
 Qed.
 
 End nth_pow.
+
+Section nth_ln.
+
+(* Erik: if need be, the following lemma could be generalized *)
+Lemma Xderive_pt_eq_pos (g f : ExtendedR -> ExtendedR) (f' : ExtendedR) :
+  (forall r : R, is_positive r -> f (Xreal r) = g (Xreal r)) ->
+  forall r : R, is_positive r -> Xderive_pt g (Xreal r) f' -> Xderive_pt f (Xreal r) f'.
+Proof.
+move=> Hfg r Hr Hg.
+case Ef': f' Hg =>[//|s].
+rewrite /= Hfg //.
+case: (g (Xreal r)) =>[//|_].
+move=> Hg v.
+apply (@derivable_pt_lim_eq_locally (proj_fun v g)) =>//.
+red; exists r; split.
+case: is_positive_spec Hr =>//.
+move=> h Hh.
+have Hpos : is_positive (r + h).
+rewrite /is_positive Rlt_bool_true //.
+apply Rabs_lt_inv in Hh.
+have {Hh} [_h _] := Hh.
+have->: (0 = r - r)%R by rewrite Rminus_diag_eq.
+exact: (Rplus_lt_compat_l r).
+rewrite /proj_fun.
+by rewrite Hfg.
+Qed.
+
+Lemma nth_Xderive_pt_ln x :
+  nth_Xderive_pt Xln
+  (fun k x => if k isn't k'.+1 then Xln x else
+                if x is Xreal r then
+                  if is_positive r then
+                    Xreal (\big[Rmult/R1]_(i < k') (Z2R (- Z.of_nat i.+1))) *
+                    Xpower_int (Xreal r) (- Z.of_nat k'.+1)%Z
+                  else Xnan
+                else Xnan)%XR
+  x.
+Proof.
+split=>[y|k] //.
+case: k =>[ |k].
+  case: x =>[//|x].
+  case Px: is_positive =>//.
+  rewrite big_ord0 Xmul_1_l.
+  have L := Xderive_pt_ln id (Xreal R1) (Xreal x).
+  move/(_ (Xderive_pt_identity (Xreal x))) in L.
+  suff->: Xpower_int (Xreal x) (- Z.of_nat 1) =
+    match Xcmp (Xreal x) (Xreal 0) with
+    | Xeq => Xnan
+    | Xlt => Xnan
+    | Xgt => (Xreal 1 / Xreal x)%XR
+    | Xund => Xnan
+    end by exact: L.
+  rewrite /= zeroF ?Rmult_1_r.
+  rewrite Rcompare_Gt.
+  by rewrite /Rdiv Rmult_1_l.
+  by case: is_positive_spec Px.
+  by case: is_positive_spec Px =>//; auto with real.
+
+rewrite [Z.of_nat]lock big_ord_recr [Rmul_monoid _]/= -lock.
+set b := \big[Rmult/1%Re]_(i < k) (Z2R (- Z.of_nat i.+1)).
+case: x =>[//|x].
+case Px: (is_positive x); last done.
+simpl nat_of_ord.
+have LMul := Xderive_pt_mul (fun _ => Xreal b)
+  (fun x0 => if x0 is Xreal r then if is_positive r then
+    Xpower_int (Xreal r) (- Z.of_nat k.+1) else Xnan else Xnan)
+  _ _ (Xreal x) (Xderive_pt_constant b (Xreal x)).
+set e := (Xreal (Z2R (- Z.of_nat k.+1)) * Xpower_int (Xreal x) (- Z.of_nat k.+2))%XR.
+have->: (Xreal (b * (Z2R (- Z.of_nat k.+1))) * Xpower_int (Xreal x) (- Z.of_nat k.+2) =
+  (Xmask (Xreal 0) (Xreal x) *
+  (if is_positive x then Xpower_int (Xreal x) (- Z.of_nat k.+1) else Xnan)
+  + e * Xreal b))%XR.
+  rewrite Px /e /= zeroF; last first.
+  by case: is_positive_spec Px =>//; auto with real.
+  rewrite Rmult_0_l Xadd_0_l /=; congr Xreal.
+  by rewrite Rmult_assoc Rmult_comm.
+apply: Xderive_pt_eq_fun _ _ _ _ _ (LMul _ _).
+  case=> [ |y]; first by rewrite XmulC.
+  by case: is_positive.
+apply: (@Xderive_pt_eq_pos (fun x0 => Xpower_int x0 (- Z.of_nat k.+1)))=>//.
+  by move=> r ->.
+have LPow := (Xderive_pt_power_int (- Z.of_nat k.+1) id _ (Xreal x) (Xderive_pt_identity _)).
+rewrite [Xmask _ _]/= Xmul_1_l in LPow.
+have LEq: (Z.pred (- Z.of_nat k.+1) = - Z.of_nat k.+2)%Z by zify; auto with zarith.
+rewrite {}LEq in LPow.
+exact: LPow.
+Qed.
+
+End nth_ln.
 
 Section inverse.
 

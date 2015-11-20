@@ -27,7 +27,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import interval_compl.
 Require Import xreal_ssr_compat.
 Require Import poly_datatypes.
@@ -64,6 +64,7 @@ Definition tmul := --> Rmult.
 Definition tdiv := --> Rdiv.
 Definition tpower_int := --> powerRZ.
 Definition texp := --> exp.
+Definition tln := --> ln.
 Definition tnat := INR.
 Definition tfromZ := IZR.
 Definition tinv := --> Rinv.
@@ -76,7 +77,6 @@ Definition tcst : T -> T -> T := fun c _ => c.
 Definition ttan := --> tan.
 Definition tatan := --> atan.
 (*
-Parameter tln : U -> T -> T.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)
@@ -98,6 +98,7 @@ Definition tpower_int := --> Xpower_int.
 Definition tpow := --> fun x n => Xpower_int x (Z_of_nat n).
 Arguments tpow _ x n : simpl nomatch.
 Definition texp := --> Xexp.
+Definition tln := --> Xln.
 Definition tnat := fun n => Xreal (INR n).
 Definition tfromZ := fun n => Xreal (IZR n).
 Definition tinv := --> Xinv.
@@ -109,7 +110,6 @@ Definition tinvsqrt := --> fun x => Xinv (Xsqrt x).
 Definition ttan := --> Xtan.
 Definition tatan := --> Xatan.
 (*
-Parameter tln : U -> T -> T.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)
@@ -157,7 +157,7 @@ case: x =>//= r; case: n =>//=.
 - by rewrite zeroF; auto with real.
 - move=> p; case: (is_zero_spec r).
   + move->; rewrite pow_ne_zero ?zeroT //.
-    zify; romega.
+    zify; omega.
   + move=> Hr; rewrite zeroF //.
     exact: pow_nonzero.
 - move=> p; case: (is_zero_spec r) =>[->//|Hr _].
@@ -252,6 +252,7 @@ Definition tmul := I.mul.
 Definition tdiv := I.div.
 Definition tpower_int := I.power_int.
 Definition texp := I.exp.
+Definition tln := I.ln.
 Definition tnat := fun n => I.fromZ (Z_of_nat n).
 Definition tfromZ := I.fromZ.
 Definition tinv := I.inv.
@@ -264,7 +265,6 @@ Definition tcst : T -> T -> T := I.mask.
 Definition ttan := I.tan.
 Definition tatan := I.atan.
 (*
-Parameter tln : U -> T -> T.
 Parameter tasin : U -> T -> T.
 Parameter tacos : U -> T -> T.
 *)

@@ -1,3 +1,22 @@
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2007-2015, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 Require Import Bool.
 Require Import List.
 Require Import Reals.
@@ -10,7 +29,7 @@ Require Import Interval_interval.
 Require Import Interval_taylor_model.
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | PowerInt (n : Z).
+  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | Ln | PowerInt (n : Z).
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -92,6 +111,7 @@ Definition ext_operations :=
     | Tan => Xtan
     | Atan => Xatan
     | Exp => Xexp
+    | Ln => Xln
     | PowerInt n => fun x => Xpower_int x n
     end)
    (fun o =>
@@ -152,6 +172,7 @@ Definition real_operations :=
     | Tan => tan
     | Atan => atan
     | Exp => exp
+    | Ln => ln
     | PowerInt n => fun x => powerRZ x n
     end)
    (fun o =>
@@ -229,6 +250,7 @@ now case (is_zero b).
 now case (is_negative b).
 unfold Xtan, Xdiv, Xsin, Xcos.
 now case (is_zero (cos b)).
+now case (is_positive b).
 fold (Xpower_int (Xreal b) n0).
 generalize (Xpower_int_correct n0 (Xreal b)).
 now case Xpower_int.
@@ -363,7 +385,7 @@ Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
   end.
 
 Definition lookup_1d fi l u extend steps :=
-  let m := iter_nat steps _ (fun u => I.midpoint (I.bnd l u)) u in
+  let m := iter_nat (fun u => I.midpoint (I.bnd l u)) steps u in
   let output := extend (fi (I.bnd l m)) in
   match steps with
   | O => I.whole
@@ -414,6 +436,7 @@ Definition operations prec :=
     | Tan => I.tan prec
     | Atan => I.atan prec
     | Exp => I.exp prec
+    | Ln => I.ln prec
     | PowerInt n => fun x => I.power_int prec x n
     end)
    (fun o =>
@@ -453,6 +476,7 @@ destruct o ; simpl ;
   | apply I.tan_correct
   | apply I.atan_correct
   | apply I.exp_correct
+  | apply I.ln_correct
   | apply I.power_int_correct ].
 (* binary *)
 destruct o ; simpl ;
@@ -518,6 +542,8 @@ Definition diff_operations A (ops : @operations A) :=
         binary ops Div d (binary ops Add (constant ops 1) (unary ops Sqr v)))
       | Exp => let w := unary ops Exp v in (w,
         binary ops Mul d w)
+      | Ln => (unary ops Ln v,
+        match sign ops v with Xgt => binary ops Div d v | _ => unary ops Inv (constant ops 0) end)
       | PowerInt n =>
         (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
       end
@@ -537,7 +563,6 @@ Definition diff_operations A (ops : @operations A) :=
     end)
    (fun x => match x with (vx, _) => sign ops vx end).
 
-
 Lemma Xderive_eq :
   forall g g' f f',
  (forall x, f x = g x) ->
@@ -556,6 +581,7 @@ Lemma unary_diff_correct :
   let v := unary (diff_operations _ ext_operations) o (f x, d) in
   unary ext_operations o (f x) = fst v /\
   Xderive_pt (fun x0 => unary ext_operations o (f x0)) x (snd v).
+Proof.
 intros o f d x Hd.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_neg.
@@ -571,6 +597,8 @@ now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 now apply Xderive_pt_atan.
 now apply Xderive_pt_exp.
+rewrite is_zero_correct_zero.
+now apply Xderive_pt_ln.
 now apply Xderive_pt_power_int.
 Qed.
 
@@ -669,6 +697,7 @@ destruct o ; simpl ;
   | apply I.tan_correct
   | apply I.atan_correct
   | apply I.exp_correct
+  | apply I.ln_correct
   | apply I.power_int_correct
   | apply I.add_correct
   | apply I.mul_correct
@@ -698,6 +727,22 @@ rewrite (proj1 H).
 simpl.
 rewrite Rcompare_Gt.
 now apply Hf'.
+apply H.
+(* ln *)
+generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+simpl.
+rewrite is_zero_correct_zero.
+specialize (Hf _ Hx).
+generalize (I.sign_strict_correct yi).
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+intros H _.
+specialize (H _ Hf).
+rewrite (proj1 H) at 1.
+simpl.
+rewrite Rcompare_Gt.
+apply I.div_correct.
+now apply Hf'.
+exact Hf.
 apply H.
 Qed.
 
@@ -779,6 +824,7 @@ destruct o ; simpl ;
   | apply I.tan_correct
   | apply I.atan_correct
   | apply I.exp_correct
+  | apply I.ln_correct
   | apply I.power_int_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
@@ -1427,6 +1473,7 @@ Definition operations prec deg xi :=
     | Tan => TM.tan (prec, deg) xi
     | Atan => TM.atan (prec, deg) xi
     | Exp => TM.exp (prec, deg) xi
+    | Ln => TM.ln (prec, deg) xi
     | PowerInt n => TM.power_int n (prec, deg) xi
  (* | _ => fun _ => TM.dummy *)
     end)
@@ -1499,6 +1546,7 @@ induction (rev prog) as [|t l].
     apply TM.tan_correct.
     apply TM.atan_correct.
     apply TM.exp_correct.
+    apply TM.ln_correct.
     apply TM.power_int_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.

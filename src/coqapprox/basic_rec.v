@@ -21,7 +21,7 @@ liability. See the COPYING file for more details.
 Require Import ZArith.
 Require Import Rfunctions. (* for fact_simpl *)
 Require Import NaryFunctions.
-Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigop tuple.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop MathComp.tuple.
 Require Import seq_compl nary_tuple.
 
 (*
@@ -655,7 +655,7 @@ Definition fibz n := rec2up fibz_rec 0%Z 1%Z n.
 End Test2.
 
 (** Define some "aliases" for the purposes of partial-evaluation. *)
-Definition snd' := Eval unfold snd in snd.
+Definition snd' {A B} (ab : A * B) := let (a,b) := ab in b.
 
 Fixpoint catrev' T (s1 s2 : seq T) {struct s1} : seq T :=
   match s1 with
@@ -965,7 +965,8 @@ rewrite (ltn_predK H) !subSn // ?leqW //.
 rewrite head_loopN 1?addnC ?addSn ?(subnK H) rev'E //; first last.
 - by rewrite size_rev size_Tuple.
 - by rewrite revK lastN_Ttoseq.
-repeat f_equal; case: (n - N'.+1) =>[|//]; by rewrite nuncurry_const.
+apply (f_equal (fun v => nuncurry F' (lastN d N'.+1 (rev v)) n)).
+case: (n - N'.+1) =>[|//]; by rewrite nuncurry_const.
 Qed.
 
 Theorem recNup_correct T (N : nat) (init : T ^ N) (F : T ^^ N --> (nat -> T))

@@ -19,7 +19,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import BinPos.
-Require Import Fcore_Raux.
+Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
 Require Import Interval_definitions.
@@ -27,7 +27,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import poly_datatypes basic_rec.
 
 Set Implicit Arguments.
@@ -198,6 +198,16 @@ Definition T_atan x :=
     tdiv u (teval u q x)
       (tpower_int u (tadd u tone (tsqr u x)) (Z_of_nat n)) in
   tgrec1 F G q1 s.
+
+Definition T_ln x n :=
+  let lg := tln u x in
+  let y := C.tcst x lg in
+  P.tpolyCons lg
+  (if n is n'.+1 then
+     let p1 := (-1)%Z in
+     P.tdotmuldiv u (falling_seq p1 n') (behead (fact_seq n))
+                  (trec1 (pow_aux_rec u p1 y) (tpower_int u y p1) n')
+   else P.tpolyNil).
 
 (*
 Definition T_ln x := trec2 (ln_rec u x) (tln u x) (tinv u x).
