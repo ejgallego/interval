@@ -681,7 +681,7 @@ rewrite IHbounds.
 now case a.
 Qed.
 
-
+(* TODO: Maybe the hypotheses are a bit too strong here *)
 Lemma continuousProg op prog bounds m (U : R -> Prop) i:
   (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
   notInan (nth I.nai
@@ -863,8 +863,32 @@ case Hbinop : binop.
   (* notInan_inversion_Div_stronger is true*)
 Qed.
 
+Lemma continuousProg2 prog bounds m (U : R -> Prop) i:
+  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
+  (notInan (nth I.nai
+          (evalInt prog (i::boundsToInt bounds))
+          m )) ->
+  continuous_all 
+    U
+    (fun x => 
+       nth 
+         R0 
+         (eval_real 
+            prog 
+            (x::boundsToR bounds)) m).
+Proof.
+move => Hcontains.
+generalize m.
+elim/last_ind: prog => [HnotInan| prog op HI m0 HnotInan].
+admit.
+apply: (continuousProg).
+exact: i.
+exact: Hcontains.
+exact: HnotInan.
+move => m1.
+(**)
 
-
+Admitted.
 
 End Preliminary.
 
