@@ -126,7 +126,7 @@ Admitted.
 
 Lemma continuous_all_sqrt D (f : R -> R) :
   continuous_all D f ->
-  (forall x, D x -> f x > 0) ->
+  (forall x, D x -> f x >= 0) ->
   continuous_all D (fun x => sqrt (f x)).
 Proof.
 Admitted.
@@ -176,7 +176,7 @@ Lemma continuous_all_powerRZ D (f : R -> R) n :
   (match n with
      | Zpos m => True
      | Z0 => True
-     | Zneg m  => (forall x, D x -> x < 0) \/ (forall x, D x -> x > 0)
+     | Zneg m  => (forall x, D x -> f x < 0) \/ (forall x, D x -> f x > 0)
    end
   ) ->
   continuous_all D (fun x => powerRZ (f x) n).
@@ -191,7 +191,7 @@ Definition domain unop g (P : R -> Prop) :=
     | Abs => True
     | Inv => (forall x, P x -> g x < 0) \/ (forall x, P x -> g x > 0)
     | Sqr => True
-    | Sqrt => (forall x, P x -> g x > 0)
+    | Sqrt => (forall x, P x -> g x >= 0)
     | Cos => True
     | Sin => True
     | Tan => forall x, P x -> (g x > - Pi / 2 /\ g x < Pi / 2)
@@ -202,7 +202,7 @@ Definition domain unop g (P : R -> Prop) :=
       (match n with
          | Zpos m => True
          | Z0 => True
-         | Zneg m  => (forall x, P x -> x < 0) \/ (forall x, P x -> x > 0)
+         | Zneg m  => (forall x, P x -> g x < 0) \/ (forall x, P x -> g x > 0)
        end
       )
   end.
@@ -274,13 +274,13 @@ Qed.
 
 Definition interval_operations := (A.BndValuator.operations prec).
 
-Lemma evalIntOpRight op prog bounds m x : 
+Lemma evalIntOpRight op prog bounds m x :
   nth I.nai (evalInt (rcons prog op) (x::boundsToInt bounds)) m =
   nth I.nai
       (eval_generic_body
          I.nai
          interval_operations
-         (eval_generic I.nai interval_operations prog (x :: boundsToInt bounds)) op) m.
+         (evalInt prog (x :: boundsToInt bounds)) op) m.
 Proof.
 rewrite /evalInt /A.BndValuator.eval rev_formula revEq rev_rcons /= .
 by rewrite rev_formula revEq.
@@ -415,6 +415,217 @@ apply: (xreal_to_real (fun xR => xR = Xreal r) (fun x => x = r)) => //= .
 by move => r0 H; inversion H.
 Qed.
 
+Section notInanProperties.
+
+Lemma notInan_convert i :
+  I.convert i = Inan -> i = Interval_interval_float.Inan.
+case: i => // .
+Qed.
+
+Lemma notInan_inversion_Inv prec i :
+notInan (I.inv prec i) -> ~ contains (I.convert i) (Xreal 0) .
+Proof.
+move => HnotInan Hcontains0.
+Check I.inv_correct.
+suff: contains (I.convert (I.inv prec i)) Xnan => [Habs|].
+  move: HnotInan.
+  have := (xreal_ssr_compat.contains_Xnan Habs).
+  by case: (I.inv prec i).
+have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
+by apply: I.inv_correct.
+Qed.
+
+Lemma notInan_inversion_Inv_stronger prec i :
+  notInan (I.inv prec i) ->
+  (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/
+  (forall x, contains (I.convert i) (Xreal x) -> x > 0).
+Proof.
+move => HnotInan.
+suff: ~ contains (I.convert i) (Xreal 0); last first.
+  by apply: notInan_inversion_Inv.
+move => Hnot0.
+set P :=  (X in X \/ _).
+set Q :=  (X in _ \/ X).
+suff: ~ (~ P /\ ~ Q).
+move => H_andnot.
+apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *)
+move => H1.
+apply: H_andnot.
+split.
++ move => HP.
+  apply: H1.
+  by left.
++ move => HQ.
+  apply: H1.
+  by right.
+move => Habs.
+apply: Hnot0.
+Admitted. (* maybe reason on the middle of the interval? *)
+
+
+(* the two following lemmas are almost exact copies of the above, but for any negative power instead of juste (-1) *)
+Lemma notInan_inversion_PowNeg prec i p:
+notInan (I.power_int prec i (Z.neg p)) -> ~ contains (I.convert i) (Xreal 0) .
+Proof.
+move => HnotInan Hcontains0.
+suff: contains (I.convert (I.power_int prec i (Z.neg p))) Xnan => [Habs|].
+  move: HnotInan.
+  have := (xreal_ssr_compat.contains_Xnan Habs).
+  by case: (I.power_int prec i (Z.neg p)).
+have -> : Xnan = Xpower_int (Xreal 0) (Z.neg p) by rewrite /= is_zero_correct_zero.
+by apply: I.power_int_correct.
+Qed.
+
+Lemma notInan_inversion_PowNeg_stronger prec i p :
+  notInan (I.power_int prec i (Z.neg p)) ->
+  (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/
+  (forall x, contains (I.convert i) (Xreal x) -> x > 0).
+Proof.
+move => HnotInan.
+suff: ~ contains (I.convert i) (Xreal 0); last first.
+  by apply: notInan_inversion_PowNeg.
+move => Hnot0.
+set P :=  (X in X \/ _).
+set Q :=  (X in _ \/ X).
+suff: ~ (~ P /\ ~ Q).
+move => H_andnot.
+apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *)
+move => H1.
+apply: H_andnot.
+split.
++ move => HP.
+  apply: H1.
+  by left.
++ move => HQ.
+  apply: H1.
+  by right.
+move => Habs.
+apply: Hnot0.
+Admitted.
+
+Lemma is_positive_positive x :
+  (is_positive x = true) -> x > 0.
+move => Hpos.
+have H1 :=(is_positive_spec x).
+rewrite Hpos in H1.
+by inversion H1.
+Qed.
+
+Lemma is_positive_negative x :
+  (is_positive x = false) -> x <= 0.
+move => Hnpos.
+have H1 :=(is_positive_spec x).
+rewrite Hnpos in H1.
+by inversion H1.
+Qed.
+
+Lemma is_negative_negative x :
+  (is_negative x = true) -> x < 0.
+move => Hneg.
+have H1 :=(is_negative_spec x).
+rewrite Hneg in H1.
+by inversion H1.
+Qed.
+
+Lemma is_negative_positive x :
+  (is_negative x = false) -> x >= 0.
+move => Hneg.
+have H1 :=(is_negative_spec x).
+rewrite Hneg in H1.
+inversion H1.
+exact: Rle_ge.
+Qed.
+
+Lemma notInan_inversion_Sqrt prec i :
+  notInan (I.sqrt prec i) ->
+  (forall x, contains (I.convert i) (Xreal x) -> x >= 0).
+Proof.
+move => HnotInan x Hcontains.
+suff: contains (I.convert (I.sqrt prec i)) (Xsqrt (Xreal x)).
+- rewrite /Xsqrt.
+  case Hposx : (is_negative x); last first.
+    move => Hcontsqrt.
+    by apply: is_negative_positive.
+  move => HcontXnan.
+  have Habs := (xreal_ssr_compat.contains_Xnan HcontXnan).
+  by rewrite (notInan_convert _ Habs) in HnotInan.
+by apply: I.sqrt_correct.
+Qed.
+
+
+Lemma notInan_inversion_Ln prec i :
+  notInan (I.ln prec i) ->
+  (forall x, contains (I.convert i) (Xreal x) -> x > 0).
+Proof.
+move => HnotInan x Hcontains.
+suff: contains (I.convert (I.ln prec i)) (Xln (Xreal x)).
+- rewrite /Xln.
+  case Hposx : (is_positive x).
+    move => Hcontln.
+    by apply: is_positive_positive.
+  move => HcontXnan.
+  have Habs := (xreal_ssr_compat.contains_Xnan HcontXnan).
+  by rewrite (notInan_convert _ Habs) in HnotInan.
+by apply: I.ln_correct.
+Qed.
+
+End notInanProperties.
+
+Search _ eval_real eval_ext.
+
+
+(* copied from Interval_tactic *)
+Lemma contains_eval prec prog bounds n :
+  contains
+    (I.convert
+       (List.nth n
+                 (A.BndValuator.eval prec prog (map A.interval_from_bp bounds))
+                 I.nai))
+    (Xreal (List.nth n (eval_real prog (List.map A.real_from_bp bounds)) 0)).
+Proof.
+set (xi := List.nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
+apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
+now case (I.convert xi).
+easy.
+unfold xi.
+replace (List.map Xreal (List.map A.real_from_bp bounds)) with (List.map A.xreal_from_bp bounds).
+apply A.BndValuator.eval_correct.
+clear.
+induction bounds.
+easy.
+simpl.
+rewrite IHbounds.
+now case a.
+Qed.
+
+Lemma contains_eval_arg prec prog bounds n i x:
+  contains (I.convert i) (Xreal x) ->
+  contains
+    (I.convert
+       (List.nth n
+                 (A.BndValuator.eval prec prog (i :: map A.interval_from_bp bounds))
+                 I.nai))
+    (Xreal (List.nth n (eval_real prog (x :: List.map A.real_from_bp bounds)) 0)).
+Proof.
+move => Hcontains.
+set (xi := List.nth n (A.BndValuator.eval prec prog (i :: [seq A.interval_from_bp i | i <- bounds])%SEQ) I.nai).
+apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
+now case (I.convert xi).
+easy.
+unfold xi.
+replace (List.map Xreal (x :: List.map A.real_from_bp bounds)%SEQ) with
+((Xreal x)::(List.map A.xreal_from_bp (bounds))).
+apply A.BndValuator.eval_correct_ext => //.
+clear.
+rewrite /=. congr (_ :: _).
+induction bounds.
+easy.
+simpl.
+rewrite IHbounds.
+now case a.
+Qed.
+
+
 Lemma continuousProg unop n prog bounds m (U : R -> Prop) i:
   (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
   notInan (nth I.nai
@@ -485,84 +696,43 @@ case Hm : m => [|m0]; last first.
   by rewrite /= nthEq.
   apply: domain_correct.
     by apply: Hprog.
-  case Hunop: unop => //= . (* and now 5 cases to treat *) 
-  have H := (A.BndValuator.eval_correct_ext prec (rcons prog (Unary unop n)) bounds 0).
-  have lemma1 : forall x, U x -> nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) n = 0 -> False.
-  move => x HUx Habs.
-  have in_construction := (H (i) (Xreal x) (Hi x HUx)).
-  suff lemma2 : (I.I.convert
-                         (List.nth 0
-                            (A.BndValuator.eval prec
-                               (rcons prog (Unary unop n))
-                               (i :: List.map A.interval_from_bp bounds)%SEQ)
-                            I.nai)) = Inan.
-  suff lemma3 : (I.I.convert
-                         (List.nth 0
-                            (A.BndValuator.eval prec
-                               (rcons prog (Unary unop n))
-                               (i :: List.map A.interval_from_bp bounds)%SEQ)
-                            I.nai)) = 
-                 I.convert (nth I.nai
-                      (evalInt (rcons prog (Unary unop n))
-                               (i :: boundsToInt bounds)%SEQ) m).
-  rewrite lemma3 in lemma2.
-  Print notInan.
-  (* case Hext : (List.nth 0 *)
-  (*          (eval_ext (rcons prog (Unary unop n)) *)
-  (*             (List.map A.xreal_from_bp bounds)) Xnan) => [|r1]. *)
-  * Search _  contains Xnan.
-    rewrite Hext in H.
-    have fiNan : (I.convert
-           (List.nth 0
-              (A.BndValuator.eval prec (rcons prog (Unary unop n))
-                 (List.map A.interval_from_bp bounds)) I.nai)) = Inan.
-      by apply: xreal_ssr_compat.contains_Xnan.
-      have H1 : (nth I.nai
-                  (evalInt (rcons prog (Unary unop n))
-                     (i :: boundsToInt bounds)%SEQ) m) =
-                (List.nth 0
-              (A.BndValuator.eval prec (rcons prog (Unary unop n))
-                 (List.map A.interval_from_bp bounds)) I.nai).
-      rewrite nthEq /evalInt /boundsToInt.
-
-  + have lemma : 
-      forall x : R,
-        (nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) n = 0) -> 
-        I.convert 
-          (nth 
-             I.nai 
-             (evalInt (rcons prog (Unary unop n)) (i :: boundsToInt bounds)%SEQ) 0) = Inan.
-    * move => x H0.
-      rewrite evalIntOpRight Hunop /= .
-      apply: xreal_ssr_compat.contains_Xnan.
-      suff: contains 
-            (I.convert 
-               (List.nth n
-                         (eval_generic 
-                            I.nai 
-                            interval_operations 
-                            prog
-                            (i :: boundsToInt bounds)%SEQ) I.nai)) 
-            (Xreal 0).
-        move => Hcontains0.
-        have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
-        apply: I.inv_correct.
-        by apply: Hcontains0.
-      have -> : 
-        Xreal 0 = 
-        nth Xnan (eval_ext prog (Xreal x :: (map Xreal (boundsToR bounds)))) n. 
-        by admit.
-      About A.BndValuator.eval_correct_ext.
-      admit.
-  (* almost there, but some technical details must be sorted out for the 
-     present goal to be provable *) 
-    admit.
+  case Hunop: unop => [|||||||||||k]//= . (* and now 5 cases to treat *)
+  (* inv *)
+  + rewrite Hm evalIntOpRight Hunop /= in HnotInan.
+    have noZero := (notInan_inversion_Inv_stronger _ _ HnotInan).
+    move : noZero => [Hleft|Hright].
+    * left; move => x HUx; apply: Hleft.
+      rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+      by apply: contains_eval_arg; apply: Hi.
+    * right; move => x HUx; apply: Hright.
+      rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+      by apply: contains_eval_arg; apply: Hi.
+  (* sqrt *)
+  + rewrite Hm evalIntOpRight Hunop /= in HnotInan.
+  have NonNeg := (notInan_inversion_Sqrt _ _ HnotInan).
+  move => x HUx; apply: NonNeg.
+  rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+  by apply: contains_eval_arg; apply: Hi.
+  (* Tan *)
   + admit.
-  + admit.
-  + admit.
-  + admit.
+  (* Ln *)
+  + rewrite Hm evalIntOpRight Hunop /= in HnotInan.
+  have HPositive := (notInan_inversion_Ln _ _ HnotInan).
+  move => x HUx; apply: HPositive.
+  rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+  by apply: contains_eval_arg; apply: Hi.
+  (* power *)
+  + case: k Hunop => // p Hunop.
+    rewrite Hm evalIntOpRight Hunop /= in HnotInan.
+    have noZero := (notInan_inversion_PowNeg_stronger _ _ p HnotInan).
+    move : noZero => [Hleft|Hright].
+    * left; move => x HUx; apply: Hleft.
+      rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+      by apply: contains_eval_arg; apply: Hi.
+    * right; move => x HUx; apply: Hright.
+      rewrite /evalInt -nthEq /boundsToR /boundsToInt.
+      by apply: contains_eval_arg; apply: Hi.
 Qed.
-
 
 End Preliminary.
 
