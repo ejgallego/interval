@@ -263,6 +263,70 @@ Qed.
 
 Require Import Interval_generic.
 
+(* This proof seems much too complicated *)
+Lemma RgtToFcmp a b :
+F.real a -> F.real b -> T.toR a > T.toR b -> F.cmp a b = Xgt.
+Proof.
+move => Hreala Hrealb Hgtab.
+rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+rewrite /T.toR /proj_val in Hgtab.
+move: Hgtab.
+move: (F.real_correct a).
+rewrite Hreala.
+case Ha1 : (F.toF a) => [||bb pp zz] // _ .
+- move: (F.real_correct b).
+  rewrite Hrealb.
+  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _.
+  + rewrite /FtoX.
+    by move => Habs; move:  (Rgt_irrefl _ Habs).
+  + rewrite /FtoX /Xcmp.
+    by move => Hgt; rewrite Rcompare_Gt.
+- rewrite /FtoX /Xcmp.
+  move: (F.real_correct b).
+  rewrite Hrealb.
+  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _ ;
+  rewrite /FtoX;move => Hgt; by rewrite Rcompare_Gt.
+Qed.
+
+Lemma RltToFcmp a b :
+F.real a -> F.real b -> T.toR a < T.toR b -> F.cmp a b = Xlt.
+Proof.
+move => Hreala Hrealb Hgtba.
+suff: F.cmp b a = Xgt.
+(* move => Hgt. *)
+rewrite !F.cmp_correct !Interval_generic_proof.Fcmp_correct.
+case: (FtoX (F.toF b)); case: (FtoX (F.toF a)) => // r1 r2.
+rewrite /Xcmp.
+Search _ Rcompare.
+rewrite Rcompare_sym.
+by case: (Rcompare r1 r2).
+apply: RgtToFcmp => //.
+Qed.
+
+(* again, way too complicated *)
+Lemma ReqToFcmp a b :
+F.real a -> F.real b -> T.toR a = T.toR b -> F.cmp a b = Xeq.
+Proof.
+move => Hreala Hrealb Hgtab.
+rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+rewrite /T.toR /proj_val in Hgtab.
+move: Hgtab.
+move: (F.real_correct a).
+rewrite Hreala.
+case Ha1 : (F.toF a) => [||bb pp zz] // _ .
+- move: (F.real_correct b).
+  rewrite Hrealb.
+  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _.
+  + by rewrite /FtoX /= Rcompare_Eq.
+  + rewrite /FtoX /Xcmp.
+    by move => Heq; rewrite Rcompare_Eq.
+- rewrite /FtoX /Xcmp.
+  move: (F.real_correct b).
+  rewrite Hrealb.
+  by case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _  => Heq;
+  rewrite Rcompare_Eq.
+Qed.
+
 Lemma integral_float_signed_correct_neg (depth : nat) (a b : F.type) :
   ex_RInt f (T.toR a) (T.toR b) ->
   T.toR a > T.toR b ->
@@ -274,13 +338,13 @@ move => Hfint Hgeab HaR HbR.
 rewrite /integral_float_signed.
 have -> : F.cmp a b = Xgt. (* rewrite F.cmp_correct. *)
 (* rewrite Interval_generic_proof.Fcmp_correct. *)
-  admit.
+  apply: RgtToFcmp => //.
 rewrite -RInt_swap.
 set it := (RInt _ _ _).
 have -> : Xreal (- it) = Xneg (Xreal it) by [].
 set It := integral_float _ _ _.
 suff: contains (I.convert It) (Xreal it).
-  admit. (* can't find this lemma *)
+  by apply: I.neg_correct.
 apply: integral_float_correct => //.
   by apply: ex_RInt_swap.
 by apply: Rlt_le.
@@ -294,9 +358,9 @@ Proof.
 case (Rle_dec (T.toR a) (T.toR b)) => Hab Hintf Hreala Hrealb.
 - rewrite /integral_float_signed.
   case (Rle_lt_or_eq_dec (T.toR a) (T.toR b)) => // [Hlt|Hle].
-    + have -> : F.cmp a b = Xlt by admit.
+    + have -> : F.cmp a b = Xlt by apply: RltToFcmp.
       exact: integral_float_correct.
-    + have -> : F.cmp a b = Xeq by admit.
+    + have -> : F.cmp a b = Xeq by apply: ReqToFcmp.
       exact: integral_float_correct.
 by apply: integral_float_signed_correct_neg => //; apply: Rnot_le_lt.
 Qed.
