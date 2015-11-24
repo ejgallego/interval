@@ -16,6 +16,7 @@ Module IntegralTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatInterval F.
 Module T := TranscendentalFloatFast F.
+Module Integrability := Integrability F.
 
 Section IntervalIntegral.
 
@@ -437,6 +438,8 @@ Definition integral_intBounds depth (ia ib : I.type) :=
   else
     Inan.
 
+(* Import Integrability. (* for contains_eval *) *)
+
 Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
@@ -449,12 +452,11 @@ move => Hconta Hcontb HFInt.
 case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
 have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb).
-Search _ ex_RInt.
-apply: (ex_RInt_Chasles_2 _ a) => //.
-split.
 
-
- by admit.
+case: (Rle_lt_dec (T.toR ua) (T.toR lb)) => Hualb.
+apply: (ex_RInt_Chasles_2 _ a) => // .
+split => // .
+admit.
 have Hfint_a_ua : ex_RInt f a (T.toR ua) by admit.
 have Hfint_b_lb : ex_RInt f (T.toR lb) b by admit.
 have Hfint_a_lb : ex_RInt f a (T.toR lb) by admit.
@@ -519,3 +521,4 @@ Admitted.
 End IntervalIntegral.
 
 End IntegralTactic.
+
