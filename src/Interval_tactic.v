@@ -12,6 +12,7 @@ Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
+Require Import integrability.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -27,6 +28,9 @@ Module Private.
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F.
+Module Integrability := Integrability F.
+
+Import Integrability.
 
 Ltac get_float t :=
   let get_mantissa t :=
@@ -355,6 +359,8 @@ apply Rabs_le.
 now split.
 Qed.
 
+Require Import ssreflect.
+
 Lemma integral_correct :
   forall prec (depth : nat) proga boundsa progb boundsb prog bounds,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
@@ -362,20 +368,40 @@ Lemma integral_correct :
   let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
+   (* notInan *)
+   (*   (seq.nth I.nai (evalInt prog (I.join ia ib :: boundsToInt bounds)) 0) -> *)
   let i := Int.integral_intBounds prec
     (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai)
     depth ia ib in
-  (match i with Interval_interval_float.Inan => false | _ => true end = true ->
+  (notInan i ->
   ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
-intros prec depth proga boundsa progb boundsb prog bounds f a b ia ib i.
+intros prec depth proga boundsa progb boundsb prog bounds f a b ia ib (* HnotInan *) i.
 case_eq i.
 now split.
 intros l u Hi.
 rewrite <- Hi.
 assert (ex_RInt f a b).
-admit.
+rewrite /f.
+apply: ex_RInt_ext.
+exact: (fun x : R => seq.nth 0 (eval_real prog (x :: seq.map A.real_from_bp bounds)) 0).
+move => x Hx.
+by rewrite nthEq.
+apply: (Integrability.integrableProg prog bounds _ a b (I.join ia ib)) => //.
+- case: (Rlt_le_dec a b) => Hab x Hx.
+  + have Hleab := (Rlt_le a b Hab).
+    rewrite (Rmin_left a b) // in Hx.
+    rewrite (Rmax_right a b) // in Hx.
+    apply: (contains_connected (I.convert (I.join ia ib)) a b) => // .
+    by apply: I.join_correct; left; apply: contains_eval.
+    by apply: I.join_correct; right; apply: contains_eval.
+  + rewrite (Rmin_right a b) // in Hx.
+    rewrite (Rmax_left a b) // in Hx.
+    apply: (contains_connected (I.convert (I.join ia ib)) b a) => // .
+    by apply: I.join_correct; right; apply: contains_eval.
+    by apply: I.join_correct; left; apply: contains_eval.
+- admit.
 apply (conj (fun _ => H)).
 apply Int.integral_correct.
 apply contains_eval.
@@ -1100,12 +1126,16 @@ Module SFBI2 := SpecificFloat BigIntRadix2.
 Module ITSFBI2 := IntervalTactic SFBI2.
 Export ITSFBI2.
 
-(*
+
 Require Import Interval_generic_ops.
 Module GFSZ2 := GenericFloat Radix2.
 Module ITGFSZ2 := IntervalTactic GFSZ2.
 Export ITGFSZ2.
-*)
+
+Lemma blo1 :
+  0 <= RInt (fun x => x) 0 1 <= 1.
+Proof.
+interval.
 
 (*
 Lemma blo1 :
