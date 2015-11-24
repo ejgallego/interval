@@ -9,6 +9,7 @@ Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_transcend.
 Require Import Interval_missing.
+Require Import integrability.
 (* Require Import Interval_generic_proof Interval_generic Interval_xreal Fcore_Raux. *)
 
 Module IntegralTactic (F : FloatOps with Definition even_radix := true).
@@ -447,7 +448,13 @@ Proof.
 move => Hconta Hcontb HFInt.
 case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
-have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb) by admit.
+have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb).
+Search _ ex_RInt.
+apply: (ex_RInt_Chasles_2 _ a) => //.
+split.
+
+
+ by admit.
 have Hfint_a_ua : ex_RInt f a (T.toR ua) by admit.
 have Hfint_b_lb : ex_RInt f (T.toR lb) b by admit.
 have Hfint_a_lb : ex_RInt f a (T.toR lb) by admit.
