@@ -9,6 +9,7 @@ Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_transcend.
 Require Import Interval_missing.
+Require Import integrability.
 (* Require Import Interval_generic_proof Interval_generic Interval_xreal Fcore_Raux. *)
 
 Module IntegralTactic (F : FloatOps with Definition even_radix := true).
