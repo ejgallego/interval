@@ -272,17 +272,14 @@ Proof.
 move => Hreala Hrealb Hgtab.
 rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
 rewrite /T.toR /proj_val in Hgtab.
-move: Hgtab.
+move: Hgtab. About F.real_correct.
 move: (F.real_correct a).
 rewrite Hreala.
 case Ha1 : (F.toF a) => [||bb pp zz] // _ .
 - move: (F.real_correct b).
   rewrite Hrealb.
-  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _.
-  + rewrite /FtoX.
-    by move => Habs; move:  (Rgt_irrefl _ Habs).
-  + rewrite /FtoX /Xcmp.
-    by move => Hgt; rewrite Rcompare_Gt.
+  case Hb1 : (F.toF b)=> [||bb1 pp1 zz1] //= _; first by move/Rgt_irrefl.
+  + by move => ?; rewrite Rcompare_Gt.
 - rewrite /FtoX /Xcmp.
   move: (F.real_correct b).
   rewrite Hrealb.
@@ -451,12 +448,26 @@ Proof.
 move => Hconta Hcontb HFInt.
 case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
+have ia_correct: T.toR la <= a <= T.toR ua by admit.
+have ib_correct: T.toR lb <= b <= T.toR ub by admit.
 have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb).
 
 case: (Rle_lt_dec (T.toR ua) (T.toR lb)) => Hualb.
-apply: (ex_RInt_Chasles_2 _ a) => // .
-split => // .
-admit.
+- apply: (ex_RInt_Chasles_2 _ a) => // .
+  split => // .
+  by case: ia_correct => [].
+  apply: (ex_RInt_Chasles_1 _ _) => // .
+  split => // .
+  + apply: (Rle_trans _ (T.toR ua)).
+  + admit.
+- apply: ex_RInt_swap.
+  apply: (ex_RInt_Chasles_1) => // .
+  split => // .
+  admit.
+  apply: (ex_RInt_Chasles_1 _ _) => // .
+  split => // .
+  + admit.
+  + admit.
 have Hfint_a_ua : ex_RInt f a (T.toR ua) by admit.
 have Hfint_b_lb : ex_RInt f (T.toR lb) b by admit.
 have Hfint_a_lb : ex_RInt f a (T.toR lb) by admit.

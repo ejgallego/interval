@@ -368,13 +368,13 @@ Lemma integral_correct :
   let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-   (* notInan *)
-   (*   (seq.nth I.nai (evalInt prog (I.join ia ib :: boundsToInt bounds)) 0) -> *)
   let i := Int.integral_intBounds prec
     (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai)
     depth ia ib in
-  (notInan i ->
-  ex_RInt f a b) /\
+  notInan
+    (seq.nth I.nai (evalInt prog (I.join ia ib :: boundsToInt bounds)) 0) ->
+  ((* notInan i -> *)
+   ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
 intros prec depth proga boundsa progb boundsb prog bounds f a b ia ib (* HnotInan *) i.
