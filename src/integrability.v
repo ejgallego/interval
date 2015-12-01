@@ -85,13 +85,18 @@ Axiom Pi : R. (* until I find it *)
 (*   continuous_on D (fun x => - (f x)). *)
 (* Proof. *)
 (* Admitted. *)
-Definition continuous_all (D : R -> Prop) (f : R -> R) := 
+Definition continuous_all (D : R -> Prop) (f : R -> R) :=
   forall x, D x -> continuous f x.
 
 Lemma continuous_all_id D : continuous_all D (fun x => x).
 Proof.
 move => x HDx.
 by apply: continuous_id.
+Qed.
+
+Lemma continuous_all_const D a : continuous_all D (fun x => a).
+Proof.
+by move => x HDx; apply: continuous_const.
 Qed.
 
 Lemma continuous_all_ext (D : R -> Prop) (f g : R -> R) :
@@ -105,7 +110,7 @@ apply: (continuous_ext f) => // .
 by apply: HDf.
 Qed.
 
-Lemma continuous_all_comp D E f g : 
+Lemma continuous_all_comp D E f g :
   continuous_all D f ->
   continuous_all E g ->
   (forall x, E (f x)) ->
@@ -125,7 +130,7 @@ Proof.
 Admitted.
 
 Lemma continuous_all_weaken (Strong : R -> Prop) (Weak : R -> Prop) f :
-  (forall x : R, Weak x -> Strong x) -> 
+  (forall x : R, Weak x -> Strong x) ->
   continuous_all Strong f ->
   continuous_all Weak f.
 Proof.
@@ -274,7 +279,7 @@ Definition domain unop g (P : R -> Prop) :=
     | Atan => True
     | Exp => True
     | Ln => (forall x, P x -> g x > 0)
-    | PowerInt n => 
+    | PowerInt n =>
       (match n with
          | Zpos m => True
          | Z0 => True
@@ -283,9 +288,9 @@ Definition domain unop g (P : R -> Prop) :=
       )
   end.
 
-Lemma domain_correct unop D g: 
-  continuous_all D g -> 
-  (domain unop g D) -> 
+Lemma domain_correct unop D g:
+  continuous_all D g ->
+  (domain unop g D) ->
   continuous_all D (fun x => unary real_operations unop (g x)).
 Proof.
 move => Hgcont.
@@ -307,7 +312,7 @@ case Hunop: unop => HD; rewrite /domain in HD.
 - by apply: continuous_all_ln.
 - by apply: continuous_all_powerRZ .
 Qed.
-  
+
 (* Lemma sqrt_continuous x: x > 0 -> continuous sqrt x. *)
 (* Admitted. *)
 
@@ -337,44 +342,40 @@ End MissingIntegrability.
 Section Preliminary.
 Require Import seq.
 
-Lemma evalRealOpRight op prog l m : (* raw form, will probably change *)
-  nth R0 (eval_real (rcons prog op) l) m =
-  nth 0
-      (eval_generic_body
-         0
-         real_operations
-         (eval_generic 0 real_operations prog l) op) m.
-Proof.
-by rewrite /eval_real rev_formula revEq rev_rcons /= rev_formula revEq.
-Qed.
-
 Definition interval_operations := (A.BndValuator.operations prec).
 
-Lemma evalIntOpRight op prog l m :
-  nth I.nai (evalInt (rcons prog op) l) m =
-  nth I.nai
-      (eval_generic_body
-         I.nai
-         interval_operations
-         (evalInt prog l) op) m.
+Lemma evalOpRight (A : Type) (ops : operations A) (z : A) op (prog : seq term) l m :
+  nth z (@eval_generic A z ops (rcons prog op) l) m =
+  nth z
+      (@eval_generic_body A z
+         ops
+         (@eval_generic _ z ops prog l) op) m.
 Proof.
-rewrite /evalInt /A.BndValuator.eval rev_formula revEq rev_rcons /= .
+rewrite  /A.BndValuator.eval rev_formula revEq rev_rcons /= .
 by rewrite rev_formula revEq.
 Qed.
 
-Lemma evalRealOpRightFold op prog bounds m x : (* raw form, will probably change *)
-  nth R0 (eval_real (rcons prog op) (x::boundsToR bounds)) m =
-  nth 0
-      (eval_generic_body
-         0
-         real_operations
-         (fold_right
-            (fun (y : term) (x0 : seq R) =>
-               eval_generic_body 0 real_operations x0 y)
-            (x :: boundsToR bounds) (rev prog)) op) m.
-Proof.
-by rewrite /eval_real rev_formula revEq rev_rcons /=.
-Qed.
+(* Lemma evalRealOpRight op prog l m : (* raw form, will probably change *) *)
+(*   nth R0 (eval_real (rcons prog op) l) m = *)
+(*   nth 0 *)
+(*       (eval_generic_body *)
+(*          0 *)
+(*          real_operations *)
+(*          (eval_real prog l) op) m. *)
+(* Proof. *)
+(* by apply: evalOpRight. *)
+(* Qed. *)
+
+(* Lemma evalIntOpRight op prog l m : *)
+(*   nth I.nai (evalInt (rcons prog op) l) m = *)
+(*   nth I.nai *)
+(*       (eval_generic_body *)
+(*          I.nai *)
+(*          interval_operations *)
+(*          (evalInt prog l) op) m. *)
+(* Proof. *)
+(* by apply: evalOpRight. *)
+(* Qed. *)
 
 (* Lemma unNamed1 unop n prog a b bounds m: *)
 (*    (forall m, ex_RInt *)
@@ -497,6 +498,12 @@ Lemma notInan_convert i :
   I.convert i = Inan -> i = Interval_interval_float.Inan.
 case: i => // .
 Qed.
+
+Definition notXnan (xR : ExtendedR) :=
+  match xR with
+    | Xnan => false
+    | Xreal _ => true end = true.
+
 
 Lemma notInan_inversion_Inv prec i :
 notInan (I.inv prec i) -> ~ contains (I.convert i) (Xreal 0) .
@@ -724,13 +731,65 @@ Lemma notInan_inversion_unop prog unop i bounds n :
       notInan (nth I.nai (evalInt prog (i :: boundsToInt bounds)) n).
 Proof.
 move => HnotInan.
-rewrite evalIntOpRight /eval_generic_body in HnotInan.
+rewrite evalOpRight /eval_generic_body in HnotInan.
 rewrite /notInan.
 case Hnan : (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) n) => // .
 rewrite nthEq Hnan /= in HnotInan.
 case: unop HnotInan => //= .
 by case => // .
 Qed.
+
+Lemma notXnan_inversion_unop prog unop x bounds n :
+      notXnan
+        (nth Xnan
+             (eval_ext (rcons prog (Unary unop n)) ((Xreal x) :: map A.xreal_from_bp bounds)) 0) ->
+      notXnan (nth Xnan (eval_ext prog ((Xreal x) :: map A.xreal_from_bp bounds)) n).
+Proof.
+move => HnotXnan.
+rewrite evalOpRight /eval_generic_body in HnotXnan.
+rewrite /notXnan.
+set xR := (nth _ _ _).
+case Hnan : xR  => // .
+rewrite /xR in Hnan.
+rewrite nthEq Hnan in HnotXnan.
+by case: unop HnotXnan => //= .
+Qed.
+
+Lemma notXnan_inversion_binop_left prog binop x bounds n1 n2 :
+      notXnan
+        (nth Xnan
+             (eval_ext (rcons prog (Binary binop n1 n2)) (Xreal x :: map A.xreal_from_bp bounds)%SEQ) 0) ->
+      notXnan (nth Xnan (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)%SEQ) n1).
+Proof.
+move => HnotXnan.
+rewrite evalOpRight /eval_generic_body in HnotXnan.
+rewrite /notXnan.
+set xR := (nth _ _ _).
+case Hnan : xR => // .
+rewrite /xR in Hnan.
+rewrite nthEq Hnan /= in HnotXnan.
+by case: binop HnotXnan => //= .
+Qed.
+
+Lemma notXnan_inversion_binop_right prog binop x bounds n1 n2 :
+      notXnan
+        (nth Xnan
+             (eval_ext (rcons prog (Binary binop n1 n2)) (Xreal x :: map A.xreal_from_bp bounds)%SEQ) 0) ->
+      notXnan (nth Xnan (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)%SEQ) n2).
+Proof.
+move => HnotXnan.
+rewrite evalOpRight /eval_generic_body in HnotXnan.
+rewrite /notXnan.
+set xR := (nth _ _ _).
+case Hnan : xR => // .
+rewrite /xR in Hnan.
+case: binop HnotXnan => //= ;
+  rewrite !nthEq; rewrite Hnan /= ;
+  case: (nth Xnan
+           (eval_generic Xnan ext_operations prog
+               (Xreal x :: [seq A.xreal_from_bp i | i <- bounds])%SEQ) n1) => //=. (* dirty hack for now *)
+Qed.
+
 
 Lemma notInan_inversion_binop_left prog binop i bounds i1 i2 :
       notInan
@@ -739,7 +798,7 @@ Lemma notInan_inversion_binop_left prog binop i bounds i1 i2 :
       notInan (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) i1).
 Proof.
 move => HnotInan.
-rewrite evalIntOpRight /eval_generic_body in HnotInan.
+rewrite evalOpRight /eval_generic_body in HnotInan.
 rewrite /notInan.
 case Hnan : (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) i1) => // .
 rewrite nthEq Hnan /= in HnotInan.
@@ -753,7 +812,7 @@ Lemma notInan_inversion_binop_right prog binop i bounds i1 i2 :
       notInan (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) i2).
 Proof.
 move => HnotInan.
-- rewrite evalIntOpRight /eval_generic_body in HnotInan.
+- rewrite evalOpRight /eval_generic_body in HnotInan.
   rewrite /notInan.
   case Hnan : (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) i2) => // .
   rewrite !nthEq Hnan /= in HnotInan.
@@ -781,16 +840,16 @@ Lemma continuousProg_Ind op prog bounds m (U : R -> Prop) i:
           m) ->
   (forall m0 : nat,
     notInan (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m0) ->
-    continuous_all 
+    continuous_all
       U
       (fun x : R => nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) m0)) ->
-   continuous_all 
+   continuous_all
      U
-     (fun x => 
-        nth 
-          R0 
-          (eval_real 
-             (rcons prog op) 
+     (fun x =>
+        nth
+          R0
+          (eval_real
+             (rcons prog op)
              (x::boundsToR bounds)) m).
 Proof.
 move => Hi HnotInan Hprog.
@@ -800,14 +859,14 @@ exact: (fun x => nth 0
       (eval_generic_body
          0
          real_operations
-         (eval_generic 
-            0 
-            real_operations 
-            prog 
-            (x :: boundsToR bounds)) 
+         (eval_generic
+            0
+            real_operations
+            prog
+            (x :: boundsToR bounds))
          op) m).
 move => x.
-by rewrite evalRealOpRight.
+by rewrite evalOpRight.
 
 (* now we distinguish the easy case (m>0),
 which is actually free from the hypothesis,
@@ -828,7 +887,7 @@ case Hm : m => [|m0]; last first.
     move => x.
     by rewrite -nth_behead.
   apply: Hprog.
-  by rewrite Hm evalIntOpRight /= in HnotInan.
+  by rewrite Hm evalOpRight /= in HnotInan.
 (* now the meat of the proof: m=0 *)
 (* first get the operation up front *)
 
@@ -854,7 +913,7 @@ case Hop : op => [unop n| binop n1 n2].
     (* rewrite Hop Hm evalIntOpRight /= in HnotInan. *)
   case Hunop: unop => [|||||||||||k]//= . (* and now 5 cases to treat *)
   (* inv *)
-  + rewrite Hop Hm evalIntOpRight Hunop /= in HnotInan.
+  + rewrite Hop Hm evalOpRight Hunop /= in HnotInan.
     have noZero := (notInan_inversion_Inv_stronger _ _ HnotInan).
     move : noZero => [Hleft|Hright].
     * left; move => x HUx; apply: Hleft.
@@ -864,7 +923,7 @@ case Hop : op => [unop n| binop n1 n2].
       rewrite /evalInt -nthEq /boundsToR /boundsToInt.
       by apply: contains_eval_arg; apply: Hi.
   (* sqrt *)
-  + rewrite Hop Hm evalIntOpRight Hunop /= in HnotInan.
+  + rewrite Hop Hm evalOpRight Hunop /= in HnotInan.
   have NonNeg := (notInan_inversion_Sqrt _ _ HnotInan).
   move => x HUx; apply: NonNeg.
   rewrite /evalInt -nthEq /boundsToR /boundsToInt.
@@ -872,14 +931,14 @@ case Hop : op => [unop n| binop n1 n2].
   (* Tan *)
   + admit.
   (* Ln *)
-  + rewrite Hop Hm evalIntOpRight Hunop /= in HnotInan.
+  + rewrite Hop Hm evalOpRight Hunop /= in HnotInan.
   have HPositive := (notInan_inversion_Ln _ _ HnotInan).
   move => x HUx; apply: HPositive.
   rewrite /evalInt -nthEq /boundsToR /boundsToInt.
   by apply: contains_eval_arg; apply: Hi.
   (* power *)
   + case: k Hunop => // p Hunop.
-    rewrite Hop Hm evalIntOpRight Hunop /= in HnotInan.
+    rewrite Hop Hm evalOpRight Hunop /= in HnotInan.
     have noZero := (notInan_inversion_PowNeg_stronger _ _ p HnotInan).
     move : noZero => [Hleft|Hright].
     * left; move => x HUx; apply: Hleft.
@@ -890,14 +949,14 @@ case Hop : op => [unop n| binop n1 n2].
       by apply: contains_eval_arg; apply: Hi.
 
 (* this little intermission is for ssreflect compatibility reasons *)
-have HprogBis : 
+have HprogBis :
   forall m0 : nat,
     notInan (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m0) ->
     continuous_all U
                    (fun x : R =>
                       List.nth m0 (eval_real prog (x :: boundsToR bounds)%SEQ) 0).
 move => m0 HnotInan2.
-apply: continuous_all_ext. 
+apply: continuous_all_ext.
 exact: (fun x : R =>
              nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) m0).
 move => x.
@@ -906,42 +965,42 @@ by apply: Hprog.
 
 case Hbinop : binop.
  - apply: continuous_all_ext.
-   exact: 
+   exact:
      (fun x =>
-        List.nth 
+        List.nth
           n1
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 +
-        List.nth 
+        List.nth
           n2
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
-     by move => x; rewrite /=. 
+     by move => x; rewrite /=.
    apply: continuous_all_Rplus; apply: HprogBis.
    apply: (notInan_inversion_binop_left prog binop i bounds n1 n2).
      by rewrite -Hm -Hop.
    apply: (notInan_inversion_binop_right prog binop i bounds n1 n2).
      by rewrite -Hm -Hop.
  - apply: continuous_all_ext.
-   exact: 
+   exact:
      (fun x =>
-        List.nth 
+        List.nth
           n1
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 -
-        List.nth 
+        List.nth
           n2
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
-     by move => x; rewrite /=. 
+     by move => x; rewrite /=.
    apply: continuous_all_Rsub; apply: HprogBis.
    apply: (notInan_inversion_binop_left prog binop i bounds n1 n2).
      by rewrite -Hm -Hop.
    apply: (notInan_inversion_binop_right prog binop i bounds n1 n2).
      by rewrite -Hm -Hop.
  - apply: continuous_all_ext.
-   exact: 
+   exact:
      (fun x =>
-        List.nth 
+        List.nth
           n1
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 *
-        List.nth 
+        List.nth
           n2
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
      by move => x; rewrite /=.
@@ -951,12 +1010,12 @@ case Hbinop : binop.
    apply: (notInan_inversion_binop_right prog binop i bounds n1 n2).
      by rewrite -Hm -Hop.
  - apply: continuous_all_ext.
-   exact: 
+   exact:
      (fun x =>
-        List.nth 
+        List.nth
           n1
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 /
-        List.nth 
+        List.nth
           n2
           (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
      by move => x; rewrite /=.
@@ -974,8 +1033,8 @@ case Hbinop : binop.
    (*  * right; move => x HUx; apply: Hright. *)
    (*    rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
    (*    by apply: contains_eval_arg; apply: Hi. *)
-   admit. 
-  (* the last commented sequence will work if lemma *) 
+   admit.
+  (* the last commented sequence will work if lemma *)
   (* notInan_inversion_Div_stronger is true*)
 Qed.
 
@@ -1034,6 +1093,240 @@ apply: ex_RInt_continuous.
 apply: (continuousProg prog bounds m _ i) => //.
 Qed.
 
+
+Lemma continuousProg2 prog bounds (m : nat) (U : R -> Prop) i:
+  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
+  (forall x,
+     U x ->
+     notXnan (nth Xnan
+          (eval_ext prog ((Xreal x)::map A.xreal_from_bp bounds))
+          m)) ->
+  continuous_all
+    U
+    (fun x =>
+       nth
+         R0
+         (eval_real
+            prog
+            (x::boundsToR bounds)) m).
+Proof.
+move => Hcontains.
+generalize m.
+elim/last_ind: prog => [m0 HnotXnan |prog op HI m0 Hm0].
+- rewrite /= .
+  case Hm0 : m0 => [|m1] /= .
+  + by apply:(continuous_all_ext _ (fun x => x)) => x /=; try apply: continuous_all_id.
+  + by apply: continuous_all_const.
+-
+  case Hm : m0 => [|m1]; last first.
+
+  + apply: continuous_all_ext.
+    exact:
+      (fun x : R =>
+         nth 0
+             (eval_generic
+                0
+                real_operations
+                prog
+                (x :: boundsToR bounds)%SEQ)
+             m1).
+    move => x.
+    by rewrite evalOpRight /=.
+    apply: HI => x HUx.
+    move: (Hm0 x HUx).
+    by rewrite Hm evalOpRight /= .
+    (* now m = 0 *)
+case Hop : op => [unop n| binop n1 n2].
+- apply: continuous_all_ext.
+  exact:
+    (fun x =>
+       (unary
+          real_operations
+          unop
+          (nth
+             0
+             (eval_real prog (x :: boundsToR bounds)%SEQ)
+             n)
+       )
+    ).
+  move => x.
+  by rewrite evalOpRight /= nthEq.
+  apply: domain_correct.
+    apply: HI.
+    move => x HUx.
+    apply: (notXnan_inversion_unop _ unop).
+    by move: (Hm0 x HUx); rewrite Hop Hm.
+    (* rewrite Hop Hm evalIntOpRight /= in HnotInan. *)
+  case Hunop: unop => [|||||||||||k]//= . (* and now 5 cases to treat *)
+  (* inv *)
+  +
+    admit.
+    (* rewrite Hop Hm evalOpRight Hunop /= in HnotInan. *)
+    (* have noZero := (notInan_inversion_Inv_stronger _ _ HnotInan). *)
+    (* move : noZero => [Hleft|Hright]. *)
+    (* * left; move => x HUx; apply: Hleft. *)
+    (*   rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+    (*   by apply: contains_eval_arg; apply: Hi. *)
+    (* * right; move => x HUx; apply: Hright. *)
+    (*   rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+    (*   by apply: contains_eval_arg; apply: Hi. *)
+  (* sqrt *)
+  + admit.
+  (*   rewrite Hop Hm evalOpRight Hunop /= in HnotInan. *)
+  (* have NonNeg := (notInan_inversion_Sqrt _ _ HnotInan). *)
+  (* move => x HUx; apply: NonNeg. *)
+  (* rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+  (* by apply: contains_eval_arg; apply: Hi. *)
+  (* Tan *)
+  + admit.
+  (* Ln *)
+  + admit.
+    (* rewrite Hop Hm evalOpRight Hunop /= in HnotInan. *)
+  (* have HPositive := (notInan_inversion_Ln _ _ HnotInan). *)
+  (* move => x HUx; apply: HPositive. *)
+  (* rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+  (* by apply: contains_eval_arg; apply: Hi. *)
+  (* power *)
+  + admit.
+    (* case: k Hunop => // p Hunop. *)
+    (* rewrite Hop Hm evalOpRight Hunop /= in HnotInan. *)
+    (* have noZero := (notInan_inversion_PowNeg_stronger _ _ p HnotInan). *)
+    (* move : noZero => [Hleft|Hright]. *)
+    (* * left; move => x HUx; apply: Hleft. *)
+    (*   rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+    (*   by apply: contains_eval_arg; apply: Hi. *)
+    (* * right; move => x HUx; apply: Hright. *)
+    (*   rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+    (*   by apply: contains_eval_arg; apply: Hi. *)
+(* this little intermission is for ssreflect compatibility reasons *)
+have HprogBis :
+  forall m0 : nat,
+    (forall x, U x ->
+               notXnan (nth Xnan (eval_ext prog ((Xreal x) :: map A.xreal_from_bp bounds)%SEQ) m0)) ->
+    continuous_all U
+                   (fun x : R =>
+                      List.nth m0 (eval_real prog (x :: boundsToR bounds)%SEQ) 0).
+move => m1 HnotXnan.
+apply: continuous_all_ext.
+exact: (fun x : R =>
+             nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) m1).
+move => x1.
+by rewrite /= -nthEq.
+by apply: HI.
+
+case Hbinop : binop.
+ - apply: continuous_all_ext.
+   exact:
+     (fun x =>
+        List.nth
+          n1
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 +
+        List.nth
+          n2
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
+     by move => x; rewrite evalOpRight /=.
+   apply: continuous_all_Rplus; apply: HprogBis.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_left prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_right prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+ - apply: continuous_all_ext.
+   exact:
+     (fun x =>
+        List.nth
+          n1
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 -
+        List.nth
+          n2
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
+     by move => x; rewrite evalOpRight /=.
+   apply: continuous_all_Rsub; apply: HprogBis.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_left prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_right prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+ - apply: continuous_all_ext.
+   exact:
+     (fun x =>
+        List.nth
+          n1
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 *
+        List.nth
+          n2
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
+     by move => x; rewrite evalOpRight /=.
+   apply: continuous_all_Rmult; apply: HprogBis.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_left prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_right prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+ - apply: continuous_all_ext.
+   exact:
+     (fun x =>
+        List.nth
+          n1
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0 /
+        List.nth
+          n2
+          (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0).
+     by move => x; rewrite evalOpRight /=.
+   apply: continuous_all_Rdiv; try apply: HprogBis.
+   (* rewrite Hop Hm evalIntOpRight Hbinop /= in HnotInan. *)
+   move => x HUx.
+   apply: (notXnan_inversion_binop_left prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+   move => x HUx.
+   apply: (notXnan_inversion_binop_right prog binop _ bounds n1 n2).
+     by rewrite evalOpRight -Hm -Hop; move: (Hm0 x HUx); rewrite evalOpRight.
+   (* have noZero := (notInan_inversion_Div_stronger _ _ HnotInan). *)
+   (*  move : noZero => [Hleft|Hright]. *)
+   (*  * left; move => x HUx; apply: Hleft. *)
+   (*    rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+   (*    by apply: contains_eval_arg; apply: Hi. *)
+   (*  * right; move => x HUx; apply: Hright. *)
+   (*    rewrite /evalInt -nthEq /boundsToR /boundsToInt. *)
+   (*    by apply: contains_eval_arg; apply: Hi. *)
+   admit.
+  (* the last commented sequence will work if lemma *)
+  (* notInan_inversion_Div_stronger is true*)
+Qed.
+
+(* we ensure that we get the former result by using the new one *)
+Lemma continuousProgAsAConsequence prog bounds (m : nat) (U : R -> Prop) i:
+  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
+  (notInan (nth I.nai
+          (evalInt prog (i::boundsToInt bounds))
+          m)) ->
+  continuous_all
+    U
+    (fun x =>
+       nth
+         R0
+         (eval_real
+            prog
+            (x::boundsToR bounds)) m).
+Proof.
+move => Hcontains HnotInan.
+apply: (continuousProg2 _ _ _ _ i) => // x HUx.
+rewrite /notXnan.
+set xR := nth _ _ _.
+case HxR : xR => //= .
+suff: (I.convert (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m) = Inan).
+  move => Habs.
+  rewrite /notInan in HnotInan.
+  case Hi : (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m) Habs => //= .
+  by rewrite Hi in HnotInan.
+apply: xreal_ssr_compat.contains_Xnan.
+rewrite -HxR /xR.
+rewrite -!nthEq -!mapEq /evalInt.
+by apply: A.BndValuator.eval_correct_ext; apply: Hcontains.
+Qed.
 
 End Preliminary.
 
