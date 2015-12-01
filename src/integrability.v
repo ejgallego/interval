@@ -995,9 +995,15 @@ Qed.
 (* Qed. *)
 
 
-Lemma Xnan_inversion_Inv (U: R -> Prop) : 
- (forall x, U x -> notXnan (Xinv (x))) ->
-(forall x, U x -> x <> 0).
+Lemma Xnan_inversion_Inv (U: R -> Prop) f : 
+ (forall x, U x -> notXnan (Xinv (Xreal (f x)))) ->
+(forall x, U x -> f x <> 0).
+Proof.
+move => HnotXnan x HUx Hfxeq0.
+have Habs := (HnotXnan x (HUx)).
+by rewrite Hfxeq0 /= is_zero_correct_zero in Habs.
+Qed.
+
 
 Lemma continuousProg2 prog bounds (m : nat) (U : R -> Prop) i:
   (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
@@ -1064,7 +1070,12 @@ case Hop : op => [unop n| binop n1 n2].
     (* rewrite Hop Hm evalIntOpRight /= in HnotInan. *)
   case Hunop: unop => [|||||||||||k]//= . (* and now 5 cases to treat *)
   (* inv *)
-  +
+  + move => x HUx.
+    apply: (Xnan_inversion_Inv U (fun x => nth 0 (eval_real prog (x :: boundsToR bounds)%SEQ) n)) => // .
+    move => x0 HUx0.
+    have H1 := (Hm0 x0 HUx0) => // .
+    rewrite Hop Hunop evalOpRight in H1.
+    (* where is that lemma about Xreal , eval_ext and eval_real ? *)
     admit.
     (* rewrite Hop Hm evalOpRight Hunop /= in HnotInan. *)
     (* have noZero := (notInan_inversion_Inv_stronger _ _ HnotInan). *)
