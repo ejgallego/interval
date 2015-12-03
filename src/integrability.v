@@ -1304,7 +1304,7 @@ Qed.
 *)
 
 (* we ensure that we get the former result by using the new one *)
-Lemma continuousProgAsAConsequence prog bounds (m : nat) i:
+Lemma continuousProg prog bounds (m : nat) i:
   forall x, contains (I.convert i) (Xreal x) ->
   (notInan (List.nth m
           (evalInt prog (i::boundsToInt bounds))
@@ -1345,10 +1345,9 @@ Proof.
 move => Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
-apply: continuousProgAsAConsequence => //.
+apply: continuousProg => //.
 by apply Hcontains.
 Qed.
-
 
 End Preliminary.
 
