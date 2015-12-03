@@ -371,39 +371,55 @@ Definition diam x :=
     | Ibnd a b => F.sub_exact b a
   end.
 
-(* Definition all_integrals (ia : I.type) := *)
-(* I.mul prec (thin (diam ia)) (I.join (I.neg (iF ia)) (iF ia)). *)
-
-(* Lemma all_integrals_correct (ia : I.type) (t1 t2 : R) : *)
-(*   (contains (I.convert ia) (Xreal t1)) -> *)
-(*   (contains (I.convert ia) (Xreal t2)) -> *)
-(*   (contains (I.convert (all_integrals ia)) (Xreal (RInt f t1 t2))). *)
-(* Proof. *)
-(* move => Hat1 Hat2. *)
-(* rewrite /all_integrals. *)
-(* wlog : t1 t2 Hat1 Hat2 / t1 <= t2 => Hleq. *)
-(* Admitted. *)
-
-(* Definition integral_intBounds depth (a b : I.type) := *)
-(*   if a is Ibnd _ b1 then *)
-(*     if b is Ibnd a2 _ then *)
-(*       let sab := all_integrals a in *)
-(*       let scd := all_integrals b in *)
-(*       I.add prec (I.add prec sab (integral_float_signed depth b1 a2)) scd *)
-(*     else *)
-(*       Inan *)
-(*   else *)
-(*     Inan. *)
-
-Axiom convex_hull :  I.type -> I.type -> I.type.
-Axiom convex_hull_correct : forall (ia ib : I.type) (x1 x2 y : R) ,
-x1 <= y <= x2 ->
-contains (I.convert ia) (Xreal x1) ->
-contains (I.convert ib) (Xreal x2) ->
-contains (I.convert (convex_hull ia ib)) (Xreal y).
-
 Definition all_integrals (ia ib : I.type) :=
 I.mul prec (iF (I.join ia ib)) (I.sub prec ib ia).
+
+Lemma all_integrals_correct_leq (ia ib: I.type) (a b : R) :
+  (a <= b) ->
+  contains (I.convert ia) (Xreal a) ->
+  contains (I.convert ib) (Xreal b) ->
+  ex_RInt f a b ->
+  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
+Proof.
+move => Hleab Hcont1 Hcont2 Hfint.
+rewrite /all_integrals.
+case elu: (iF (I.join ia ib)) => // [l u].
+set Iab := RInt _ _ _.
+have Hjoina : contains (I.convert (I.join ia ib)) (Xreal a). 
+  by apply: I.join_correct; left.
+have Hjoinb : contains (I.convert (I.join ia ib)) (Xreal b). 
+  by apply: I.join_correct; right.
+case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
+  + have -> : Xreal Iab = Xmul (g (Xreal a)) (Xsub (Xreal b) (Xreal a)).
+      rewrite /Iab Heqab /= RInt_point; congr Xreal; ring.
+    apply: I.mul_correct; last by apply: I.sub_correct. 
+    by rewrite -elu; apply: HiFIntExt. 
+    (* rewrite -elu; apply: HiFIntExt;  move/F_realP: ha<-. *)
+    (* by apply: contains_convert_bnd_l. *)
+  + have -> : Xreal Iab = Xmul (Xreal (Iab / (b - a))) (Xreal (b - a)).
+       rewrite Xmul_Xreal; congr Xreal; field.
+       by apply: Rminus_eq_contra; apply: Rlt_dichotomy_converse; right.
+    apply: I.mul_correct; last first.
+    - rewrite -[Xreal (b - a)]/(Xsub (Xreal b) (Xreal a)). (* 1 *)
+      by apply: I.sub_correct. 
+      (* try and show l * (b - a) <= int <= u * (b - a) instead *)
+    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(g (Xreal x)).
+      apply: HiFIntExt.
+      + apply (contains_connected _ a b) => // .
+        split.
+        * by move : hx => [] Hltax _; apply: Rlt_le.
+        * by move : hx => [] _ Hltxb; apply: Rlt_le.
+Qed.
+
+Lemma all_integrals_correct_lt_swap (ia ib: I.type) (a b : R) :
+  (b < a) ->
+  contains (I.convert ia) (Xreal a) ->
+  contains (I.convert ib) (Xreal b) ->
+  ex_RInt f a b ->
+  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
+Proof.
+(* for now it is impossible to prove this because we don't know that I.join is symmetrical*)
+Admitted.
 
 Lemma all_integrals_correct (ia ib: I.type) (a b : R) :
   contains (I.convert ia) (Xreal a) ->
@@ -411,9 +427,14 @@ Lemma all_integrals_correct (ia ib: I.type) (a b : R) :
   ex_RInt f a b ->
   contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
 Proof.
-move => Hcont1 Hcont2 Hfint.
-Admitted.
-
+move: (Rle_dec a b).
+case => [Hleab | Hltba].
+move: Hleab.
+by apply: all_integrals_correct_leq.
+apply: all_integrals_correct_lt_swap.
+Search _ (~ _ <= _).
+by apply: Rnot_le_lt.
+Qed.
 
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
@@ -446,6 +467,13 @@ apply Rle_refl.
 Qed.
 
 (* Import Integrability. (* for contains_eval *) *)
+
+Lemma toX_toF_Freal a : (FtoX (F.toF a) <> Xnan) -> F.real a.
+Proof.
+move: (F.real_correct a).
+  by case: (F.toF a).
+Qed.
+
 
 Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
   contains (I.convert ia) (Xreal a) ->
@@ -506,9 +534,7 @@ have -> : Xreal (RInt f a b) =
        by destruct FtoX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
-     * apply: integral_float_signed_correct => //.
-       admit.
-       admit.
+     * apply: integral_float_signed_correct => // ; apply: toX_toF_Freal => // .
    + apply: (all_integrals_correct _ _ (T.toR lb) b) => //.
      generalize (thin_correct lb).
      unfold I.convert_bound, T.toR.
@@ -517,45 +543,6 @@ have -> : Xreal (RInt f a b) =
      split => //.
      now apply Rle_trans with (1 := Haua).
 Qed.
-
-
-(* (* generalize HiFIntExt. *) *)
-(* case Hia: ia => [|lba uba] //. *)
-(* case Hib: ib => [|lbb ubb] // Ha Hb Hintf. *)
-(* rewrite /integral_intBounds. *)
-(* case ubaReal : (F.real uba). *)
-(*   - case ubaReal1 : (F.real uba); last by rewrite ubaReal1 in ubaReal. (* hack to keep F.real uba in context for a later "slash slash" *) *)
-(*     case lbbReal : (F.real lbb). *)
-(*     + case lbbReal1 : (F.real lbb); last by rewrite lbbReal1 in lbbReal. *)
-(*       move/F_realP: ubaReal => Huba. *)
-(*       move/F_realP: lbbReal => Hlbb. *)
-(*       have -> : *)
-(*         Xreal (RInt f a b) = *)
-(*         Xadd *)
-(*           (Xadd (XRInt f  a (T.toR uba)) (XRInt f (T.toR uba) (T.toR lbb))) *)
-(*           (XRInt f (T.toR lbb) b). *)
-(*         * rewrite /= . *)
-(*           rewrite 2?RInt_Chasles => // . *)
-(*           - by admit. *)
-(*           - by admit. *)
-(*           - by admit. *)
-(*           - by admit. *)
-(*       apply: I.add_correct. *)
-(*         apply: I.add_correct. *)
-(*           apply: all_integrals_correct => // . *)
-(*           by admit. *)
-(*         apply: integral_float_signed_correct => // . *)
-(*         apply: Hintf. *)
-(*           by admit. *)
-(*         by admit. *)
-(*     + apply: all_integrals_correct => //. *)
-(*        admit. *)
-(* case Hflbb : (F.toF lbb); have := (F.real_correct lbb); *)
-(* rewrite Hflbb lbbReal=> // _. *)
-(* (* some intermediary lemmas are needed here *) *)
-(* (* for example one saying that the integral is *) *)
-(* (* Inan as soon as one of the bounds is not a real *) *)
-(* Admitted. *)
 
 End IntervalIntegral.
 
