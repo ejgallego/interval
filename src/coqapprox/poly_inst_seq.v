@@ -18,7 +18,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith.
+Require Import ZArith Reals.
 Require Import NaryFunctions.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -437,7 +437,7 @@ Qed.
 
 End SeqPolyPowDivMonomUp.
 
-Module ExactSeqPolyMonomUp (C : ExactFullOps) <: ExactMonomPolyOps C.
+Module ExactSeqPolyMonomUp (C : ExactFullOps) <: (*FIXME/Exact*)MonomPolyOps C.
 Include SeqPolyPowDivMonomUp C.
 
 Canonical Cadd_monoid := Monoid.Law C.tadd_assoc C.tadd_zerol C.tadd_zeror.
@@ -552,22 +552,22 @@ Module Fl := MaskBaseF F.
 Include SeqPolyMonomUp Fl.
 End SeqPolyMonomUpFloat.
 
-Module Type LinkIntXPr (I : IntervalOps).
+Module Type LinkIntR2 (I : IntervalOps).
 Module Pol := SeqPolyMonomUpInt I.
-Module PolX := ExactSeqPolyMonomUp FullXR.
-Include LinkIntX I Pol PolX.
-End LinkIntXPr.
+Module PolR := (*FIXME/Exact*)SeqPolyMonomUp FullR.
+Include LinkIntR I Pol PolR.
+End LinkIntR2.
 
-Module LinkSeqPolyMonomUp (I : IntervalOps) <: LinkIntXPr I.
+Module LinkSeqPolyMonomUp (I : IntervalOps) <: LinkIntR2 I.
 Module Import Pol := SeqPolyMonomUpInt I.
-Module PolX := ExactSeqPolyMonomUp FullXR.
+Module PolR := (*FIXME/Exact*)SeqPolyMonomUp FullR.
 
 Local Coercion I.convert : I.type >-> interval. (* for readability *)
 Definition contains_pointwise_until fi fx n : Prop :=
   forall k, k < n ->
-  contains (I.convert (Pol.tnth fi k)) (PolX.tnth fx k).
+  contains (I.convert (Pol.tnth fi k)) (Xreal (PolR.tnth fx k)).
 Definition contains_pointwise fi fx : Prop :=
-  Pol.tsize fi = PolX.tsize fx /\
+  Pol.tsize fi = PolR.tsize fx /\
   contains_pointwise_until fi fx (Pol.tsize fi).
 
 Lemma link_tmul_trunc u fi gi fx gx:
@@ -575,73 +575,73 @@ Lemma link_tmul_trunc u fi gi fx gx:
   contains_pointwise gi gx ->
   forall n, n < tsize fi -> n < tsize gi ->
   contains_pointwise_until
-  (tmul_trunc u n fi gi) (PolX.tmul_trunc tt n fx gx) n.+1.
+  (tmul_trunc u n fi gi) (PolR.tmul_trunc tt n fx gx) n.+1.
 Proof.
 move=> [Hsizef Hf] [Hsizeg Hg] n Hnf Hng k Hkn.
-rewrite /tmul_trunc /PolX.tmul_trunc /tnth /PolX.tnth !nth_mkseq //.
-rewrite mul_coeffE' PolX.mul_coeffE'.
-apply big_ind2 with (id1 := Int.tzero) (R2 := Interval_xreal.ExtendedR).
+rewrite /tmul_trunc /PolR.tmul_trunc /tnth /PolR.tnth !nth_mkseq //.
+rewrite mul_coeffE' PolR.mul_coeffE'.
+apply big_ind2 with (id1 := Int.tzero) (R2 := R).
 - by rewrite I.zero_correct; split; auto with real.
-- by move=> x1 x2 y1 y2 Hx Hy; apply: I.add_correct.
-move=> i _; apply:I.mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
+- by admit; move=> x1 x2 y1 y2 Hx Hy; try apply: I.add_correct.
+move=> i _; admit. (* apply:I.mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
   by apply:(@leq_ltn_trans k); rewrite ?leq_subr //; apply: (@leq_ltn_trans n).
 move: Hi Hkn; rewrite !ltnS=> Hi Hkn.
-by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
+by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn). *)
 Qed.
 
 Lemma link_tmul_tail u fi gi fx gx:
   contains_pointwise fi fx ->
   contains_pointwise gi gx ->
   forall n,
-  contains_pointwise_until (tmul_tail u n fi gi) (PolX.tmul_tail tt n fx gx)
+  contains_pointwise_until (tmul_tail u n fi gi) (PolR.tmul_tail tt n fx gx)
   ((tsize fi).-1 + (tsize gi).-1 - n).
 Proof.
 move=> [Hsizef Hf] [Hsizeg Hg] n k Hkn.
-rewrite /tmul_tail /PolX.tmul_tail /tnth /PolX.tnth /= !nth_mkseq //; last first.
-  by rewrite Hsizef Hsizeg /PolX.tsize in Hkn.
-rewrite mul_coeffE' PolX.mul_coeffE' /=.
-apply big_ind2 with (id1 := Int.tzero) (R2 := Interval_xreal.ExtendedR) => //.
+rewrite /tmul_tail /PolR.tmul_tail /tnth /PolR.tnth /= !nth_mkseq //; last first.
+  by rewrite Hsizef Hsizeg /PolR.tsize in Hkn.
+rewrite mul_coeffE' PolR.mul_coeffE' /=.
+apply big_ind2 with (id1 := Int.tzero) (R2 := R) => //.
 - by rewrite I.zero_correct; split; auto with real.
-- by move=> x1 x2 y1 y2 Hx Hy; apply:I.add_correct.
+- by move=> x1 x2 y1 y2 Hx Hy; admit; apply:I.add_correct.
 move=> [i Hi] _.
 case (boolP (n < (tsize fi).-1 + (tsize gi).-1)) => Hn; last first.
   rewrite -leqNgt -subn_eq0 in Hn.
   by rewrite (eqP Hn) in Hkn.
 case: (boolP (i < tsize gi))=> Hig /=.
   case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
-    by apply:I.mul_correct;[apply: Hf| apply: Hg].
+    by admit. (*apply:I.mul_correct;[apply: Hf| apply: Hg].*)
   rewrite -ltnNge ltnS in Hif.
   rewrite nth_default; last by rewrite /tsize in Hif.
   set gii := (nth Int.tzero gi i).
-  rewrite nth_default; last by move: Hif; rewrite Hsizef /PolX.tsize.
-  apply: I.mul_correct; first by rewrite I.zero_correct; split; auto with real.
-  rewrite /gii; apply:Hg => //.
+  rewrite nth_default; last by move: Hif; rewrite Hsizef /PolR.tsize.
+  admit. (* apply: I.mul_correct; first by rewrite I.zero_correct; split; auto with real.
+  rewrite /gii; apply:Hg => //. *)
 rewrite -ltnNge ltnS in Hig.
 case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
   set s := (nth Int.tzero fi _).
   rewrite nth_default; last by rewrite /tsize in Hig.
-  set t:= nth (Xreal 0) fx _.
+  set t:= nth (R0) fx _.
   rewrite nth_default; last by move: Hig; rewrite Hsizeg.
-  apply: I.mul_correct; last by rewrite I.zero_correct; split; auto with real.
-  by apply:Hf.
+  admit. (* apply: I.mul_correct; last by rewrite I.zero_correct; split; auto with real.
+  by apply:Hf. *)
 rewrite -ltnNge ltnS in Hif.
 move: (Hig) (Hif); rewrite Hsizef Hsizeg.
-move : Hig Hif; rewrite /tsize /PolX.tsize=>*; rewrite !nth_default =>//.
-by apply: I.mul_correct; rewrite I.zero_correct; split; auto with real.
+move : Hig Hif; rewrite /tsize /PolR.tsize=>*; rewrite !nth_default =>//.
+by admit; apply: I.mul_correct; rewrite I.zero_correct; split; auto with real.
 Qed.
 
 Lemma link_tsize_set_nth_nil n a b:
-  PolX.tsize (PolX.tset_nth PolX.tpolyNil n a) =
+  PolR.tsize (PolR.tset_nth PolR.tpolyNil n a) =
   tsize (tset_nth tpolyNil n b).
 Proof.
-by rewrite [PolX.tsize _]size_set_nth [tsize _]size_set_nth.
+by rewrite [PolR.tsize _]size_set_nth [tsize _]size_set_nth.
 Qed.
 
 Lemma link_tnth_set_nth_nil a b :
-  contains (I.convert a) b ->
+  contains (I.convert a) (Xreal b) ->
   forall k, k < tsize (tset_nth tpolyNil 0 a) ->
   contains (I.convert (tnth (tset_nth tpolyNil 0 a) k))
-  (PolX.tnth (PolX.tset_nth PolX.tpolyNil 0 b) k).
+  (Xreal (PolR.tnth (PolR.tset_nth PolR.tpolyNil 0 b) k)).
 Proof.
 move=> Hab k Hk.
 rewrite /tsize /tset_nth /= /leq subn1 /= in Hk.

@@ -278,7 +278,7 @@ by rewrite !big_ord_recl -(IHn _) Xmul_Xadd_distr_r.
 Qed.
 
 Lemma contains_Xnan (X : interval) :
-  contains X Xnan -> X = Interval_interval.Inan.
+  contains X Xnan <-> X = Interval_interval.Inan.
 Proof. by case: X. Qed.
 
 Lemma Xsub_Xadd_distr (a b c : ExtendedR) : (a - (b + c) = a - b - c)%XR.

@@ -51,7 +51,7 @@ Definition topp := Zopp.
 Definition tsub := --> Zminus.
 End BaseZ.
 
-Module FullReal <: FullOps.
+Module FullR <: ExactFullOps.
 Definition U := unit.
 Local Notation "--> e" := (fun _ : U => e).
 Definition T := R.
@@ -77,10 +77,55 @@ Definition tcst : T -> T -> T := fun c _ => c.
 Definition ttan := --> tan.
 Definition tatan := --> atan.
 (*
-Parameter tasin : U -> T -> T.
-Parameter tacos : U -> T -> T.
+Axiom tasin : U -> T -> T.
+Axiom tacos : U -> T -> T.
 *)
-End FullReal.
+Lemma big_distrr_spec :
+  forall n F a, n <> 0 -> tmul tt a (\big[tadd tt/tzero]_(i < n) F i) =
+  \big[tadd tt/tzero]_(i < n) tmul tt a (F i).
+admit.
+Qed.
+Lemma tadd_zerol : left_id tzero (tadd tt). Proof Rplus_0_l.
+Lemma tadd_zeror : right_id tzero (tadd tt). Proof Rplus_0_r.
+Lemma tadd_comm : commutative (tadd tt). Proof Rplus_comm.
+Lemma tadd_assoc : associative (tadd tt).
+Proof. move=> *; symmetry; exact: Rplus_assoc. Qed.
+Lemma tmul_onel : left_id tone (tmul tt). Proof Rmult_1_l.
+Lemma tmul_oner : right_id tone (tmul tt). Proof Rmult_1_r.
+Lemma tmul_comm : commutative (tmul tt). Proof Rmult_comm.
+Lemma tmul_assoc : associative (tmul tt).
+Proof. move=> *; symmetry; exact: Rmult_assoc. Qed.
+Lemma tmul_distrl : left_distributive (tmul tt) (tadd tt).
+Proof Rmult_plus_distr_r.
+Lemma tmul_distrr : right_distributive (tmul tt) (tadd tt).
+Proof.
+by move=> x y z; rewrite tmul_comm tmul_distrl; rewrite 2![_ _ _ x]tmul_comm.
+Qed.
+
+Axiom mask_add_l :
+  forall a b x, tcst (tadd tt a b) x = tadd tt (tcst a x) b.
+Axiom mask_add_r :
+  forall a b x, tcst (tadd tt a b) x = tadd tt a (tcst b x).
+Axiom mask_mul_l :
+  forall a b x, tcst (tmul tt a b) x = tmul tt (tcst a x) b.
+Axiom mask_mul_r :
+  forall a b x, tcst (tmul tt a b) x = tmul tt a (tcst b x).
+Axiom mask0mul_l :
+  forall x, tmul tt tzero x = tcst tzero x.
+Axiom mask0mul_r :
+  forall x, tmul tt x tzero = tcst tzero x.
+Axiom mask_idemp :
+  forall a x, tcst (tcst a x) x = tcst a x.
+Axiom mask_comm :
+  (* useless, but just in case *)
+  forall a x y, tcst (tcst a x) y = tcst (tcst a y) x.
+
+Definition tpow prec x n := (tpower_int prec x (Z_of_nat n)).
+Axiom tpow_0 : forall x, tpow tt x 0 = tcst tone x.
+Axiom tpow_S : forall x n, tpow tt x n.+1 = tmul tt x (tpow tt x n).
+Axiom tpow_opp :
+  forall x n, x <> tzero -> tpower_int tt x (-n) = tinv tt (tpower_int tt x n).
+End FullR.
 
 Module FullXR <: ExactFullOps.
 Definition U := unit.

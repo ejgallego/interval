@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith Reals Psatz.
 Require Import Interval_xreal.
-Require Import Interval_interval.
+Require Import Interval_interval Interval_xreal_derive.
 Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat.
 Require Import xreal_ssr_compat.
 
@@ -87,7 +87,134 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
+Lemma Xreal_sub x y : Xreal (x - y) = Xsub (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_add x y : Xreal (x + y) = Xadd (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
+Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
+
+Lemma Xreal_sqr x : Xreal (x ²) = Xsqr (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_power_int x n :
+  x <> 0%R \/ (n >= 0)%Z -> Xreal (powerRZ x n) = Xpower_int (Xreal x) n.
+Proof.
+case: n => [//|//|n].
+case=> [Hx|Hn]; by [rewrite /= zeroF | exfalso; auto with zarith].
+Qed.
+
+Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
+  match f (Xreal x) with
+  | Xnan => false
+  | Xreal _ => true
+  end.
+
+Lemma definedF f x : defined f x = false -> f (Xreal x) = Xnan.
+Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
+
+Lemma defined_ext f g x :
+  f (Xreal x) = g (Xreal x) -> defined f x = defined g x.
+Proof.
+by rewrite /defined =>->.
+Qed.
+
+Lemma toXreal_nan (f : R -> R) :
+  toXreal_fun f Xnan = Xnan.
+Proof. done. Qed.
+
+Definition some_real : R. exact R0. Qed.
+
+Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
+  proj_fun some_real f x.
+
+Lemma Xreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
+  defined f x ->
+  Xreal (toR_fun f x) = f (Xreal x).
+Proof. by rewrite /toR_fun /proj_fun /defined; case: f. Qed.
+
+Lemma toR_toXreal (f : R -> R) :
+  toR_fun (toXreal_fun f) = f.
+Proof. done. Qed.
+
+Lemma toXreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
+  defined f x ->
+  toXreal_fun (toR_fun f) (Xreal x) = f (Xreal x).
+Proof. by rewrite /= /toR_fun /proj_fun /defined; case: (f (Xreal x)). Qed.
+
+
 Module IntervalAux (I : IntervalOps).
+
+Definition R_extension f fi :=
+  forall (b : I.type) (x : R),
+    contains (I.convert b) (Xreal x) ->
+    contains (I.convert (fi b))
+             (Xreal (f x)).
+
+Definition R_extension_2 f fi :=
+  forall (ix iy : I.type) (x y : R),
+    contains (I.convert ix) (Xreal x) ->
+    contains (I.convert iy) (Xreal y) ->
+    contains (I.convert (fi ix iy)) (Xreal (f x y)).
+
+Lemma R_div_correct (prec : I.precision) :
+  R_extension_2 Rdiv (I.div prec).
+Proof.
+move=> ix iy x y Hx Hy.
+case: (is_zero_spec y) (Hy) => H; last first.
+  rewrite Xreal_div //.
+  exact: I.div_correct.
+suff->: I.convert (I.div prec ix iy) = IInan by [].
+apply contains_Xnan.
+have->: Xnan = (Xdiv (Xreal x) (Xreal 0)) by simpl; rewrite zeroT.
+apply: I.div_correct =>//.
+by rewrite -H.
+Qed.
+
+Lemma R_sub_correct prec : R_extension_2 Rminus (I.sub prec).
+Proof. move=> *; rewrite Xreal_sub; exact: I.sub_correct. Qed.
+
+Lemma R_add_correct prec : R_extension_2 Rplus (I.add prec).
+Proof. move=> *; rewrite Xreal_add; exact: I.add_correct. Qed.
+
+Lemma R_mul_correct prec : R_extension_2 Rmult (I.mul prec).
+Proof. move=> *; rewrite Xreal_mul; exact: I.mul_correct. Qed.
+
+Lemma R_sqr_correct prec : R_extension Rsqr (I.sqr prec).
+Proof. move=> *; rewrite Xreal_sqr; exact: I.sqr_correct. Qed.
+
+Lemma R_power_int_correct prec (n : Z) :
+  R_extension (powerRZ ^~ n) (I.power_int prec ^~ n).
+move=> ix x Hx.
+case: (is_zero_spec x) (Hx) => H; last first.
+  rewrite Xreal_power_int //; last by left.
+  exact: I.power_int_correct.
+case: (Z_lt_le_dec n 0) => Hn.
+  suff->: I.convert (I.power_int prec ix n) = IInan by [].
+  apply contains_Xnan.
+  suff->: Xnan = (Xpower_int (Xreal x) n) by exact: I.power_int_correct.
+  by simpl; case: n Hn =>//; rewrite zeroT.
+rewrite Xreal_power_int; last by right; auto with zarith.
+exact: I.power_int_correct.
+Qed.
+
+Definition I_propagate fi :=
+  forall b : I.type,
+  contains (I.convert b) Xnan -> contains (I.convert (fi b)) Xnan.
+
+Lemma extensionR_correct f fi (fx := toXreal_fun f) :
+  R_extension f fi -> I_propagate fi -> I.extension fx fi.
+Proof.
+move=> A B b x H.
+case: x H => [|r].
+  exact: B.
+exact: A.
+Qed.
 
 Section PrecArgument.
 

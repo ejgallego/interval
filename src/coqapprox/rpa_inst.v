@@ -46,15 +46,15 @@ Module Int := FullInt I.
 Include PowDivMonomPolyOps Int.
 End IntMonomPolyOps.
 
-Module Type LinkIntX
+Module Type LinkIntR
   (I : IntervalOps) (Import Pol : IntPolyOps I)
-  (PolX : PolyOps FullXR).
+  (PolR : PolyOps FullR).
 
 Definition contains_pointwise_until fi fx n : Prop :=
   forall k, k < n ->
-  contains (I.convert (Pol.tnth fi k)) (PolX.tnth fx k).
+  contains (I.convert (Pol.tnth fi k)) (Xreal (PolR.tnth fx k)).
 Definition contains_pointwise fi fx : Prop :=
-  Pol.tsize fi = PolX.tsize fx /\
+  Pol.tsize fi = PolR.tsize fx /\
   contains_pointwise_until fi fx (Pol.tsize fi).
 
 Parameter link_tmul_trunc :
@@ -63,17 +63,17 @@ Parameter link_tmul_trunc :
   contains_pointwise gi gx ->
   forall n : nat, n < tsize fi -> n < tsize gi ->
   contains_pointwise_until (tmul_trunc u n fi gi)
-  (PolX.tmul_trunc tt n fx gx) n.+1.
+  (PolR.tmul_trunc tt n fx gx) n.+1.
 
 Parameter link_tmul_tail :
   forall u fi gi fx gx,
   contains_pointwise fi fx ->
   contains_pointwise gi gx ->
   forall n : nat,
-  contains_pointwise_until (tmul_tail u n fi gi) (PolX.tmul_tail tt n fx gx)
+  contains_pointwise_until (tmul_tail u n fi gi) (PolR.tmul_tail tt n fx gx)
   ((tsize fi).-1 + (tsize gi).-1 - n).
 
-End LinkIntX.
+End LinkIntR.
 
 Module RigPolyApproxInt (I : IntervalOps) (P : IntPolyOps I).
 Include RigPolyApprox I P.Int P.

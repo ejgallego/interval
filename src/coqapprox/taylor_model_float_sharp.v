@@ -60,10 +60,10 @@ Module TaylorModelFloat (F : FloatOps with Definition even_radix := true)
   (PolF : FloatPolyOps F)
   (I : FloatIntervalOps F)
   (Import Pol : IntMonomPolyOps I)
-  (PolX : ExactMonomPolyOps FullXR)
-  (Link : LinkIntX I Pol PolX)
-  (Bnd : PolyBound I Pol PolX Link).
-Module Import TM := TaylorModel I Pol PolX Link Bnd.
+  (PolR : ExactMonomPolyOps FullR)
+  (Link : LinkIntR I Pol PolR)
+  (Bnd : PolyBound I Pol PolR Link).
+Module Import TM := TaylorModel I Pol PolR Link Bnd.
 Module RPAF := RigPolyApproxFloat F PolF I.
 
 Notation f_type := F.type.
@@ -80,19 +80,18 @@ Notation i_RPA := TM.RPA.RPA.
 Notation i_error := TM.RPA.error.
 Notation i_approx := TM.RPA.approx.
 
-Notation x_type := ExtendedR.
-Notation x_poly := PolX.T.
+Notation r_poly := PolR.T.
 
 Notation i_prec := I.precision.
 Notation i_eval := Pol.teval.
 (* FIXME=> Notation i_eval := Bnd.ComputeBound. *)
-Notation x_eval := (PolX.teval tt).
+Notation r_eval := (PolR.teval tt).
 (* Erik: [Pol.teval]/[PolX.teval] may take 1 more argument *)
 
 Definition i2f_mid : i_type -> f_type := I.midpoint.
 
 Lemma i2f_mid_correct (xi : i_type) :
-  (exists x : x_type, contains (I.convert xi) x) ->
+  (exists x : ExtendedR, contains (I.convert xi) x) ->
   I.convert_bound (i2f_mid xi) =
   Xreal (proj_val (I.convert_bound (I.midpoint xi))) /\
   contains (I.convert xi) (I.convert_bound (I.midpoint xi)).
@@ -102,7 +101,7 @@ Definition f2i : f_type -> i_type := fun x => I.bnd x x.
 
 Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
 Module MapIF := PolyMap Pol.Int Pol PolF.Fl PolF.
-Module MapFX := PolyMap PolF.Fl PolF FullXR PolX.
+Module MapFR := PolyMap PolF.Fl PolF FullR PolR.
 
 Notation i_poly_map := MapI.tpolymap.
 
@@ -111,9 +110,10 @@ Definition i2f_poly : i_poly -> f_poly := MapIF.tpolymap i2f_mid.
 Definition i2f_rem (pr : i_prec) : i_poly -> i_poly :=
   i_poly_map (fun x => I.sub pr x (f2i (i2f_mid x))).
 
+(*
 Notation f2x := I.convert_bound.
 
-Definition f2x_poly : f_poly -> x_poly := MapFX.tpolymap f2x.
+Definition f2x_poly : f_poly -> r_poly := MapFR.tpolymap f2x.
 
 Notation i2ix := I.convert.
 
@@ -275,5 +275,6 @@ move=> k Hk; move/(_ k.+1): Hpw.
 rewrite tnth_polyCons // PolX.tnth_polyCons; last by rewrite Hsize'.
 by rewrite /N tsize_polyCons ltnS; move/(_ Hk).
 Qed.
+*)
 
 End TaylorModelFloat.
