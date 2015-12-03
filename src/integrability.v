@@ -1005,8 +1005,98 @@ by rewrite Hfxeq0 /= is_zero_correct_zero in Habs.
 Qed.
 
 
-Lemma continuousProg2 prog bounds (m : nat) (U : R -> Prop) i:
-  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
+Lemma continuousProg2 prog bounds (x : R) : forall m : nat,
+  notXnan (List.nth m
+          (eval_ext prog ((Xreal x)::List.map A.xreal_from_bp bounds))
+          Xnan) ->
+  continuous
+    (fun x =>
+       List.nth
+         m
+         (eval_real
+            prog
+            (x::boundsToR bounds)) R0) x.
+Proof.
+rewrite /eval_ext /eval_real.
+intros m H.
+eapply proj2.
+revert H.
+(*
+have {H} : (List.nth m
+         (eval_generic Xnan ext_operations prog
+            (Xreal x :: List.map A.xreal_from_bp bounds)%SEQ) Xnan = Xreal
+ (List.nth m
+     (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0)).
+admit.
+*)
+apply: (eval_inductive_prop_fun _ _ (fun (f : R -> R) v => notXnan v -> v = Xreal (f x) /\ continuous f x)) => //.
+intros f1 f2 Heq b H Hb.
+case: (H Hb) => {H} H H'.
+split.
+by rewrite -Heq.
+now eapply continuous_ext.
+case => a b H /= Hb.
+(*
+admit.
+apply continuity_pt_filterlim.
+apply continuity_opp.
+apply continuity_pt_filterlim.
+apply: H.
+by case: b Hb.
+*)
+admit.
+admit.
+(* Xinv *)
+have {H Hb} [-> [Hc Ha]]: (b = Xreal (a x) /\ continuous a x /\ a x <> 0).
+destruct b as [|b] => //.
+move: (H eq_refl) => {H} [H Ha]. 
+split => //.
+split => //.
+move: H => [<-].
+revert Hb.
+unfold Xinv.
+case: is_zero_spec => //.
+simpl.
+case: is_zero_spec => // _.
+split => //.
+apply continuity_pt_filterlim.
+apply continuity_pt_inv => //.
+apply continuity_pt_filterlim => //.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+intros [|n].
+simpl.
+intros _.
+apply (conj eq_refl).
+apply continuous_id.
+simpl.
+unfold boundsToR.
+destruct (le_or_lt (length bounds) n).
+rewrite nth_overflow => //.
+by rewrite map_length.
+rewrite (nth_indep _ _ (Xreal 0)).
+replace (List.map A.xreal_from_bp bounds) with (List.map Xreal (List.map A.real_from_bp bounds)).
+rewrite map_nth.
+intros _.
+apply (conj eq_refl).
+apply continuous_const.
+rewrite map_map.
+apply map_ext.
+now intros [].
+by rewrite map_length.
+Qed.
+
+(*
+
+Lemma continuousProg2 prog bounds (m : nat) (U : R -> Prop) :
   (forall x,
      U x ->
      notXnan (nth Xnan
@@ -1021,7 +1111,6 @@ Lemma continuousProg2 prog bounds (m : nat) (U : R -> Prop) i:
             prog
             (x::boundsToR bounds)) m).
 Proof.
-move => Hcontains.
 generalize m.
 elim/last_ind: prog => [m0 HnotXnan |prog op HI m0 Hm0].
 - rewrite /= .
@@ -1212,57 +1301,52 @@ case Hbinop : binop.
   (* the last commented sequence will work if lemma *)
   (* notInan_inversion_Div_stronger is true*)
 Qed.
+*)
 
 (* we ensure that we get the former result by using the new one *)
-Lemma continuousProgAsAConsequence prog bounds (m : nat) (U : R -> Prop) i:
-  (forall x, U x ->  contains (I.convert i) (Xreal x)) ->
-  (notInan (nth I.nai
+Lemma continuousProgAsAConsequence prog bounds (m : nat) i:
+  forall x, contains (I.convert i) (Xreal x) ->
+  (notInan (List.nth m
           (evalInt prog (i::boundsToInt bounds))
-          m)) ->
-  continuous_all
-    U
+          I.nai)) ->
+  continuous
     (fun x =>
-       nth
-         R0
+       List.nth
+         m
          (eval_real
             prog
-            (x::boundsToR bounds)) m).
+            (x::boundsToR bounds)) R0) x.
 Proof.
-move => Hcontains HnotInan.
-apply: (continuousProg2 _ _ _ _ i) => // x HUx.
-rewrite /notXnan.
-set xR := nth _ _ _.
-case HxR : xR => //= .
-suff: (I.convert (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m) = Inan).
-  move => Habs.
-  rewrite /notInan in HnotInan.
-  case Hi : (nth I.nai (evalInt prog (i :: boundsToInt bounds)%SEQ) m) Habs => //= .
-  by rewrite Hi in HnotInan.
-apply: xreal_ssr_compat.contains_Xnan.
-rewrite -HxR /xR.
-rewrite -!nthEq -!mapEq /evalInt.
-by apply: A.BndValuator.eval_correct_ext; apply: Hcontains.
+move => x Hcontains HnotInan.
+apply: continuousProg2.
+generalize (A.BndValuator.eval_correct_ext prec prog bounds m i (Xreal x) Hcontains).
+revert HnotInan.
+unfold evalInt, boundsToInt.
+case: (List.nth _ _ _) => //.
+case: (List.nth _ _ _) => //.
 Qed.
 
 
 Lemma integrableProg prog bounds m a b i:
   (forall x, Rmin a b <= x <= Rmax a b ->  contains (I.convert i) (Xreal x)) ->
-  (notInan (nth I.nai
+  (notInan (List.nth m
           (evalInt prog (i::boundsToInt bounds))
-          m )) ->
+          I.nai)) ->
   ex_RInt
     (fun x =>
-       nth
-         R0
+       List.nth
+         m
          (eval_real
             prog
-            (x::boundsToR bounds)) m)
+            (x::boundsToR bounds)) R0)
     a
     b.
 Proof.
 move => Hcontains HnotInan.
 apply: ex_RInt_continuous.
-apply: (continuousProgAsAConsequence prog bounds m _ i) => //.
+intros z Hz.
+apply: continuousProgAsAConsequence => //.
+by apply Hcontains.
 Qed.
 
 

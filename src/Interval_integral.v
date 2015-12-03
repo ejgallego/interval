@@ -405,14 +405,11 @@ contains (I.convert (convex_hull ia ib)) (Xreal y).
 Definition all_integrals (ia ib : I.type) :=
 I.mul prec (iF (I.join ia ib)) (I.sub prec ib ia).
 
-Lemma all_integrals_correct (ia ib: I.type) (a b y1 y2 : R) :
+Lemma all_integrals_correct (ia ib: I.type) (a b : R) :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
   ex_RInt f a b ->
-  a <= y1 ->
-  y1 <= y2 ->
-  y2 <= b ->
-  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f y1 y2)).
+  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
 Proof.
 move => Hcont1 Hcont2 Hfint.
 Admitted.
@@ -420,20 +417,33 @@ Admitted.
 
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
-Definition integral_intBounds depth (ia ib : I.type) :=
-  if ia is Ibnd a1 b1 then
-    if ib is Ibnd a2 b2 then
+Definition integral_intBounds depth (i1 i2 : I.type) :=
+  if i1 is Ibnd a1 b1 then
+    if i2 is Ibnd a2 b2 then
       match F.cmp b1 a2 with
         | Xeq | Xlt =>
-                let sia := all_integrals ia (thin b1) in
-                let sib := all_integrals (thin a2) ib in
+                let si1 := all_integrals i1 (thin b1) in
+                let si2 := all_integrals (thin a2) i2 in
                 I.add prec
-                      (I.add prec sia (integral_float_signed depth b1 a2)) sib
+                      (I.add prec si1 (integral_float_signed depth b1 a2)) si2
         | _ => Inan end
     else
       Inan
   else
     Inan.
+
+Lemma foo :
+  forall a b,
+  match Xcmp a b with Xeq | Xlt => a <> Xnan /\ b <> Xnan /\ proj_val a <= proj_val b | _ => True end.
+Proof.
+move => [|a] [|b] //=.
+case: Rcompare_spec => // H.
+repeat split => //.
+exact: Rlt_le.
+repeat split => //.
+rewrite H.
+apply Rle_refl.
+Qed.
 
 (* Import Integrability. (* for contains_eval *) *)
 
@@ -448,47 +458,65 @@ Proof.
 move => Hconta Hcontb HFInt.
 case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
-have ia_correct: T.toR la <= a <= T.toR ua by admit.
-have ib_correct: T.toR lb <= b <= T.toR ub by admit.
+unfold integral_intBounds.
+rewrite F.cmp_correct.
+rewrite Interval_generic_proof.Fcmp_correct.
+suff H: (FtoX (F.toF ua) <> Xnan /\
+FtoX (F.toF lb) <> Xnan /\
+proj_val (FtoX (F.toF ua)) <= proj_val (FtoX (F.toF lb)) ->
+contains
+  (I.convert
+     (I.add prec
+        (I.add prec (all_integrals (Ibnd la ua) (thin ua))
+           (integral_float_signed depth ua lb))
+        (all_integrals (thin lb) (Ibnd lb ub)))) (Xreal (RInt f a b))).
+generalize (foo (FtoX (F.toF ua)) (FtoX (F.toF lb))).
+now case Xcmp.
+intros [Hua [Hlb Hualb]].
+have Haua: (a <= T.toR ua).
+  generalize (proj2 Hconta).
+  unfold I.convert_bound, T.toR.
+  by destruct FtoX.
+have Hlbb : (T.toR lb <= b).
+  generalize (proj1 Hcontb).
+  unfold I.convert_bound, T.toR.
+  by destruct (FtoX (F.toF lb)).
+have Hfint_a_lb : ex_RInt f a (T.toR lb).
+  apply: (ex_RInt_Chasles_1 _ _ _ b) HFInt.
+  split => //.
+  now apply Rle_trans with (1 := Haua).
 have Hfint_ua_lb : ex_RInt f (T.toR ua) (T.toR lb).
-
-case: (Rle_lt_dec (T.toR ua) (T.toR lb)) => Hualb.
-- apply: (ex_RInt_Chasles_2 _ a) => // .
-  split => // .
-  by case: ia_correct => [].
-  apply: (ex_RInt_Chasles_1 _ _) => // .
-  split => // .
-  + apply: (Rle_trans _ (T.toR ua)).
-  + admit.
-- apply: ex_RInt_swap.
-  apply: (ex_RInt_Chasles_1) => // .
-  split => // .
-  admit.
-  apply: (ex_RInt_Chasles_1 _ _) => // .
-  split => // .
-  + admit.
-  + admit.
-have Hfint_a_ua : ex_RInt f a (T.toR ua) by admit.
-have Hfint_b_lb : ex_RInt f (T.toR lb) b by admit.
-have Hfint_a_lb : ex_RInt f a (T.toR lb) by admit.
-rewrite /integral_intBounds.
-case ualb : (F.cmp ua lb) => //.
--  have -> : Xreal (RInt f a b) =
+apply: (ex_RInt_Chasles_2 _ a) Hfint_a_lb.
+by split.
+have -> : Xreal (RInt f a b) =
         Xadd
           (Xadd (XRInt f a (T.toR ua)) (XRInt f (T.toR ua) (T.toR lb)))
           (XRInt f (T.toR lb) b).
-     by rewrite /= 2?RInt_Chasles.
+     rewrite /= 2?RInt_Chasles //.
+     apply: (ex_RInt_Chasles_2 _ a) => //.
+     split => //.
+     now apply Rle_trans with (1 := Haua).
+     apply: ex_RInt_Chasles_1 Hfint_a_lb.
+     by split.
    apply: I.add_correct.
    + apply: I.add_correct.
-     * apply: (all_integrals_correct _ _ a (T.toR ua)) => //; admit.
-     * case HR_ua : (F.real ua); case HR_lb : (F.real lb). (* to move to just after ia and ib are broken down *)
-       - by apply: integral_float_signed_correct.
-       - admit.
-       - admit.
-       - admit.
-   + apply: (all_integrals_correct _ _ (T.toR lb) b) => //; admit.
-- (* bis repetita *)
-Admitted.
+     * apply: (all_integrals_correct _ _ a (T.toR ua)) => //.
+       generalize (thin_correct ua).
+       unfold I.convert_bound, T.toR.
+       by destruct FtoX.
+       apply: ex_RInt_Chasles_1 Hfint_a_lb.
+       by split.
+     * apply: integral_float_signed_correct => //.
+       admit.
+       admit.
+   + apply: (all_integrals_correct _ _ (T.toR lb) b) => //.
+     generalize (thin_correct lb).
+     unfold I.convert_bound, T.toR.
+     by destruct (FtoX (F.toF lb)).
+     apply: (ex_RInt_Chasles_2 _ a) => //.
+     split => //.
+     now apply Rle_trans with (1 := Haua).
+Qed.
 
 
 (* (* generalize HiFIntExt. *) *)

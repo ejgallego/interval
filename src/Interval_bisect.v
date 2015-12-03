@@ -108,16 +108,17 @@ Definition eval_ext :=
   eval_generic Xnan ext_operations.
 
 Theorem eval_inductive_prop_fun :
-  forall A B P defA defB (opsA : operations A) (opsB : operations B),
+  forall {T} A B P defA defB (opsA : operations A) (opsB : operations B),
  (forall a1 a2, (forall x, a1 x = a2 x) -> forall b, P a1 b -> P a2 b) ->
-  P (fun _ : ExtendedR => defA) defB ->
+  P (fun _ : T => defA) defB ->
  (forall o a b, P a b -> P (fun x => unary opsA o (a x)) (unary opsB o b)) ->
  (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (fun x => binary opsA o (a1 x) (a2 x)) (binary opsB o b1 b2)) ->
   forall inpA inpB,
  (forall n, P (fun x => nth n (inpA x) defA) (nth n inpB defB)) ->
   forall prog,
   forall n, P (fun x => nth n (eval_generic defA opsA prog (inpA x)) defA) (nth n (eval_generic defB opsB prog inpB) defB).
-intros A B P defA defB opsA opsB HP Hdef Hun Hbin inpA inpB Hinp prog n.
+Proof.
+intros T A B P defA defB opsA opsB HP Hdef Hun Hbin inpA inpB Hinp prog n.
 apply HP with (fun x => nth n (fold_right (fun y x => eval_generic_body defA opsA x y) (inpA x) (rev prog)) defA).
 intros x.
 now rewrite rev_formula.
