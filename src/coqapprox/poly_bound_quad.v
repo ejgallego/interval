@@ -31,7 +31,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-Require Import xreal_ssr_compat.
+Require Import Rstruct xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
@@ -45,7 +45,7 @@ Require Import poly_bound.
 Module PolyBoundHornerQuad
   (I : IntervalOps)
   (Import Pol : IntMonomPolyOps I)
-  (PolR : (*FIXME/Exact*)MonomPolyOps FullR)
+  (PolR : ExactMonomPolyOps FullR)
   (Link : LinkIntR I Pol PolR)
   <: PolyBound I Pol PolR Link.
 
@@ -65,31 +65,30 @@ Proof.
 move=> Hfifx X x Hx.
 elim/PolR.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolR.teval_polyNil teval_polyNil.
-  admit. admit. admit. admit. (*
+  change (Xreal 0) with (Xmask (Xreal 0) (Xreal x)).
   by move=> *; apply: I.mask_correct =>//;
     rewrite I.zero_correct; split; auto with real.
 - clear; move=> c p _ [K1 K2].
-  by rewrite tsize_polyCons PolX.tsize_polyNil in K1.
+  by rewrite tsize_polyCons PolR.tsize_polyNil in K1.
 - clear; move=> [K1 K2].
-  by rewrite PolX.tsize_polyCons tsize_polyNil in K1.
+  by rewrite PolR.tsize_polyCons tsize_polyNil in K1.
 move=> d p _ [K1 K2].
-rewrite PolX.teval_polyCons teval_polyCons.
-apply: I.add_correct =>//.
-  apply: I.mul_correct =>//.
+rewrite PolR.teval_polyCons teval_polyCons.
+apply: R_add_correct =>//.
+  apply: R_mul_correct =>//.
   apply: IH.
   rewrite tsize_polyCons in K2.
   split.
-    rewrite tsize_polyCons PolX.tsize_polyCons in K1.
+    rewrite tsize_polyCons PolR.tsize_polyCons in K1.
     by case: K1.
   move=> k Hk.
   move/(_ k.+1 Hk) in K2.
-  rewrite PolX.tnth_polyCons ?tnth_polyCons // in K2.
-  rewrite tsize_polyCons PolX.tsize_polyCons in K1.
+  rewrite PolR.tnth_polyCons ?tnth_polyCons // in K2.
+  rewrite tsize_polyCons PolR.tsize_polyCons in K1.
   by case: K1 =><-.
 rewrite tsize_polyCons in K2.
 move/(_ 0 erefl) in K2.
-by rewrite tnth_polyCons ?PolX.tnth_polyCons in K2.
-*)
+by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
 Qed.
 
 Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
@@ -152,65 +151,66 @@ apply: R_add_correct;
   |apply: R_mul_correct;
     [exact: R_power_int_correct|exact:copy_teval_contains]];
   by rewrite Hi3 //.
-admit.
-(*
 rewrite 2!PolR.is_horner Hx3.
-rewrite 3!big_ord_recl -/a0 -/a1 -/a2 /= PolR.tsize_tail.
-case: x Hx => [|x] Hx; first by rewrite RmultC [in RHS]RplusC.
-case E0: a0 =>[|r0]; case E1: a1 =>[|r1]; case E2: a2 =>[|r2] //.
-set x0 := Rpower_int _ 0.
-set x1 := Rpower_int _ 1.
-set x2 := Rpower_int _ 2.
-set x3 := Rpower_int _ 3.
+rewrite 3!big_ord_recl -/a0 -/a1 -/a2 PolR.tsize_tail.
+simpl Z.of_nat.
+set x0 := powerRZ x 0.
+set x1 := powerRZ x 1.
+set x2 := powerRZ x 2.
+set x3 := powerRZ x 3.
 set s1 := bigop _ _ _.
 set s2 := bigop _ _ _.
-have H4 : (r2 + (r2 + (r2 + r2)))%Re <> 0%Re.
+have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   intro K.
-  rewrite -Rplus_assoc in K.
   move: Eb.
   have Hzero : contains (I.convert
     (I.add u (I.add u (tnth pi 2) (tnth pi 2))
-      (I.add u (tnth pi 2) (tnth pi 2)))) (Rreal 0).
+      (I.add u (tnth pi 2) (tnth pi 2)))) (Xreal 0).
     rewrite -K.
-    change (Rreal _) with (Rplus (Rplus (Rreal r2) (Rreal r2))
-      (Rplus (Rreal r2) (Rreal r2))).
-    by apply: I.add_correct; apply: I.add_correct; rewrite -E2; apply: Hnth.
+    change (Xreal _) with (Xadd (Xadd (Xreal a2) (Xreal a2))
+      (Xadd (Xreal a2) (Xreal a2))).
+    by apply: R_add_correct; apply: R_add_correct; apply: Hnth.
   case/(I.bounded_correct _) => _.
   case/(I.upper_bounded_correct _) => _.
   rewrite /I.bounded_prop.
   set d := I.div u _ _.
   suff->: I.convert d = IInan by [].
-  apply: contains_Rnan.
-  rewrite -(copy_Rdiv_0_r (Rsqr a1)).
+  apply -> contains_Xnan.
+  rewrite -(copy_Xdiv_0_r (Xsqr (Xreal a1))).
   apply: I.div_correct =>//.
   apply: I.sqr_correct.
   by apply: Hnth; rewrite Hi3.
-have H2 : (r2 + r2)%Re <> 0%Re by intro K; rewrite K Rplus_0_r K in H4.
+have H2 : (a2 + a2)%Re <> 0%Re by intro K; rewrite K Rplus_0_r in H4.
 suff->: s1 = Rmult x3 s2.
-  have->: Rmult (Rreal r0) x0 = Rreal r0 by simpl; congr Rreal; ring.
-  rewrite Rsub_split -!RplusA; congr Rplus.
-  simpl.
-  case: s2 =>[|s2]; first by rewrite !RplusA [RHS]RplusC.
-  by rewrite !zeroF /=; first (congr Rreal; field).
+  have->: Rmult a0 x0 = a0 by simpl; rewrite /x0 powerRZ_O Rmult_1_r.
+  rewrite -!Rplus_assoc /Rminus; congr Rplus.
+  rewrite /Rsqr /x1 /x2; change 1%Z with (Z.of_nat 1); change 2%Z with (Z.of_nat 2).
+  rewrite -!pow_powerRZ; field.
+  split =>//.
+by rewrite -Rplus_assoc in H4.
 rewrite /s1 /s2 /x3; clear.
-rewrite [Rpower_int _ 3]/= RmultC.
-rewrite big_Rmult_Rplus_distr.
+rewrite Rmult_comm.
+rewrite big_distrl.
 apply: eq_bigr=> i _.
 rewrite PolR.tnth_tail.
 (* some bookkeeping about powers *)
-rewrite -!RmultA; congr Rmult.
 rewrite -!SuccNat2Pos.inj_succ.
 rewrite Pos.of_nat_succ.
 rewrite -positive_nat_Z.
 rewrite Nat2Pos.id //.
-(* Check Rpow_idem. *)
-have L := FullRR.tpow_S (Rreal x); rewrite /FullRR.tpow in L.
-rewrite RmultC !L /FullRR.tmul !RmultA; congr Rmult.
-by rewrite /= Rmultt_1_r Rmultt_assoc.
-*)
+change 3%Z with (Z.of_nat 3).
+rewrite -!pow_powerRZ.
+rewrite /=.
+rewrite !Rmult_assoc; f_equal; ring.
 Qed.
 
-Lemma ComputeBound_propagate u p : I_propagate (ComputeBound u p).
-Admitted.
+Lemma ComputeBound_propagate u pi p :
+  Link.contains_pointwise pi p ->
+  I_propagate (ComputeBound u pi).
+Proof.
+rewrite /ComputeBound.
+move=> Hp x Hx.
+admit. (* FIXME: Should be easy with a stronger interface *)
+Qed.
 
 End PolyBoundHornerQuad.

@@ -101,9 +101,9 @@ Module Type PowDivOps0 := PowDivOps with Definition U := unit.
 Module Type FullOps0 := FullOps with Definition U := unit.
 
 Module Type SliceExactBaseOps (Import A : BaseOps0).
-Parameter big_distrr_spec :
+(* Parameter big_distrr_spec :
   forall n F a, n <> 0 -> tmul tt a (\big[tadd tt/tzero]_(i < n) F i) =
-  \big[tadd tt/tzero]_(i < n) tmul tt a (F i).
+  \big[tadd tt/tzero]_(i < n) tmul tt a (F i). *)
 Parameter tadd_zerol : left_id tzero (tadd tt).
 Parameter tadd_zeror : right_id tzero (tadd tt).
 Parameter tadd_comm : commutative (tadd tt).
@@ -114,9 +114,8 @@ Parameter tmul_comm : commutative (tmul tt).
 Parameter tmul_assoc : associative (tmul tt).
 Parameter tmul_distrl : left_distributive (tmul tt) (tadd tt).
 Parameter tmul_distrr : right_distributive (tmul tt) (tadd tt).
-(* BUT WE DONT HAVE:
 Parameter tmul_zerol : left_zero tzero (tmul tt).
-Parameter tmul_zeror : right_zero tzero (tmul tt). *)
+Parameter tmul_zeror : right_zero tzero (tmul tt).
 End SliceExactBaseOps.
 
 (*
@@ -128,6 +127,7 @@ Module Type BaseStdZOps0 := BaseStdZOps with Definition U := unit.
 *)
 
 Module Type SliceExactMaskBaseOps (Import A : MaskBaseOps0).
+(*
 Parameter mask_add_l :
   forall a b x, tcst (tadd tt a b) x = tadd tt (tcst a x) b.
 Parameter mask_add_r :
@@ -145,11 +145,13 @@ Parameter mask_idemp :
 Parameter mask_comm :
   (* useless, but just in case *)
   forall a x y, tcst (tcst a x) y = tcst (tcst a y) x.
+*)
+Parameter cstE : forall c x, tcst c x = c.
 End SliceExactMaskBaseOps.
 
 Module Type SliceExactPowDivOps (Import A : PowDivOps0).
 Local Notation tpow prec x n := (tpower_int prec x (Z_of_nat n)).
-Parameter tpow_0 : forall x, tpow tt x 0 = tcst tone x.
+Parameter tpow_0 : forall x, tpow tt x 0 = tone.
 Parameter tpow_S : forall x n, tpow tt x n.+1 = tmul tt x (tpow tt x n).
 Parameter tpow_opp :
   forall x n, x <> tzero -> tpower_int tt x (-n) = tinv tt (tpower_int tt x n).
@@ -327,7 +329,7 @@ Local Notation Ctpow prec x n := (C.tpower_int prec x (Z_of_nat n)).
 
 Parameter is_horner :
  forall p x, teval tt p x =
-  \big[C.tadd tt/C.tcst C.tzero x]_(i < tsize p)
+  \big[C.tadd tt/C.tzero]_(i < tsize p)
   C.tmul tt (tnth p i) (Ctpow tt x i).
 
 Parameter tmul_trunc_nth:

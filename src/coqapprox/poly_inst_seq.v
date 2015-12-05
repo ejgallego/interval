@@ -28,7 +28,7 @@ Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import Interval_interval.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-Require Import seq_compl.
+Require Import seq_compl interval_compl.
 Require Import nary_tuple.
 Require Import poly_datatypes.
 Require Import basic_rec.
@@ -445,10 +445,11 @@ Canonical Cadd_comm := Monoid.ComLaw C.tadd_comm.
 Canonical Cmul_monoid := Monoid.Law C.tmul_assoc C.tmul_onel C.tmul_oner.
 Canonical Cmul_comm := Monoid.ComLaw C.tmul_comm.
 Canonical Cadd_addlaw := Monoid.AddLaw C.tmul_distrl C.tmul_distrr.
+Canonical Cmul_mul_law := Monoid.MulLaw C.tmul_zerol C.tmul_zeror.
 
 (* Note that [Monoid.MulLaw] cannot be defined *)
 
-Lemma mask_big_helper :
+(*Lemma mask_big_helper :
   forall x n F, \big[C.tadd tt/C.tcst C.tzero x]_(i < n) F i =
   C.tcst (\big[C.tadd tt/C.tzero]_(i < n) F i) x.
 Proof.
@@ -458,24 +459,21 @@ Qed.
 
 Ltac magic_mask :=
  rewrite -!(C.mask_mul_l,C.mask_mul_r,C.mask_add_l,C.mask_add_r) !C.mask_idemp.
-
+*)
 Local Notation Ctpow prec x n := (C.tpower_int prec x (Z_of_nat n)).
 
 Lemma is_horner p x:
   teval tt p x =
-  \big[C.tadd tt/C.tcst C.tzero x]_(i < tsize p)
+  \big[C.tadd tt/C.tzero]_(i < tsize p)
   C.tmul tt (tnth p i) (Ctpow tt x i).
 Proof.
-transitivity (C.tcst (\big[C.tadd tt/C.tzero]_(i < tsize p)
-  C.tmul tt (tnth p i) (Ctpow tt x i)) x); last by rewrite mask_big_helper.
-elim: p; first by rewrite big_ord0.
+elim: p; first by rewrite big_ord0 /= C.cstE.
 move=> t p /= ->.
-rewrite big_ord_recl -C.mask_mul_l -C.mask_add_l C.tpow_0.
-magic_mask.
+rewrite big_ord_recl C.tpow_0.
 rewrite C.tmul_oner C.tadd_comm.
 case: (tsize p)=> [|n].
-  by rewrite !big_ord0 C.mask0mul_l; magic_mask.
-rewrite C.tmul_comm C.big_distrr_spec //;congr C.tcst; congr C.tadd.
+  by rewrite !big_ord0 /= C.tmul_zerol.
+rewrite C.tmul_comm big_distrr /=; congr C.tadd.
 apply: eq_bigr => i _; rewrite C.tpow_S.
 by rewrite ![_ x _]C.tmul_comm ![C.tmul tt x _]C.tmul_comm C.tmul_assoc.
 Qed.
@@ -562,6 +560,8 @@ Module LinkSeqPolyMonomUp (I : IntervalOps) <: LinkIntR2 I.
 Module Import Pol := SeqPolyMonomUpInt I.
 Module PolR := (*FIXME/Exact*)SeqPolyMonomUp FullR.
 
+Module Import Aux := IntervalAux I.
+
 Local Coercion I.convert : I.type >-> interval. (* for readability *)
 Definition contains_pointwise_until fi fx n : Prop :=
   forall k, k < n ->
@@ -582,11 +582,11 @@ rewrite /tmul_trunc /PolR.tmul_trunc /tnth /PolR.tnth !nth_mkseq //.
 rewrite mul_coeffE' PolR.mul_coeffE'.
 apply big_ind2 with (id1 := Int.tzero) (R2 := R).
 - by rewrite I.zero_correct; split; auto with real.
-- by admit; move=> x1 x2 y1 y2 Hx Hy; try apply: I.add_correct.
-move=> i _; admit. (* apply:I.mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
+- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
+move=> i _; apply: R_mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
   by apply:(@leq_ltn_trans k); rewrite ?leq_subr //; apply: (@leq_ltn_trans n).
 move: Hi Hkn; rewrite !ltnS=> Hi Hkn.
-by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn). *)
+by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
 Qed.
 
 Lemma link_tmul_tail u fi gi fx gx:
@@ -602,32 +602,32 @@ rewrite /tmul_tail /PolR.tmul_tail /tnth /PolR.tnth /= !nth_mkseq //; last first
 rewrite mul_coeffE' PolR.mul_coeffE' /=.
 apply big_ind2 with (id1 := Int.tzero) (R2 := R) => //.
 - by rewrite I.zero_correct; split; auto with real.
-- by move=> x1 x2 y1 y2 Hx Hy; admit; apply:I.add_correct.
+- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
 move=> [i Hi] _.
 case (boolP (n < (tsize fi).-1 + (tsize gi).-1)) => Hn; last first.
   rewrite -leqNgt -subn_eq0 in Hn.
   by rewrite (eqP Hn) in Hkn.
 case: (boolP (i < tsize gi))=> Hig /=.
   case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
-    by admit. (*apply:I.mul_correct;[apply: Hf| apply: Hg].*)
+    by apply: R_mul_correct; [apply: Hf| apply: Hg].
   rewrite -ltnNge ltnS in Hif.
   rewrite nth_default; last by rewrite /tsize in Hif.
   set gii := (nth Int.tzero gi i).
   rewrite nth_default; last by move: Hif; rewrite Hsizef /PolR.tsize.
-  admit. (* apply: I.mul_correct; first by rewrite I.zero_correct; split; auto with real.
-  rewrite /gii; apply:Hg => //. *)
+  apply: R_mul_correct; first by rewrite I.zero_correct; split; auto with real.
+  rewrite /gii; apply:Hg => //.
 rewrite -ltnNge ltnS in Hig.
 case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
   set s := (nth Int.tzero fi _).
   rewrite nth_default; last by rewrite /tsize in Hig.
   set t:= nth (R0) fx _.
   rewrite nth_default; last by move: Hig; rewrite Hsizeg.
-  admit. (* apply: I.mul_correct; last by rewrite I.zero_correct; split; auto with real.
-  by apply:Hf. *)
+  apply: R_mul_correct; last by rewrite I.zero_correct; split; auto with real.
+  by apply: Hf.
 rewrite -ltnNge ltnS in Hif.
 move: (Hig) (Hif); rewrite Hsizef Hsizeg.
 move : Hig Hif; rewrite /tsize /PolR.tsize=>*; rewrite !nth_default =>//.
-by admit; apply: I.mul_correct; rewrite I.zero_correct; split; auto with real.
+by apply: R_mul_correct; rewrite I.zero_correct; split; auto with real.
 Qed.
 
 Lemma link_tsize_set_nth_nil n a b:

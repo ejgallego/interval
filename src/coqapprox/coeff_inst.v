@@ -80,11 +80,6 @@ Definition tatan := --> atan.
 Axiom tasin : U -> T -> T.
 Axiom tacos : U -> T -> T.
 *)
-Lemma big_distrr_spec :
-  forall n F a, n <> 0 -> tmul tt a (\big[tadd tt/tzero]_(i < n) F i) =
-  \big[tadd tt/tzero]_(i < n) tmul tt a (F i).
-admit.
-Qed.
 Lemma tadd_zerol : left_id tzero (tadd tt). Proof Rplus_0_l.
 Lemma tadd_zeror : right_id tzero (tadd tt). Proof Rplus_0_r.
 Lemma tadd_comm : commutative (tadd tt). Proof Rplus_comm.
@@ -102,148 +97,28 @@ Proof.
 by move=> x y z; rewrite tmul_comm tmul_distrl; rewrite 2![_ _ _ x]tmul_comm.
 Qed.
 
-Axiom mask_add_l :
-  forall a b x, tcst (tadd tt a b) x = tadd tt (tcst a x) b.
-Axiom mask_add_r :
-  forall a b x, tcst (tadd tt a b) x = tadd tt a (tcst b x).
-Axiom mask_mul_l :
-  forall a b x, tcst (tmul tt a b) x = tmul tt (tcst a x) b.
-Axiom mask_mul_r :
-  forall a b x, tcst (tmul tt a b) x = tmul tt a (tcst b x).
-Axiom mask0mul_l :
-  forall x, tmul tt tzero x = tcst tzero x.
-Axiom mask0mul_r :
-  forall x, tmul tt x tzero = tcst tzero x.
-Axiom mask_idemp :
-  forall a x, tcst (tcst a x) x = tcst a x.
-Axiom mask_comm :
-  (* useless, but just in case *)
-  forall a x y, tcst (tcst a x) y = tcst (tcst a y) x.
 
 Definition tpow prec x n := (tpower_int prec x (Z_of_nat n)).
-Axiom tpow_0 : forall x, tpow tt x 0 = tcst tone x.
-Axiom tpow_S : forall x n, tpow tt x n.+1 = tmul tt x (tpow tt x n).
-Axiom tpow_opp :
-  forall x n, x <> tzero -> tpower_int tt x (-n) = tinv tt (tpower_int tt x n).
+
+Lemma cstE : forall c x, tcst c x = c. Proof. done. Qed.
+Lemma tpow_0 : forall x, tpow tt x 0 = R1. Proof. done. Qed.
+
+Lemma tpow_S : forall x n, tpow tt x n.+1 = tmul tt x (tpow tt x n).
+Proof.
+by move=> x n; rewrite /tpow /tpower_int -!Interval_missing.pow_powerRZ.
+Qed.
+
+Lemma tpow_opp x n :
+  x <> tzero -> tpower_int tt x (-n) = tinv tt (tpower_int tt x n).
+Proof.
+case: n =>//=; auto with real => p H.
+rewrite /tinv ?Rinv_involutive //.
+exact: pow_nonzero.
+Qed.
+
+Lemma tmul_zerol : left_zero tzero (tmul tt). Proof Rmult_0_l.
+Lemma tmul_zeror : right_zero tzero (tmul tt). Proof Rmult_0_r.
 End FullR.
-
-Module FullXR <: ExactFullOps.
-Definition U := unit.
-Local Notation "--> e" := (fun _ : U => e).
-Definition T := ExtendedR.
-Definition tcst := Xmask.
-Definition tzero := Xreal R0.
-Definition tone := Xreal R1.
-Definition topp := Xneg.
-Definition tadd := --> Xadd.
-Definition tsub := --> Xsub.
-Definition tmul := --> Xmul.
-Definition tdiv := --> Xdiv.
-Definition tpower_int := --> Xpower_int.
-Definition tpow := --> fun x n => Xpower_int x (Z_of_nat n).
-Arguments tpow _ x n : simpl nomatch.
-Definition texp := --> Xexp.
-Definition tln := --> Xln.
-Definition tnat := fun n => Xreal (INR n).
-Definition tfromZ := fun n => Xreal (IZR n).
-Definition tinv := --> Xinv.
-Definition tcos := --> Xcos.
-Definition tsin := --> Xsin.
-Definition tsqr := --> fun x => Xmul x x.
-Definition tsqrt := --> Xsqrt.
-Definition tinvsqrt := --> fun x => Xinv (Xsqrt x).
-Definition ttan := --> Xtan.
-Definition tatan := --> Xatan.
-(*
-Parameter tasin : U -> T -> T.
-Parameter tacos : U -> T -> T.
-*)
-Lemma tadd_zerol : left_id tzero (tadd tt). Proof Xadd_0_l.
-Lemma tadd_zeror : right_id tzero (tadd tt). Proof Xadd_0_r.
-Lemma tadd_comm : commutative (tadd tt). Proof Xadd_comm.
-Lemma tadd_assoc : associative (tadd tt).
-Proof. move=> *; symmetry; exact: Xadd_assoc. Qed.
-Lemma tmul_onel : left_id tone (tmul tt). Proof Xmul_1_l.
-Lemma tmul_oner : right_id tone (tmul tt). Proof Xmul_1_r.
-Lemma tmul_comm : commutative (tmul tt). Proof Xmul_comm.
-Lemma tmul_assoc : associative (tmul tt).
-Proof. move=> *; symmetry; exact: Xmul_assoc. Qed.
-Lemma tmul_distrl : left_distributive (tmul tt) (tadd tt).
-Proof Xmul_Xadd_distr_r.
-Lemma tmul_distrr : right_distributive (tmul tt) (tadd tt).
-Proof.
-by move=> x y z; rewrite tmul_comm tmul_distrl; rewrite 2![_ _ _ x]tmul_comm.
-Qed.
-
-Lemma mask_add_l : forall a b x, tcst (tadd tt a b) x = tadd tt (tcst a x) b.
-Proof. by move=> a b x; case x. Qed.
-Lemma mask_add_r : forall a b x, tcst (tadd tt a b) x = tadd tt a (tcst b x).
-Proof. by move=> a b x; case x; rewrite /= ?[tadd _ _ Xnan]tadd_comm. Qed.
-Lemma mask_mul_l : forall a b x, tcst (tmul tt a b) x = tmul tt (tcst a x) b.
-Proof. by move=> a b x; case x. Qed.
-Lemma mask_mul_r : forall a b x, tcst (tmul tt a b) x = tmul tt a (tcst b x).
-Proof. by move=> a b x; case x; rewrite /= ?[tmul _ _ Xnan]tmul_comm. Qed.
-
-Lemma tpow_0 : forall x, tpow tt x 0 = tcst tone x.
-Proof. done. Qed.
-
-Lemma tpow_S (x : ExtendedR) (n : nat) :
-  tpow tt x n.+1 = tmul tt x (tpow tt x n).
-Proof.
-case: x =>//= r; case: n =>//= n.
-congr Xreal; rewrite tech_pow_Rmult; congr pow.
-by rewrite Pos2Nat.inj_succ.
-Qed.
-
-Lemma tpow_opp (x : ExtendedR) (n : Z) : x <> Xreal 0 ->
-  tpower_int tt x (-n) = tinv tt (tpower_int tt x n).
-Proof. (* this result might be replaced by a more high-level one *)
-case: x =>//= r; case: n =>//=.
-- by rewrite zeroF; auto with real.
-- move=> p; case: (is_zero_spec r).
-  + move->; rewrite pow_ne_zero ?zeroT //.
-    zify; omega.
-  + move=> Hr; rewrite zeroF //.
-    exact: pow_nonzero.
-- move=> p; case: (is_zero_spec r) =>[->//|Hr _].
-  rewrite /tinv /Xinv zeroF; last by auto with real.
-  by rewrite Rinv_involutive; auto with real.
-Qed.
-
-Lemma big_distrr_spec :
-  forall n F a, n <> 0 -> tmul tt a (\big[tadd tt/tzero]_(i < n) F i) =
-  \big[tadd tt/tzero]_(i < n) tmul tt a (F i).
-Proof.
-case=>[//|n] F; case=> [|a] _.
-  rewrite [tmul _ Xnan _]/=.
-  by rewrite (bigXadd_Xnan_i (n := n.+1) (i := ord0)).
-rewrite /tadd /tzero /tmul.
-rewrite Xmul_comm.
-rewrite big_Xmul_Xadd_distr.
-apply: eq_big=>//.
-by move=> i _; rewrite Xmul_comm.
-Qed.
-
-Lemma mask_idemp : forall a x, tcst (tcst a x) x = tcst a x.
-Proof. by move=>?; case. Qed.
-
-Lemma mask_comm :
-  (* useless, but just in case *)
-  forall a x y, tcst (tcst a x) y = tcst (tcst a y) x.
-Proof. by move=> ? [|r] [|s]. Qed.
-
-Lemma mask0mul_l : forall x, tmul tt tzero x = tcst tzero x.
-Proof.
-case=>[|x]; rewrite /= ?[tmul _ _ Xnan]tmul_comm //.
-rewrite /tzero; f_equal; ring.
-Qed.
-
-Lemma mask0mul_r : forall x, tmul tt x tzero = tcst tzero x.
-Proof.
-case=>[|x]; rewrite /= ?[tmul _ _ Xnan]tmul_comm //.
-rewrite /tzero; f_equal; ring.
-Qed.
-End FullXR.
 
 (* Require Import NaryFunctions.
 Implicit Arguments nuncurry [A B n].

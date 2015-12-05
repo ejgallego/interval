@@ -31,7 +31,7 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-Require Import xreal_ssr_compat.
+Require Import Rstruct xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
@@ -59,7 +59,22 @@ Parameter ComputeBound_correct :
   R_extension (PolR.teval tt px) (ComputeBound u p).
 
 Parameter ComputeBound_propagate :
-  forall u p, I_propagate (ComputeBound u p).
+  forall u p px,
+  Link.contains_pointwise p px ->
+  I_propagate (ComputeBound u p).
+
+(*
+Lemma ComputeBound_correct' :
+  forall u p px,
+  Link.contains_pointwise p px ->
+  I.extension (toXreal_fun (PolR.teval tt px)) (ComputeBound u p).
+Proof.
+move=> u p px H.
+apply: extensionR_correct.
+by apply: ComputeBound_correct.
+by apply: ComputeBound_propagate.
+Qed.
+*)
 
 End PolyBound.
 
@@ -75,14 +90,15 @@ Module Import Aux := IntervalAux I.
 Theorem ComputeBound_nth0 prec p px X :
   Link.contains_pointwise p px ->
   contains (I.convert X) (Xreal 0) ->
-  I.subset_ (I.convert (tnth p 0)) (I.convert (ComputeBound prec p X)).
+  forall r : R, contains (I.convert (tnth p 0)) (Xreal r) ->
+                contains (I.convert (ComputeBound prec p X)) (Xreal r).
 Proof.
 move=> [Hsiz Hnth] HX.
 case Ep: (Pol.tsize p) =>[|n].
   (* tsize p = 0 *)
   rewrite Pol.tnth_out ?Ep// I.zero_correct.
-  apply: contains_subset; first by exists (Xreal 0); split; auto with real.
-  move=> [//|v] Hv; rewrite /contains in Hv.
+  (* apply: contains_subset; first by exists (Xreal 0); split; auto with real. *)
+  move=> (*[//|v]*) v Hv; rewrite /contains in Hv.
   have{v Hv}->: v = R0 by apply: Rle_antisym; case: Hv.
   suff->: R0 = (PolR.teval tt px R0).
   exact: ComputeBound_correct HX.
@@ -90,11 +106,7 @@ case Ep: (Pol.tsize p) =>[|n].
   elim/PolR.tpoly_ind: px Epx; first by rewrite PolR.teval_polyNil.
   by move=> ax px; rewrite PolR.tsize_polyCons.
 have Hp: tsize p > 0 by rewrite Ep.
-apply: contains_subset; first by exists (Xreal (PolR.tnth px 0)); apply: Hnth.
-case.
-- move/contains_Xnan => Hnan.
-  suff->: (I.convert (ComputeBound prec p X)) = IInan by [].
-  admit. (* FIXME *)
+(* apply: contains_subset; first by exists (Xreal (PolR.tnth px 0)); apply: Hnth. *)
 move=> a0 Ha0.
 red in Hnth.
 have Hcommon : Link.contains_pointwise p (PolR.tset_nth px 0 a0).
@@ -107,23 +119,17 @@ have Hcommon : Link.contains_pointwise p (PolR.tset_nth px 0 a0).
   rewrite PolR.tnth_set_nth /=.
   exact: Hnth.
 suff->: a0 = PolR.teval tt (PolR.tset_nth px 0 a0) R0.
-  (* exact: ComputeBound_correct. *) admit.
+  exact: ComputeBound_correct.
 have Hsiz' := prednK Hp.
 rewrite PolR.is_horner /=.
 rewrite PolR.tsize_set_nth -Hsiz -Hsiz' maxnSS max0n.
 rewrite big_ord_recl /=.
 rewrite PolR.tnth_set_nth eqxx Rmult_1_r.
-rewrite Hsiz.
+rewrite Hsiz /=.
 clear.
-admit. (* FIXME *)
-(*
 rewrite big1 ?Rplus_0_r//.
 move=> i _.
-rewrite PolR.tnth_set_nth /bump /= SuccNat2Pos.id_succ /= Rmult_0_l.
-case Ex: PolR.tnth =>[|x]; last by simpl; f_equal; ring.
-exfalso; move: Hreal.
-by rewrite (bigD1 i) //= PolR.tnth_set_nth /bump /= Ex XaddC.
-*)
+by rewrite PolR.tnth_set_nth /bump SuccNat2Pos.id_succ /= Rmult_0_l Rmult_0_r.
 Qed.
 
 End PolyBoundThm.
@@ -177,17 +183,19 @@ move/(_ 0 erefl) in K2.
 by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
 Qed.
 
-Lemma ComputeBound_propagate u p : I_propagate (ComputeBound u p).
+Lemma ComputeBound_propagate u pi p :
+  Link.contains_pointwise pi p ->
+  I_propagate (ComputeBound u pi).
 Proof.
-move=> x; rewrite /ComputeBound.
-elim/tpoly_ind: p.
+rewrite /ComputeBound.
+elim/tpoly_ind: pi => [|ai pi IHp].
+  move=> H x.
   rewrite teval_polyNil.
   apply: (I.mask_correct I.zero x (Xreal 0) Xnan).
   by rewrite I.zero_correct; red; auto with real.
-move=> a p H H'.
-move/(_ H')/contains_Xnan in H; clear H'.
+move=> Hp x Hx.
 rewrite teval_polyCons.
-admit. (* FIXME: not provable if a is an empty interval coeff *)
+admit. (* FIXME: Should be easier with a stronger interface *)
 Qed.
 
 End PolyBoundHorner.

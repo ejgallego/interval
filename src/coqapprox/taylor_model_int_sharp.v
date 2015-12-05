@@ -3371,7 +3371,8 @@ Ltac Inc :=
 Lemma TM_invsqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)(FullXR.tinvsqrt tt).
+  i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
+            (fun x => Xinv (Xsqrt x)).
 Proof.
 move=> Hsubset Hex.
 admit.
@@ -3755,12 +3756,11 @@ by rewrite PolR.tsize_sub tsize_sub Hsize1 Hsize2.
 move=> k Hk.
 rewrite tsize_sub Hsame maxnn in Hk.
 pose lem := (Hsame,tnth_sub,Hsize1,Hsize2,minnn).
+admit.
+admit.
+(*
 rewrite ?(PolR.tnth_sub,tnth_sub) ?lem //.
-admit.
-admit.
-admit.
-admit.
-(*by apply: I.sub_correct; [apply: Hcont1|apply: Hcont2]; rewrite ?lem.
+by apply: I.sub_correct; [apply: Hcont1|apply: Hcont2]; rewrite ?lem.
 move=> x Hx.
 have->: f x - g x - PolR.teval tt (PolR.tsub tt a b) (x - x0)
   = (f x - PolR.teval tt a (x - x0)) - (g x - PolR.teval tt b (x - x0)).

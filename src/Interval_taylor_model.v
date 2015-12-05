@@ -264,7 +264,6 @@ split=>//.
   rewrite Link.Pol.tnth_out // Link.PolR.tnth_out //.
   by rewrite I.zero_correct; split; auto with real.
   by rewrite -h1.
-admit. (*
 move=> x Hx.
 have := h3 x Hx.
 case Def: defined; last done.
@@ -277,24 +276,27 @@ rewrite (big_cat_nat Radd_monoid (n := PolR.tsize a)) =>//.
     rewrite Rplus_0_r.
     rewrite big_mkord.
     rewrite (eq_bigr (fun i =>
-    Rmult (PolR.tnth a (fintype.nat_of_ord i))
-    (FullR.tpow tt (Rminus x xi0) (fintype.nat_of_ord i)))).
-
-      exact: H'.
+    Rmult (PolR.tnth (PolR.tset_nth a u.2 0%R) (fintype.nat_of_ord i))
+    (FullR.tpow tt (Rminus x xi0) (fintype.nat_of_ord i)))) =>//.
     move=> i _; rewrite PolR.tnth_set_nth ifF //.
     apply/eqP=> Hi.
     rewrite -Hi in Hsize.
-    by case: i {Hi} Hsize =>/= m Hm; rewrite leqNgt Hm.
+    case: i {Hi} Hsize =>/= m Hm.
+    rewrite /Link.Pol.tsize /Link.PolR.tsize in h1.
+    by rewrite leqNgt /= /tmsize /PolR.tsize /PolI.tsize h1 Hm. (* FIXME *)
   move=> i; rewrite mem_index_iota => Hi.
   rewrite PolR.tnth_set_nth.
-  rewrite Hr1 Hr2 [FullXR.tpow _ _ _]Xpow_idem Xpow_Xreal.
   case: (i == u.2).
     by rewrite /= Rmult_0_l.
   rewrite PolR.tnth_out.
     by rewrite /= Rmult_0_l.
   by case/andP: Hi.
-rewrite (appP idP maxn_idPl); exact: ltnW.
-*)
+rewrite PolR.tsize_set_nth.
+(* FIXME : *)
+rewrite /Link.Pol.tsize /Link.PolR.tsize /tmsize /PolR.tsize /PolI.tsize /= in Hsize h1 *.
+rewrite (appP idP maxn_idPl).
+by rewrite -h1; apply: leqW.
+by rewrite -h1; apply: leqW.
 Qed.
 
 Definition pad2 (u0 : U) (X : I.type) (arg : T * T) : T * T :=
@@ -612,9 +614,11 @@ move: x Hx =>[|x Hx].
   move/contains_Xnan => H0.
   rewrite Hnan.
   rewrite (Iadd_Inan_propagate_l _ Hzero) //.
-  apply/contains_Xnan/Bnd.ComputeBound_propagate/contains_Xnan.
-  erewrite Isub_Inan_propagate_l =>//.
+  apply/contains_Xnan.
+  eapply Bnd.ComputeBound_propagate; last first.
+  erewrite Isub_Inan_propagate_l =>//. (* e-FIXME *)
   exact: Imid_contains.
+  split; by [apply: Hsize | apply: Hcont].
 move/(_ x) in Hdelta.
 apply I.subset_correct in HXY.
 case Def : (defined f x) => [|]; last first.
