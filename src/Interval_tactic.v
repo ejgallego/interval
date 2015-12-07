@@ -13,8 +13,11 @@ Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
 Require Import integrability.
+Require Import Interval_transcend.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
+
+Module T := TranscendentalFloatFast F.
 
 Inductive interval_tac_parameters :=
   | i_prec : nat -> interval_tac_parameters
@@ -360,6 +363,133 @@ now split.
 Qed.
 
 Require Import ssreflect.
+Search "Inan".
+
+Print notInan.
+Lemma all_integrals_Inan iF la ua lb ub :
+  match (F.real la, F.real ua, F.real lb, F.real ub) with
+    | (true,true,true,true) => True
+    | _ => Int.all_integrals prec iF (I.bnd la ua) (I.bnd lb ub) = Interval_interval_float.Inan
+  end.
+Proof.
+Admitted. (* TODO, below are some clues *)
+(* move: (F.real_correct la) (F.real_correct ua) (F.real_correct lb) (F.real_correct ub). *)
+(* rewrite /Int.all_integrals /Int.I.sub /=. *)
+(* case Hla : (F.toF la) => // Hla1. *)
+(* Search _  F.min. *)
+(* Check F.sub_correct. *)
+(* Check I.mul_correct. *)
+(* case Hua : (F.toF ua) => Hua1; case Hlb : (F.toF lb) => Hlb1; case Hub : (F.toF ub) => Hub1; rewrite ?Hla1 ?Hua1 ?Hlb1 ?Hub1 /=; rewrite /all_integrals. *)
+
+(* Search _ F.toF . *)
+
+(* assert((Int.I.sub prec (I.bnd lb ub) (I.bnd la ua)) = Interval_interval_float.Inan). *)
+(* rewrite /Int.I.sub /=. Check F.sub_correct. *)
+(* Check F.real_correct. *)
+
+
+
+Lemma all_integrals_correct_prog :
+  forall prog bounds ia ib a b,
+   contains (I.convert ia) (Xreal a) ->
+   contains (I.convert ib) (Xreal b) ->
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+notInan (Int.all_integrals prec
+                    (fun xi : Int.I.type =>
+                     nth 0
+                       (A.BndValuator.eval prec prog
+                          (xi :: map A.interval_from_bp bounds)) I.nai)
+                    ia 
+                    ib) ->
+ex_RInt f a b.
+Proof.
+move => prog bounds ia ib a b  Hconta Hcontb f.
+rewrite /Int.all_integrals.
+set iFab := (X in Int.I.mul _ X _).
+move => HnotInan.
+suff HiFNI : notInan iFab =>  [|].
+rewrite /f.
+move: HiFNI.
+rewrite /iFab -/evalInt => HiFNI.
+apply: (integrableProg _ _ _ _ _ (Int.I.join ia ib)) => //.
+move => x Hx.
+case: (Rle_dec a b) => [Hleab | Hltba].
+- apply: (contains_connected _ a b); try apply: I.join_correct.
+  + by left.
+  + by right.
+  by rewrite Rmin_left // Rmax_right // in Hx.
+- have Hltba1 := (Rlt_le _ _  (Rnot_le_lt _ _ Hltba)).
+  apply: (contains_connected _ b a); try apply: I.join_correct.
+  + by right.
+  + by left.
+  by rewrite Rmin_right // Rmax_left // in Hx.
+rewrite /boundsToInt /evalInt.
+move: HnotInan.
+by case: (iFab) => //.
+Qed.
+
+
+Lemma integral_correct :
+  forall (depth : nat) proga boundsa progb boundsb prog bounds,
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
+  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
+  let i := Int.integral_intBounds 
+             prec
+             iF
+             depth ia ib 
+  in
+  (notInan i ->
+   ex_RInt f a b) /\
+  contains (I.convert i) (Xreal (RInt f a b)).
+Proof.
+move => depth proga boundsa progb boundsb prog bounds f a b ia ib iF (* HnotInan *) i.
+case_eq i.
+split => //.
+move => l u Hibndlu.
+rewrite /i in Hibndlu. move {i}.
+case Hia : ia Hibndlu.
+split; last first.
+rewrite -H.
+
+
+
+
+
+
+rewrite /i in H.
+
+
+
+- case : depth i H => [| d Hd] /= _. 
+  rewrite /Int.integral_intBounds.
+  case Hib : ib => [|ib1 ib2] //; case Hia : ia => [|ia1 ia2] // .
+  move: (all_integrals_Inan iF ia1 ia2 ia2 ia2).
+  rewrite /Int.thin.
+  case Hrealia2 : (F.real ia2) => // . admit.
+  case Hcmp : (F.cmp ia2 ib1) => // .
+  move => _.
+  rewrite /Int.all_integrals.
+  move ->.
+  case Hrealia2 : (F.real ia2) => // .
+  case Hrealib1 : (F.real ib1) => // .
+  case Hrealib2 : (F.real ib2) => // _ .
+  admit.
+  case Hcmp : (F.cmp ia2 ib1) => // .
+  move => Hintsum HnotInan.
+  suff: ex_RInt f (T.toR ia1) (T.toR ib2).
+  move => Hintiaib.
+  apply: (ex_RInt_Chasles_1).
+  exact: (T.toR ib2).
+  admit.
+  rewrite /f /a.
+  apply: (all_integrals_correct_prog _ _ ia (Int.thin ib2)).
+- by apply: contains_eval.
+- apply: Int.thin_correct_toR => // .
+   
 
 Lemma integral_correct :
   forall prec (depth : nat) proga boundsa progb boundsb prog bounds,
@@ -377,6 +507,7 @@ Lemma integral_correct :
    ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
+
 intros prec depth proga boundsa progb boundsb prog bounds f a b ia ib (* HnotInan *) i.
 case_eq i.
 now split.

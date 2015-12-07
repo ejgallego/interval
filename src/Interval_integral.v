@@ -16,7 +16,7 @@ Module IntegralTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatInterval F.
 Module T := TranscendentalFloatFast F.
-Module Integrability := Integrability F.
+Module Int := Integrability F.
 
 Section IntervalIntegral.
 
@@ -100,6 +100,26 @@ Proof.
 have := (F.real_correct fl); rewrite /I.convert_bound /T.toR.
 by case: (F.toF fl)=> [||y z t] ->; constructor.
 Qed.
+About F.toF.
+
+Definition notFnan (f : F.type) :=
+  match F.toF f with
+    | Interval_generic.Fnan  => false
+    | _ => true
+  end = true.
+
+Lemma contains_convert_bnd_l1 (a b : F.type) :  (F.real a) ->
+  (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound a).
+Proof.
+move/F_realP => hra  hleab; rewrite hra; apply: le_contains.
+  by rewrite hra; apply: le_lower_refl.
+case Hb : (F.real b).
+by move/F_realP : Hb ->.
+move: (F.real_correct b); case H: (F.toF b); rewrite Hb //.
+move => _.
+have HXnan : I.convert_bound b = Xnan by rewrite /I.convert_bound H.
+by rewrite HXnan.
+Qed.
 
 Lemma contains_convert_bnd_l (a b : F.type) :  (F.real a) -> (F.real b) ->
   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound a).
@@ -108,6 +128,21 @@ move/F_realP => hra /F_realP hrb hleab; rewrite hra; apply: le_contains.
   by rewrite hra; apply: le_lower_refl.
 by rewrite hrb.
 Qed.
+
+Lemma contains_convert_bnd_r1 (a b : F.type) :  (F.real b) ->
+  (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound b).
+Proof.
+move/F_realP =>  hrb hleab; rewrite hrb; apply: le_contains.
+case Ha : (F.real a).
+move/F_realP : Ha ->.
+  rewrite /le_lower /=; exact: Ropp_le_contravar.
+move: (F.real_correct a); case H : (F.toF a); rewrite Ha // .
+move => _.
+have -> : I.convert_bound a = Xnan by rewrite /I.convert_bound H.
+done.
+rewrite hrb; exact: le_upper_refl.
+Qed.
+
 
 Lemma contains_convert_bnd_r (a b : F.type) :  (F.real a) -> (F.real b) ->
   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound b).
@@ -435,6 +470,54 @@ apply: all_integrals_correct_lt_swap.
 Search _ (~ _ <= _).
 by apply: Rnot_le_lt.
 Qed.
+
+(* Search _ F.type. *)
+(* Check Ibnd. *)
+(* Print f_interval. *)
+(* Check F.toF. *)
+(* Print I.type. *)
+(* Print f_interval. *)
+
+(* this lemma is actually false *)
+(* Lemma toto ia ib :  *)
+(*   Int.notInan (I.sub prec ia ib) -> *)
+(*   (match ia with *)
+(*       | Ibnd l u => F.real l /\ F.real u *)
+(*       | Inan => False *)
+(*   end). *)
+(* case: ia => // la ua. *)
+(* rewrite /I.sub. *)
+(* case: ib => // lb ub.  *)
+
+
+(* this lemma is false *)
+Lemma all_integrals_not_Inan_implies_bounded (ia ib : I.type ) :
+    Int.notInan (all_integrals ia ib) -> 
+    exists a b,
+    (contains (I.convert ia) (Xreal a)) /\ 
+    (contains (I.convert ib) (Xreal b)) /\
+    ex_RInt f a b.
+Proof.
+move => HnotInan.
+case Hia : ia => [| la ua].
+- exists 0 .
+  case Hib : ib => [| lb ub] .
+  + exists 0.
+    split; split; try done.
+    exact: ex_RInt_point.
+  + case Hbreal : (F.real lb).
+    exists (T.toR lb).
+
+    split; split; try done.
+    move/F_realP : Hbreal => Hbreal; rewrite -Hbreal.
+
+                                        
+
+case Hia : (I.bounded ia); case Hib : (I.bounded ib) => // .
+- move: (I.bounded_correct ib); 
+  case Hilb : (I.lower_bounded ib);
+  case Hiub : (I.upper_bounded ib) => // .
+
 
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
