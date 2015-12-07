@@ -490,33 +490,33 @@ Qed.
 (* case: ib => // lb ub.  *)
 
 
-(* this lemma is false *)
-Lemma all_integrals_not_Inan_implies_bounded (ia ib : I.type ) :
-    Int.notInan (all_integrals ia ib) -> 
-    exists a b,
-    (contains (I.convert ia) (Xreal a)) /\ 
-    (contains (I.convert ib) (Xreal b)) /\
-    ex_RInt f a b.
-Proof.
-move => HnotInan.
-case Hia : ia => [| la ua].
-- exists 0 .
-  case Hib : ib => [| lb ub] .
-  + exists 0.
-    split; split; try done.
-    exact: ex_RInt_point.
-  + case Hbreal : (F.real lb).
-    exists (T.toR lb).
+(* (* this lemma is false *) *)
+(* Lemma all_integrals_not_Inan_implies_bounded (ia ib : I.type ) : *)
+(*     Int.notInan (all_integrals ia ib) ->  *)
+(*     exists a b, *)
+(*     (contains (I.convert ia) (Xreal a)) /\  *)
+(*     (contains (I.convert ib) (Xreal b)) /\ *)
+(*     ex_RInt f a b. *)
+(* Proof. *)
+(* move => HnotInan. *)
+(* case Hia : ia => [| la ua]. *)
+(* - exists 0 . *)
+(*   case Hib : ib => [| lb ub] . *)
+(*   + exists 0. *)
+(*     split; split; try done. *)
+(*     exact: ex_RInt_point. *)
+(*   + case Hbreal : (F.real lb). *)
+(*     exists (T.toR lb). *)
 
-    split; split; try done.
-    move/F_realP : Hbreal => Hbreal; rewrite -Hbreal.
+(*     split; split; try done. *)
+(*     move/F_realP : Hbreal => Hbreal; rewrite -Hbreal. *)
 
                                         
 
-case Hia : (I.bounded ia); case Hib : (I.bounded ib) => // .
-- move: (I.bounded_correct ib); 
-  case Hilb : (I.lower_bounded ib);
-  case Hiub : (I.upper_bounded ib) => // .
+(* case Hia : (I.bounded ia); case Hib : (I.bounded ib) => // . *)
+(* - move: (I.bounded_correct ib);  *)
+(*   case Hilb : (I.lower_bounded ib); *)
+(*   case Hiub : (I.upper_bounded ib) => // . *)
 
 
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
