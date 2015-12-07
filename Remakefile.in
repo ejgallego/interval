@@ -22,7 +22,6 @@ FILES = \
 
 CAFILES = \
 	basic_rec.v \
-	coeff_inst.v \
 	derive_compl.v \
 	interval_compl.v \
 	nary_tuple.v \
@@ -30,7 +29,6 @@ CAFILES = \
 	poly_bound_quad.v \
 	poly_datatypes.v \
 	poly_inst_seq.v \
-	rpa_inst.v \
 	Rstruct.v \
 	seq_compl.v \
 	taylor_model_int_sharp.v \

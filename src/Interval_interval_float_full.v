@@ -767,6 +767,24 @@ elim Rle_not_lt with (1 := Hx).
 now apply Rlt_le_trans with xlr.
 Qed.
 
+Lemma cos_propagate : forall prec, I.propagate (cos prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma sin_propagate : forall prec, I.propagate (sin prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma tan_propagate : forall prec, I.propagate (tan prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma atan_propagate : forall prec, I.propagate (atan prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma exp_propagate : forall prec, I.propagate (exp prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma ln_propagate : forall prec, I.propagate (ln prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
 Definition bound_type := I.bound_type.
 Definition convert_bound := I.convert_bound.
 Definition type := I.type.
@@ -834,5 +852,23 @@ Definition fromZ_correct := I.fromZ_correct.
 Definition extension := I.extension.
 Definition extension_2 := I.extension_2.
 Definition bounded_prop := I.bounded_prop.
+Definition propagate := I.propagate.
+Definition propagate_l := I.propagate_l.
+Definition propagate_r := I.propagate_r.
+Definition mask_propagate_l := I.mask_propagate_l.
+Definition mask_propagate_r := I.mask_propagate_r.
+Definition neg_propagate := I.neg_propagate.
+Definition inv_propagate := I.inv_propagate.
+Definition sqr_propagate := I.sqr_propagate.
+Definition sqrt_propagate := I.sqrt_propagate.
+Definition power_int_propagate := I.power_int_propagate.
+Definition add_propagate_l := I.add_propagate_l.
+Definition sub_propagate_l := I.sub_propagate_l.
+Definition mul_propagate_l := I.mul_propagate_l.
+Definition div_propagate_l := I.div_propagate_l.
+Definition add_propagate_r := I.add_propagate_r.
+Definition sub_propagate_r := I.sub_propagate_r.
+Definition mul_propagate_r := I.mul_propagate_r.
+Definition div_propagate_r := I.div_propagate_r.
 
 End FloatIntervalFull.

@@ -52,19 +52,17 @@ Proof. by rewrite maxnC maxnS. Qed.
 
 (** * Parameterized Module for Taylor Models *)
 
-Module TM (I : IntervalOps) <: UnivariateApprox I.
+Module TM (I : IntervalOps) (* <: UnivariateApprox I.*).
 (* Erik: We might add a Boolean counterpart of not_empty in IntervalOps *)
 
 (** ** Load the CoqApprox modules *)
-Module PolR := (*FIXME*)ExactSeqPolyMonomUp FullR.
-Module Link := LinkSeqPolyMonomUp I.
-Module PolI := SeqPolyMonomUpInt I.
-Module Bnd := PolyBoundHornerQuad I PolI PolR Link.
-Module Import TMI := TaylorModel I PolI PolR Link Bnd.
+Module Pol := SeqPolyInt I.
+Module Bnd := PolyBoundHornerQuad I Pol.
+Module Import TMI := TaylorModel I Pol Bnd.
 
 (** ** Main type definitions *)
 
-Inductive t_ := Dummy | Const of I.type | Var | Tm of RPA.rpa.
+Inductive t_ := Dummy | Const of I.type | Var | Tm of rpa.
 
 Definition T := t_.
 
@@ -81,7 +79,7 @@ Definition isTm (t : T) : bool := if t is Tm _ then true else false.
 
 Definition unat (u : U) (n : nat) := (u.1, n).
 
-Definition tmsize (tm : RPA.rpa) := PolI.tsize (RPA.approx tm).
+Definition tmsize (tm : rpa) := Pol.size (approx tm).
 
 Definition tsize (t : T) : nat :=
   match t with
@@ -89,7 +87,7 @@ Definition tsize (t : T) : nat :=
     | Tm tm => tmsize tm
   end.
 
-Definition tm_helper1 (u : U) X (t : T) : RPA.rpa :=
+Definition tm_helper1 (u : U) X (t : T) : rpa :=
   match t with
     | Dummy => TM_any u.1 I.nai X u.2
     | Const c => let X0 := Imid X in TM_cst u.1 c X0 X u.2
@@ -102,9 +100,9 @@ Definition tm_helper2pad (u : U) X (t : T) :=
     | Dummy => TM_any u.1 I.nai X u.2
     | Const c => let X0 := Imid X in (TM_cst u.1 c X0 X u.2)
     | Var => let X0 := Imid X in (TM_var u.1 X0 X u.2)
-    | Tm {| RPA.approx := pol; RPA.error := delta |} =>
-      let pol' := PolI.tset_nth pol u.2 I.zero in
-      (RPA.RPA pol' delta)
+    | Tm {| approx := pol; error := delta |} =>
+      let pol' := Pol.set_nth pol u.2 I.zero in
+      (RPA pol' delta)
   end.
 
 Lemma tsize_tm_helper1_geq u X t :
@@ -115,9 +113,9 @@ Lemma tsize_tm_helper1_leq u X t :
   tmsize (tm_helper1 u X t) <= maxn (tsize t) (u.2).+1.
 Proof.
 case: t =>//; rewrite /tm_helper1.
-by rewrite /tsize /tmsize size_TM_any leq_max ltnSn orbC.
-by move=> c; rewrite /tsize /tmsize size_TM_cst leq_max ltnSn orbC.
-by rewrite /tsize /tmsize /= PolI.tsize_trec2.
+by rewrite /tmsize /Pol.size (*FIXME: WHY?*) size_TM_any leq_max ltnSn orbC.
+by move=> c; rewrite /tmsize /Pol.size size_TM_cst leq_max ltnSn orbC.
+by rewrite /tmsize /Pol.size size_TM_var max0n.
 move=> r /=; exact: leq_maxl.
 Qed.
 
@@ -125,9 +123,9 @@ Lemma tsize_tm_helper1 u X t :
   tmsize (tm_helper1 u X t) = if t is Tm _ then tsize t else u.2.+1.
 Proof.
 case: t => [|c||tm] //.
-  by rewrite /tmsize size_TM_any.
-  by rewrite /tmsize size_TM_cst.
-by rewrite /tmsize PolI.tsize_trec2.
+  by rewrite /tmsize /Pol.size size_TM_any.
+  by rewrite /tmsize /Pol.size size_TM_cst.
+by rewrite /tmsize Pol.size_rec2.
 Qed.
 
 Corollary tsizeS_tm_helper1 u X t :
@@ -139,10 +137,10 @@ Lemma tsize_tm_helper2pad_maxn u X t :
   tmsize (tm_helper2pad u X t) = maxn (tsize t) (u.2).+1.
 Proof.
 case: t; rewrite /tm_helper2pad.
-by rewrite /tsize /tmsize size_TM_any (appP idP maxn_idPr).
-by move=> c; rewrite /tsize /tmsize size_TM_cst (appP idP maxn_idPr).
-by rewrite /tsize /tmsize /= PolI.tsize_trec2 (appP idP maxn_idPr) //.
-by move =>  [pol delta]; rewrite /tsize /tmsize /= PolI.tsize_set_nth maxnC.
+by rewrite /tmsize /Pol.size size_TM_any (appP idP maxn_idPr).
+by move=> c; rewrite /tmsize /Pol.size size_TM_cst (appP idP maxn_idPr).
+by rewrite /tsize /tmsize /= Pol.size_rec2 (appP idP maxn_idPr) //.
+by move =>  [pol delta]; rewrite /tmsize /= Pol.size_set_nth maxnC.
 Qed.
 
 Corollary tsize_tm_helper2pad u X t :
@@ -199,21 +197,30 @@ Lemma tm_helper1_correct u Y tf f :
   approximates Y (Tm (tm_helper1 u Y tf)) f.
 Proof.
 case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
-- by rewrite /tmsize size_TM_any.
+- by rewrite /tmsize /Pol.size size_TM_any.
   move=> ?; apply: TM_any_correct.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
-- by rewrite /tmsize size_TM_cst.
+- by rewrite /tmsize /Pol.size size_TM_cst.
 - move=> Hne.
   apply TM_cst_correct_strong =>//.
   exact: Imid_subset.
   exact: not_empty_Imid.
-- by rewrite /tmsize PolI.tsize_trec2.
+- by rewrite /tmsize Pol.size_rec2.
 - move=> Hne.
   apply: TM_var_correct_strong=>//.
     exact: Imid_subset.
   by move/not_empty_Imid: Hne.
+Qed.
+
+Lemma contains_pointwise_helper0 pol p n :
+  Pol.size pol <= n -> Pol.contains_pointwise pol p ->
+  PolR.nth p n = 0%R.
+Proof.
+rewrite /Pol.contains_pointwise => Hpol.
+move/(_ n); rewrite Pol.nth_default // I.zero_correct /=.
+case => A B; exact: Rle_antisym.
 Qed.
 
 Lemma tm_helper2pad_correct u X tf f :
@@ -223,20 +230,20 @@ Lemma tm_helper2pad_correct u X tf f :
 Proof.
 case: tf => [|c||[pol delta]]; rewrite /approximates /=.
 - case=> Hnan _ _; split=>//.
-  by rewrite /tmsize -lt0n size_TM_any ltnS //.
+  by rewrite /tmsize /Pol.size -lt0n size_TM_any ltnS //.
   move=> Hne.
   apply TM_any_correct=>//.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
 - case=> Hnan _ H; split=>//.
-  by rewrite /tmsize -lt0n size_TM_cst ltnS //.
+  by rewrite /tmsize /Pol.size -lt0n size_TM_cst ltnS //.
   move=> Hne.
   apply TM_cst_correct_strong=>//.
   exact: Imid_subset.
   exact: not_empty_Imid.
 - case=> Hnan Hnil H Hu; split=>//.
-  by rewrite /tmsize -lt0n PolI.tsize_trec2 ltnS //.
+  by rewrite /tmsize -lt0n Pol.size_rec2 ltnS //.
   move=> Hne.
   apply: (TM_fun_eq (f := id)).
     by move=> *; symmetry; apply: H.
@@ -245,58 +252,40 @@ case: tf => [|c||[pol delta]]; rewrite /approximates /=.
   by move/not_empty_Imid: Hne.
 case=> [NN SS H] Hsize.
 do 1!split=>//.
-rewrite /tmsize /= PolI.tsize_set_nth /= maxnC -lt0n; exact: maxnS.
+rewrite /tmsize /= Pol.size_set_nth /= maxnC -lt0n; exact: maxnS.
 move=> Hne; move/(_ Hne) in H.
 have [H1 H2 H3] := H.
 split=>//= xi0 Hxi0.
-have /= [a [h1 h2 h3]] := H3 xi0 Hxi0.
-exists (PolR.tset_nth a u.2 0%R).
-split.
-rewrite Link.Pol.tsize_set_nth Link.PolR.tsize_set_nth h1.
-split=>//.
-  move=> k Hk.
-  case: (ltnP k (PolI.tsize pol)) => Hineq.
-    rewrite Link.Pol.tnth_set_nth Link.PolR.tnth_set_nth.
-    case: (k == u.2); first by rewrite I.zero_correct; split; auto with real.
-    exact: h2.
-  rewrite Link.Pol.tnth_set_nth Link.PolR.tnth_set_nth.
+have /= [p h1 h2] := H3 xi0 Hxi0.
+exists (PolR.set_nth p u.2 0%R).
+  move=> k.
+  rewrite Pol.nth_set_nth PolR.nth_set_nth.
   case: (k == u.2); first by rewrite I.zero_correct; split; auto with real.
-  rewrite Link.Pol.tnth_out // Link.PolR.tnth_out //.
-  by rewrite I.zero_correct; split; auto with real.
-  by rewrite -h1.
+  exact: h1.
 move=> x Hx.
-have := h3 x Hx.
-case Def: defined; last done.
-rewrite !PolR.is_horner.
-rewrite -(big_mkord xpredT
-  (fun i => Rmult (PolR.tnth (PolR.tset_nth a u.2 0%R) i)
-  (FullR.tpow tt (Rminus x xi0) i))).
-rewrite (big_cat_nat Radd_monoid (n := PolR.tsize a)) =>//.
+case Def: defined; move/(_ x Hx) in h2; rewrite Def // in h2.
+rewrite !PolR.is_horner in h2 *.
+(* now unnecessary: rewrite (big_mkord xpredT
+  (fun i => Rmult (PolR.nth (PolR.set_nth p u.2 0%R) i)
+  (FullR.pow (Rminus x xi0) i))). *)
+rewrite (big_cat_nat Radd_monoid (n := PolR.size p)) =>//.
   rewrite [in X in Radd_monoid _ X]big1_seq /=.
     rewrite Rplus_0_r.
-    rewrite big_mkord.
-    rewrite (eq_bigr (fun i =>
-    Rmult (PolR.tnth (PolR.tset_nth a u.2 0%R) (fintype.nat_of_ord i))
-    (FullR.tpow tt (Rminus x xi0) (fintype.nat_of_ord i)))) =>//.
-    move=> i _; rewrite PolR.tnth_set_nth ifF //.
-    apply/eqP=> Hi.
-    rewrite -Hi in Hsize.
-    case: i {Hi} Hsize =>/= m Hm.
-    rewrite /Link.Pol.tsize /Link.PolR.tsize in h1.
-    by rewrite leqNgt /= /tmsize /PolR.tsize /PolI.tsize h1 Hm. (* FIXME *)
+    rewrite (eq_bigr (fun i => Rmult (PolR.nth p i)
+                                     (FullR.pow (Rminus x xi0) i))) =>//.
+    move=> i _; rewrite PolR.nth_set_nth /=.
+    case E : eq_op =>//.
+    move/eqP: E =>->.
+    by rewrite (contains_pointwise_helper0 (pol := pol)).
   move=> i; rewrite mem_index_iota => Hi.
-  rewrite PolR.tnth_set_nth.
+  rewrite PolR.nth_set_nth.
   case: (i == u.2).
     by rewrite /= Rmult_0_l.
-  rewrite PolR.tnth_out.
+  rewrite PolR.nth_default.
     by rewrite /= Rmult_0_l.
   by case/andP: Hi.
-rewrite PolR.tsize_set_nth.
-(* FIXME : *)
-rewrite /Link.Pol.tsize /Link.PolR.tsize /tmsize /PolR.tsize /PolI.tsize /= in Hsize h1 *.
-rewrite (appP idP maxn_idPl).
-by rewrite -h1; apply: leqW.
-by rewrite -h1; apply: leqW.
+rewrite PolR.size_set_nth.
+by rewrite leq_maxr.
 Qed.
 
 Definition pad2 (u0 : U) (X : I.type) (arg : T * T) : T * T :=
@@ -549,8 +538,8 @@ Definition eval (u : U) (t : T) (Y X : I.type) : I.type :=
     let X0 := Imid Y in
     let tm := tm_helper1 u Y t in
     I.add u.1
-      (Bnd.ComputeBound u.1 (RPA.approx tm) (I.sub u.1 X X0))
-      (RPA.error tm)
+      (Bnd.ComputeBound u.1 (approx tm) (I.sub u.1 X X0))
+      (error tm)
   end
   else I.nai.
 
@@ -591,6 +580,7 @@ rewrite Hy2 //.
 exact: subset_contains Hsubset _ _.
 (* Var *)
 case.
+simpl.
 case: x Hx =>[|x] Hx; first by move->.
 move=> _ _ /(_ x) ->//.
 exact: subset_contains Hsubset _ _.
@@ -599,50 +589,52 @@ move=> Hf.
 have /= {Hf} := tm_helper1_correct u Hf=> Htm.
 have {Htm} [Hnan Hnil Htm] := Htm.
 have HneY: not_empty (I.convert Y).
-apply not_emptyE; exists x; exact: subset_contains Hsubset _ _.
+apply: not_emptyE.
+exists x; exact: subset_contains Hsubset _ _.
 move/(_ HneY): Htm.
 case => [/= Hzero _ Hmain].
 have [L1 L2] := I.midpoint_correct Y (not_empty'E HneY).
 set c0 := proj_val (I.convert_bound (I.midpoint Y)) in L1.
-have [|qx [Hsize Hcont Hdelta]] := Hmain c0.
+have [|qx Hcont Hdelta] := Hmain c0.
   apply: Imid_contains_Xreal.
-  apply: not_emptyE.
-  exists x.
+  apply: not_emptyE; exists x.
   apply: subset_contains Hx.
   exact: I.subset_correct.
 move: x Hx =>[|x Hx].
   move/contains_Xnan => H0.
   rewrite Hnan.
   rewrite (Iadd_Inan_propagate_l _ Hzero) //.
-  apply/contains_Xnan.
-  eapply Bnd.ComputeBound_propagate; last first.
-  erewrite Isub_Inan_propagate_l =>//. (* e-FIXME *)
-  exact: Imid_contains.
-  split; by [apply: Hsize | apply: Hcont].
+  apply: (Bnd.ComputeBound_propagate u.1 (approx tm) qx Hcont).
+  by rewrite I.sub_propagate_l.
 move/(_ x) in Hdelta.
 apply I.subset_correct in HXY.
 case Def : (defined f x) => [|]; last first.
   rewrite Def in Hdelta.
   move/definedF: Def => ->.
-  rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.teval tt qx (Rminus x c0)))) =>//.
+  rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.eval tt qx (Rminus x c0)))) =>//.
   apply: Bnd.ComputeBound_correct =>//.
+  split; last done.
+  admit. (* FIXME *)
   apply: R_sub_correct =>//.
   rewrite /c0.
   exact: Imid_contains_Xreal.
   apply/contains_Xnan.
   by move/(_ (subset_contains _ _ HXY _ Hx)): Hdelta.
-have->: f (Xreal x) = Xadd (Xreal (PolR.teval tt qx (Rminus x c0)))
-  (Xsub (f (Xreal x)) (Xreal (PolR.teval tt qx (Rminus x c0)))).
+have->: f (Xreal x) = Xadd (Xreal (PolR.eval tt qx (Rminus x c0)))
+  (Xsub (f (Xreal x)) (Xreal (PolR.eval tt qx (Rminus x c0)))).
 case Efx : (f (Xreal x)) => [|r]; first by rewrite XaddC.
 simpl.
 by congr Xreal; auto with real.
 apply I.add_correct =>//.
-apply: Bnd.ComputeBound_correct; first by split.
-apply: R_sub_correct =>//.
-apply: Imid_contains_Xreal.
-exists x.
-exact: subset_contains Hx.
-rewrite Def Xreal_sub Xreal_toR // in Hdelta.
+  apply: Bnd.ComputeBound_correct =>//.
+  split; last done.
+  admit. (* FIXME *)
+  apply: R_sub_correct =>//.
+  apply: Imid_contains_Xreal.
+  exists x.
+  exact: subset_contains Hx.
+rewrite Xreal_sub Xreal_toR // in Hdelta.
+rewrite Def in Hdelta.
 apply: Hdelta.
 exact: subset_contains HXY _ _.
 Qed.
@@ -670,8 +662,8 @@ split=>//.
 by rewrite Hnan.
 rewrite /add_slow.
 set t' := pad2 u Y (tf, tg) in Hnil *.
-rewrite /= /tmsize size_TM_add /=.
-rewrite ![PolI.tsize _]tsize_tm_helper1.
+rewrite /= /tmsize /Pol.size size_TM_add /=.
+rewrite ![size _]tsize_tm_helper1.
 case: t'.1 Hnil =>[|c'| |t'1]; rewrite -lt0n ?maxSn //.
 rewrite /not_nil /= -lt0n.
 move=> H'1.
@@ -681,7 +673,7 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply: TM_add_correct;
   first
-    (rewrite ![PolI.tsize _]tsize_tm_helper1 size_pad2;
+    (rewrite ![size _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c||tm][|c'||tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
   try (apply: TM_any_correct;
@@ -726,8 +718,8 @@ move=> [Hnan Hnil Hmain].
 split=>//.
 by rewrite Hnan.
 rewrite /opp_slow.
-rewrite /= /tmsize size_TM_opp /=.
-rewrite ![PolI.tsize _]tsize_tm_helper1.
+rewrite /= /tmsize /Pol.size size_TM_opp /=.
+rewrite ![size _]tsize_tm_helper1.
 by case: tf Hnil Hmain =>[|c'| |tf'].
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
@@ -779,8 +771,8 @@ split=>//.
 by rewrite Hnan.
 rewrite /sub_slow.
 set t' := pad2 u Y (tf, tg) in Hnil *.
-rewrite /= /tmsize size_TM_sub /=.
-rewrite ![PolI.tsize _]tsize_tm_helper1.
+rewrite /= /tmsize /Pol.size size_TM_sub /=.
+rewrite ![size _]tsize_tm_helper1.
 case: t'.1 Hnil =>[|c'| |t'1]; rewrite -lt0n ?maxSn //.
 rewrite /not_nil /= -lt0n.
 move=> H'1.
@@ -791,7 +783,7 @@ have [v Hv] := Hne'.
 red.
 apply: TM_sub_correct;
   first
-    (rewrite ![PolI.tsize _]tsize_tm_helper1 size_pad2;
+    (rewrite ![size _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c|| tm][|c'|| tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
   try (apply: TM_any_correct;
@@ -851,12 +843,12 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_mul_correct=>//.
 (* . *)
-rewrite /t' ![PolI.tsize _]tsize_tm_helper1.
+rewrite /t' ![size _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by case=> [|c1| |t1] b [].
 (* . *)
-rewrite /t' ![PolI.tsize _]tsize_tm_helper1 size_pad2.
+rewrite /t' ![size _]tsize_tm_helper1 size_pad2.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by move=> a [|c2| |t2] [].
@@ -904,7 +896,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_mul_mixed size_TM_var);
+  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed size_TM_var);
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -916,7 +908,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_mul_mixed (*size_TM_var*));
+  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed (*size_TM_var*));
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -926,7 +918,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_mul_mixed size_TM_var);
+  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed size_TM_var);
   red=>Hne.
 (* apply: TM_fun_eq (fun x _ => XmulC (g (Xreal x)) (f (Xreal x))) _. *)
 apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
@@ -940,7 +932,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_mul_mixed (*size_TM_var*));
+  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed (*size_TM_var*));
   red=>Hne.
 apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
 apply: TM_mul_mixed_correct_strong =>//.
@@ -981,12 +973,12 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_div_correct=>//.
 (* . *)
-rewrite /t' ![PolI.tsize _]tsize_tm_helper1.
+rewrite /t' ![size _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by case=> [|c1| |t1] b [].
 (* . *)
-rewrite /t' ![PolI.tsize _]tsize_tm_helper1 size_pad2.
+rewrite /t' ![size _]tsize_tm_helper1 size_pad2.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by move=> a [|c2| |t2] [].
@@ -1034,7 +1026,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_div_mixed_r size_TM_var);
+  first (by rewrite /= /tmsize /Pol.size size_TM_div_mixed_r size_TM_var);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
@@ -1046,7 +1038,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize size_TM_div_mixed_r);
+  first (by rewrite /= /tmsize /Pol.size size_TM_div_mixed_r);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
@@ -1084,12 +1076,12 @@ case: I.sign_large (I.sign_large_correct (eval u tf Y X)) =>//.
   exact: eval_correct.
 - move=> H x Hx.
   set fx := f x.
-  have [|Hfx Hsign] := H fx; first exact: eval_correct.
+  have [|Hfx Hsign] := H fx; first by exact: eval_correct.
   rewrite /Xabs Hfx /=; congr Xreal.
   by rewrite Rabs_left1.
 move=> H x Hx.
 set fx := f x.
-have [|Hfx Hsign] := H fx; first exact: eval_correct.
+have [|Hfx Hsign] := H fx; first by exact: eval_correct.
 rewrite /Xabs Hfx /=; congr Xreal.
 by rewrite Rabs_right; auto with real.
 Qed.
@@ -1128,10 +1120,10 @@ split.
 - case: I.sign_large=>//.
     rewrite /opp /=.
     case: tf Hf Hnil {Hmain E} => [| | |tf] Hf //=.
-      rewrite /tmsize size_TM_opp.
+      rewrite /tmsize /Pol.size size_TM_opp.
       by rewrite size_TM_var.
-    by rewrite /tmsize size_TM_opp.
-  by rewrite /not_nil /tmsize size_TM_any.
+    by rewrite /tmsize /Pol.size size_TM_opp.
+  by rewrite /not_nil /tmsize /Pol.size size_TM_any.
 case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   case: tf Hf Hnil Hmain Habs {E} => [|cf| |tf] Hf Hnil Hmain Habs //.
 - have [[|y] Hy1 Hy2] := Hmain;
@@ -1219,7 +1211,7 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists y.
 - split; first by rewrite Hnan.
-  by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
+  by rewrite /not_nil /ft /fun_gen /tmsize /Pol.size size_TM_comp.
   move=> HneY; move/(_ HneY) in Hmain.
   have [Hzero Hsubset Htm] := Hmain.
   have Hne' := not_empty_Imid HneY.
@@ -1227,9 +1219,9 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply (TM_comp_correct u.1) =>//.
   + rewrite /tmsize.
     rewrite /= /tmsize in Hnil.
-    by case: PolI.tsize Hnil.
+    by rewrite /Pol.size in Hnil *; case: size Hnil.
   + move=> *; split; first exact: Hvalid.
-    by rewrite -/(tmsize _) Hsiz.
+    by rewrite -/Pol.size -/(tmsize _) Hsiz.
 Qed.
 
 Definition inv := Eval hnf in fun_gen I.inv TM_inv.
@@ -1422,7 +1414,7 @@ apply: (fun_gen_correct
   (ftm := fun prec => TM_power_int prec _)
   (fx := fun x => Xpower_int x _)) =>//;
 try (by move=> *; apply: I.power_int_correct);
-try (by move=> *; rewrite /tmsize size_TM_power_int);
+try (by move=> *; rewrite /tmsize /Pol.size size_TM_power_int);
 by move=> *; apply: TM_power_int_correct.
 Qed.
 

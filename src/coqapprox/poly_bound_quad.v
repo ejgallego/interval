@@ -42,14 +42,10 @@ Require Import derive_compl.
 Require Import basic_rec.
 Require Import poly_bound.
 
-Module PolyBoundHornerQuad
-  (I : IntervalOps)
-  (Import Pol : IntMonomPolyOps I)
-  (PolR : ExactMonomPolyOps FullR)
-  (Link : LinkIntR I Pol PolR)
-  <: PolyBound I Pol PolR Link.
+Module PolyBoundHornerQuad (I : IntervalOps) (Pol : PolyIntOps I)
+  <: PolyBound I Pol.
 
-Module Import Bnd := PolyBoundHorner I Pol PolR Link.
+Module Import Bnd := PolyBoundHorner I Pol.
 
 Module Import Aux := IntervalAux I.
 
@@ -57,6 +53,7 @@ Module Import Aux := IntervalAux I.
 Lemma copy_Xdiv_0_r x : Xdiv x (Xreal 0) = Xnan.
 Proof. by rewrite /Xdiv; case: x=>// r; rewrite zeroT. Qed.
 
+(*
 (** FIXME: lemma copied from taylor_model_int_sharp.v *)
 Lemma copy_teval_contains u fi fx :
   Link.contains_pointwise fi fx ->
@@ -90,10 +87,11 @@ rewrite tsize_polyCons in K2.
 move/(_ 0 erefl) in K2.
 by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
 Qed.
+*)
 
 Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
-  if 3 <= Pol.tsize pol then
-    let a := Pol.tnth pol in
+  if 3 <= Pol.size pol then
+    let a := Pol.nth pol in
     let a2t2 := I.add prec (a 2) (a 2) in
     let a2t4 := I.add prec a2t2 a2t2 in
     let b1 := I.div prec (a 1) a2t2 in
@@ -103,38 +101,58 @@ Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
             (I.add prec (I.sub prec (a 0) b2)
                    (I.mul prec (a 2) (I.sqr prec (I.add prec x b1))))
             (I.mul prec (I.power_int prec x 3)
-                   (Pol.teval prec (Pol.ttail 3 pol) x))
-    else Pol.teval prec pol x
-  else Pol.teval prec pol x.
+                   (Pol.eval prec (Pol.tail 3 pol) x))
+    else Pol.eval prec pol x
+  else Pol.eval prec pol x.
 
-Theorem ComputeBound_correct u pi px :
-  Link.contains_pointwise pi px ->
-  R_extension (PolR.teval tt px) (ComputeBound u pi).
+Import Pol.Notations. Local Open Scope ipoly_scope.
+
+Lemma big_nat_leq_idx :
+  forall (R : Type) (idx : R) (op : Monoid.law idx) (m n : nat) (F : nat -> R),
+  n <= m -> (forall i : nat, n <= i < m -> F i = idx) ->
+  \big[op/idx]_(0 <= i < n) F i = \big[op/idx]_(0 <= i < m) F i.
+Proof.
+move=> R idx op m n F Hmn H.
+rewrite [RHS](big_cat_nat _ (n := n)) //.
+rewrite [in X in _ = op _ X]big_nat_cond.
+rewrite [in X in _ = op _ X]big1 ?Monoid.mulm1 //.
+move=> i; rewrite andbT; move=> *; exact: H.
+Qed.
+
+(* FIXME: to move *)
+Lemma leq_subnK: forall m n : nat, n <= (n - m) + m.
+Proof. elim=> [|n IHn] m; first by rewrite addn0 subn0.
+rewrite subnS -addSnnS.
+move/(_ m) in IHn.
+have H := leqSpred (m - n).
+apply: leq_trans IHn _.
+exact: leq_add H _.
+Qed.
+
+Theorem ComputeBound_correct u pi p :
+  pi >::: p ->
+  R_extension (PolR.eval tt p) (ComputeBound u pi).
 Proof.
 move=> [Hsiz Hnth] X x Hx; rewrite /ComputeBound.
-case E: (2 < tsize pi); last by apply: Bnd.ComputeBound_correct.
+case E: (2 < Pol.size pi); last by apply: Bnd.ComputeBound_correct.
 case Eb: I.bounded; last by apply: Bnd.ComputeBound_correct.
 (* case Eb': I.bounded; last by apply: Bnd.ComputeBound_correct. *)
 simpl.
-set A0 := tnth pi 0.
-set A1 := tnth pi 1.
-set A2 := tnth pi 2.
-set Q3 := ttail 3 pi.
-pose a0 := PolR.tnth px 0.
-pose a1 := PolR.tnth px 1.
-pose a2 := PolR.tnth px 2.
-pose q3 := PolR.ttail 3 px.
-have Hi3: tsize pi = 3 + (tsize pi - 3) by rewrite subnKC //.
-have Hx3: PolR.tsize px = 3 + (PolR.tsize px - 3) by rewrite -Hsiz -Hi3.
-suff->: PolR.teval tt px x =
+set A0 := Pol.nth pi 0.
+set A1 := Pol.nth pi 1.
+set A2 := Pol.nth pi 2.
+set Q3 := Pol.tail 3 pi.
+pose a0 := PolR.nth p 0.
+pose a1 := PolR.nth p 1.
+pose a2 := PolR.nth p 2.
+pose q3 := PolR.tail 3 p.
+have Hi3: Pol.size pi = 3 + (Pol.size pi - 3) by rewrite subnKC //.
+(* have Hx3: PolR.size p = 3 + (PolR.size p - 3) by rewrite -Hsiz -Hi3. *)
+suff->: PolR.eval tt p x =
   (Rplus (Rplus (Rminus a0 (Rdiv (Rsqr a1) (Rplus (Rplus a2 a2) (Rplus a2 a2))))
               (Rmult a2 (Rsqr (Rplus x (Rdiv a1 (Rplus a2 a2))))))
-        (Rmult (powerRZ x 3) (PolR.teval tt q3 x))).
-have Hnth3 : Link.contains_pointwise Q3 q3.
-  split; first by rewrite PolR.tsize_tail tsize_tail Hsiz.
-  move=> k Hk; rewrite tsize_tail in Hk.
-  rewrite tnth_tail PolR.tnth_tail; apply: Hnth.
-  by rewrite -ltn_subRL.
+        (Rmult (powerRZ x 3) (PolR.eval tt q3 x))).
+have Hnth3 : Q3 >:: q3 by apply(*:*) Pol.tail_correct.
 apply: R_add_correct;
   [apply: R_add_correct;
     [apply: R_sub_correct;
@@ -149,10 +167,11 @@ apply: R_add_correct;
        |apply: R_div_correct;
          [apply: Hnth|apply: R_add_correct; apply: Hnth ]]]]
   |apply: R_mul_correct;
-    [exact: R_power_int_correct|exact:copy_teval_contains]];
-  by rewrite Hi3 //.
-rewrite 2!PolR.is_horner Hx3.
-rewrite 3!big_ord_recl -/a0 -/a1 -/a2 PolR.tsize_tail.
+    [exact: R_power_int_correct|exact: Pol.eval_correct]].
+rewrite 2!PolR.is_horner.
+rewrite (big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
+rewrite big_mkord.
+rewrite 3?big_ord_recl -/a0 -/a1 -/a2 ![Radd_monoid _]/= /q3 PolR.size_tail.
 simpl Z.of_nat.
 set x0 := powerRZ x 0.
 set x1 := powerRZ x 1.
@@ -164,8 +183,8 @@ have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   intro K.
   move: Eb.
   have Hzero : contains (I.convert
-    (I.add u (I.add u (tnth pi 2) (tnth pi 2))
-      (I.add u (tnth pi 2) (tnth pi 2)))) (Xreal 0).
+    (I.add u (I.add u (Pol.nth pi 2) (Pol.nth pi 2))
+      (I.add u (Pol.nth pi 2) (Pol.nth pi 2)))) (Xreal 0).
     rewrite -K.
     change (Xreal _) with (Xadd (Xadd (Xreal a2) (Xreal a2))
       (Xadd (Xreal a2) (Xreal a2))).
@@ -185,32 +204,31 @@ suff->: s1 = Rmult x3 s2.
   have->: Rmult a0 x0 = a0 by simpl; rewrite /x0 powerRZ_O Rmult_1_r.
   rewrite -!Rplus_assoc /Rminus; congr Rplus.
   rewrite /Rsqr /x1 /x2; change 1%Z with (Z.of_nat 1); change 2%Z with (Z.of_nat 2).
-  rewrite -!pow_powerRZ; field.
+  rewrite /FullR.pow /=; field.
   split =>//.
 by rewrite -Rplus_assoc in H4.
 rewrite /s1 /s2 /x3; clear.
 rewrite Rmult_comm.
-rewrite big_distrl.
+rewrite big_mkord big_distrl.
 apply: eq_bigr=> i _.
-rewrite PolR.tnth_tail.
+(* rewrite PolR.nth_tail. *) rewrite /PolR.tail /PolR.nth nth_drop.
 (* some bookkeeping about powers *)
-rewrite -!SuccNat2Pos.inj_succ.
-rewrite Pos.of_nat_succ.
-rewrite -positive_nat_Z.
-rewrite Nat2Pos.id //.
-change 3%Z with (Z.of_nat 3).
-rewrite -!pow_powerRZ.
-rewrite /=.
-rewrite !Rmult_assoc; f_equal; ring.
+rewrite /FullR.pow /FullR.power_int [3%Z]/(Z.of_nat 3) -!pow_powerRZ.
+rewrite /= !Rmult_assoc; f_equal; ring.
+by rewrite addnC leq_subnK.
+move=> i /andP [Hi _].
+by rewrite PolR.nth_default ?Rmult_0_l.
 Qed.
 
-Lemma ComputeBound_propagate u pi p :
-  Link.contains_pointwise pi p ->
-  I_propagate (ComputeBound u pi).
+Lemma ComputeBound_propagate :
+  forall u pi p,
+  pi >:: p ->
+  I.propagate (ComputeBound u pi).
 Proof.
-rewrite /ComputeBound.
-move=> Hp x Hx.
-admit. (* FIXME: Should be easy with a stronger interface *)
+red=> *; rewrite /ComputeBound /=.
+by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
+  rewrite !(I.add_propagate_r,I.mul_propagate_l,I.power_int_propagate,
+            Pol.eval_propagate).
 Qed.
 
 End PolyBoundHornerQuad.

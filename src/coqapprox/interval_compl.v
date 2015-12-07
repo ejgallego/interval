@@ -102,6 +102,9 @@ Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
 Lemma Xreal_sqr x : Xreal (x ²) = Xsqr (Xreal x).
 Proof. done. Qed.
 
+Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).
+Proof. done. Qed.
+
 Lemma Xreal_power_int x n :
   x <> 0%R \/ (n >= 0)%Z -> Xreal (powerRZ x n) = Xpower_int (Xreal x) n.
 Proof.
@@ -176,6 +179,9 @@ apply: I.div_correct =>//.
 by rewrite -H.
 Qed.
 
+Lemma R_neg_correct : R_extension Ropp I.neg.
+Proof. move=> *; rewrite Xreal_neg; exact: I.neg_correct. Qed.
+
 Lemma R_sub_correct prec : R_extension_2 Rminus (I.sub prec).
 Proof. move=> *; rewrite Xreal_sub; exact: I.sub_correct. Qed.
 
@@ -203,16 +209,18 @@ rewrite Xreal_power_int; last by right; auto with zarith.
 exact: I.power_int_correct.
 Qed.
 
+(*
 Definition I_propagate fi :=
   forall b : I.type,
   contains (I.convert b) Xnan -> contains (I.convert (fi b)) Xnan.
+*)
 
-Lemma extensionR_correct f fi (fx := toXreal_fun f) :
-  R_extension f fi -> I_propagate fi -> I.extension fx fi.
+Lemma R_extension_correct f fi (fx := toXreal_fun f) :
+  R_extension f fi -> I.propagate fi -> I.extension fx fi.
 Proof.
 move=> A B b x H.
 case: x H => [|r].
-  exact: B.
+  rewrite !contains_Xnan; exact: B.
 exact: A.
 Qed.
 

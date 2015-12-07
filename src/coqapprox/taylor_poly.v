@@ -18,6 +18,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
+
 Require Import BinPos.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
@@ -34,49 +35,88 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Module TaylorRec (Import C : FullOps).
+(*
+Module Type TaylorPolyOps (C : FullOps) (P : PolyOps C).
 
-Section PrecIsPropagated.
-Variable u : U.
+Parameter T_cst : C.T -> C.T -> nat -> P.T.
+(** Note that in addition to the Taylor expansion point that is
+the 2nd parameter of T_cst, the first one is the value of
+the constant itself. *)
 
-Definition cst_rec (x : C.T) (n : nat) := C.tcst C.tzero x.
+Parameter T_var : C.T -> nat -> P.T.
 
-Definition var_rec (a b : C.T) (n : nat) := C.tcst (C.tcst C.tzero a) b.
+Parameter T_inv : P.U -> C.T -> nat -> P.T.
 
-Definition inv_rec (x : T) (a : T) (n : nat) : T := tdiv u a (topp x).
+Parameter T_exp : P.U -> C.T -> nat -> P.T.
 
-Definition exp_rec (a : T) (n : nat) : T := tdiv u a (tnat n).
+Parameter T_sin : P.U -> C.T -> nat -> P.T.
 
-Definition sin_rec (a b : T) (n : nat) : T :=
-  tdiv u (topp a) (tmul u (tnat n) (tnat n.-1)).
+Parameter T_cos : P.U -> C.T -> nat -> P.T.
 
-Definition cos_rec (a b : T) (n : nat) : T :=
-  tdiv u (topp a) (tmul u (tnat n) (tnat n.-1)).
+Parameter T_sqrt : P.U -> C.T -> nat -> P.T.
 
-Definition pow_aux_rec (p : Z) (x : T) (_ : T) (n : nat)
+Parameter T_invsqrt : P.U -> C.T -> nat -> P.T.
+
+Parameter T_tan : P.U -> C.T -> nat -> P.T.
+
+Parameter T_atan : P.U -> C.T -> nat -> P.T.
+
+(*
+Parameter T_ln : P.U -> C.T -> nat -> P.T.
+Parameter T_asin : P.U -> C.T -> nat -> P.T.
+Parameter T_acos : P.U -> C.T -> nat -> P.T.
+*)
+End TaylorPolyOps.
+*)
+
+Module TaylorPoly (C : FullOps) (P : PolyOps C).
+(** Needs functions defining the recurrences, as well as rec1, rec2, grec1. *)
+
+Definition cst_rec (x : C.T) (n : nat) := C.mask C.zero x.
+
+Definition var_rec (a b : C.T) (n : nat) := C.mask (C.mask C.zero a) b.
+
+Definition T_cst c (x : C.T) := P.rec1 cst_rec (C.mask c x).
+
+Definition T_var x := P.rec2 var_rec x (C.mask C.one x).
+
+Section PrecIsPropagated1.
+Variable u : C.U.
+
+Definition inv_rec (x : C.T) (a : C.T) (n : nat) : C.T := C.div u a (C.opp x).
+
+Definition exp_rec (a : C.T) (n : nat) : C.T := C.div u a (C.from_nat n).
+
+Definition sin_rec (a b : C.T) (n : nat) : C.T :=
+  C.div u (C.opp a) (C.mul u (C.from_nat n) (C.from_nat n.-1)).
+
+Definition cos_rec (a b : C.T) (n : nat) : C.T :=
+  C.div u (C.opp a) (C.mul u (C.from_nat n) (C.from_nat n.-1)).
+
+Definition pow_aux_rec (p : Z) (x : C.T) (_ : C.T) (n : nat)
   := if Z.ltb p Z0 || Z.geb p (Z.of_nat n) then
-        C.tpower_int u x (p - Z.of_nat n)%Z
-     else C.tcst C.tzero x.
+        C.power_int u x (p - Z.of_nat n)%Z
+     else C.mask C.zero x.
 
 (* Erik: These notations could be used globally *)
-Local Notation "i + j" := (tadd u i j).
-Local Notation "i - j" := (tsub u i j).
-Local Notation "i * j" := (tmul u i j).
-Local Notation "i / j" := (tdiv u i j).
+Local Notation "i + j" := (C.add u i j).
+Local Notation "i - j" := (C.sub u i j).
+Local Notation "i * j" := (C.mul u i j).
+Local Notation "i / j" := (C.div u i j).
 
-Definition sqrt_rec (x : T) (a : T) (n : nat) :=
-  let nn := tnat n in
-  let n1 := tnat n.-1 in
-  let one := tnat 1 in
-  let two := tnat 2 in
+Definition sqrt_rec (x : C.T) (a : C.T) (n : nat) :=
+  let nn := C.from_nat n in
+  let n1 := C.from_nat n.-1 in
+  let one := C.from_nat 1 in
+  let two := C.from_nat 2 in
   (one - two * n1) * a / (two * x * nn).
 
-Definition invsqrt_rec (x : T) (a : T) (n : nat) :=
-  let nn := tnat n in
-  let n1 := tnat n.-1 in
-  let one := tnat 1 in
-  let two := tnat 2 in
-  topp (one + two * n1) * a / (two * x * nn).
+Definition invsqrt_rec (x : C.T) (a : C.T) (n : nat) :=
+  let nn := C.from_nat n in
+  let n1 := C.from_nat n.-1 in
+  let one := C.from_nat 1 in
+  let two := C.from_nat 2 in
+  C.opp (one + two * n1) * a / (two * x * nn).
 
 (*
 Definition ln_rec (x : T) (a b : T) (n : nat) :=
@@ -113,108 +153,66 @@ Definition Deriv_acos x := (* Eval unfold Deriv_asin in *)
 Definition acos_rec := asin_rec. (* acos & asin satisfy the same diffeq *)
 *)
 
-End PrecIsPropagated.
-End TaylorRec.
+End PrecIsPropagated1.
 
-Module Type TaylorPolyOps (C : FullOps) (P : PolyOps C).
-
-Parameter T_cst : C.T -> C.T -> nat -> P.T.
-(** Note that in addition to the Taylor expansion point that is
-the 2nd parameter of T_cst, the first one is the value of
-the constant itself. *)
-
-Parameter T_var : C.T -> nat -> P.T.
-
-Parameter T_inv : P.U -> C.T -> nat -> P.T.
-
-Parameter T_exp : P.U -> C.T -> nat -> P.T.
-
-Parameter T_sin : P.U -> C.T -> nat -> P.T.
-
-Parameter T_cos : P.U -> C.T -> nat -> P.T.
-
-Parameter T_sqrt : P.U -> C.T -> nat -> P.T.
-
-Parameter T_invsqrt : P.U -> C.T -> nat -> P.T.
-
-Parameter T_tan : P.U -> C.T -> nat -> P.T.
-
-Parameter T_atan : P.U -> C.T -> nat -> P.T.
-
-(*
-Parameter T_ln : P.U -> C.T -> nat -> P.T.
-Parameter T_asin : P.U -> C.T -> nat -> P.T.
-Parameter T_acos : P.U -> C.T -> nat -> P.T.
-*)
-End TaylorPolyOps.
-
-Module TaylorPoly (C : FullOps) (P : PowDivMonomPolyOps C) <: TaylorPolyOps C P.
-(** Needs functions defining the recurrences, as well as trec1, trec2. *)
-Module Rec := TaylorRec C.
-Import P C Rec.
-
-Definition T_cst c (x : C.T) := trec1 cst_rec (tcst c x).
-
-Definition T_var x := trec2 var_rec x (tcst C.tone x).
-
-Section PrecIsPropagated.
+Section PrecIsPropagated2.
 Variable u : P.U.
 
-Definition T_inv x := trec1 (inv_rec u x) (tinv u x).
+Definition T_inv x := P.rec1 (inv_rec u x) (C.inv u x).
 
-Definition T_exp x := trec1 (exp_rec u) (texp u x).
+Definition T_exp x := P.rec1 (exp_rec u) (C.exp u x).
 
-Definition T_sin x := trec2 (sin_rec u) (tsin u x) (tcos u x).
+Definition T_sin x := P.rec2 (sin_rec u) (C.sin u x) (C.cos u x).
 
-Definition T_cos x := trec2 (cos_rec u) (tcos u x) (C.topp (tsin u x)).
+Definition T_cos x := P.rec2 (cos_rec u) (C.cos u x) (C.opp (C.sin u x)).
 
-Definition T_sqrt x := trec1 (sqrt_rec u x) (tsqrt u x).
+Definition T_sqrt x := P.rec1 (sqrt_rec u x) (C.sqrt u x).
 
-Definition T_invsqrt x := trec1 (invsqrt_rec u x) (tinvsqrt u x).
+Definition T_invsqrt x := P.rec1 (invsqrt_rec u x) (C.invsqrt u x).
 
 Definition T_power_int (p : Z) x (n : nat) :=
-  P.tdotmuldiv u (falling_seq p n) (fact_seq n)
-               (trec1 (pow_aux_rec u p x) (tpower_int u x p) n).
+  P.dotmuldiv u (falling_seq p n) (fact_seq n)
+              (P.rec1 (pow_aux_rec u p x) (C.power_int u x p) n).
 
 Definition T_tan x :=
-  let polyX := tlift 1 P.tone (* in monomial basis *) in
-  let J := ttan u x in
+  let polyX := P.lift 1 P.one (* in monomial basis *) in
+  let J := C.tan u x in
   let s := [::] in
   let F q n :=
-    let q' := tderiv u q in
-    tdiv_mixed_r u (P.tadd u q' (tlift 2 q')) (tnat n) in
-  let G q _ := teval u q J (* in monomial basis *) in
-  tgrec1 F G polyX s.
+    let q' := P.deriv u q in
+    P.div_mixed_r u (P.add u q' (P.lift 2 q')) (C.from_nat n) in
+  let G q _ := P.eval u q J (* in monomial basis *) in
+  P.grec1 F G polyX s.
 
 Definition T_atan x :=
-  let q1 := P.tone in
-  let J := tatan u x in
+  let q1 := P.one in
+  let J := C.atan u x in
   let s := [:: J] in
   let F q n :=
-    let q2nX := tmul_mixed u (tnat ((n.-1).*2)) (tlift 1 q) in
-    let q' := tderiv u q in
-    tdiv_mixed_r u (P.tsub u (P.tadd u q' (tlift 2 q')) q2nX) (tnat n) in
+    let q2nX := P.mul_mixed u (C.from_nat ((n.-1).*2)) (P.lift 1 q) in
+    let q' := P.deriv u q in
+    P.div_mixed_r u (P.sub u (P.add u q' (P.lift 2 q')) q2nX) (C.from_nat n) in
   let G q n :=
-    tdiv u (teval u q x)
-      (tpower_int u (tadd u tone (tsqr u x)) (Z_of_nat n)) in
-  tgrec1 F G q1 s.
+    C.div u (P.eval u q x)
+      (C.power_int u (C.add u C.one (C.sqr u x)) (Z_of_nat n)) in
+  P.grec1 F G q1 s.
 
 Definition T_ln x n :=
-  let lg := tln u x in
-  let y := C.tcst x lg in
-  P.tpolyCons lg
+  let lg := C.ln u x in
+  let y := C.mask x lg in
+  P.polyCons lg
   (if n is n'.+1 then
      let p1 := (-1)%Z in
-     P.tdotmuldiv u (falling_seq p1 n') (behead (fact_seq n))
-                  (trec1 (pow_aux_rec u p1 y) (tpower_int u y p1) n')
-   else P.tpolyNil).
+     P.dotmuldiv u (falling_seq p1 n') (behead (fact_seq n))
+                  (P.rec1 (pow_aux_rec u p1 y) (C.power_int u y p1) n')
+   else P.polyNil).
 
 (*
-Definition T_ln x := trec2 (ln_rec u x) (tln u x) (tinv u x).
+Definition T_ln x := trec2 (ln_rec u x) (tln u x) (C.inv u x).
 Definition T_atan x := trec2 (atan_rec u x) (tatan u x) (Deriv_atan u x).
 Definition T_asin x := trec2 (asin_rec u x) (tasin u x) (Deriv_asin u x).
 Definition T_acos x := trec2 (acos_rec u x) (tacos u x) (Deriv_acos u x).
 *)
 
-End PrecIsPropagated.
+End PrecIsPropagated2.
 End TaylorPoly.

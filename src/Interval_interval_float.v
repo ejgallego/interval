@@ -955,6 +955,16 @@ Theorem mask_correct :
 now intros xi [|yl yu] x [|y] Hx Hy.
 Qed.
 
+Definition propagate fi :=
+  forall xi, convert xi = Interval_interval.Inan ->
+             convert (fi xi) = Interval_interval.Inan.
+Definition propagate_l fi :=
+  forall xi yi : type, convert xi = Interval_interval.Inan ->
+                       convert (fi xi yi) = Interval_interval.Inan.
+Definition propagate_r fi :=
+  forall xi yi : type, convert yi = Interval_interval.Inan ->
+                       convert (fi xi yi) = Interval_interval.Inan.
+
 Theorem neg_correct :
   extension Xneg neg.
 intros [ | xl xu] [ | x] ; simpl ; trivial.
@@ -2068,5 +2078,50 @@ case is_zero_spec ; try easy.
 intros H.
 elim (pow_nonzero _ _ Zx H).
 Qed.
+
+Lemma mask_propagate_l : propagate_l mask.
+Proof. intros xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma mask_propagate_r : propagate_r mask.
+Proof. intros xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma neg_propagate : propagate neg.
+Proof. intros xi; destruct xi; easy. Qed.
+
+Lemma inv_propagate : forall prec, propagate (inv prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma sqr_propagate : forall prec, propagate (sqr prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma sqrt_propagate : forall prec, propagate (sqrt prec).
+Proof. intros prec xi; destruct xi; easy. Qed.
+
+Lemma power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
+Proof. intros prec n xi; destruct xi; destruct n; easy. Qed.
+
+Lemma add_propagate_l : forall prec, propagate_l (add prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma sub_propagate_l : forall prec, propagate_l (sub prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma mul_propagate_l : forall prec, propagate_l (mul prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma div_propagate_l : forall prec, propagate_l (div prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma add_propagate_r : forall prec, propagate_r (add prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma sub_propagate_r : forall prec, propagate_r (sub prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma mul_propagate_r : forall prec, propagate_r (mul prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma div_propagate_r : forall prec, propagate_r (div prec).
+Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
 
 End FloatInterval.

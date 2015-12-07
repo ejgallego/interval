@@ -18,6 +18,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
+(*
+TEMPORARILY COMMENTED
+
 Require Import ZArith.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
@@ -278,3 +281,4 @@ Qed.
 *)
 
 End TaylorModelFloat.
+*)

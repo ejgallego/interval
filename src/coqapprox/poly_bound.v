@@ -43,25 +43,23 @@ Require Import basic_rec.
 
 (** The interface *)
 
-Module Type PolyBound
-  (I : IntervalOps)
-  (Import Pol : IntMonomPolyOps I)
-  (PolR : (*FIXME/Exact*)MonomPolyOps FullR)
-  (Link : LinkIntR I Pol PolR).
+Module Type PolyBound (I : IntervalOps) (Pol : PolyIntOps I).
+Import Pol Pol.Notations.
+Local Open Scope ipoly_scope.
 
 Module Import Aux := IntervalAux I.
 
 Parameter ComputeBound : Pol.U -> Pol.T -> I.type -> I.type.
 
 Parameter ComputeBound_correct :
-  forall u p px,
-  Link.contains_pointwise p px ->
-  R_extension (PolR.teval tt px) (ComputeBound u p).
+  forall u pi p,
+  pi >::: p ->
+  R_extension (PolR.eval tt p) (ComputeBound u pi).
 
 Parameter ComputeBound_propagate :
-  forall u p px,
-  Link.contains_pointwise p px ->
-  I_propagate (ComputeBound u p).
+  forall u pi p,
+  pi >:: p ->
+  I.propagate (ComputeBound u pi).
 
 (*
 Lemma ComputeBound_correct' :
@@ -70,7 +68,7 @@ Lemma ComputeBound_correct' :
   I.extension (toXreal_fun (PolR.teval tt px)) (ComputeBound u p).
 Proof.
 move=> u p px H.
-apply: extensionR_correct.
+apply: R_extension_correct.
 by apply: ComputeBound_correct.
 by apply: ComputeBound_propagate.
 Qed.
@@ -80,79 +78,61 @@ End PolyBound.
 
 Module PolyBoundThm
   (I : IntervalOps)
-  (Import Pol : IntMonomPolyOps I)
-  (PolR : ExactMonomPolyOps FullR)
-  (Link : LinkIntR I Pol PolR)
-  (Import Bnd : PolyBound I Pol PolR Link).
+  (Pol : PolyIntOps I)
+  (Bnd : PolyBound I Pol).
+
+Import Pol.Notations Bnd.
+Local Open Scope ipoly_scope.
 
 Module Import Aux := IntervalAux I.
 
-Theorem ComputeBound_nth0 prec p px X :
-  Link.contains_pointwise p px ->
-  contains (I.convert X) (Xreal 0) ->
-  forall r : R, contains (I.convert (tnth p 0)) (Xreal r) ->
-                contains (I.convert (ComputeBound prec p X)) (Xreal r).
+Theorem ComputeBound_nth0 prec pi p X :
+  pi >::: p ->
+  X >: 0 ->
+  forall r : R, (Pol.nth pi 0) >: r ->
+                ComputeBound prec pi X >: r.
 Proof.
-move=> [Hsiz Hnth] HX.
-case Ep: (Pol.tsize p) =>[|n].
-  (* tsize p = 0 *)
-  rewrite Pol.tnth_out ?Ep// I.zero_correct.
-  (* apply: contains_subset; first by exists (Xreal 0); split; auto with real. *)
-  move=> (*[//|v]*) v Hv; rewrite /contains in Hv.
-  have{v Hv}->: v = R0 by apply: Rle_antisym; case: Hv.
-  suff->: R0 = (PolR.teval tt px R0).
-  exact: ComputeBound_correct HX.
-  have {p Hsiz Hnth Ep} Epx : PolR.tsize px = 0 by rewrite -Hsiz.
-  elim/PolR.tpoly_ind: px Epx; first by rewrite PolR.teval_polyNil.
-  by move=> ax px; rewrite PolR.tsize_polyCons.
-have Hp: tsize p > 0 by rewrite Ep.
-(* apply: contains_subset; first by exists (Xreal (PolR.tnth px 0)); apply: Hnth. *)
-move=> a0 Ha0.
+move=> [Hsiz Hnth] HX0 r Hr.
 red in Hnth.
-have Hcommon : Link.contains_pointwise p (PolR.tset_nth px 0 a0).
-  split.
-    rewrite PolR.tsize_set_nth.
-    rewrite -(prednK Hp) in Hsiz *.
-    by rewrite -Hsiz maxnSS max0n.
-  move=> [|k] Hk.
-    by rewrite PolR.tnth_set_nth eqxx.
-  rewrite PolR.tnth_set_nth /=.
-  exact: Hnth.
-suff->: a0 = PolR.teval tt (PolR.tset_nth px 0 a0) R0.
+case E: (Pol.size pi) =>[|n].
+  have->: r = PolR.eval tt p 0%R.
+  rewrite Pol.nth_default ?E // I.zero_correct /= in Hr.
+  have [A B] := Hr.
+  have H := Rle_antisym _ _ B A.
+  rewrite PolR.is_horner big1 //.
+  admit. (* easy *)
   exact: ComputeBound_correct.
-have Hsiz' := prednK Hp.
-rewrite PolR.is_horner /=.
-rewrite PolR.tsize_set_nth -Hsiz -Hsiz' maxnSS max0n.
-rewrite big_ord_recl /=.
-rewrite PolR.tnth_set_nth eqxx Rmult_1_r.
-rewrite Hsiz /=.
-clear.
-rewrite big1 ?Rplus_0_r//.
-move=> i _.
-by rewrite PolR.tnth_set_nth /bump SuccNat2Pos.id_succ /= Rmult_0_l Rmult_0_r.
+have->: r = PolR.eval tt (PolR.set_nth p 0 r) 0%R.
+  by case: (p) =>//= *; rewrite !(Rmult_0_l,Rmult_0_r,Rplus_0_l).
+apply: ComputeBound_correct =>//.
+have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
+  by rewrite Pol.set_nth_nth // E.
+by apply Pol.set_nth_correct.
 Qed.
 
 End PolyBoundThm.
 
 (** Naive implementation: Horner evaluation *)
 
-Module PolyBoundHorner
-  (I : IntervalOps)
-  (Import Pol : IntMonomPolyOps I)
-  (PolR : (*FIXME/Exact*)MonomPolyOps FullR)
-  (Link : LinkIntR I Pol PolR)
-  <: PolyBound I Pol PolR Link.
+Module PolyBoundHorner (I : IntervalOps) (Pol : PolyIntOps I)
+  <: PolyBound I Pol.
 
+Import Pol.Notations.
+Local Open Scope ipoly_scope.
 Module Import Aux := IntervalAux I.
 
 Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
-  Pol.teval.
+  Pol.eval.
 
-Theorem ComputeBound_correct u fi fx :
-  Link.contains_pointwise fi fx ->
-  R_extension (PolR.teval tt fx) (ComputeBound u fi).
+Theorem ComputeBound_correct :
+  forall u pi p,
+  pi >::: p ->
+  R_extension (PolR.eval tt p) (ComputeBound u pi).
 Proof.
-move=> Hfifx X x Hx; rewrite /ComputeBound.
+move=> Hfifx X x [_ Hx]; rewrite /ComputeBound.
+by move=> *; apply Pol.eval_correct.
+Qed.
+(*
 elim/PolR.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolR.teval_polyNil teval_polyNil.
   change (Xreal 0) with (Xmask (Xreal 0) (Xreal x)).
@@ -181,21 +161,12 @@ apply: I.add_correct =>//.
 rewrite tsize_polyCons in K2.
 move/(_ 0 erefl) in K2.
 by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
-Qed.
+*)
 
-Lemma ComputeBound_propagate u pi p :
-  Link.contains_pointwise pi p ->
-  I_propagate (ComputeBound u pi).
-Proof.
-rewrite /ComputeBound.
-elim/tpoly_ind: pi => [|ai pi IHp].
-  move=> H x.
-  rewrite teval_polyNil.
-  apply: (I.mask_correct I.zero x (Xreal 0) Xnan).
-  by rewrite I.zero_correct; red; auto with real.
-move=> Hp x Hx.
-rewrite teval_polyCons.
-admit. (* FIXME: Should be easier with a stronger interface *)
-Qed.
+Lemma ComputeBound_propagate :
+  forall u pi p,
+  pi >:: p ->
+  I.propagate (ComputeBound u pi).
+Proof. by red=> *; rewrite /ComputeBound Pol.eval_propagate. Qed.
 
 End PolyBoundHorner.

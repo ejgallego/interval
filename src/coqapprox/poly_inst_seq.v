@@ -35,29 +35,80 @@ Require Import basic_rec.
 Require Import coeff_inst.
 Require Import rpa_inst.
 
-(** Implementation of PolyOps with sequences and operations in monomial basis *)
-
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Lemma eq_foldr (T0 T1 T2 : Type)
-  (f0 : T1 -> T0 -> T0)
-  (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
-  (forall x y, f0 x y = g (ftog x) y) ->
-  forall s x0, foldr f0 x0 s = foldr g x0 (map ftog s).
-Proof. by move=> Hfg; elim=> [//| a l IHl] x0 /=; rewrite IHl Hfg. Qed.
+(*
+COMMENTED FOR NOW... WILL BE UPDATED OR REMOVED.
 
-Lemma rev_iota k: map (subn k) (iota 0 k.+1)= rev (iota 0 k.+1).
-Proof.
-have sameS : size (map (subn k) (iota 0 k.+1)) = size (rev (iota 0 k.+1))
-  by rewrite size_map size_rev.
-apply: (@eq_from_nth _ 0) => // i.
-rewrite size_map size_iota => iLs.
-rewrite (nth_map 0) ?(nth_rev 0) ?(nth_iota 0) ?size_iota //.
-by rewrite subSS ltnS leq_subr.
-Qed.
+Module Type SliceMonomPolyOps (C : MaskBaseOps) (Import A : PolyOps C).
+(** Horner evaluation of polynomial in monomial basis *)
+Parameter eval_polyCons :
+  forall u c p x,
+  teval u (tpolyCons c p) x =
+  C.tadd u (C.tmul u (teval u p x) x) c.
+Parameter eval_polyNil :
+  forall u x, teval u tpolyNil x = C.tcst C.tzero x.
 
+(** A way to deal with NaNs without having them in the signature *)
+Parameter eval_nan :
+  forall u nan p, (forall x, C.tcst x nan = nan) ->
+  teval u p nan = nan.
+End SliceMonomPolyOps.
+
+Module Type MonomPolyOps (C : MaskBaseOps) := PolyOps C <+ SliceMonomPolyOps C.
+
+Module Type SlicePowDivPolyOps (C : PowDivOps) (Import A : PolyOps C).
+Parameter mul_mixed : U -> C.T -> T -> T.
+Parameter div_mixed_r : U -> T -> C.T -> T.
+Parameter dotmuldiv : U -> seq Z -> seq Z -> T -> T.
+Parameter size_dotmuldiv :
+  forall n u a b p, tsize p = n -> size a = n -> size b = n ->
+  tsize (tdotmuldiv u a b p) = n.
+Parameter nth_dotmuldiv :
+  (* FIXME: Replace this spec with a parameter in rpa_inst.LinkIntX *)
+  forall u a b p n, n < tsize (tdotmuldiv u a b p) ->
+  tnth (tdotmuldiv u a b p) n =
+  C.tmul u (C.tdiv u (C.tfromZ (nth 1%Z a n))
+                     (C.tfromZ (nth 1%Z b n)))
+         (tnth p n).
+End SlicePowDivPolyOps.
+
+Module Type PowDivMonomPolyOps (C : PowDivOps) :=
+   MonomPolyOps C <+ SlicePowDivPolyOps C.
+
+Module Type SliceExactMonomPolyOps
+  (C : PowDivOps0)
+  (Import A : PolyOps C)
+  (B : SliceMonomPolyOps C A).
+
+Local Notation Ctpow prec x n := (C.tpower_int prec x (Z_of_nat n)).
+
+Parameter is_horner :
+ forall p x, teval tt p x =
+  \big[C.tadd tt/C.tzero]_(i < tsize p)
+  C.tmul tt (tnth p i) (Ctpow tt x i).
+
+Parameter mul_trunc_nth:
+forall p1 p2 n k,
+ k < n.+1 ->
+ tnth (tmul_trunc tt n p1 p2) k =
+  \big[C.tadd tt/C.tzero]_(i < k.+1) C.tmul tt (tnth p1 i) (tnth p2 (k -i)).
+
+Parameter mul_tail_nth:
+forall p1 p2 n k,
+ k < ((tsize p1).-1 + (tsize p2).-1 - n) ->
+ tnth (tmul_tail tt n p1 p2) k =
+(* \big[C.tadd/C.tzero]_(i < n - k)
+   C.tmul tt (tnth p1 (i + k)) (tnth p2 (n - i)). *)
+ \big[C.tadd tt/C.tzero]_(i < (k+n.+1).+1)
+   C.tmul tt (tnth p1 i) (tnth p2 ((k + n.+1) - i)).
+
+End SliceExactMonomPolyOps.
+*)
+
+(*
 Module SeqPolyMonomUp (Import C : MaskBaseOps) <: PolyOps C <: MonomPolyOps C.
 
 Definition U := C.U.
@@ -156,7 +207,9 @@ Definition tsize := @size C.T.
 
 Definition tfold := @foldr C.T.
 Definition teval p x :=
-  @tfold C.T (fun a b => C.tadd u (C.tmul u b x) a) (C.tcst C.tzero x) p.
+  C.tcst
+  (@tfold C.T (fun a b => C.tadd u (C.tmul u b x) a) C.tzero p)
+  x.
 Definition tset_nth := @set_nth C.T C.tzero.
 Definition tmap := @map C.T C.T.
 Lemma tsize_map :
@@ -189,9 +242,6 @@ case: k IHp =>[//|k] IHp Hk.
 apply: IHp.
 by rewrite /= minnSS ltnS in Hk.
 Qed.
-
-Notation Local "a + b" := (C.tadd a b).
-Notation Local "a * b" := (C.tmul a b).
 
 Lemma tsize_trec1 F x n: tsize (trec1 F x n) = n.+1.
 Proof. by apply size_rec1up. Qed.
@@ -324,7 +374,14 @@ Proof. done. Qed.
 
 Lemma teval_polyCons : (* Erik: this spec is probably too low-level *)
   forall c p x, teval (tpolyCons c p) x = C.tadd u (C.tmul u (teval p x) x) c.
-Proof. done. Qed.
+Proof.
+rewrite /tpolyCons /teval.
+simpl.
+Abort.
+
+Lemma teval_nan :
+  forall nan p, (forall x, C.tcst x nan = nan) -> teval p nan = nan.
+Proof. by move=> nan p Hnan; rewrite /teval Hnan. Qed.
 
 Lemma tnth_out p n: tsize p <= n -> tnth p n = C.tzero.
 Proof. by move=> H; rewrite /tnth nth_default. Qed.
@@ -649,3 +706,4 @@ by move/eqP: Hk => ->.
 Qed.
 
 End LinkSeqPolyMonomUp.
+*)

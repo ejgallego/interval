@@ -1565,7 +1565,41 @@ Proof.
 intros prec deg prog bounds n yi xi x Hx.
 pose (f x := nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
 pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
+(* 1 subgoals, subgoal 1 (ID 4301) *)
+(*    *)
+(*   prec : I.precision *)
+(*   deg : nat *)
+(*   prog : list term *)
+(*   bounds : list bound_proof *)
+(*   n : nat *)
+(*   yi : I.type *)
+(*   xi : I.type *)
+(*   x : ExtendedR *)
+(*   Hx : contains (I.convert xi) x *)
+(*   f := fun x0 : ExtendedR => *)
+(*        nth n *)
+(*          (eval_ext prog (x0 :: map (fun b : bound_proof => Xmask (xreal_from_bp b) x0) bounds)) *)
+(*          Xnan : ExtendedR -> ExtendedR *)
+(*   ft := nth n *)
+(*           (eval prec deg yi prog *)
+(*              (TM.var :: map (fun b : bound_proof => TM.const (interval_from_bp b)) bounds)) *)
+(*           TM.dummy : TM.T *)
+(*   ============================ *)
+(*    contains *)
+(*      (I.convert *)
+(*         (TM.eval (prec, deg) *)
+(*            (nth n *)
+(*               (eval prec deg yi prog *)
+(*                  (TM.var :: map (fun b : bound_proof => TM.const (interval_from_bp b)) bounds)) *)
+(*               TM.dummy) yi xi)) *)
+(*      (nth n (eval_ext prog (x :: map (fun b : bound_proof => Xmask (xreal_from_bp b) x) bounds)) *)
+(*         Xnan) *)
+(*  *)
+(*  *)
+(* (dependent evars:) *)
+
 apply (@TM.eval_correct (prec,deg) yi ft f) with (2 := Hx).
+
 now apply eval_correct_aux.
 Qed.
 

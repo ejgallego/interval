@@ -661,4 +661,47 @@ Parameter fromZ : Z -> type.
 Parameter fromZ_correct :
   forall v, contains (convert (fromZ v)) (Xreal (Z2R v)).
 
+(* v1
+Definition propagate fi :=
+  forall x, contains (convert x) Xnan -> contains (convert (fi x)) Xnan.
+*)
+(* v2
+Definition propagate fi := forall x, fi x = mask (fi x) x.
+*)
+
+(* v3
+Definition propagate fi := fi nai = nai.
+Definition propagate_l fi := forall xi : type, fi nai xi = nai.
+Definition propagate_r fi := forall xi : type, fi xi nai = nai.
+*)
+
+Definition propagate fi :=
+  forall xi, convert xi = Inan -> convert (fi xi) = Inan.
+Definition propagate_l fi :=
+  forall xi yi : type, convert xi = Inan -> convert (fi xi yi) = Inan.
+Definition propagate_r fi :=
+  forall xi yi : type, convert yi = Inan -> convert (fi xi yi) = Inan.
+
+Parameter mask_propagate_l : propagate_l mask.
+Parameter mask_propagate_r : propagate_r mask.
+Parameter neg_propagate : propagate neg.
+Parameter inv_propagate : forall prec, propagate (inv prec).
+Parameter sqr_propagate : forall prec, propagate (sqr prec).
+Parameter sqrt_propagate : forall prec, propagate (sqrt prec).
+Parameter cos_propagate : forall prec, propagate (cos prec).
+Parameter sin_propagate : forall prec, propagate (sin prec).
+Parameter tan_propagate : forall prec, propagate (tan prec).
+Parameter atan_propagate : forall prec, propagate (atan prec).
+Parameter exp_propagate : forall prec, propagate (exp prec).
+Parameter ln_propagate : forall prec, propagate (ln prec).
+Parameter power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
+Parameter add_propagate_l : forall prec, propagate_l (add prec).
+Parameter sub_propagate_l : forall prec, propagate_l (sub prec).
+Parameter mul_propagate_l : forall prec, propagate_l (mul prec).
+Parameter div_propagate_l : forall prec, propagate_l (div prec).
+Parameter add_propagate_r : forall prec, propagate_r (add prec).
+Parameter sub_propagate_r : forall prec, propagate_r (sub prec).
+Parameter mul_propagate_r : forall prec, propagate_r (mul prec).
+Parameter div_propagate_r : forall prec, propagate_r (div prec).
+
 End IntervalOps.
