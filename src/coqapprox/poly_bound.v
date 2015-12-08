@@ -53,7 +53,7 @@ Parameter ComputeBound : Pol.U -> Pol.T -> I.type -> I.type.
 
 Parameter ComputeBound_correct :
   forall u pi p,
-  pi >::: p ->
+  pi >:: p ->
   R_extension (PolR.eval tt p) (ComputeBound u pi).
 
 Parameter ComputeBound_propagate :
@@ -87,27 +87,27 @@ Local Open Scope ipoly_scope.
 Module Import Aux := IntervalAux I.
 
 Theorem ComputeBound_nth0 prec pi p X :
-  pi >::: p ->
+  pi >:: p ->
   X >: 0 ->
   forall r : R, (Pol.nth pi 0) >: r ->
                 ComputeBound prec pi X >: r.
 Proof.
-move=> [Hsiz Hnth] HX0 r Hr.
+move=> Hnth HX0 r Hr.
 red in Hnth.
 case E: (Pol.size pi) =>[|n].
   have->: r = PolR.eval tt p 0%R.
   rewrite Pol.nth_default ?E // I.zero_correct /= in Hr.
   have [A B] := Hr.
   have H := Rle_antisym _ _ B A.
-  rewrite PolR.is_horner big1 //.
+  rewrite PolR.hornerE big1 //.
   admit. (* easy *)
   exact: ComputeBound_correct.
 have->: r = PolR.eval tt (PolR.set_nth p 0 r) 0%R.
-  by case: (p) =>//= *; rewrite !(Rmult_0_l,Rmult_0_r,Rplus_0_l).
+  admit. (* FIXME by case: (p) =>//= *; rewrite !(Rmult_0_l,Rmult_0_r,Rplus_0_l). *)
 apply: ComputeBound_correct =>//.
 have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
   by rewrite Pol.set_nth_nth // E.
-by apply Pol.set_nth_correct.
+exact: Pol.set_nth_correct.
 Qed.
 
 End PolyBoundThm.
@@ -126,10 +126,10 @@ Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
 
 Theorem ComputeBound_correct :
   forall u pi p,
-  pi >::: p ->
+  pi >:: p ->
   R_extension (PolR.eval tt p) (ComputeBound u pi).
 Proof.
-move=> Hfifx X x [_ Hx]; rewrite /ComputeBound.
+move=> Hfifx X x Hx; rewrite /ComputeBound.
 by move=> *; apply Pol.eval_correct.
 Qed.
 (*

@@ -30,7 +30,7 @@ Require Import Interval_interval_float_full.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
-Require Import Rstruct Classical.
+Require Import Rstruct Classical Coquelicot.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
@@ -42,7 +42,7 @@ Require Import rpa_inst.
 Require Import derive_compl.
 Require Import basic_rec.
 Require Import poly_bound.
-Require Import Coquelicot.Derive.
+Require Import coquelicot_compl integral_pol.
 
 (********************************************************************)
 (** This theory implements Taylor Models, with sharp remainders for
@@ -584,6 +584,432 @@ apply: I.add_correct.
 exact: Herr.
 Qed.
 *)
+
+Section TM_integral.
+
+Local Notation Isub := (I.sub prec).
+Local Notation Imul := (I.mul prec).
+Local Notation Iadd := (I.add prec).
+
+Variables (X0 X : I.type).
+Variable xF : ExtendedR -> ExtendedR. Let f := toR_fun xF.
+Let iX0 := I.convert X0.
+Let iX := I.convert X.
+(* Hypothesis extF : extension f1 f. *) (* to correct *)
+
+Hypothesis f_int : forall x x0 : R,
+  contains iX (Xreal x) -> contains iX0 (Xreal x0) ->
+  ex_RInt f x0 x.
+Variable Mf : rpa.
+
+(* here we define a function which takes a Taylor Model for f
+and returns a Taylor model for the primitive of f which evaluates to
+*)
+
+Definition TM_integral_poly :=
+  Pol.primitive prec (I.zero) (approx Mf).
+
+
+Definition TM_integral_error R :=
+  I.add prec (Imul (Isub X X0) (error Mf)) ((Iadd (Bnd.ComputeBound (*Pol.eval?*) prec R (Isub X0 X0)))
+    (Imul (Isub X0 X0) (error Mf))).
+
+Lemma IsubXX (x0 : R) :
+contains iX0 (Xreal x0) ->
+contains (I.convert (Isub X0 X0)) (Xreal 0).
+Proof.
+move => Hx0.
+have -> : 0%R = (x0 - x0)%R by ring.
+rewrite Xreal_sub.
+by apply: I.sub_correct.
+Qed.
+
+Lemma contains_interval_float_integral (p : PolR.T) :
+PolR.size p = Pol.size (approx Mf) ->
+(forall k : nat,
+(k < Pol.size (approx Mf))%N ->
+contains (I.convert (Pol.nth (approx Mf) k)) (Xreal (PolR.nth p k))) ->
+forall k : nat,
+(k < Pol.size TM_integral_poly)%N ->
+contains (I.convert (Pol.nth TM_integral_poly k))
+(Xreal (PolR.nth (PolR.primitive tt 0%R p) k)).
+Proof.
+move => Hsizep Hcontains k /=.
+rewrite Pol.size_primitive (* addn1 *) => HkN.
+rewrite Pol.primitive_correct // PolR.primitive_correct ?Hsizep //.
+case: k HkN => [H0N | k HSkN].
++ by rewrite I.zero_correct; red; auto with real (* lemma to do *).
++ have -> : Xreal (PolR.nth p k / INR k.+1) =
+           Xdiv (Xreal (PolR.nth p k)) (Xreal (INR k.+1)).
+   rewrite /= zeroF; first by [].
+   case: k HSkN.
+     * by move => _; apply: R1_neq_R0.
+     * move => n _.
+        apply: tech_Rplus; first by exact: pos_INR.
+        by exact: Rlt_0_1.
+   apply: I.div_correct; first by apply: Hcontains.
+by rewrite INR_IZR_INZ -Z2R_IZR (*!!! *); apply: I.fromZ_correct.
+Qed.
+
+Lemma TM_integral_error_0 (x0 : R):
+  contains iX0 (Xreal x0) ->
+  i_validTM (I.convert X0) iX Mf xF ->
+  contains (I.convert (TM_integral_error TM_integral_poly)) (Xreal 0).
+Proof.
+move => Hx0X0 [] ErrMf0 HX0X HPol /=.
+case: (HPol (x0) Hx0X0) => p Hcontains _.
+have -> : Xreal 0 = Xadd (Xreal 0) (Xadd (Xreal 0) (Xreal 0)).
+by rewrite /= 2!Rplus_0_l.
+apply: I.add_correct; last apply: I.add_correct.
+- apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
+have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
+by apply: I.sub_correct => //; apply: (subset_contains (I.convert X0) _).
+- apply (BndThm.ComputeBound_nth0 prec TM_integral_poly (PolR.primitive tt 0%R p )).
+move=> k.
++ rewrite /TM_integral_poly Pol.primitive_correct //. (* I.zero_correct /= . *)
+  admit. (* archi to revise *)
+  admit. (* size *)
+(** rewrite /TM_integral_poly Pol.size_primitive PolR.size_primitive.
+by congr (_.+1); exact: Hsizep.*)
+(* * by apply: contains_interval_float_integral. *)
+* by apply: (IsubXX Hx0X0).
+suff->: 0%R = PolR.nth (PolR.primitive tt 0%Re p) 0.
+  apply: contains_interval_float_integral.
+  admit. (* size *)
+  by move=> k Hsize.
+  admit. (* size *)
+  by rewrite PolR.primitive_correct.
+- apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
+have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
+by apply: I.sub_correct.
+Qed.
+
+Definition TM_integral :=
+let R := TM_integral_poly in RPA R (TM_integral_error TM_integral_poly).
+
+Section Extra_RInt.
+
+Local Open Scope R_scope.
+Lemma RInt_translation_add g a b x :
+  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
+Proof.
+Check RInt_comp_lin.
+have -> : a + x = (1 * a + x) by ring.
+have -> : b + x = (1 * b + x) by ring.
+rewrite -RInt_comp_lin.
+by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
+Qed.
+
+Lemma RInt_translation_sub g x a b :
+  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
+Proof.
+have -> : a - x = a + (-x) by ring.
+have -> : b - x = b + (-x) by ring.
+rewrite -RInt_translation_add.
+apply: RInt_ext => x0 _; by congr (g _).
+Qed.
+
+Lemma ex_RInt_translation_add V g x a b :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
+have -> : 1 * x0 + x = x0 + x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a - x) + x ) = a. by ring.
+have -> : (1 * (b - x) + x ) = b. by ring.
+by [].
+Qed.
+
+Lemma ex_RInt_translation_sub V g a b x :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
+have -> : 1 * x0 - x = x0 - x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a + x) + -x ) = a. by ring.
+have -> : (1 * (b + x) + -x ) = b. by ring.
+by [].
+Qed.
+
+End Extra_RInt.
+
+Section IntegralBounding.
+Local Open Scope R_scope.
+Lemma contains_RInt (f3 : R -> R) x1 x2 Y Z1 Z2 :
+  (x1 < x2)%R ->
+  ex_RInt f3 x1 x2->
+  contains (I.convert Z1) (Xreal x1) ->
+  contains (I.convert Z2) (Xreal x2) ->
+  (forall x, (x1 <= x <= x2)%R -> contains (I.convert Y) (Xreal (f3 x))) ->
+  contains (I.convert (Imul  (Isub Z2 Z1) Y)) (Xreal (RInt f3 x1 x2)).
+Proof.
+move => ltx1x2 Hf3_int HZx1 HZx2 Hext.
+have -> : RInt f3 x1 x2 = (RInt f3 x1 x2) / (x2 - x1) * (x2 - x1).
+by field => //; lra.
+have -> : Xreal (RInt f3 x1 x2 / (x2 - x1) * (x2 - x1)) =
+          Xmul (Xsub (Xreal x2) (Xreal x1)) (Xreal (RInt f3 x1 x2 / (x2 - x1) )) by rewrite /= Rmult_comm.
+apply: I.mul_correct.
+apply: I.sub_correct => // .
+case: (I.convert Y) Hext => // l u Hext.
+apply: le_contains.
+rewrite /le_lower /le_upper /=.
+case: l Hext => //= rl Hext.
+case: u Hext => [Hext|].
+apply: Ropp_le_contravar.
+apply: RInt_le_l => //.
+move => x Hx12.
+by elim: (Hext x Hx12).
+move => ru Hext.
+apply: Ropp_le_contravar.
+apply: RInt_le_l => //.
+move => x Hx12.
+by elim:  (Hext x Hx12).
+rewrite /le_upper /=.
+case: u Hext => // ru Hext.
+apply: RInt_le_r => // x Hx12.
+by elim: (Hext x Hx12).
+Qed.
+
+Lemma contains_RInt_gt (f3 : R -> R) x1 x2 Y Z1 Z2 :
+  (x2 < x1) ->
+  ex_RInt f3 x2 x1->
+  contains (I.convert Z1) (Xreal x1) ->
+  contains (I.convert Z2) (Xreal x2) ->
+  (forall x, x2 <= x <= x1 -> contains (I.convert Y) (Xreal (f3 x))) ->
+  contains (I.convert (Imul  (Isub Z2 Z1) Y)) (Xreal (RInt f3 x1 x2)).
+Proof.
+move => ltx1x2 Hf3_int HZx1 HZx2 Hext.
+have -> : RInt f3 x1 x2 = (RInt f3 x1 x2) / (x2 - x1) * (x2 - x1).
+by field => //; lra.
+rewrite -RInt_swap.
+have -> : Xreal (- RInt f3 x2 x1 / (x2 - x1) * (x2 - x1)) =
+          Xmul (Xsub (Xreal x2) (Xreal x1)) (Xreal (RInt f3 x2 x1 / (x1 - x2) )).
+  by rewrite /=; congr (Xreal); field; lra.
+apply: I.mul_correct.
+apply: I.sub_correct => // .
+case: (I.convert Y) Hext => // l u Hext.
+apply: le_contains.
+rewrite /le_lower /le_upper /=.
+case: l Hext => //= rl Hext.
+case: u Hext => [Hext|].
+apply: Ropp_le_contravar.
+apply: RInt_le_l => //.
+move => x Hx12.
+by elim: (Hext x Hx12).
+move => ru Hext.
+apply: Ropp_le_contravar.
+apply: RInt_le_l => //.
+move => x Hx12.
+by elim:  (Hext x Hx12).
+rewrite /le_upper /=.
+case: u Hext => // ru Hext.
+apply: RInt_le_r => // x Hx12.
+by elim: (Hext x Hx12).
+Qed.
+
+End IntegralBounding.
+
+Section MinMax. (* Lemmas which are missing but useful *)
+Lemma Rmin_refl x1 : Rmin x1 x1 = x1. (* !!! *)
+Proof.
+rewrite /Rmin.
+case: (Rle_dec x1 x1); lra.
+Qed.
+
+Lemma Rmax_refl x1 : Rmax x1 x1 = x1. (* !!! *)
+Proof.
+rewrite /Rmax.
+case: (Rle_dec x1 x1); lra.
+Qed.
+
+Local Open Scope R_scope.
+
+Lemma Rmin_leq x1 x2 : x1 <= x2 -> Rmin x1 x2 = x1.
+Proof.
+move => H12.
+rewrite /Rmin.
+case: (Rle_dec x1 x2); lra.
+Qed.
+
+Lemma Rmax_leq x1 x2 : x1 <= x2 -> Rmax x1 x2 = x2.
+Proof.
+move => H12.
+rewrite /Rmax.
+case: (Rle_dec x1 x2); lra.
+Qed.
+
+Lemma Rmin_lt x1 x2 : x1 < x2 -> Rmin x1 x2 = x1.
+move => H12.
+rewrite /Rmin.
+case: (Rle_dec x1 x2); lra.
+Qed.
+
+Lemma Rmax_lt x1 x2 : x1 < x2 -> Rmax x1 x2 = x2.
+Proof.
+move => H12.
+rewrite /Rmax.
+case: (Rle_dec x1 x2); lra.
+Qed.
+
+Lemma Rmin_swap x1 x2 : Rmin x1 x2 = Rmin x2 x1.
+Proof.
+rewrite /Rmin.
+case: (Rle_dec x1 x2); case: (Rle_dec x2 x1); lra.
+Qed.
+
+Lemma Rmax_swap x1 x2 : Rmax x1 x2 = Rmax x2 x1.
+Proof.
+rewrite /Rmax.
+case: (Rle_dec x1 x2); case: (Rle_dec x2 x1); lra.
+Qed.
+
+End MinMax.
+
+Local Open Scope R_scope.
+
+Lemma contains_RInt_full (f3 : R -> R) x1 x2 Y Z1 Z2 :
+  ex_RInt f3 x1 x2->
+  contains (I.convert Z1) (Xreal x1) ->
+  contains (I.convert Z2) (Xreal x2) ->
+  (forall x, Rmin x1 x2 <= x <= Rmax x1 x2 -> contains (I.convert Y) (Xreal (f3 x))) ->
+  contains (I.convert (Imul  (Isub Z2 Z1) Y)) (Xreal (RInt f3 x1 x2)).
+Proof.
+move => Hf3_int HZx1 HZx2 Hext.
+case : (total_order_T x1 x2) => [[H12|Heq]|H21].
+- apply: contains_RInt => // x H1x2; apply: Hext.
+  by rewrite Rmin_lt // Rmax_lt //.
+- rewrite Heq. rewrite RInt_point.
+  apply: (@mul_0_contains_0_l _ (Xreal (f3 x1))).
+  + apply: (Hext x1); split.
+    * by rewrite Heq Rmin_refl; lra.
+    * by rewrite Heq Rmax_refl; lra.
+  + have -> :
+    Xreal 0 = Xsub (Xreal x2) (Xreal x1) ; first by rewrite Heq /= Rminus_eq_0.
+    by apply: I.sub_correct.
+- apply: contains_RInt_gt => // .
+    by apply: ex_RInt_swap.
+  move => x H1x2; apply: Hext.
+  rewrite Rmin_swap Rmin_lt; try lra.
+  rewrite Rmax_swap Rmax_lt; try lra.
+Qed.
+
+Lemma pol_int_sub pol x1 x2 x3:  ex_RInt (fun y : R => PolR.eval tt pol (y - x3)) x1 x2.
+Proof.
+have -> : x1 = x1 - x3 + x3 by ring.
+have -> : x2 = x2 - x3 + x3 by ring.
+apply: ex_RInt_translation_sub.
+exact: Rpol_integrable.
+Qed.
+
+(* FIXME: To move in the right place *)
+Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
+Proof.
+by rewrite I.zero_correct //=; split; exact: Rle_refl.
+Qed.
+
+Lemma TM_integral_correct (x0 : Rdefinitions.R) :
+contains iX0 (Xreal x0) ->
+i_validTM (I.convert X0) iX Mf xF ->
+i_validTM (I.convert X0) iX TM_integral (toXreal_fun (RInt f x0)).
+Proof.
+move => Hx0X0 [] ErrMf0 HX0X HPol /=; split => //.
+  by apply: (TM_integral_error_0 Hx0X0) => //.
+move=> /= x1 HX0x1 {ErrMf0}.
+case: (HPol (x0) Hx0X0) => p Hcontains H3.
+case: (HPol (x1) HX0x1) => p1 Hcontains1 H31 {HPol}.
+exists (PolR.primitive tt 0 p1).
+(* split.
+- by rewrite PolR.psize_primitive Hsizep1 /= psize_primitive. *)
+- move=> k; apply: (contains_interval_float_integral).
+  admit. (* size *)
+  move=> k' _.
+  apply: Hcontains1.
+  admit. (* size *)
+- move => x hxX.
+  rewrite toR_toXreal.
+  have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
+ + apply: RInt_Chasles; first apply: f_int => // .
+      by apply: subset_contains HX0x1 => // .
+    by apply: f_int => // .
+  have -> : PolR.eval tt (PolR.primitive tt 0 p1) (x - x1) =
+            RInt (fun t => PolR.eval tt p1 (t - x1)) x1 x.
+  + rewrite RInt_translation_sub.
+      have -> : PolR.eval tt (PolR.primitive tt 0 p1) (x - x1) =
+            PolR.eval tt (PolR.primitive tt 0 p1) (x - x1) -
+            PolR.eval tt (PolR.primitive tt 0 p1) (x1 - x1).
+      * have -> : x1 - x1 = 0 by ring.
+        set t0 := (X in (_ = _ - X)).
+        have -> : t0 = 0; last by rewrite Rminus_0_r.
+        (* rewrite /t0 PolR.eval_seq -nth0 PolR.pnth_toSeq.
+         by rewrite PolR.primitive_correct. *) admit. (* OK with concrete PolR *)
+    by rewrite Rpol_integral_0.
+rewrite {Hcontains1}.
+set rem := (X in X + _ - _).
+set i1 := (X in (rem + X - _)).
+set i2 := (X in (rem + _ - X)).
+have -> : rem + i1 - i2 = rem + (i1 - i2) by ring.
+have -> : i1 - i2 = RInt (fun t => f t - PolR.eval tt p1 (t - x1)) x1 x.
+    rewrite -RInt_minus; first by [].
+    + by apply: f_int.
+    + have {2}-> : x1 = (0 + x1) by ring.
+        have -> : x = (x - x1) + x1 by ring.
+        apply: ex_RInt_translation_sub.
+        exact: Rpol_integrable.
+rewrite /TM_integral_error {i1 i2}.
+rewrite [rem + _]Rplus_comm Xreal_add.
+have -> : rem = RInt (fun t => PolR.eval tt p (t - x0)) x0 x1
+                      + (RInt f x0 x1 -
+          RInt (fun t => PolR.eval tt p (t - x0)) x0 x1) by rewrite /rem; ring.
+rewrite Xreal_add {rem}.
+apply: I.add_correct; last first;  first apply: I.add_correct.
+- rewrite RInt_translation_sub Rpol_integral_0.
+  have -> : x0 - x0 = 0 by ring.
+  rewrite PolR.toSeq_eval0. rewrite -nth0 -PolR.nth_toSeq PolR.primitive_correct // Rminus_0_r.
+  apply: Bnd.ComputeBound_correct; last by rewrite Xreal_sub; exact: I.sub_correct.
+  (* + by rewrite psize_primitive PolR.psize_primitive Hsizep. *)
+  + move => i. rewrite Pol.primitive_correct ?PolR.primitive_correct.
+      * case: i; first by move => *; exact: cont0.
+        move => n .
+        rewrite Xreal_div; last first.
+          case: n ; first by move => *; apply: R1_neq_R0.
+          by move => n; apply: not_0_INR.
+        apply: I.div_correct.
+          by apply: Hcontains ; rewrite psize_primitive in Hn.
+      * by rewrite INR_IZR_INZ -Z2R_IZR; apply: I.fromZ_correct.
+      (* * by rewrite size_primitive -Hsizep in Hi. *)
+      (* by rewrite psize_primitive in Hi. *)
+        admit. admit. (* size *)
+  + rewrite Xreal_sub. Fail apply: I.sub_correct => // .
+    admit.
+    admit. (* FIXME: to finish
+  + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
+        by apply: f_int => //; apply: (subset_contains iX0) => // .
+      apply: contains_RInt_full => // .
+      apply: ex_RInt_minus.
+        by apply: f_int => //; apply: (subset_contains iX0) => // .
+        by apply: pol_int_sub.
+      move => x2 Hx2.
+      apply: H3.
+      apply: (@contains_trans iX (Xreal (Rmin x0 x1)) (Xreal (Rmax x0 x1))) => // .
+        by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
+        by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
+rewrite  {H3}.
+- apply: contains_RInt_full => // .
+  + apply: ex_RInt_minus.
+        by apply: f_int => //; apply: (subset_contains iX0).
+        by apply: pol_int_sub.
+      move => x2 Hx2.
+      apply: H31.
+      apply: (@contains_trans iX (Xreal (Rmin x1 x)) (Xreal (Rmax x1 x))) => // .
+      by rewrite /Rmin;case (Rle_dec x1 x) =>_ //;apply: (subset_contains iX0).
+      by rewrite /Rmax;case (Rle_dec x1 x) => _ //;apply: (subset_contains iX0).
+*)
+Qed.
+End TM_integral.
 
 Section ProofOfRec.
 

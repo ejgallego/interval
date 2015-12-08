@@ -39,223 +39,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Module SeqPoly (C : PowDivOps) <: PolyOps C.
-Definition U := C.U.
-Definition T := seq C.T.
-
-(* TODO Definition recN := @recNup C.T. *)
-(* TODO Definition lastN : C.T -> forall N : nat, T -> C.T ^ N := @lastN C.T. *)
-
-Definition zero : T := [::].
-Definition one : T := [:: C.one].
-Fixpoint opp (p : T) :=
-  match p with
-    | [::] => [::]
-    | a :: p1 => C.opp a :: opp p1
-  end.
-
-Section PrecIsPropagated.
-Variable u : U.
-
-Fixpoint add (p1 p2 : T) :=
-  match p1 with
-    | [::] => p2
-    | a1 :: p3 => match p2 with
-                    | [::] => p1
-                    | a2 :: p4 => C.add u a1 a2 :: add p3 p4
-                  end
-  end.
-
-Fixpoint sub (p1 p2 : T) :=
-  match p1 with
-    | [::] => opp p2
-    | a1 :: p3 => match p2 with
-                    | [::] => p1
-                    | a2 :: p4 => C.sub u a1 a2 :: sub p3 p4
-                  end
-  end.
-
-Definition mul_coeff (p q : T) (n : nat) : C.T :=
-  foldl (fun x i => C.add u
-    (C.mul u (nth C.zero p i) (nth C.zero q (n - i))) x)
-  (C.zero) (iota 0 n.+1).
-
-Definition mul_trunc n p q := mkseq (mul_coeff p q) n.+1.
-
-Definition mul_tail n p q :=
-  mkseq (fun i => mul_coeff p q (n.+1+i)) ((size p).-1 + (size q).-1 - n).
-
-Definition mul p q := mkseq (mul_coeff p q) (size p + size q).-1.
-
-(* Old definitions
-
-Definition polyC (c : C.T) : T := [:: c].
-
-Definition polyX := [:: C.tzero; C.tone].
-
-Fixpoint eval' (p : T) (x : C.T) :=
-  match p with
-    | [::] => C.tzero
-    | c :: p' => C.tadd u (C.tmul u (teval' p' x) x) c
-  end.
-*)
-
-Definition nth := nth C.zero.
-Definition rec1 := @rec1up C.T.
-Definition rec2 := @rec2up C.T.
-Definition size := @size C.T.
-Definition fold := @foldr C.T.
-Definition eval p x :=
-  C.mask
-  (@fold C.T (fun a b => C.add u (C.mul u b x) a) C.zero p)
-  x.
-Definition set_nth := @set_nth C.T C.zero.
-Definition map := @map C.T C.T.
-
-Definition polyCons := @Cons C.T.
-
-Definition polyNil := @Nil C.T.
-
-(* TODO: Revise *)
-Lemma poly_ind : forall (f : T -> Type),
-  f polyNil ->
-  (forall a p, f p -> f (polyCons a p)) ->
-  forall p, f p.
-Proof.
-by move=> f h1 hrec; elim =>//= a e; apply:hrec.
-Qed.
-
-Fixpoint deriv_loop (p : T) (i : nat) :=
-  match p with
-    | [::] => [::]
-    | a :: e =>
-      C.mul u a (C.from_nat i) :: deriv_loop e i.+1
-  end.
-Definition deriv (p : T) := deriv_loop (behead p) 1%N.
-
-Definition grec1 (A : Type) := @grec1up A C.T.
-
-Lemma size_grec1 A F G (q : A) s n : size (grec1 F G q s n) = n.+1.
-Proof. by apply size_grec1up. Qed.
-
-Lemma size_add :
- forall p1 p2, size (add p1 p2) = maxn (size p1) (size p2).
-Proof.
-elim; first by move=>l;rewrite /= max0n.
-move=> a l IH1;elim; first by rewrite maxn0.
-move=> b m IH2.
-rewrite /= IH1 -add1n -(add1n (size l)) -(add1n (size m)).
-by apply:addn_maxr.
-Qed.
-
-Lemma size_rec1 F x n: size (rec1 F x n) = n.+1.
-Proof. by apply size_rec1up. Qed.
-
-Lemma size_rec2 F x y n: size (rec2 F x y n) = n.+1.
-Proof. by apply size_rec2up. Qed.
-
-
-Lemma size_mul_trunc n p q: size (mul_trunc n p q) = n.+1.
-Proof. by rewrite /size size_mkseq. Qed.
-
-Lemma size_mul_tail n p q:
-     size (mul_tail n p q) = ((size p).-1 + (size q).-1 - n).
-Proof. by rewrite /size size_mkseq. Qed.
-
-
-
-End PrecIsPropagated.
-
-Definition tail := @drop C.T.
-
-Definition lift (n : nat) p := ncons n C.zero p.
-
-Definition mul_mixed (u : U) (a : C.T) (p : T) :=
-  @foldr C.T T (fun x acc => (C.mul u a x) :: acc) [::] p.
-
-Definition div_mixed_r (u : U) (p : T) (b : C.T) :=
-  @foldr C.T T (fun x acc => (C.div u x b) :: acc) [::] p.
-
-Fixpoint dotmuldiv (u : U) (a b : seq Z) (p : T) : T :=
-match a, b, p with
-| a0 :: a1, b0 :: b1, p0 :: p1 =>
-  C.mul u (C.div u (C.fromZ a0) (C.fromZ b0)) p0 ::
-  dotmuldiv u a1 b1 p1
-| _, _, _ => [::] (* e.g. *)
-end.
-
-Lemma fold_polyNil : forall U f iv, @fold U f iv polyNil = iv.
-Proof. done. Qed.
-
-Lemma fold_polyCons : forall U f iv c p,
-  @fold U f iv (polyCons c p) = f c (@fold U f iv p).
-Proof. done. Qed.
-
-Lemma size_set_nth p n val :
-  size (set_nth p n val) = maxn n.+1 (size p).
-Proof. by rewrite /size seq.size_set_nth. Qed.
-
-Lemma nth_set_nth p n val k :
-  nth (set_nth p n val) k = if k == n then val else nth p k.
-Proof. by rewrite /nth nth_set_nth. Qed.
-
-Lemma nth_default : forall p n, size p <= n -> nth p n = C.zero.
-Proof. by move=> *; rewrite /nth nth_default. Qed.
-
-Lemma set_nth_nth : forall p n, n < size p -> set_nth p n (nth p n) = p.
-Proof.
-move=> p n H.
-apply: (eq_from_nth (x0 := C.zero)).
-  by rewrite seq.size_set_nth; apply/maxn_idPr.
-move=> i Hi.
-rewrite seq.size_set_nth in Hi.
-move/maxn_idPr: (H) (Hi) =>-> Hn.
-rewrite seq.nth_set_nth /=.
-by case E : (i == n); first by rewrite (eqP E).
-Qed.
-
-Lemma size_polyNil : size polyNil = 0.
-Proof. done. Qed.
-
-Lemma size_polyCons : forall a p, size (polyCons a p) = (size p).+1.
-Proof. by []. Qed.
-
-Lemma nth_polyNil n: nth polyNil n = C.zero.
-Proof. by rewrite nth_default. Qed.
-
-Lemma nth_polyCons : forall a p k, (* k <= size p -> *)
-  nth (polyCons a p) k = if k is k'.+1 then nth p k' else a.
-Proof. by move=> a p; case. Qed.
-
-Lemma size_opp p1 :
-  size (opp p1) = size p1.
-Proof. by elim: p1 =>[//|c1 p1]; move=>/=->. Qed.
-
-Lemma size_sub u p1 p2 :
-  size (sub u p1 p2) = maxn (size p1) (size p2).
-Proof.
-elim: p1 p2 =>[/=|c1 p1 IHp] p2; first by rewrite size_opp max0n.
-case: p2 IHp =>[//|c2 p2] IHp.
-by rewrite /= IHp maxnSS.
-Qed.
-
-Lemma size_dotmuldiv (n : nat) (u : U) a b p :
-  size p = n -> seq.size a = n -> seq.size b = n ->
-  size (dotmuldiv u a b p) = n.
-Proof.
-move: a b p n; elim=> [|a0 a1 IH] [|b0 b1] [|p0 p1] =>//.
-move=> /= n Hp Ha Hb /=.
-rewrite (IH _ _ n.-1) //.
-by rewrite -Hp.
-by rewrite -Hp.
-by rewrite -Ha.
-by rewrite -Hb.
-Qed.
-
-Lemma size_tail p k : size (tail k p) = size p - k.
-Proof. by rewrite /size /tail size_drop. Qed.
-End SeqPoly.
-
 Lemma eq_foldr (T0 T1 T2 : Type)
   (f0 : T1 -> T0 -> T0)
   (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
@@ -274,6 +57,10 @@ by rewrite subSS ltnS leq_subr.
 Qed.
 
 (** Implementation of PolyOps with sequences and operations in monomial basis *)
+
+(*
+FIXME: Finish update w.r.t new poly_datatypes.v's archi
+
 
 Module SeqPolyInt (I : IntervalOps) <: PolyIntOps I.
 Module Int := FullInt I.
@@ -497,6 +284,11 @@ by apply: R_mul_correct; rewrite I.zero_correct; split; auto with real.
 Qed.
 
 End SeqPolyInt.
+*)
+
+
+
+
 
 (*
 COMMENTED FOR NOW... WILL BE UPDATED OR REMOVED.
