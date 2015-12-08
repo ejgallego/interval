@@ -31,7 +31,7 @@ Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 (* Require Import CoqEAL_theory.hrel CoqEAL_refinements.refinements. *)
-Require Import Rstruct interval_compl nary_tuple basic_rec.
+Require Import Rstruct interval_compl nary_tuple basic_rec seq_compl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -418,6 +418,7 @@ Fixpoint opp (p : T) :=
 Section PrecIsPropagated.
 Variable u : U.
 
+(*
 Fixpoint add (p1 p2 : T) :=
   match p1 with
     | [::] => p2
@@ -426,6 +427,9 @@ Fixpoint add (p1 p2 : T) :=
                     | a2 :: p4 => C.add u a1 a2 :: add p3 p4
                   end
   end.
+*)
+
+Definition add := map2 (C.add u).
 
 Fixpoint sub (p1 p2 : T) :=
   match p1 with
@@ -499,15 +503,20 @@ Definition grec1 (A : Type) := @grec1up A C.T.
 Lemma size_grec1 A F G (q : A) s n : size (grec1 F G q s n) = n.+1.
 Proof. by apply size_grec1up. Qed.
 
+
 Lemma size_add :
  forall p1 p2, size (add p1 p2) = maxn (size p1) (size p2).
 Proof.
+admit.
+Qed.
+(*
 elim; first by move=>l;rewrite /= max0n.
 move=> a l IH1;elim; first by rewrite maxn0.
 move=> b m IH2.
 rewrite /= IH1 -add1n -(add1n (size l)) -(add1n (size m)).
 by apply:addn_maxr.
 Qed.
+*)
 
 Lemma size_rec1 F x n: size (rec1 F x n) = n.+1.
 Proof. by apply size_rec1up. Qed.

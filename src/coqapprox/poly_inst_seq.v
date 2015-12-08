@@ -79,6 +79,7 @@ Module Import Notations.
 Delimit Scope ipoly_scope with IP.
 Notation eq_size pi p := (size pi = PolR.size p).
 Notation cpw := contains_pointwise (only parsing).
+
 Notation scpw pi p := (eq_size pi p /\ cpw pi p) (only parsing).
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
 Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
@@ -101,6 +102,20 @@ Lemma one_correct : cpw one PolR.one.
 Proof.
 case=> [|k] /=; first by apply: I.fromZ_correct.
 exact: zero_correct.
+Qed.
+
+Lemma add_correct :
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
+intros.
+move=> k.
+rewrite /PolR.add /add /nth /PolR.nth.
+apply (@map2_correct R I.type) =>//.
+by rewrite I.zero_correct; red; auto with real. (* FIXME: cont0 *)
+admit.
+admit.
+admit.
+admit.
+admit.
 Qed.
 
 Definition sizes := (size_polyNil, size_polyCons,
@@ -172,8 +187,6 @@ Qed.
 Conjecture eval_correct :
   forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
-Conjecture add_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
 Conjecture sub_correct :
   forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
 Conjecture mul_correct :

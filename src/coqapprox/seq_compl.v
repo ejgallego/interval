@@ -77,33 +77,125 @@ Qed.
 End Take.
 
 Section Map2.
-Variables (A : Type) (B : Type) (C : Type).
-Variable f : A -> B -> C.
-
-Fixpoint map2 (s1 : seq A) (s2 : seq B) : seq C :=
+Variable C : Type.
+Variable op : C -> C -> C.
+Fixpoint map2 (s1 : seq C) (s2 : seq C) : seq C :=
   match s1, s2 with
-    | a :: s3, b :: s4 => f a b :: map2 s3 s4
-    | _, _ => [::]
+    | _, [::] => s1
+    | [::], _ => s2
+    | a :: s3, b :: s4 => op a b :: map2 s3 s4
   end.
+End Map2.
 
-Lemma size_map2 (s1 : seq A) (s2 : seq B) :
-  size (map2 s1 s2) = minn (size s1) (size s2).
+Section map_proof.
+Variables (V T : Type) (Rel : V -> T -> Prop).
+Variables (vop : V -> V) (top : T -> T).
+Variables (dv : V) (dt : T).
+Hypothesis H0 : Rel dv dt.
+Hypothesis H0v : forall v : V, Rel v dt -> Rel (vop v) dt.
+Hypothesis H0t : forall t : T, Rel dv t -> Rel dv (top t).
+Lemma map_correct :
+  forall sv st,
+    (forall v t, Rel v t -> Rel (vop v) (top t)) ->
+    (forall k : nat, Rel (nth dv sv k) (nth dt st k)) ->
+    forall k : nat, Rel (nth dv (map vop sv) k) (nth dt (map top st) k).
 Proof.
-elim: s1 s2 => [|x1 s1 IH1] [|x2 s2] //=.
-by rewrite IH1 -addn1 addn_minl 2!addn1.
+move=> sv st Hop Hnth k.
+case: (ltnP k (size sv)) => Hsv; case: (ltnP k (size st)) => Hst.
+- rewrite (nth_map dv) // (nth_map dt) //.
+  apply: Hop; apply: Hnth.
+- rewrite (nth_default dt) ?size_map //.
+  rewrite (nth_map dv) //.
+  apply: H0v.
+  rewrite -(nth_default dt Hst); apply: Hnth.
+- rewrite (nth_default dv) ?size_map //.
+  rewrite (nth_map dt) //.
+  apply: H0t.
+  rewrite -(nth_default dv Hsv); apply: Hnth.
+  by rewrite !nth_default ?size_map.
+Qed.
+End map_proof.
+
+Lemma nth_map2 (C1 : Type) (x1 : C1) (f : C1 -> C1 -> C1) (n : nat) (s1 s2 : seq C1) :
+  n < size s1 -> n < size s2 -> nth x1 (map2 f s1 s2) n = f (nth x1 s1 n) (nth x1 s2 n).
+Proof.
+move=> H1 H2.
+admit. (* Exercice *)
 Qed.
 
-Lemma nth_map2 s1 s2 (k : nat) da db dc :
-  dc = f da db -> size s2 = size s1 ->
-  nth dc (map2 s1 s2) k = f (nth da s1 k) (nth db s2 k).
+Lemma size_map2 C f (s1 : seq C) (s2 : seq C) :
+  size (map2 f s1 s2) = minn (size s1) (size s2).
 Proof.
-elim: s1 s2 k => [|x1 s1 IH1] s2 k Habc Hsize.
-  by rewrite (size0nil Hsize) !nth_nil.
-case: s2 IH1 Hsize =>[//|x2 s2] IH1 [Hsize].
-case: k IH1 =>[//|k]; exact.
+elim: s1 s2 => [|x1 s1 IH1] [|x2 s2] //=; admit.
+(* by rewrite IH1 -addn1 addn_minl 2!addn1. *)
+Qed.
+
+Section map2_proof.
+Variables (V T : Type) (Rel : V -> T -> Prop).
+Variables (vop : V -> V -> V) (top : T -> T -> T).
+Variables (dv : V) (dt : T).
+Hypothesis H0 : Rel dv dt.
+Hypothesis H0t1 : forall (v1 v2 : V) (t1 : T), Rel v1 t1 ->
+                                               Rel v2 dt ->
+                                               Rel (vop v1 v2) t1.
+Hypothesis H0t2 : forall (v1 v2 : V) (t2 : T), Rel v1 dt ->
+                                               Rel v2 t2 ->
+                                               Rel (vop v1 v2) t2.
+Hypothesis H0v1 : forall (v1 : V) (t1 t2 : T), Rel v1 t1 ->
+                                               Rel dv t2 ->
+                                               Rel v1 (top t1 t2).
+Hypothesis H0v2 : forall (v2 : V) (t1 t2 : T), Rel dv dt ->
+                                               Rel v2 t2 ->
+                                               Rel v2 (top t1 t2).
+Hypothesis Hop : (forall v1 v2 t1 t2, Rel v1 t1 -> Rel v2 t2 -> Rel (vop v1 v2) (top t1 t2)).
+
+Lemma map2_correct :
+  forall sv1 sv2 st1 st2,
+  (forall k : nat, Rel (nth dv sv1 k) (nth dt st1 k)) ->
+  (forall k : nat, Rel (nth dv sv2 k) (nth dt st2 k)) ->
+  forall k : nat, Rel (nth dv (map2 vop sv1 sv2) k) (nth dt (map2 top st1 st2) k).
+Proof using H0 H0t1 H0t2 H0v1 H0v2 Hop.
+admit.
+(*
+move=> sv1 sv2 st1 st2 Hnth1 Hnth2 k.
+case: (ltnP k (size sv1)) => Hsv1; case: (ltnP k (size st1)) => Hst1;
+case: (ltnP k (size sv2)) => Hsv2; case: (ltnP k (size st2)) => Hst2.
+- rewrite (nth_map2 dv) // (nth_map2 dt) //;
+    apply: Hop; apply: Hnth1 || apply: Hnth2.
+
+- rewrite (nth_default dt) ?size_map //.
+  rewrite (nth_map dv) //.
+  apply: H0v.
+  rewrite -(nth_default dt Hst); apply: Hnth.
+- rewrite (nth_default dv) ?size_map //.
+  rewrite (nth_map dt) //.
+  apply: H0t.
+  rewrite -(nth_default dv Hsv); apply: Hnth.
+  by rewrite !nth_default ?size_map.
+*)
+Qed.
+End map2_proof.
+
+(*
+Lemma nth_map2 s1 s2 (k : nat) da (x y : V) (g : V -> V -> V) :
+  A (nth da s1 k) x ->
+  A (nth da s2 k) y ->
+  A (nth da (map2 s1 s2) k) (g x y).
+Proof.
+elim: s1 s2 k => [|x1 s1 IH1] s2 k Hx Hy.
+  rewrite nth_default // in Hx *.
+  admit.
+  (* by rewrite (size0nil) !nth_nil.*)
+case: s2 Hy =>[//|x2 s2]  Hy; rewrite nth_default //=.
+  rewrite nth_default //in Hy.
+  admit.
+  admit.
+admit.
+(* case: k IH1 =>[//|k]; exact. *)
 Qed.
 
 End Map2.
+*)
 
 Section Head_Last.
 Variables (T : Type) (d : T).
