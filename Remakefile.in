@@ -35,7 +35,9 @@ CAFILES = \
 	taylor_model_float_sharp.v \
 	taylor_poly.v \
 	taylor_thm.v \
-	xreal_ssr_compat.v
+	xreal_ssr_compat.v \
+	coquelicot_compl.v \
+	integral_pol.v
 
 OBJS = $(addprefix src/,$(addsuffix o,$(FILES)))
 CAOBJS = $(addprefix src/coqapprox/,$(addsuffix o,$(CAFILES)))

@@ -600,6 +600,7 @@ Let iX := I.convert X.
 Hypothesis f_int : forall x x0 : R,
   contains iX (Xreal x) -> contains iX0 (Xreal x0) ->
   ex_RInt f x0 x.
+Hypothesis x_Def : forall x : R, contains iX (Xreal x) -> defined xF x.
 Variable Mf : rpa.
 
 (* here we define a function which takes a Taylor Model for f
@@ -911,6 +912,10 @@ Proof.
 by rewrite I.zero_correct //=; split; exact: Rle_refl.
 Qed.
 
+(* Definition Xint (f : ExtendedR -> ExtendedR) x0 x1 :=
+  let f := toXreal_fun f in
+  *)
+
 Lemma TM_integral_correct (x0 : Rdefinitions.R) :
 contains iX0 (Xreal x0) ->
 i_validTM (I.convert X0) iX Mf xF ->
@@ -983,31 +988,31 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
       (* * by rewrite size_primitive -Hsizep in Hi. *)
       (* by rewrite psize_primitive in Hi. *)
         admit. admit. (* size *)
-  + rewrite Xreal_sub. Fail apply: I.sub_correct => // .
-    admit.
-    admit. (* FIXME: to finish
   + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
-        by apply: f_int => //; apply: (subset_contains iX0) => // .
+      by apply: f_int => //; apply: (subset_contains iX0) => // .
       apply: contains_RInt_full => // .
       apply: ex_RInt_minus.
         by apply: f_int => //; apply: (subset_contains iX0) => // .
         by apply: pol_int_sub.
       move => x2 Hx2.
-      apply: H3.
+      have hx2 : contains iX (Xreal x2).
       apply: (@contains_trans iX (Xreal (Rmin x0 x1)) (Xreal (Rmax x0 x1))) => // .
         by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
         by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
+      move/(_ x2 hx2) in H3.
+      by rewrite x_Def in H3.
 rewrite  {H3}.
 - apply: contains_RInt_full => // .
   + apply: ex_RInt_minus.
         by apply: f_int => //; apply: (subset_contains iX0).
         by apply: pol_int_sub.
       move => x2 Hx2.
-      apply: H31.
+      have hx2 : contains iX (Xreal x2).
       apply: (@contains_trans iX (Xreal (Rmin x1 x)) (Xreal (Rmax x1 x))) => // .
       by rewrite /Rmin;case (Rle_dec x1 x) =>_ //;apply: (subset_contains iX0).
       by rewrite /Rmax;case (Rle_dec x1 x) => _ //;apply: (subset_contains iX0).
-*)
+      move/(_ x2 hx2) in H31.
+      by rewrite x_Def in H31.
 Qed.
 End TM_integral.
 
