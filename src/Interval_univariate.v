@@ -17,9 +17,11 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
+Require Import Coquelicot. (* FIXME: import less *)
 Require Import Reals.
 Require Import Interval_interval.
 Require Import Interval_xreal.
+Require Import interval_compl.
 
 Module Type UnivariateApprox (I : IntervalOps).
 
@@ -58,6 +60,18 @@ Parameter eval : U -> T -> I.type -> I.type -> I.type.
 Parameter eval_correct :
   forall u (Y : I.type) t f,
   approximates Y t f -> I.extension f (eval u t Y).
+
+Parameter prim : U -> I.type -> I.type -> I.type -> T -> T.
+
+Parameter prim_correct :
+  forall u (X X1 Y1 : I.type) tf f x1 y1,
+  contains (I.convert X1) (Xreal x1) ->
+  contains (I.convert Y1) (Xreal y1) ->
+  approximates X tf f ->
+  approximates X (prim u X X1 Y1 tf) (fun x => match x with
+                                         | Xnan => Xnan
+                                         | Xreal r => Xreal (RInt (toR_fun f) x1 r + y1)
+                                         end).
 
 Parameter add : U -> I.type -> T -> T -> T.
 

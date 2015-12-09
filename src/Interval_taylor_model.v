@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
+Require Import Coquelicot. (* FIXME: import less *)
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -44,6 +45,8 @@ Unset Printing Implicit Defensive.
 
 (** * Auxiliary lemmas on natural numbers *)
 
+Local Open Scope nat_scope.
+
 Lemma maxnS (m n : nat) : 0 < maxn m n.+1.
 Proof. by case: m =>[//|m]; rewrite maxnSS. Qed.
 
@@ -52,7 +55,7 @@ Proof. by rewrite maxnC maxnS. Qed.
 
 (** * Parameterized Module for Taylor Models *)
 
-Module TM (I : IntervalOps) (* <: UnivariateApprox I.*).
+Module TM (I : IntervalOps) <: UnivariateApprox I.
 (* Erik: We might add a Boolean counterpart of not_empty in IntervalOps *)
 
 (** ** Load the CoqApprox modules *)
@@ -1219,6 +1222,43 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   + move=> *; split; first exact: Hvalid.
     by rewrite -/Pol.size -/(tmsize _) Hsiz.
 Qed.
+
+(*
+Definition prim (u : U) (X : I.type) (t : T) : T :=
+  match t with
+    | Dummy => Dummy
+    | Const c => let X0 := Imid X in
+        Tm (TM_integral u.1 X0 X (TM_cst u.1 c X0 X u.2))
+    | Var => let X0 := Imid X in
+        Tm (TM_integral u.1 X0 X (TM_var u.1 X0 X u.2))
+    | Tm tm => let X0 := Imid X in
+        Tm (TM_integral u.1 X0 X tm)
+  end.
+*)
+
+Definition prim (u : U) (X X1 Y1 : I.type) (t : T) : T :=
+  if I.subset X1 X then
+    let X0 := Imid X in
+    let tm := match t with
+              | Dummy => TM_any u.1 I.nai X u.2
+              | Const c => TM_cst u.1 c X0 X u.2
+              | Var => TM_var u.1 X0 X u.2
+              | Tm tm => tm
+              end in
+    let tm0 := TM_integral u.1 X0 X tm in
+    let c := I.add u.1 Y1 (I.neg (Bnd.ComputeBound u.1 (approx tm0) X1)) in
+    Tm (RPA (Pol.set_nth (approx tm0) 0 c) (I.add u.1 (error tm0) (error tm0)))
+  else Tm (TM_any u.1 I.nai X u.2).
+
+Conjecture prim_correct :
+  forall u (X X1 Y1 : I.type) tf f x1 y1,
+  contains (I.convert X1) (Xreal x1) ->
+  contains (I.convert Y1) (Xreal y1) ->
+  approximates X tf f ->
+  approximates X (prim u X X1 Y1 tf) (fun x => match x with
+                                         | Xnan => Xnan
+                                         | Xreal r => Xreal (RInt (toR_fun f) x1 r + y1)
+                                         end).
 
 Definition inv := Eval hnf in fun_gen I.inv TM_inv.
 
