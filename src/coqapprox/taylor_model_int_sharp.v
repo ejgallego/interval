@@ -5641,4 +5641,62 @@ Lemma size_TM_comp (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) (n : nat) :
 Proof. by rewrite /= size_poly_eval_tm. Qed.
 
 End PrecArgument.
+
+
+(* FIXME: Generalize TM_integral to handle "X1" and "Y1"
+   FIXME: Finish the experiment below to define "TM_atan" using "TM_integral"
+
+Definition TM_atan2 (u : U) (X0 X : I.type) : T :=
+  let one := TM_cst u.1 (I.fromZ 1) X0 X u.2 in
+  let tm := TM_div u.1 X one (TM_add u X one (TM_power_int u.1 2 X0 X n)) in
+  (* prim *) TM_integral u X X1 (I.atan u.1 X1) t'.
+
+Definition atan2 := Eval hnf in fun_gen I.atan TM_atan2.
+
+Lemma Xatan_RInt_f : forall (xF : ExtendedR -> ExtendedR) x1,
+let f := toR_fun xF in
+let xG := toXreal_fun
+  (fun r => RInt (fun x => Derive f x / (1 + (f x)^2)) x1 r + Ratan.atan (f x1))%R in
+forall x, xG x = Xatan (xF x).
+Proof.
+admit. (* Coquelicot proof *)
+Qed.
+
+Theorem atan2_correct :
+  forall u (X : I.type) tf xF,
+  approximates X tf xF ->
+  approximates X (atan2 u X tf) (fun x => Xatan (xF x)).
+Proof.
+intros.
+pose x1 := proj_val (I.convert_bound (I.midpoint X)).
+pose f := toR_fun xF.
+pose xG := toXreal_fun
+  (fun r => RInt (fun x => Derive f x / (1 + (f x)^2)) x1 r + Ratan.atan (f x1))%R.
+apply: approximates_ext.
+apply: xG.
+move=> x; apply: Xatan_RInt_f.
+rewrite /atan2.
+rewrite /xG /toXreal_fun.
+apply: prim_correct.
+exact: toXreal_fun (fun r : R => Derive f r / (1 + f r ^ 2)).
+admit. (* midpoint *)
+apply: I.atan_correct.
+split =>//.
+admit. (* to see later *)
+rewrite /atan2 /prim.
+case: tf H.
+apply: prim_correct.
+
+move=> u Y tf f [Hnan Hnil Hmain].
+split=>//; first by rewrite Hnan.
+by rewrite /= /tmsize size_TM_any.
+move=> Hne; apply: TM_any_correct.
+exact: not_empty_Imid.
+exact: Imid_subset.
+move=> x Hx.
+apply: I.atan_correct.
+exact: eval_correct.
+Qed.
+*)
+
 End TaylorModel.
