@@ -264,7 +264,7 @@ exists (PolR.set_nth p u.2 0%R).
   exact: h1.
 move=> x Hx.
 case Def: defined; move/(_ x Hx) in h2; rewrite Def // in h2.
-rewrite !PolR.is_horner in h2 *.
+rewrite !PolR.hornerE in h2 *.
 (* now unnecessary: rewrite (big_mkord xpredT
   (fun i => Rmult (PolR.nth (PolR.set_nth p u.2 0%R) i)
   (FullR.pow (Rminus x xi0) i))). *)
@@ -613,8 +613,6 @@ case Def : (defined f x) => [|]; last first.
   move/definedF: Def => ->.
   rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.eval tt qx (Rminus x c0)))) =>//.
   apply: Bnd.ComputeBound_correct =>//.
-  split; last done.
-  admit. (* FIXME *)
   apply: R_sub_correct =>//.
   rewrite /c0.
   exact: Imid_contains_Xreal.
@@ -627,8 +625,6 @@ simpl.
 by congr Xreal; auto with real.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
-  split; last done.
-  admit. (* FIXME *)
   apply: R_sub_correct =>//.
   apply: Imid_contains_Xreal.
   exists x.

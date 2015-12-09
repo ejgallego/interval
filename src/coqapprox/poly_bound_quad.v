@@ -130,10 +130,10 @@ exact: leq_add H _.
 Qed.
 
 Theorem ComputeBound_correct u pi p :
-  pi >::: p ->
+  pi >:: p ->
   R_extension (PolR.eval tt p) (ComputeBound u pi).
 Proof.
-move=> [Hsiz Hnth] X x Hx; rewrite /ComputeBound.
+move=> Hnth X x Hx; rewrite /ComputeBound.
 case E: (2 < Pol.size pi); last by apply: Bnd.ComputeBound_correct.
 case Eb: I.bounded; last by apply: Bnd.ComputeBound_correct.
 (* case Eb': I.bounded; last by apply: Bnd.ComputeBound_correct. *)
@@ -168,7 +168,7 @@ apply: R_add_correct;
          [apply: Hnth|apply: R_add_correct; apply: Hnth ]]]]
   |apply: R_mul_correct;
     [exact: R_power_int_correct|exact: Pol.eval_correct]].
-rewrite 2!PolR.is_horner.
+rewrite 2!PolR.hornerE.
 rewrite (big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
 rewrite big_mkord.
 rewrite 3?big_ord_recl -/a0 -/a1 -/a2 ![Radd_monoid _]/= /q3 PolR.size_tail.

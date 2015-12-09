@@ -58,10 +58,6 @@ Qed.
 
 (** Implementation of PolyOps with sequences and operations in monomial basis *)
 
-(*
-FIXME: Finish update w.r.t new poly_datatypes.v's archi
-
-
 Module SeqPolyInt (I : IntervalOps) <: PolyIntOps I.
 Module Int := FullInt I.
 Include SeqPoly Int.
@@ -96,17 +92,15 @@ Local Open Scope ipoly_scope.
 Lemma eval_propagate : forall u pi, I.propagate (eval u pi).
 Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
 
-Lemma zero_correct : scpw zero PolR.zero.
+Lemma zero_correct : cpw zero PolR.zero.
 Proof.
-split; first done.
 by case=> [|k]; rewrite I.zero_correct /=; auto with real.
 Qed.
 
-Lemma one_correct : scpw one PolR.one.
+Lemma one_correct : cpw one PolR.one.
 Proof.
-split; first done.
 case=> [|k] /=; first by apply: I.fromZ_correct.
-exact: (proj2 zero_correct).
+exact: zero_correct.
 Qed.
 
 Definition sizes := (size_polyNil, size_polyCons,
@@ -163,71 +157,67 @@ apply: H2.
                              end) p) k
 *)
 
-Lemma opp_correct : forall pi p, scpw pi p -> scpw (opp pi) (PolR.opp p).
+Lemma opp_correct : forall pi p, cpw pi p -> cpw (opp pi) (PolR.opp p).
 Proof.
-rewrite /contains_pointwise => pi p [Hsiz Hnth].
-split; first by rewrite size_opp PolR.size_opp.
+rewrite /contains_pointwise => pi p Hnth.
 rewrite /opp /PolR.opp.
+admit. (* new archi
 move=> k; rewrite PolR.nth_opp.
 elim/poly_ind: pi Hsiz Hnth =>[ |ai pi IHpi] Hsiz Hnth.
   rewrite PolR.nth_default ?nth_polyNil -?Hsiz // Ropp_0.
   by rewrite I.zero_correct /=; auto with real.
-case: k IHpi=> [|k].
-admit.
-admit.
+case: k IHpi=> [|k]. *)
 Qed.
 
 Conjecture eval_correct :
   forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
 Conjecture add_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (add u pi qi) (PolR.add tt p q).
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
 Conjecture sub_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (sub u pi qi) (PolR.sub tt p q).
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
 Conjecture mul_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (mul u pi qi) (PolR.mul tt p q).
-Conjecture lift_correct : forall n pi p, scpw pi p -> scpw (lift n pi) (PolR.lift n p).
-Conjecture tail_correct : forall n pi p, scpw pi p -> scpw (tail n pi) (PolR.tail n p).
-Conjecture polyNil_correct : scpw polyNil (PolR.polyNil). (* strong enough ? *)
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (mul u pi qi) (PolR.mul tt p q).
+Conjecture lift_correct : forall n pi p, cpw pi p -> cpw (lift n pi) (PolR.lift n p).
+Conjecture tail_correct : forall n pi p, cpw pi p -> cpw (tail n pi) (PolR.tail n p).
+Conjecture polyNil_correct : cpw polyNil (PolR.polyNil). (* strong enough ? *)
 Conjecture polyCons_correct :
-  forall pi xi p x, scpw pi p -> xi >: x ->
-  scpw (polyCons xi pi) (PolR.polyCons x p).
+  forall pi xi p x, cpw pi p -> xi >: x ->
+  cpw (polyCons xi pi) (PolR.polyCons x p).
 
 (* Conjecture size_correct *)
 Conjecture rec1_correct :
   forall fi f fi0 f0 n,
     (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
-    rec1 fi fi0 n >::: PolR.rec1 f f0 n.
+    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
 Conjecture rec2_correct :
   forall fi f fi0 f0 fi1 f1 n,
     (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
     fi0 >: f0 -> fi1 >: f1 ->
-    rec2 fi fi0 fi1 n >::: PolR.rec2 f f0 f1 n.
+    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
 Conjecture set_nth_correct :
-  forall pi p n ai a, pi >::: p -> ai >: a -> set_nth pi n ai >::: PolR.set_nth p n a.
+  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
 Conjecture deriv_correct :
-  forall u pi p, pi >::: p -> deriv u pi >::: (PolR.deriv tt p).
+  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
 Conjecture grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
-  (forall qi q m, qi >::: q -> Fi qi m >::: F q m) ->
-  (forall qi q m, qi >::: q -> Gi qi m >: G q m) ->
-  ai >::: a -> scpw' si s ->
-  grec1 Fi Gi ai si n >::: PolR.grec1 F G a s n.
+  (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
+  (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
+  ai >:: a -> cpw' si s ->
+  grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
 
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 
 Lemma mul_trunc_correct :
-  forall u n pi qi p q, scpw pi p -> scpw qi q ->
-  scpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
 Proof.
-move=> u n pi qi p q [Hsizef Hf] [Hsizeg Hg].
-split=>//; first by rewrite size_mul_trunc PolR.size_mul_trunc.
+move=> u n pi qi p q  Hf Hg.
+admit. (* new archi *)
+(*
 move=> k; rewrite /mul_trunc /PolR.mul_trunc  /nth /PolR.nth !nth_mkseq //.
 rewrite (* mul_coeffE *) PolR.mul_coeffE.
-admit.
-admit. admit.
-(*
 apply big_ind2 with (id1 := Int.tzero) (R2 := R).
 - by rewrite I.zero_correct; split; auto with real.
 - by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
@@ -239,12 +229,10 @@ by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
 Qed.
 
 Lemma mul_tail_correct :
-  forall u n pi qi p q, scpw pi p -> scpw qi q ->
-  scpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
 Proof.
-move=> u n pi qi p q [Hsizef Hf] [Hsizeg Hg].
-split =>//.
-  by rewrite size_mul_tail PolR.size_mul_tail Hsizef Hsizeg.
+move=> u n pi qi p q Hf Hg.
 move=> k.
 rewrite /mul_tail /PolR.mul_tail /nth /PolR.nth /= !nth_mkseq //; last first.
   admit. admit.
@@ -284,7 +272,6 @@ by apply: R_mul_correct; rewrite I.zero_correct; split; auto with real.
 Qed.
 
 End SeqPolyInt.
-*)
 
 
 

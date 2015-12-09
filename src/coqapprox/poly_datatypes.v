@@ -784,27 +784,27 @@ Local Open Scope ipoly_scope.
 Parameter eval_correct :
   forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
-Parameter zero_correct : scpw zero PolR.zero.
-Parameter one_correct : scpw one PolR.one.
-Parameter opp_correct : forall pi p, scpw pi p -> scpw (opp pi) (PolR.opp p).
+Parameter zero_correct : cpw zero PolR.zero.
+Parameter one_correct : cpw one PolR.one.
+Parameter opp_correct : forall pi p, cpw pi p -> cpw (opp pi) (PolR.opp p).
 Parameter add_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (add u pi qi) (PolR.add tt p q).
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
 Parameter sub_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (sub u pi qi) (PolR.sub tt p q).
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
 Parameter mul_correct :
-  forall u pi qi p q, scpw pi p -> scpw qi q -> scpw (mul u pi qi) (PolR.mul tt p q).
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (mul u pi qi) (PolR.mul tt p q).
 Parameter mul_trunc_correct :
-  forall u n pi qi p q, scpw pi p -> scpw qi q ->
-  scpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
 Parameter mul_tail_correct :
-  forall u n pi qi p q, scpw pi p -> scpw qi q ->
-  scpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
-Parameter lift_correct : forall n pi p, scpw pi p -> scpw (lift n pi) (PolR.lift n p).
-Parameter tail_correct : forall n pi p, scpw pi p -> scpw (tail n pi) (PolR.tail n p).
-Parameter polyNil_correct : scpw polyNil (PolR.polyNil). (* strong enough ? *)
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
+Parameter lift_correct : forall n pi p, cpw pi p -> cpw (lift n pi) (PolR.lift n p).
+Parameter tail_correct : forall n pi p, cpw pi p -> cpw (tail n pi) (PolR.tail n p).
+Parameter polyNil_correct : cpw polyNil (PolR.polyNil). (* strong enough ? *)
 Parameter polyCons_correct :
-  forall pi xi p x, scpw pi p -> xi >: x ->
-  scpw (polyCons xi pi) (PolR.polyCons x p).
+  forall pi xi p x, cpw pi p -> xi >: x ->
+  cpw (polyCons xi pi) (PolR.polyCons x p).
 
 Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
 
@@ -812,12 +812,12 @@ Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
 Parameter rec1_correct :
   forall fi f fi0 f0 n,
     (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
-    rec1 fi fi0 n >::: PolR.rec1 f f0 n.
+    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
 Parameter rec2_correct :
   forall fi f fi0 f0 fi1 f1 n,
     (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
     fi0 >: f0 -> fi1 >: f1 ->
-    rec2 fi fi0 fi1 n >::: PolR.rec2 f f0 f1 n.
+    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
 Parameter set_nth_correct :
   forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
 Parameter deriv_correct :
@@ -827,8 +827,8 @@ Parameter grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
   (forall qi q m, qi >::: q -> Fi qi m >::: F q m) ->
   (forall qi q m, qi >::: q -> Gi qi m >: G q m) ->
-  ai >::: a -> scpw' si s ->
-  scpw (grec1 Fi Gi ai si n) (PolR.grec1 F G a s n).
+  ai >::: a -> cpw' si s ->
+  cpw (grec1 Fi Gi ai si n) (PolR.grec1 F G a s n).
 *)
 
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
