@@ -64,13 +64,14 @@ Parameter eval_correct :
 Parameter prim : U -> I.type -> I.type -> I.type -> T -> T.
 
 Parameter prim_correct :
-  forall u (X X1 Y1 : I.type) tf f x1 y1,
+  forall u (X X1 Y1 : I.type) tf f f0 x1 y1,
   contains (I.convert X1) (Xreal x1) ->
   contains (I.convert Y1) (Xreal y1) ->
   approximates X tf f ->
+  (forall r : R, f0 r = toR_fun f r) ->
   approximates X (prim u X X1 Y1 tf) (fun x => match x with
                                          | Xnan => Xnan
-                                         | Xreal r => Xreal (RInt (toR_fun f) x1 r + y1)
+                                         | Xreal r => Xreal (RInt f0 x1 r + y1)
                                          end).
 
 Parameter add : U -> I.type -> T -> T -> T.

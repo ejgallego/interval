@@ -694,7 +694,6 @@ Local Open Scope R_scope.
 Lemma RInt_translation_add g a b x :
   RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
 Proof.
-Check RInt_comp_lin.
 have -> : a + x = (1 * a + x) by ring.
 have -> : b + x = (1 * b + x) by ring.
 rewrite -RInt_comp_lin.
