@@ -38,8 +38,6 @@ Require Import xreal_ssr_compat.
 Require Import poly_datatypes.
 Require Import interval_compl.
 Require Import taylor_poly.
-Require Import coeff_inst.
-Require Import rpa_inst.
 Require Import derive_compl.
 Require Import taylor_model_int_sharp.
 Require Import poly_bound.

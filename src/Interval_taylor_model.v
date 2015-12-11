@@ -32,8 +32,6 @@ Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.
 Require Import poly_datatypes.
 Require Import poly_inst_seq.
 Require Import taylor_model_int_sharp.
-Require Import coeff_inst.
-Require Import rpa_inst.
 Require Import xreal_ssr_compat.
 Require Import poly_bound.
 Require Import poly_bound_quad.

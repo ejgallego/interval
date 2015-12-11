@@ -37,8 +37,6 @@ Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
 Require Import taylor_poly.
-Require Import coeff_inst.
-Require Import rpa_inst.
 Require Import derive_compl.
 Require Import basic_rec.
 Require Import poly_bound.

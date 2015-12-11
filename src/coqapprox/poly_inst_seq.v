@@ -32,8 +32,6 @@ Require Import seq_compl interval_compl.
 Require Import nary_tuple.
 Require Import poly_datatypes.
 Require Import basic_rec.
-Require Import coeff_inst.
-Require Import rpa_inst.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
