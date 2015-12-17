@@ -52,30 +52,16 @@ End BaseOps.
 
 Module Type PowDivOps.
 Include BaseOps.
-
 (** [mask c x] is the constant fonction [c], except if [T = I.type]
 and [x] contains [Xnan], implying that [mask c x] contains [Xnan]. *)
 Parameter Inline mask : T -> T -> T.
-
-(*
-(** A fancy definition of NaN propagation, without mentioning NaNs *)
-Definition propagateEq f := forall x, f x = mask (f x) x.
-Parameter mask_propagateEq : forall c, propagateEq (mask c).
-*)
 Parameter Inline from_nat : nat -> T.
 Parameter Inline fromZ : Z -> T.
 Parameter Inline power_int : U -> T -> Z -> T.
 Parameter Inline sqr : U -> T -> T.
 Parameter Inline inv : U -> T -> T.
 Parameter Inline div : U -> T -> T -> T.
-(*
-Parameter mask_comm :
-  (* useless, but just in case *)
-  forall a x y, tcst (tcst a x) y = tcst (tcst a y) x.
-*)
 End PowDivOps.
-
-(* Local Notation tpow prec x n := (tpower_int prec x (Z_of_nat n)). *)
 
 Module Type FullOps.
 Include PowDivOps.
@@ -87,31 +73,10 @@ Parameter Inline cos : U -> T -> T.
 Parameter Inline ln : U -> T -> T.
 Parameter Inline atan : U -> T -> T.
 Parameter Inline tan : U -> T -> T.
-(*
-Parameter Inline tasin : U -> T -> T.
-Parameter Inline tacos : U -> T -> T.
-*)
 End FullOps.
 
 Module Type ExactFullOps.
 Include FullOps with Definition U := unit.
-(*
-Parameter mask_add_l :
-  forall a b x, tcst (tadd tt a b) x = tadd tt (tcst a x) b.
-Parameter mask_add_r :
-  forall a b x, tcst (tadd tt a b) x = tadd tt a (tcst b x).
-Parameter mask_mul_l :
-  forall a b x, tcst (tmul tt a b) x = tmul tt (tcst a x) b.
-Parameter mask_mul_r :
-  forall a b x, tcst (tmul tt a b) x = tmul tt a (tcst b x).
-
-Parameter mask0mul_l :
-  forall x, tmul tt tzero x = tcst tzero x.
-Parameter mask0mul_r :
-  forall x, tmul tt x tzero = tcst tzero x.
-Parameter mask_idemp :
-  forall a x, tcst (tcst a x) x = tcst a x.
-*)
 Parameter maskE : forall c x, mask c x = c.
 Definition pow x n := (power_int tt x (Z_of_nat n)).
 Parameter pow_0 : forall x, pow x 0 = one.
@@ -144,133 +109,62 @@ Definition invsqrt := fun prec x => I.inv prec (I.sqrt prec x).
 Definition mask : T -> T -> T := I.mask.
 Definition tan := I.tan.
 Definition atan := I.atan.
-(*
-Parameter tasin : U -> T -> T.
-Parameter tacos : U -> T -> T.
-*)
-(*
-Definition propagateEq f := forall x, f x = mask (f x) x.
-Lemma mask_propagateEq : forall c, propagateEq (mask c).
-Abort.
-*)
 End FullInt.
 
 Module Type PolyOps (C : PowDivOps) <: BaseOps.
 Include Type BaseOps with Definition U := C.U. (* simplifying assumption *)
 
-Parameter toSeq : T -> seq C.T.
-Parameter mkPoly : seq C.T -> T.
-Parameter mkPoly_toSeq : forall p, mkPoly (toSeq p) = p.
-Parameter toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
-
-(* specifications of toSeq *)
-Parameter toSeq_nil : toSeq zero = [::].
-
+Parameter Inline toSeq : T -> seq C.T.
+Parameter Inline mkPoly : seq C.T -> T.
+Parameter Inline nth : T -> nat -> C.T.
+Parameter Inline size : T -> nat.
+Parameter Inline rec1 : (C.T -> nat -> C.T) -> C.T -> nat -> T.
+Parameter Inline rec2 : (C.T -> C.T -> nat -> C.T) -> C.T -> C.T -> nat -> T.
+Parameter Inline grec1 :
+  forall A : Type,
+  (A -> nat -> A) ->
+  (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
+(* Erik: We don't use [Parameter map : forall f : C.T -> C.T, T -> T.]
+   as its specification would require [f C.tzero = C.tzero], which
+   does not hold in general. Still, we can rely on fold(r) instead. *)
+Parameter Inline fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
+Parameter Inline set_nth : T -> nat -> C.T -> T.
 Parameter Inline mul_trunc : U -> nat -> T -> T -> T.
 Parameter Inline mul_tail : U -> nat -> T -> T -> T.
-Parameter Inline lift : nat -> T -> T.
 (** [tlift j pol] represents [pol * X^j] if [pol] is in the monomial basis *)
+Parameter Inline lift : nat -> T -> T.
 Parameter Inline tail : nat -> T -> T.
 (* Parameter polyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
 Parameter Inline polyNil : T.
 Parameter Inline polyCons : C.T -> T -> T.
 Parameter Inline eval : U -> T -> C.T -> C.T.
+Parameter Inline deriv : U -> T -> T.
+Parameter Inline mul_mixed : U -> C.T -> T -> T.
+Parameter Inline div_mixed_r : U -> T -> C.T -> T.
+Parameter Inline dotmuldiv : U -> seq Z -> seq Z -> T -> T.
+Parameter primitive : U -> C.T -> T -> T.
 
+(* specifications of toSeq *)
+Parameter toSeq_nil : toSeq zero = [::].
+Parameter mkPoly_toSeq : forall p, mkPoly (toSeq p) = p.
+Parameter toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
 Parameter eval_seq : forall u p x, eval u p x =
   C.mask (foldr (fun a b => C.add u (C.mul u b x) a) C.zero (toSeq p)) x.
-
-(* REMARK: we could add a [degree] field, but in our particular
-context (Taylor modesl with seq-based polynomials), we especially
-focus on sizes. *)
-Parameter Inline nth : T -> nat -> C.T.
 Parameter nth_toSeq : forall p n, nth p n = seq.nth (C.zero) (toSeq p) n.
-Parameter Inline size : T -> nat.
 
-Parameter Inline rec1 : (C.T -> nat -> C.T) -> C.T -> nat -> T.
-(*
-Parameter rec1_spec0 :
-  forall (F : C.T -> nat -> C.T) F0 n,
-  tnth (trec1 F F0 n) 0 = F0.
-Parameter rec1_spec :
-  forall (F : C.T -> nat -> C.T) F0 p k, k < p ->
-  tnth (trec1 F F0 p) k.+1 = F (tnth (trec1 F F0 k) k) k.+1.
-*)
-Parameter Inline rec2 : (C.T -> C.T -> nat -> C.T) -> C.T -> C.T -> nat -> T.
-(*
-Parameter rec2_spec0 :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
-  tnth (trec2 F F0 F1 n) 0 = F0.
-*)
-(*
-Parameter rec2_spec1 :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
-  tnth (trec2 F F0 F1 n.+1) 1 = F1.
-Parameter rec2_spec :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 p k, k.+1 < p ->
-  tnth (trec2 F F0 F1 p) k.+2 =
-  F (tnth (trec2 F F0 F1 k) k) (tnth (trec2 F F0 F1 k.+1) k.+1) k.+2.
-*)
-(*
-Parameter recN_spec0 :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-  (d : C.T),
-  k <= n -> k < N -> tnth (trecN L0 F n) k = nth d (Ttoseq L0) k.
-*)
-Parameter Inline grec1 :
-  forall A : Type,
-  (A -> nat -> A) ->
-  (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
-
-Parameter size_grec1 :
-  forall (A : Type)
-  (F : A -> nat -> A) (G : A -> nat -> C.T) (q : A) (s : seq C.T) (n : nat),
-  size (grec1 F G q s n) = n.+1.
-(*
-*)
-(*
-Parameter lastN_spec :
-  forall (d := C.tzero) N (p : T) (i : 'I_N),
-  Tnth (tlastN d N p) i = tnth p (tsize p - N + val i).
-
-Parameter recN_spec :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-         (d : C.T),
-  k <= n -> k >= N ->
-  tnth (trecN L0 F n) k =
-  (nuncurry F) (tlastN d N (trecN L0 F k.-1)) k.
-Parameter size_trecN :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-         (d : C.T),
-  tsize (trecN L0 F n) = n.+1.
-*)
-Parameter Inline fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
-Parameter Inline set_nth : T -> nat -> C.T -> T.
-(* Erik: We do not define
-[Parameter map : forall f : C.T -> C.T, T -> T.]
-as its specification would require [f C.tzero = C.tzero],
-which does not hold in general.
-Yet we can use a foldr-based mapping instead. *)
-
-(*
-Parameter nth_polyCons :
-  forall a p k, k <= tsize p ->
-  tnth (tpolyCons a p) k = if k is k'.+1 then tnth p k' else a.
-Parameter nth_polyNil : forall n, tnth tpolyNil n = C.tzero.
-Parameter nth_out : forall p n, tsize p <= n -> tnth p n = C.tzero.
-(** Note that we explicitely choose a default value here *)
-Parameter size_set_nth : forall p n val,
-  tsize (tset_nth p n val) = maxn n.+1 (tsize p).
-(* i.e., tsize (tset_nth p n val) = maxn n.+1 (tsize p) = tsize p. *)
-Parameter nth_set_nth : forall p n val k,
-  tnth (tset_nth p n val) k = if k == n then val else tnth p k.
-Parameter fold_polyNil : forall U f iv, @tfold U f iv tpolyNil = iv.
-Parameter fold_polyCons : forall U f iv c p,
-  @tfold U f iv (tpolyCons c p) = f c (@tfold U f iv p).
-*)
 Parameter poly_ind : forall (f : T -> Type),
   f polyNil ->
   (forall a p, f p -> f (polyCons a p)) ->
   forall p, f p.
+
+Parameter primitive_correct : forall u p c k, k < (size p).+1 ->
+                                              nth (primitive u c p) k =
+                                              match k with
+                                                | 0 => c
+                                                | S m => C.div u (nth p m) (C.from_nat k) end.
+
+Parameter size_primitive : forall u c p, size (primitive u c p) = (size p).+1.
+(* FIXME: remove if possible *)
 
 Parameter size_sub :
   forall u p1 p2,
@@ -286,39 +180,29 @@ Parameter size_add :
 Parameter size_opp :
   forall p1,
   size (opp p1) = size p1.
-
 Parameter size_polyNil : size polyNil = 0.
 Parameter size_polyCons : forall a p, size (polyCons a p) = (size p).+1.
-Parameter nth_polyCons : forall a p k,
-  nth (polyCons a p) k = if k is k'.+1 then nth p k' else a.
-Parameter nth_polyNil : forall n, nth polyNil n = C.zero.
+Parameter size_grec1 :
+  forall (A : Type)
+  (F : A -> nat -> A) (G : A -> nat -> C.T) (q : A) (s : seq C.T) (n : nat),
+  size (grec1 F G q s n) = n.+1.
 Parameter size_tail :
   forall p k, size (tail k p) = size p - k.
-(*
-Parameter nth_tail :
-  forall p n k,
-  tnth (ttail k p) n = tnth p (k + n).
-*)
-Parameter Inline deriv : U -> T -> T.
-
-(* TODO Parameter Inline recN :
-  forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
-(* TODO Parameter Inline lastN : C.T -> forall N : nat, T -> C.T ^ N. *)
-
-Parameter Inline mul_mixed : U -> C.T -> T -> T.
-Parameter Inline div_mixed_r : U -> T -> C.T -> T.
-Parameter Inline dotmuldiv : U -> seq Z -> seq Z -> T -> T.
 
 Parameter size_dotmuldiv :
   forall n u a b p, size p = n -> seq.size a = n -> seq.size b = n ->
   size (dotmuldiv u a b p) = n.
+Parameter size_set_nth : forall p n val,
+  size (set_nth p n val) = maxn n.+1 (size p).
+(* i.e., tsize (tset_nth p n val) = maxn n.+1 (tsize p) = tsize p. *)
+
+Parameter nth_polyCons : forall a p k,
+  nth (polyCons a p) k = if k is k'.+1 then nth p k' else a.
+Parameter nth_polyNil : forall n, nth polyNil n = C.zero.
 
 Parameter fold_polyNil : forall U f iv, @fold U f iv polyNil = iv.
 Parameter fold_polyCons : forall U f iv c p,
   @fold U f iv (polyCons c p) = f c (@fold U f iv p).
-Parameter size_set_nth : forall p n val,
-  size (set_nth p n val) = maxn n.+1 (size p).
-(* i.e., tsize (tset_nth p n val) = maxn n.+1 (tsize p) = tsize p. *)
 Parameter nth_set_nth : forall p n val k,
   nth (set_nth p n val) k = if k == n then val else nth p k.
 
@@ -327,14 +211,69 @@ Parameter nth_default : forall p n, size p <= n -> nth p n = C.zero.
 (* FIXME: Is the following mandatory? *)
 Parameter set_nth_nth : forall p n, n < size p -> set_nth p n (nth p n) = p.
 
-Parameter primitive : U -> C.T -> T -> T.
-Parameter primitive_correct : forall u p c k, k < (size p).+1 ->
-                                              nth (primitive u c p) k =
-                                              match k with
-                                                | 0 => c
-                                                | S m => C.div u (nth p m) (C.from_nat k) end.
- Parameter size_primitive : forall u c p, size (primitive u c p) = (size p).+1. (* FIXME: remove if possible *)
+(*
+Parameter Inline recN :
+  forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T.
+Parameter Inline lastN : C.T -> forall N : nat, T -> C.T ^ N.
 
+Parameter rec1_spec0 :
+  forall (F : C.T -> nat -> C.T) F0 n,
+  tnth (trec1 F F0 n) 0 = F0.
+Parameter rec1_spec :
+  forall (F : C.T -> nat -> C.T) F0 p k, k < p ->
+  tnth (trec1 F F0 p) k.+1 = F (tnth (trec1 F F0 k) k) k.+1.
+
+Parameter rec2_spec0 :
+  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
+  tnth (trec2 F F0 F1 n) 0 = F0.
+
+Parameter rec2_spec1 :
+  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
+  tnth (trec2 F F0 F1 n.+1) 1 = F1.
+Parameter rec2_spec :
+  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 p k, k.+1 < p ->
+  tnth (trec2 F F0 F1 p) k.+2 =
+  F (tnth (trec2 F F0 F1 k) k) (tnth (trec2 F F0 F1 k.+1) k.+1) k.+2.
+
+Parameter recN_spec0 :
+  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
+  (d : C.T),
+  k <= n -> k < N -> tnth (trecN L0 F n) k = nth d (Ttoseq L0) k.
+
+Parameter lastN_spec :
+  forall (d := C.tzero) N (p : T) (i : 'I_N),
+  Tnth (tlastN d N p) i = tnth p (tsize p - N + val i).
+
+Parameter recN_spec :
+  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
+         (d : C.T),
+  k <= n -> k >= N ->
+  tnth (trecN L0 F n) k =
+  (nuncurry F) (tlastN d N (trecN L0 F k.-1)) k.
+Parameter size_trecN :
+  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
+         (d : C.T),
+  tsize (trecN L0 F n) = n.+1.
+
+Parameter nth_polyCons :
+  forall a p k, k <= tsize p ->
+  tnth (tpolyCons a p) k = if k is k'.+1 then tnth p k' else a.
+Parameter nth_polyNil : forall n, tnth tpolyNil n = C.tzero.
+Parameter nth_out : forall p n, tsize p <= n -> tnth p n = C.tzero.
+(** Note that we explicitely choose a default value here *)
+Parameter size_set_nth : forall p n val,
+  tsize (tset_nth p n val) = maxn n.+1 (tsize p).
+(* i.e., tsize (tset_nth p n val) = maxn n.+1 (tsize p) = tsize p. *)
+Parameter nth_set_nth : forall p n val k,
+  tnth (tset_nth p n val) k = if k == n then val else tnth p k.
+Parameter fold_polyNil : forall U f iv, @tfold U f iv tpolyNil = iv.
+Parameter fold_polyCons : forall U f iv c p,
+  @tfold U f iv (tpolyCons c p) = f c (@tfold U f iv p).
+
+Parameter nth_tail :
+  forall p n k,
+  tnth (ttail k p) n = tnth p (k + n).
+*)
 
 End PolyOps.
 
@@ -375,11 +314,6 @@ Definition invsqrt := --> fun x => (Rinv (sqrt tt x)).
 Definition mask : T -> T -> T := fun c _ => c.
 Definition tan := --> tan.
 Definition atan := --> atan.
-(*
-Definition propagate f := forall x, f x = mask (f x) x.
-Lemma mask_propagate : forall c x, mask c x = mask (mask c x) x.
-Proof. done. Qed.
-*)
 Lemma maskE : forall c x, mask c x = c.
 Proof. done. Qed.
 
@@ -418,27 +352,9 @@ Fixpoint opp (p : T) :=
 Section PrecIsPropagated.
 Variable u : U.
 
-(*
-Fixpoint add (p1 p2 : T) :=
-  match p1 with
-    | [::] => p2
-    | a1 :: p3 => match p2 with
-                    | [::] => p1
-                    | a2 :: p4 => C.add u a1 a2 :: add p3 p4
-                  end
-  end.
-*)
-
 Definition add := map2 (C.add u).
 
-Fixpoint sub (p1 p2 : T) :=
-  match p1 with
-    | [::] => opp p2
-    | a1 :: p3 => match p2 with
-                    | [::] => p1
-                    | a2 :: p4 => C.sub u a1 a2 :: sub p3 p4
-                  end
-  end.
+Definition sub := map2 (C.sub u).
 
 Definition mul_coeff (p q : T) (n : nat) : C.T :=
   foldl (fun x i => C.add u
@@ -504,19 +420,8 @@ Lemma size_grec1 A F G (q : A) s n : size (grec1 F G q s n) = n.+1.
 Proof. by apply size_grec1up. Qed.
 
 
-Lemma size_add :
- forall p1 p2, size (add p1 p2) = maxn (size p1) (size p2).
-Proof.
-admit.
-Qed.
-(*
-elim; first by move=>l;rewrite /= max0n.
-move=> a l IH1;elim; first by rewrite maxn0.
-move=> b m IH2.
-rewrite /= IH1 -add1n -(add1n (size l)) -(add1n (size m)).
-by apply:addn_maxr.
-Qed.
-*)
+Lemma size_add p1 p2 : size (add p1 p2) = maxn (size p1) (size p2).
+Proof. by rewrite /size /add size_map2. Qed.
 
 Lemma size_rec1 F x n: size (rec1 F x n) = n.+1.
 Proof. by apply size_rec1up. Qed.
@@ -599,15 +504,11 @@ Proof. by move=> a p; case. Qed.
 
 Lemma size_opp p1 :
   size (opp p1) = size p1.
-Proof. by elim: p1 =>[//|c1 p1]; move=>/=->. Qed.
+Proof. by rewrite /size /opp size_map. Qed.
 
 Lemma size_sub u p1 p2 :
   size (sub u p1 p2) = maxn (size p1) (size p2).
-Proof.
-elim: p1 p2 =>[/=|c1 p1 IHp] p2; first by rewrite size_opp max0n.
-case: p2 IHp =>[//|c2 p2] IHp.
-by rewrite /= IHp maxnSS.
-Qed.
+Proof. by rewrite /sub /size size_map2. Qed.
 
 Lemma size_dotmuldiv (n : nat) (u : U) a b p :
   size p = n -> seq.size a = n -> seq.size b = n ->

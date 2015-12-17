@@ -3561,7 +3561,7 @@ Qed.
 Lemma size_TM_exp X0 X (n : nat) : Pol.size (approx (TM_exp X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec1. Qed.
 
-(* TODO: To move ? *)
+(*
 Lemma PolR_size_dotmuldiv k a rec z :
   PolR.size
     (PolR.dotmuldiv tt (falling_seq a k) (behead (fact_seq k.+1))
@@ -3583,6 +3583,7 @@ by rewrite Pol.size_rec1.
 by rewrite size_rec1up.
 by rewrite size_behead size_rec1up.
 Qed.
+*)
 
 (*
 Lemma aux_tnth_ln (x : R) n k :
@@ -4037,9 +4038,9 @@ Lemma teval_opp pf x :
   Ropp (PolR.eval tt pf x).
 Proof.
 (* Erik: Ideally, we should put this lemma in a more generic place *)
-have Hsize := PolR.size_opp pf.
 admit.
 (*
+have Hsize := PolR.size_opp pf.
 case Ef : (PolR.tsize pf) => [| n'].
   rewrite !PolR.is_horner Hsize Ef !big_ord0.
   by case x => [|rx] //=; rewrite Ropp_0.
@@ -4066,10 +4067,10 @@ Lemma teval_sub pf pg x :
 Proof.
 (* Erik: Ideally, we should put this lemma in a more generic place *)
 move=> Heq.
-have Hsize := PolR.size_sub tt pf pg.
-rewrite Heq maxnn in Hsize.
 admit.
 (*
+have Hsize := PolR.size_sub tt pf pg.
+rewrite Heq maxnn in Hsize.
 case Eg : (PolR.tsize pg) => [| n'].
   rewrite !PolR.is_horner Heq Hsize Eg !big_ord0.
   by case x => [|rx] //=; rewrite Rminus_0_r.
@@ -4343,7 +4344,7 @@ case=>[Hnan Hsubst Hmain].
 rewrite MapI.size_polymap.
 move=> k Hk.
 rewrite MapI.nth_polymap //.
-admit. (*
+admit. (* FIXME
 have [q [Hq1 Hq2 Hq3]] := Hmain _ Ht.
 exact: Imul_Inan_propagate_l (Hq2 _ Hk) _.
 *)
@@ -4470,10 +4471,11 @@ Proof.
 case=>[t Ht].
 move/contains_Xnan => Ha /=.
 case=>[Hnan Hsubst Hmain].
+admit. (* FIXME
 rewrite MapI.size_polymap.
 move=> k Hk.
 rewrite MapI.nth_polymap //.
-admit. (*
+
 have [q [Hq1 Hq2 Hq3]] := Hmain _ Ht.
 exact: Idiv_Inan_propagate_r (Hq2 _ Hk) _.
 *)
@@ -5607,7 +5609,7 @@ move=> Hnan Ht n Hn Hf.
 apply: TM_comp_correct=> //.
 have {Hf} [Hef H0 Hf] := Hf => a Y k Ha Ht'.
 split; first exact: TM_inv_correct.
-by rewrite /= /T_inv; rewrite Pol.size_rec1.
+admit. (* size *)
 Qed.
 
 Definition TM_div Mf Mg X0 X n :=

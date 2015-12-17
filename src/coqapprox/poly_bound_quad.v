@@ -170,7 +170,7 @@ rewrite 2!PolR.hornerE.
 rewrite (big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
 rewrite big_mkord.
 rewrite 3?big_ord_recl -/a0 -/a1 -/a2 ![Radd_monoid _]/= /q3 PolR.size_tail.
-simpl Z.of_nat.
+(* simpl Z.of_nat. *)
 set x0 := powerRZ x 0.
 set x1 := powerRZ x 1.
 set x2 := powerRZ x 2.
