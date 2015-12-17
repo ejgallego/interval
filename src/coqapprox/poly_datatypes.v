@@ -604,8 +604,7 @@ Qed.
 Lemma hornerE p x :
   eval tt p x =
   \big[Rplus/R0]_(0 <= i < size p) Rmult (nth p i) (FullR.pow x i).
-Admitted.
-(* FIXME
+Proof.
 elim: p; first by rewrite big_mkord big_ord0 /=.
 move=> t p /= ->.
 rewrite big_nat_recl // FullR.pow_0 /=.
@@ -616,7 +615,15 @@ rewrite Rmult_comm big_distrr /=; congr Rplus.
 apply: eq_bigr => i _; rewrite FullR.pow_S /FullR.mul.
 by rewrite ![_ x _]Rmult_comm ![Rmult x _]Rmult_comm Rmult_assoc.
 Qed.
-*)
+
+Lemma hornerE_wide n p x :
+  size p <= n ->
+  eval tt p x =
+  \big[Rplus/R0]_(0 <= i < n) Rmult (nth p i) (FullR.pow x i).
+Proof.
+move=> Hn; rewrite hornerE (big_nat_leq_idx _ Hn) //.
+by move=> i /andP [Hi _]; rewrite nth_default // Rmult_0_l.
+Qed.
 
 (*
 Lemma nth_add p1 p2 k :

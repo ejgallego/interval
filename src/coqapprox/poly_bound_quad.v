@@ -105,28 +105,6 @@ Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
 
 Import Pol.Notations. Local Open Scope ipoly_scope.
 
-Lemma big_nat_leq_idx :
-  forall (R : Type) (idx : R) (op : Monoid.law idx) (m n : nat) (F : nat -> R),
-  n <= m -> (forall i : nat, n <= i < m -> F i = idx) ->
-  \big[op/idx]_(0 <= i < n) F i = \big[op/idx]_(0 <= i < m) F i.
-Proof.
-move=> R idx op m n F Hmn H.
-rewrite [RHS](big_cat_nat _ (n := n)) //.
-rewrite [in X in _ = op _ X]big_nat_cond.
-rewrite [in X in _ = op _ X]big1 ?Monoid.mulm1 //.
-move=> i; rewrite andbT; move=> *; exact: H.
-Qed.
-
-(* FIXME: to move *)
-Lemma leq_subnK: forall m n : nat, n <= (n - m) + m.
-Proof. elim=> [|n IHn] m; first by rewrite addn0 subn0.
-rewrite subnS -addSnnS.
-move/(_ m) in IHn.
-have H := leqSpred (m - n).
-apply: leq_trans IHn _.
-exact: leq_add H _.
-Qed.
-
 Theorem ComputeBound_correct u pi p :
   pi >:: p ->
   R_extension (PolR.eval tt p) (ComputeBound u pi).
