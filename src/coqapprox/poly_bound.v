@@ -39,6 +39,10 @@ Require Import taylor_poly.
 Require Import derive_compl.
 Require Import basic_rec.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 (** The interface *)
 
 Module Type PolyBound (I : IntervalOps) (Pol : PolyIntOps I).
@@ -108,6 +112,8 @@ have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
 exact: Pol.set_nth_correct.
 Qed.
 
+Arguments ComputeBound_nth0 [prec pi] p [X] _ _ r _.
+
 End PolyBoundThm.
 
 (** Naive implementation: Horner evaluation *)
@@ -123,13 +129,16 @@ Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
   Pol.eval.
 
 Theorem ComputeBound_correct :
-  forall u pi p,
+  forall prec pi p,
   pi >:: p ->
-  R_extension (PolR.eval tt p) (ComputeBound u pi).
+  R_extension (PolR.eval tt p) (ComputeBound prec pi).
 Proof.
 move=> Hfifx X x Hx; rewrite /ComputeBound.
 by move=> *; apply Pol.eval_correct.
 Qed.
+
+Arguments ComputeBound_correct [prec pi p] _ b x _.
+
 (*
 elim/PolR.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
 - rewrite PolR.teval_polyNil teval_polyNil.
@@ -162,9 +171,11 @@ by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
 *)
 
 Lemma ComputeBound_propagate :
-  forall u pi p,
+  forall prec pi p,
   pi >:: p ->
-  I.propagate (ComputeBound u pi).
+  I.propagate (ComputeBound prec pi).
 Proof. by red=> *; rewrite /ComputeBound Pol.eval_propagate. Qed.
+
+Arguments ComputeBound_propagate [prec pi p] _ xi _.
 
 End PolyBoundHorner.

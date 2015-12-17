@@ -37,6 +37,13 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Reserved Notation "--> e"
+  (at level 10, e at level 8, no associativity, format "-->  e").
+Reserved Notation "i >: x"
+  (at level 70, no associativity, format "i  >:  x").
+Reserved Notation "i >:: x"
+  (at level 70, no associativity, format "i  >::  x").
+
 Module Type BaseOps.
 Parameter U : Type.
 Parameter T : Type.
@@ -276,18 +283,6 @@ Parameter nth_tail :
 *)
 
 End PolyOps.
-
-Reserved Notation "--> e"
-  (at level 10, e at level 8, no associativity, format "-->  e").
-
-Reserved Notation "i >: x"
-  (at level 70, no associativity, format "i  >:  x").
-
-Reserved Notation "i >:: x"
-  (at level 70, no associativity, format "i  >::  x").
-
-Reserved Notation "i >::: x"
-  (at level 70, no associativity, format "i  >:::  x").
 
 Module FullR <: ExactFullOps.
 Definition U := unit.
@@ -673,55 +668,45 @@ Module Type PolyIntOps (I : IntervalOps).
 Module Int := FullInt I.
 Include PolyOps Int.
 
-Local Notation eq_size pi p := (size pi = PolR.size p).
 Definition contains_pointwise pi p : Prop :=
   forall k, contains (I.convert (nth pi k)) (Xreal (PolR.nth p k)).
 
-(* Very similar definitions, suitable for specifying grec1 *)
-Definition seq_eq_size (si : seq I.type) s : Prop :=
-  seq.size si = PolR.size s.
+(* Very similar definition, suitable for specifying grec1 *)
 Definition seq_contains_pointwise si s : Prop :=
-  seq.size si = PolR.size s /\
   forall k, contains (I.convert (seq.nth Int.zero si k)) (Xreal (PolR.nth s k)).
 
 Module Import Notations.
 Delimit Scope ipoly_scope with IP.
-Notation eq_size pi p := (size pi = PolR.size p).
-Notation cpw := contains_pointwise (only parsing).
-Notation scpw pi p := (eq_size pi p /\ cpw pi p) (only parsing).
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
 Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
-Notation "p >::: x" := (scpw p x) (only parsing) : ipoly_scope.
-Notation eqs' := seq_eq_size (only parsing).
-Notation cpw' := seq_contains_pointwise (only parsing).
-Notation scpw' si s  := (eqs' si s /\ cpw' si s) (only parsing).
+Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
 Parameter eval_correct :
-  forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
+  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
-Parameter zero_correct : cpw zero PolR.zero.
-Parameter one_correct : cpw one PolR.one.
-Parameter opp_correct : forall pi p, cpw pi p -> cpw (opp pi) (PolR.opp p).
+Parameter zero_correct : zero >:: PolR.zero.
+Parameter one_correct : one >:: PolR.one.
+Parameter opp_correct : forall pi p, pi >:: p -> opp pi >:: PolR.opp p.
 Parameter add_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
+  forall u pi qi p q, pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 Parameter sub_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
+  forall u pi qi p q, pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
 Parameter mul_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (mul u pi qi) (PolR.mul tt p q).
+  forall u pi qi p q, pi >:: p -> qi >:: q -> mul u pi qi >:: PolR.mul tt p q.
 Parameter mul_trunc_correct :
-  forall u n pi qi p q, cpw pi p -> cpw qi q ->
-  cpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
+  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+  mul_trunc u n pi qi >:: PolR.mul_trunc tt n p q.
 Parameter mul_tail_correct :
-  forall u n pi qi p q, cpw pi p -> cpw qi q ->
-  cpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
-Parameter lift_correct : forall n pi p, cpw pi p -> cpw (lift n pi) (PolR.lift n p).
-Parameter tail_correct : forall n pi p, cpw pi p -> cpw (tail n pi) (PolR.tail n p).
-Parameter polyNil_correct : cpw polyNil (PolR.polyNil). (* strong enough ? *)
+  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+  mul_tail u n pi qi >:: PolR.mul_tail tt n p q.
+Parameter lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
+Parameter tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
+Parameter polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
 Parameter polyCons_correct :
-  forall pi xi p x, cpw pi p -> xi >: x ->
-  cpw (polyCons xi pi) (PolR.polyCons x p).
+  forall pi xi p x, pi >:: p -> xi >: x ->
+  polyCons xi pi >:: PolR.polyCons x p.
 
 Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
 
@@ -742,9 +727,9 @@ Parameter deriv_correct :
 (*
 Parameter grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
-  (forall qi q m, qi >::: q -> Fi qi m >::: F q m) ->
-  (forall qi q m, qi >::: q -> Gi qi m >: G q m) ->
-  ai >::: a -> cpw' si s ->
+  (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
+  (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
+  ai >:: a -> cpw' si s ->
   cpw (grec1 Fi Gi ai si n) (PolR.grec1 F G a s n).
 *)
 
@@ -795,48 +780,37 @@ Include SeqPoly Int.
 
 Module Import Aux := IntervalAux I.
 
-Local Notation eq_size pi p := (size pi = PolR.size p).
 Definition contains_pointwise pi p : Prop :=
   forall k, contains (I.convert (nth pi k)) (Xreal (PolR.nth p k)).
 
-(* Very similar definitions, suitable for specifying grec1 *)
-Definition seq_eq_size (si : seq I.type) s : Prop :=
-  seq.size si = PolR.size s. (* should be a notation? *)
+(* Very similar definition, suitable for specifying grec1 *)
 Definition seq_contains_pointwise si s : Prop :=
-  seq.size si = PolR.size s /\
   forall k, contains (I.convert (seq.nth Int.zero si k)) (Xreal (PolR.nth s k)).
 
 Module Import Notations.
 Delimit Scope ipoly_scope with IP.
-Notation eq_size pi p := (size pi = PolR.size p).
-Notation cpw := contains_pointwise (only parsing).
-
-Notation scpw pi p := (eq_size pi p /\ cpw pi p) (only parsing).
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
 Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
-Notation "p >::: x" := (scpw p x) (only parsing) : ipoly_scope.
-Notation eqs' := seq_eq_size (only parsing).
-Notation cpw' := seq_contains_pointwise (only parsing).
-Notation scpw' si s  := (eqs' si s /\ cpw' si s) (only parsing).
+Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
 Lemma eval_propagate : forall u pi, I.propagate (eval u pi).
 Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
 
-Lemma zero_correct : cpw zero PolR.zero.
+Lemma zero_correct : zero >:: PolR.zero.
 Proof.
 by case=> [|k]; rewrite I.zero_correct /=; auto with real.
 Qed.
 
-Lemma one_correct : cpw one PolR.one.
+Lemma one_correct : one >:: PolR.one.
 Proof.
 case=> [|k] /=; first by apply: I.fromZ_correct.
 exact: zero_correct.
 Qed.
 
 Lemma add_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
+  forall u pi qi p q, pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 intros.
 move=> k.
 rewrite /PolR.add /add /nth /PolR.nth.
@@ -873,7 +847,7 @@ Lemma contains_pointwise_ind :
   (forall pi p, size pi = PolR.size p ->
     size (fpi pi) = PolR.size (fp p)) ->
   (forall xi x, fi xi >: f x) ->
-  forall pi p, cpw pi p -> cpw (fi pi) (f p).
+  forall pi p, pi >:: p -> cpw (fi pi) (f p).
 move=> fi f Hsiz pi p [H1 H2].
 unfold cpw.
 split; first exact: Hsiz.
@@ -904,7 +878,7 @@ apply: H2.
                              end) p) k
 *)
 
-Lemma opp_correct : forall pi p, cpw pi p -> cpw (opp pi) (PolR.opp p).
+Lemma opp_correct : forall pi p, pi >:: p -> opp pi >:: PolR.opp p.
 Proof.
 rewrite /contains_pointwise => pi p Hnth.
 rewrite /opp /PolR.opp.
@@ -917,18 +891,18 @@ case: k IHpi=> [|k]. *)
 Qed.
 
 Conjecture eval_correct :
-  forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
+  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
 Conjecture sub_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
+  forall u pi qi p q, pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
 Conjecture mul_correct :
-  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (mul u pi qi) (PolR.mul tt p q).
-Conjecture lift_correct : forall n pi p, cpw pi p -> cpw (lift n pi) (PolR.lift n p).
-Conjecture tail_correct : forall n pi p, cpw pi p -> cpw (tail n pi) (PolR.tail n p).
-Conjecture polyNil_correct : cpw polyNil (PolR.polyNil). (* strong enough ? *)
+  forall u pi qi p q, pi >:: p -> qi >:: q -> mul u pi qi >:: PolR.mul tt p q.
+Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
+Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
+Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
 Conjecture polyCons_correct :
-  forall pi xi p x, cpw pi p -> xi >: x ->
-  cpw (polyCons xi pi) (PolR.polyCons x p).
+  forall pi xi p x, pi >:: p -> xi >: x ->
+  polyCons xi pi >:: PolR.polyCons x p.
 
 (* Conjecture size_correct *)
 Conjecture rec1_correct :
@@ -948,15 +922,15 @@ Conjecture grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
   (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
-  ai >:: a -> cpw' si s ->
+  ai >:: a -> seq_contains_pointwise si s ->
   grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
 
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 
 Lemma mul_trunc_correct :
-  forall u n pi qi p q, cpw pi p -> cpw qi q ->
-  cpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
+  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+  mul_trunc u n pi qi >:: PolR.mul_trunc tt n p q.
 Proof.
 move=> u n pi qi p q  Hf Hg.
 admit. (* new archi *)
@@ -974,8 +948,8 @@ by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
 Qed.
 
 Lemma mul_tail_correct :
-  forall u n pi qi p q, cpw pi p -> cpw qi q ->
-  cpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
+  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+  mul_tail u n pi qi >:: PolR.mul_tail tt n p q.
 Proof.
 move=> u n pi qi p q Hf Hg.
 move=> k.

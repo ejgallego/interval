@@ -663,7 +663,7 @@ apply: I.add_correct; last apply: I.add_correct.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
 have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
 by apply: I.sub_correct => //; apply: (subset_contains (I.convert X0) _).
-- apply (BndThm.ComputeBound_nth0 prec TM_integral_poly (PolR.primitive tt 0%R p )).
+- apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
 move=> k.
 + rewrite /TM_integral_poly Pol.primitive_correct //. (* I.zero_correct /= . *)
   admit. (* archi to revise *)

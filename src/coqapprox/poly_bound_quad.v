@@ -40,6 +40,10 @@ Require Import derive_compl.
 Require Import basic_rec.
 Require Import poly_bound.
 
+Set Implicit Arguments.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
+
 Module PolyBoundHornerQuad (I : IntervalOps) (Pol : PolyIntOps I)
   <: PolyBound I Pol.
 
@@ -105,9 +109,9 @@ Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
 
 Import Pol.Notations. Local Open Scope ipoly_scope.
 
-Theorem ComputeBound_correct u pi p :
+Theorem ComputeBound_correct prec pi p :
   pi >:: p ->
-  R_extension (PolR.eval tt p) (ComputeBound u pi).
+  R_extension (PolR.eval tt p) (ComputeBound prec pi).
 Proof.
 move=> Hnth X x Hx; rewrite /ComputeBound.
 case E: (2 < Pol.size pi); last by apply: Bnd.ComputeBound_correct.
@@ -145,7 +149,7 @@ apply: R_add_correct;
   |apply: R_mul_correct;
     [exact: R_power_int_correct|exact: Pol.eval_correct]].
 rewrite 2!PolR.hornerE.
-rewrite (big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
+rewrite (@big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
 rewrite big_mkord.
 rewrite 3?big_ord_recl -/a0 -/a1 -/a2 ![Radd_monoid _]/= /q3 PolR.size_tail.
 (* simpl Z.of_nat. *)
@@ -159,8 +163,8 @@ have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   intro K.
   move: Eb.
   have Hzero : contains (I.convert
-    (I.add u (I.add u (Pol.nth pi 2) (Pol.nth pi 2))
-      (I.add u (Pol.nth pi 2) (Pol.nth pi 2)))) (Xreal 0).
+    (I.add prec (I.add prec (Pol.nth pi 2) (Pol.nth pi 2))
+      (I.add prec (Pol.nth pi 2) (Pol.nth pi 2)))) (Xreal 0).
     rewrite -K.
     change (Xreal _) with (Xadd (Xadd (Xreal a2) (Xreal a2))
       (Xadd (Xreal a2) (Xreal a2))).
@@ -168,7 +172,7 @@ have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   case/(I.bounded_correct _) => _.
   case/(I.upper_bounded_correct _) => _.
   rewrite /I.bounded_prop.
-  set d := I.div u _ _.
+  set d := I.div prec _ _.
   suff->: I.convert d = IInan by [].
   apply -> contains_Xnan.
   rewrite -(copy_Xdiv_0_r (Xsqr (Xreal a1))).
@@ -196,15 +200,19 @@ move=> i /andP [Hi _].
 by rewrite PolR.nth_default ?Rmult_0_l.
 Qed.
 
+Arguments ComputeBound_correct [prec pi p] _ b x _.
+
 Lemma ComputeBound_propagate :
-  forall u pi p,
+  forall prec pi p,
   pi >:: p ->
-  I.propagate (ComputeBound u pi).
+  I.propagate (ComputeBound prec pi).
 Proof.
 red=> *; rewrite /ComputeBound /=.
 by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
   rewrite !(I.add_propagate_r,I.mul_propagate_l,I.power_int_propagate,
             Pol.eval_propagate).
 Qed.
+
+Arguments ComputeBound_propagate [prec pi p] _ xi _.
 
 End PolyBoundHornerQuad.

@@ -605,7 +605,7 @@ move: x Hx =>[|x Hx].
   move/contains_Xnan => H0.
   rewrite Hnan.
   rewrite (Iadd_Inan_propagate_l _ Hzero) //.
-  apply: (Bnd.ComputeBound_propagate u.1 (approx tm) qx Hcont).
+  apply: (Bnd.ComputeBound_propagate Hcont).
   by rewrite I.sub_propagate_l.
 move/(_ x) in Hdelta.
 apply I.subset_correct in HXY.
