@@ -153,6 +153,12 @@ Proof. by rewrite /= /toR_fun /proj_fun /defined; case: (f (Xreal x)). Qed.
 
 Module IntervalAux (I : IntervalOps).
 
+Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
+Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
+
+Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
+Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.
+
 Definition R_extension f fi :=
   forall (b : I.type) (x : R),
     contains (I.convert b) (Xreal x) ->

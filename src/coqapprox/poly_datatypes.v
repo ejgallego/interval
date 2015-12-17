@@ -347,9 +347,9 @@ Fixpoint opp (p : T) :=
 Section PrecIsPropagated.
 Variable u : U.
 
-Definition add := map2 (C.add u).
+Definition add := map2 (C.add u) id.
 
-Definition sub := map2 (C.sub u).
+Definition sub := map2 (C.sub u) C.opp.
 
 Definition mul_coeff (p q : T) (n : nat) : C.T :=
   foldl (fun x i => C.add u
@@ -431,8 +431,6 @@ Proof. by rewrite /size size_mkseq. Qed.
 Lemma size_mul_tail n p q:
      size (mul_tail n p q) = ((size p).-1 + (size q).-1 - n).
 Proof. by rewrite /size size_mkseq. Qed.
-
-
 
 End PrecIsPropagated.
 
@@ -799,29 +797,40 @@ Lemma eval_propagate : forall u pi, I.propagate (eval u pi).
 Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
 
 Lemma zero_correct : zero >:: PolR.zero.
-Proof.
-by case=> [|k]; rewrite I.zero_correct /=; auto with real.
-Qed.
+Proof. by case=> [|k]; exact: cont0. Qed.
 
 Lemma one_correct : one >:: PolR.one.
+Proof. by case=> [|k] /=; [apply: I.fromZ_correct|exact: zero_correct]. Qed.
+
+Lemma add_correct u pi qi p q :
+  pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 Proof.
-case=> [|k] /=; first by apply: I.fromZ_correct.
-exact: zero_correct.
+move=> Hp Hq k; rewrite /PolR.add /add /nth /PolR.nth.
+apply (@map2_correct R I.type) =>//.
+- exact: cont0.
+- exact: only0.
+- by move=> ? ? ? H1 /only0 ->; rewrite Rplus_0_r.
+- by move=> ? ? ? /only0 -> H2; rewrite Rplus_0_l.
+- by move=> v1 ? ? ? ?; rewrite -(Rplus_0_r v1); apply: R_add_correct.
+- by move=> v2 ? ? ? ?; rewrite -(Rplus_0_l v2); apply: R_add_correct.
+- by move=> *; apply: R_add_correct.
 Qed.
 
-Lemma add_correct :
-  forall u pi qi p q, pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
-intros.
-move=> k.
-rewrite /PolR.add /add /nth /PolR.nth.
+Lemma sub_correct u pi qi p q :
+  pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
+Proof.
+move=> Hp Hq k; rewrite /PolR.sub /sub /nth /PolR.nth.
 apply (@map2_correct R I.type) =>//.
-by rewrite I.zero_correct; red; auto with real. (* FIXME: cont0 *)
-admit.
-admit.
-admit.
-admit.
-admit.
-admit.
+- exact: cont0.
+- by move=> v /only0 ->; rewrite Ropp_0; apply: cont0.
+- by move=> t ?; rewrite -Ropp_0; apply: R_neg_correct.
+- move=> *; exact: R_neg_correct.
+- exact: only0.
+- by move=> ? ? ? H1 /only0 ->; rewrite Rminus_0_r.
+- by move=> ? ? ? /only0 -> H2; rewrite Rminus_0_l; apply: R_neg_correct.
+- by move=> v1 ? ? ? ?; rewrite -(Rminus_0_r v1); apply: R_sub_correct.
+- by move=> v2 ? ? ? ?; rewrite -(Rminus_0_l v2); apply: R_sub_correct.
+- by move=> *; apply: R_sub_correct.
 Qed.
 
 Definition sizes := (size_polyNil, size_polyCons,
@@ -893,8 +902,6 @@ Qed.
 Conjecture eval_correct :
   forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
-Conjecture sub_correct :
-  forall u pi qi p q, pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
 Conjecture mul_correct :
   forall u pi qi p q, pi >:: p -> qi >:: q -> mul u pi qi >:: PolR.mul tt p q.
 Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.

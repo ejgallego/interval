@@ -121,35 +121,37 @@ Section Map2.
 Variable C : Type.
 Variable x0 : C.
 Variable op : C -> C -> C.
+Variable op' : C -> C. (* will be [id] or [opp] *)
 Fixpoint map2 (s1 : seq C) (s2 : seq C) : seq C :=
   match s1, s2 with
     | _, [::] => s1
-    | [::], _ => s2
+    | [::], b :: s4 => op' b :: map2 [::] s4
     | a :: s3, b :: s4 => op a b :: map2 s3 s4
   end.
 
 Lemma size_map2 s1 s2 : size (map2 s1 s2) = maxn (size s1) (size s2).
 Proof.
-elim: s1 s2 => [|x1 s1 IHs1] s2; case: s2 => [|x2 s2] //=.
-by rewrite IHs1 maxnSS.
+elim: s1 s2 => [|x1 s1 IHs1] s2; elim: s2 => [|x2 s2 IHs2] //=.
+- by rewrite IHs2 !max0n.
+- by rewrite IHs1 maxnSS.
 Qed.
 
 Lemma nth_map2_dflt (n : nat) (s1 s2 : seq C) :
   nth x0 (map2 s1 s2) n =
     match size s1 <= n, size s2 <= n with
     | true, true => x0
-    | true, false => nth x0 s2 n
+    | true, false => op' (nth x0 s2 n)
     | false, true => nth x0 s1 n
     | false, false => op (nth x0 s1 n) (nth x0 s2 n)
     end.
 Proof.
-elim: s1 s2 n => [|x1 s1 IHs1] s2 n; case: s2 => [|x2 s2] //=.
-- by rewrite nth_nil.
-- case: (leqP (size (x2 :: s2)) n) =>//.
-  by move/(nth_default x0)=>->.
-- case: (leqP (size (x1 :: s1)) n) =>//.
-  by move/(nth_default x0)=>->.
-- case: n =>// n; exact: IHs1.
+elim: s1 s2 n => [|x1 s1 IHs1] s2 n.
+  elim: s2 n => [|x2 s2 /= IHs2] n //=; first by rewrite nth_nil.
+  by case: n =>[|n] //=; rewrite IHs2.
+case: s2 => [|x2 s2] /=.
+  by case: leqP => H; last rewrite nth_default.
+case: n => [|n] //=.
+by rewrite IHs1.
 Qed.
 End Map2.
 
@@ -208,8 +210,14 @@ Section map2_proof.
 Variables (V T : Type) (Rel : V -> T -> Prop).
 Variables (dv : V) (dt : T).
 Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
-Variables (vop : V -> V -> V) (top : T -> T -> T).
+Variables (vop : V -> V -> V) (vop' : V -> V).
+Variables (top : T -> T -> T) (top' : T -> T).
 Hypothesis H0 : Rel dv dt.
+
+Hypothesis H0t : forall v : V, Rel v dt -> Rel (vop' v) dt.
+Hypothesis H0v : forall t : T, Rel dv t -> Rel dv (top' t).
+Hypothesis Hop' : forall v t, Rel v t -> Rel (vop' v) (top' t).
+
 Hypothesis H0eq : forall v, Rel v dt -> v = dv.
 
 Hypothesis H0t1 : forall (v1 v2 : V) (t1 : T), Rel v1 t1 ->
@@ -217,28 +225,29 @@ Hypothesis H0t1 : forall (v1 v2 : V) (t1 : T), Rel v1 t1 ->
                                                Rel (vop v1 v2) t1.
 Hypothesis H0t2 : forall (v1 v2 : V) (t2 : T), Rel v1 dt ->
                                                Rel v2 t2 ->
-                                               Rel (vop v1 v2) t2.
+                                               Rel (vop v1 v2) (top' t2).
 Hypothesis H0v1 : forall (v1 : V) (t1 t2 : T), Rel v1 t1 ->
                                                Rel dv t2 ->
                                                Rel v1 (top t1 t2).
-Hypothesis H0v2 : forall (v2 : V) (t1 t2 : T), Rel dv dt ->
+Hypothesis H0v2 : forall (v2 : V) (t1 t2 : T), Rel dv t1 ->
                                                Rel v2 t2 ->
-                                               Rel v2 (top t1 t2).
-Hypothesis Hop : (forall v1 v2 t1 t2, Rel v1 t1 -> Rel v2 t2 -> Rel (vop v1 v2) (top t1 t2)).
+                                               Rel (vop' v2) (top t1 t2).
+Hypothesis Hop : forall v1 v2 t1 t2, Rel v1 t1 -> Rel v2 t2 -> Rel (vop v1 v2) (top t1 t2).
 
 Lemma map2_correct :
   forall sv1 sv2 st1 st2,
     RelP sv1 st1 ->
     RelP sv2 st2 ->
-    RelP (map2 vop sv1 sv2) (map2 top st1 st2).
-Proof using RelP H0 H0t1 H0t2 H0v1 H0v2 Hop H0eq.
+    RelP (map2 vop vop' sv1 sv2) (map2 top top' st1 st2).
+Proof using RelP H0 H0t H0v Hop' H0eq H0t1 H0t2 H0v1 H0v2 Hop.
 move=> sv1 sv2 st1 st2 H1 H2 k; move/(_ k) in H1; move/(_ k) in H2.
 rewrite !nth_map2_dflt.
 do 4![case:ifP]=> A B C D; rewrite
   ?(nth_default _ A) ?(nth_default _ B) ?(nth_default _ C) ?(nth_default _ D) //
-  in H1 H2; try solve [exact: H0t1|exact: H0t2|exact: H0v1|exact: H0v2|exact: Hop].
-- rewrite (H0eq H2); exact: H1.
-- rewrite (H0eq H1); exact: H2.
+  in H1 H2; try solve
+  [exact: H0t1|exact: H0t2|exact: H0v1|exact: H0v2|exact: Hop'|exact: Hop|exact: H0t|exact: H0v].
+- rewrite (H0eq (H0t H2)); exact: H1.
+- rewrite (H0eq H1); apply: H0v; exact: H2.
 Qed.
 End map2_proof.
 

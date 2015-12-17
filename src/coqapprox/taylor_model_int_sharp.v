@@ -903,12 +903,6 @@ apply: ex_RInt_translation_sub.
 exact: Rpol_integrable.
 Qed.
 
-(* FIXME: To move in the right place *)
-Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
-Proof.
-by rewrite I.zero_correct //=; split; exact: Rle_refl.
-Qed.
-
 (* Definition Xint (f : ExtendedR -> ExtendedR) x0 x1 :=
   let f := toXreal_fun f in
   *)
