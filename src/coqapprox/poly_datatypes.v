@@ -861,3 +861,251 @@ End PolyIntOps.
 (** Note that the implementation(s) of the previous signature will
 depend on the choice of a particular polynomial basis, especially for
 the multiplication and polynomial evaluation. *)
+
+Lemma eq_foldr (T0 T1 T2 : Type)
+  (f0 : T1 -> T0 -> T0)
+  (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
+  (forall x y, f0 x y = g (ftog x) y) ->
+  forall s x0, foldr f0 x0 s = foldr g x0 (map ftog s).
+Proof. by move=> Hfg; elim=> [//| a l IHl] x0 /=; rewrite IHl Hfg. Qed.
+
+Lemma rev_iota k: map (subn k) (iota 0 k.+1)= rev (iota 0 k.+1).
+Proof.
+have sameS : size (map (subn k) (iota 0 k.+1)) = size (rev (iota 0 k.+1))
+  by rewrite size_map size_rev.
+apply: (@eq_from_nth _ 0) => // i.
+rewrite size_map size_iota => iLs.
+rewrite (nth_map 0) ?(nth_rev 0) ?(nth_iota 0) ?size_iota //.
+by rewrite subSS ltnS leq_subr.
+Qed.
+
+(** Implementation of PolyOps with sequences and operations in monomial basis *)
+
+Module SeqPolyInt (I : IntervalOps) <: PolyIntOps I.
+Module Int := FullInt I.
+Include SeqPoly Int.
+
+Module Import Aux := IntervalAux I.
+
+Local Notation eq_size pi p := (size pi = PolR.size p).
+Definition contains_pointwise pi p : Prop :=
+  forall k, contains (I.convert (nth pi k)) (Xreal (PolR.nth p k)).
+
+(* Very similar definitions, suitable for specifying grec1 *)
+Definition seq_eq_size (si : seq I.type) s : Prop :=
+  seq.size si = PolR.size s. (* should be a notation? *)
+Definition seq_contains_pointwise si s : Prop :=
+  seq.size si = PolR.size s /\
+  forall k, contains (I.convert (seq.nth Int.zero si k)) (Xreal (PolR.nth s k)).
+
+Module Import Notations.
+Delimit Scope ipoly_scope with IP.
+Notation eq_size pi p := (size pi = PolR.size p).
+Notation cpw := contains_pointwise (only parsing).
+
+Notation scpw pi p := (eq_size pi p /\ cpw pi p) (only parsing).
+Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
+Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
+Notation "p >::: x" := (scpw p x) (only parsing) : ipoly_scope.
+Notation eqs' := seq_eq_size (only parsing).
+Notation cpw' := seq_contains_pointwise (only parsing).
+Notation scpw' si s  := (eqs' si s /\ cpw' si s) (only parsing).
+End Notations.
+Local Open Scope ipoly_scope.
+
+Lemma eval_propagate : forall u pi, I.propagate (eval u pi).
+Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
+
+Lemma zero_correct : cpw zero PolR.zero.
+Proof.
+by case=> [|k]; rewrite I.zero_correct /=; auto with real.
+Qed.
+
+Lemma one_correct : cpw one PolR.one.
+Proof.
+case=> [|k] /=; first by apply: I.fromZ_correct.
+exact: zero_correct.
+Qed.
+
+Lemma add_correct :
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (add u pi qi) (PolR.add tt p q).
+intros.
+move=> k.
+rewrite /PolR.add /add /nth /PolR.nth.
+apply (@map2_correct R I.type) =>//.
+by rewrite I.zero_correct; red; auto with real. (* FIXME: cont0 *)
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+Qed.
+
+Definition sizes := (size_polyNil, size_polyCons,
+                     PolR.size_polyNil, PolR.size_polyCons).
+
+Lemma poly2_ind :
+  forall K : T -> PolR.T -> Prop,
+  (* (forall pi p, K pi p -> size pi = PolR.size p) -> *)
+  K polyNil PolR.polyNil ->
+  (forall xi x pi p, size pi = PolR.size p -> K pi p -> K (polyCons xi pi) (PolR.polyCons x p)) ->
+  forall pi p, size pi = PolR.size p -> K pi p.
+Proof.
+move=> K H0 H1 pi p.
+(* suff: (K pi p /\ (*forall pi p,*) (size pi  PolR.size p -> K pi p)) by case. *)
+elim/poly_ind: pi p => [ |ai pi IHpi] p; elim/PolR.poly_ind: p =>[ |a p _] //.
+rewrite !sizes.
+by intuition.
+Qed.
+
+(*
+Lemma contains_pointwise_ind :
+  forall fpi fp fi f,
+  (forall pi p, size pi = PolR.size p ->
+    size (fpi pi) = PolR.size (fp p)) ->
+  (forall xi x, fi xi >: f x) ->
+  forall pi p, cpw pi p -> cpw (fi pi) (f p).
+move=> fi f Hsiz pi p [H1 H2].
+unfold cpw.
+split; first exact: Hsiz.
+elim=> [|k IHk].
+
+move: pi p H1 H2; apply: poly_ind2.
+
+intuition.
+apply: H2.
+*)
+
+(*
+  Hsiz : size pi = PolR.size p
+  Hnth : forall k : nat, nth pi k >: PolR.nth p k
+  ============================
+   forall k : nat,
+   nth
+     ((fix opp (p0 : T) : seq Int.T :=
+         match p0 with
+         | [::] => [::]
+         | a :: p1 => I.neg a :: opp p1
+         end) pi) k >: PolR.nth
+                         ((fix opp (p0 : PolR.T) : 
+                           seq FullR.T :=
+                             match p0 with
+                             | [::] => [::]
+                             | a :: p1 => (- a)%R :: opp p1
+                             end) p) k
+*)
+
+Lemma opp_correct : forall pi p, cpw pi p -> cpw (opp pi) (PolR.opp p).
+Proof.
+rewrite /contains_pointwise => pi p Hnth.
+rewrite /opp /PolR.opp.
+admit. (* new archi
+move=> k; rewrite PolR.nth_opp.
+elim/poly_ind: pi Hsiz Hnth =>[ |ai pi IHpi] Hsiz Hnth.
+  rewrite PolR.nth_default ?nth_polyNil -?Hsiz // Ropp_0.
+  by rewrite I.zero_correct /=; auto with real.
+case: k IHpi=> [|k]. *)
+Qed.
+
+Conjecture eval_correct :
+  forall u pi ci p x, cpw pi p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
+
+Conjecture sub_correct :
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (sub u pi qi) (PolR.sub tt p q).
+Conjecture mul_correct :
+  forall u pi qi p q, cpw pi p -> cpw qi q -> cpw (mul u pi qi) (PolR.mul tt p q).
+Conjecture lift_correct : forall n pi p, cpw pi p -> cpw (lift n pi) (PolR.lift n p).
+Conjecture tail_correct : forall n pi p, cpw pi p -> cpw (tail n pi) (PolR.tail n p).
+Conjecture polyNil_correct : cpw polyNil (PolR.polyNil). (* strong enough ? *)
+Conjecture polyCons_correct :
+  forall pi xi p x, cpw pi p -> xi >: x ->
+  cpw (polyCons xi pi) (PolR.polyCons x p).
+
+(* Conjecture size_correct *)
+Conjecture rec1_correct :
+  forall fi f fi0 f0 n,
+    (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
+    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
+Conjecture rec2_correct :
+  forall fi f fi0 f0 fi1 f1 n,
+    (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
+    fi0 >: f0 -> fi1 >: f1 ->
+    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
+Conjecture set_nth_correct :
+  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
+Conjecture deriv_correct :
+  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
+Conjecture grec1_correct :
+  forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
+  (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
+  (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
+  ai >:: a -> cpw' si s ->
+  grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
+
+(* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
+(* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
+
+Lemma mul_trunc_correct :
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_trunc u n pi qi) (PolR.mul_trunc tt n p q).
+Proof.
+move=> u n pi qi p q  Hf Hg.
+admit. (* new archi *)
+(*
+move=> k; rewrite /mul_trunc /PolR.mul_trunc  /nth /PolR.nth !nth_mkseq //.
+rewrite (* mul_coeffE *) PolR.mul_coeffE.
+apply big_ind2 with (id1 := Int.tzero) (R2 := R).
+- by rewrite I.zero_correct; split; auto with real.
+- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
+move=> i _; apply: R_mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
+  by apply:(@leq_ltn_trans k); rewrite ?leq_subr //; apply: (@leq_ltn_trans n).
+move: Hi Hkn; rewrite !ltnS=> Hi Hkn.
+by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
+*)
+Qed.
+
+Lemma mul_tail_correct :
+  forall u n pi qi p q, cpw pi p -> cpw qi q ->
+  cpw (mul_tail u n pi qi) (PolR.mul_tail tt n p q).
+Proof.
+move=> u n pi qi p q Hf Hg.
+move=> k.
+rewrite /mul_tail /PolR.mul_tail /nth /PolR.nth /= !nth_mkseq //; last first.
+  admit. admit.
+  (* by rewrite Hsizef Hsizeg /PolR.size in Hkn. *)
+admit.
+(*
+rewrite mul_coeffE' PolR.mul_coeffE' /=.
+apply big_ind2 with (id1 := Int.tzero) (R2 := R) => //.
+- by rewrite I.zero_correct; split; auto with real.
+- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
+move=> [i Hi] _.
+case (boolP (n < (tsize fi).-1 + (tsize gi).-1)) => Hn; last first.
+  rewrite -leqNgt -subn_eq0 in Hn.
+  by rewrite (eqP Hn) in Hkn.
+case: (boolP (i < tsize gi))=> Hig /=.
+  case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
+    by apply: R_mul_correct; [apply: Hf| apply: Hg].
+  rewrite -ltnNge ltnS in Hif.
+  rewrite nth_default; last by rewrite /tsize in Hif.
+  set gii := (nth Int.tzero gi i).
+  rewrite nth_default; last by move: Hif; rewrite Hsizef /PolR.tsize.
+  apply: R_mul_correct; first by rewrite I.zero_correct; split; auto with real.
+  rewrite /gii; apply:Hg => //.
+rewrite -ltnNge ltnS in Hig.
+case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
+  set s := (nth Int.tzero fi _).
+  rewrite nth_default; last by rewrite /tsize in Hig.
+  set t:= nth (R0) fx _.
+  rewrite nth_default; last by move: Hig; rewrite Hsizeg.
+  apply: R_mul_correct; last by rewrite I.zero_correct; split; auto with real.
+  by apply: Hf.
+rewrite -ltnNge ltnS in Hif.
+move: (Hig) (Hif); rewrite Hsizef Hsizeg.
+move : Hig Hif; rewrite /tsize /PolR.tsize=>*; rewrite !nth_default =>//.
+by apply: R_mul_correct; rewrite I.zero_correct; split; auto with real.
+*)
+Qed.
+
+End SeqPolyInt.
