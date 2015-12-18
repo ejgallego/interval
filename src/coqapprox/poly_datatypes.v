@@ -338,11 +338,8 @@ Definition T := seq C.T.
 
 Definition zero : T := [::].
 Definition one : T := [:: C.one].
-Fixpoint opp (p : T) :=
-  match p with
-    | [::] => [::]
-    | a :: p1 => C.opp a :: opp p1
-  end.
+
+Definition opp := map C.opp.
 
 Section PrecIsPropagated.
 Variable u : U.
@@ -741,11 +738,13 @@ Parameter poly2_ind : forall K : T -> PolR.T -> Type,
   forall pi p, K pi p.
 *)
 
+(*
 Parameter poly2_ind :
   forall K : T -> PolR.T -> Prop,
   K polyNil PolR.polyNil ->
   (forall xi x pi p, size pi = PolR.size p -> K pi p -> K (polyCons xi pi) (PolR.polyCons x p)) ->
   forall pi p, size pi = PolR.size p -> K pi p.
+*)
 
 End PolyIntOps.
 
@@ -836,6 +835,7 @@ Qed.
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
 
+(*
 Lemma poly2_ind :
   forall K : T -> PolR.T -> Prop,
   (* (forall pi p, K pi p -> size pi = PolR.size p) -> *)
@@ -849,54 +849,16 @@ elim/poly_ind: pi p => [ |ai pi IHpi] p; elim/PolR.poly_ind: p =>[ |a p _] //.
 rewrite !sizes.
 by intuition.
 Qed.
-
-(*
-Lemma contains_pointwise_ind :
-  forall fpi fp fi f,
-  (forall pi p, size pi = PolR.size p ->
-    size (fpi pi) = PolR.size (fp p)) ->
-  (forall xi x, fi xi >: f x) ->
-  forall pi p, pi >:: p -> cpw (fi pi) (f p).
-move=> fi f Hsiz pi p [H1 H2].
-unfold cpw.
-split; first exact: Hsiz.
-elim=> [|k IHk].
-
-move: pi p H1 H2; apply: poly_ind2.
-
-intuition.
-apply: H2.
 *)
 
-(*
-  Hsiz : size pi = PolR.size p
-  Hnth : forall k : nat, nth pi k >: PolR.nth p k
-  ============================
-   forall k : nat,
-   nth
-     ((fix opp (p0 : T) : seq Int.T :=
-         match p0 with
-         | [::] => [::]
-         | a :: p1 => I.neg a :: opp p1
-         end) pi) k >: PolR.nth
-                         ((fix opp (p0 : PolR.T) : 
-                           seq FullR.T :=
-                             match p0 with
-                             | [::] => [::]
-                             | a :: p1 => (- a)%R :: opp p1
-                             end) p) k
-*)
-
-Lemma opp_correct : forall pi p, pi >:: p -> opp pi >:: PolR.opp p.
+Lemma opp_correct pi p : pi >:: p -> opp pi >:: PolR.opp p.
 Proof.
-rewrite /contains_pointwise => pi p Hnth.
-rewrite /opp /PolR.opp.
-admit. (* new archi
-move=> k; rewrite PolR.nth_opp.
-elim/poly_ind: pi Hsiz Hnth =>[ |ai pi IHpi] Hsiz Hnth.
-  rewrite PolR.nth_default ?nth_polyNil -?Hsiz // Ropp_0.
-  by rewrite I.zero_correct /=; auto with real.
-case: k IHpi=> [|k]. *)
+move=> Hp k; rewrite /opp /PolR.opp /nth /PolR.nth.
+apply(*:*) (@map_correct R I.type) =>//.
+- exact: cont0.
+- by move=> ? /only0 ->; rewrite Ropp_0; apply: cont0.
+- by move=> *; rewrite -(Ropp_0); apply: R_neg_correct.
+- move=> *; exact: R_neg_correct.
 Qed.
 
 Conjecture eval_correct :
