@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
 (*Require Import Epsilon FunctionalExtensionality.*)
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq MathComp.bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

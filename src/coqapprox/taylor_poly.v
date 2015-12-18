@@ -27,7 +27,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import poly_datatypes basic_rec.
 
 Set Implicit Arguments.

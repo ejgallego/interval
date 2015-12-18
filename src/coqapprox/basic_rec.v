@@ -21,7 +21,7 @@ liability. See the COPYING file for more details.
 Require Import ZArith.
 Require Import Rfunctions. (* for fact_simpl *)
 Require Import NaryFunctions.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop MathComp.tuple.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop mathcomp.ssreflect.tuple.
 Require Import seq_compl nary_tuple.
 
 (*
