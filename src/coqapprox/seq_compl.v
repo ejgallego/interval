@@ -188,7 +188,7 @@ End Fold.
 Section map_proof.
 Variables (V T : Type) (Rel : V -> T -> Prop).
 Variables (dv : V) (dt : T).
-Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Variables (vop : V -> V) (top : T -> T).
 Hypothesis H0 : Rel dv dt.
 Hypothesis H0t : forall v : V, Rel v dt -> Rel (vop v) dt.
@@ -209,7 +209,7 @@ End map_proof.
 Section map2_proof.
 Variables (V T : Type) (Rel : V -> T -> Prop).
 Variables (dv : V) (dt : T).
-Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Variables (vop : V -> V -> V) (vop' : V -> V).
 Variables (top : T -> T -> T) (top' : T -> T).
 Hypothesis H0 : Rel dv dt.
@@ -239,7 +239,7 @@ Lemma map2_correct :
     RelP sv1 st1 ->
     RelP sv2 st2 ->
     RelP (map2 vop vop' sv1 sv2) (map2 top top' st1 st2).
-Proof using RelP H0 H0t H0v Hop' H0eq H0t1 H0t2 H0v1 H0v2 Hop.
+Proof using H0 H0t H0v Hop' H0eq H0t1 H0t2 H0v1 H0v2 Hop.
 move=> sv1 sv2 st1 st2 H1 H2 k; move/(_ k) in H1; move/(_ k) in H2.
 rewrite !nth_map2_dflt.
 do 4![case:ifP]=> A B C D; rewrite
@@ -276,13 +276,13 @@ Section mkseq_proof.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
-Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
 Lemma mkseq_correct fv ft n :
   (forall k : nat, Rel (fv k) (ft k)) ->
   RelP (mkseq fv n) (mkseq ft n).
 Proof.
-move=> Hk k; rewrite /RelP !nth_mkseq_dflt.
+move=> Hk k; rewrite !nth_mkseq_dflt.
 case: ifP=> _.
 - exact: H0.
 - exact: Hk.
