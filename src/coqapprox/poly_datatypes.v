@@ -348,6 +348,7 @@ Definition add := map2 (C.add u) id.
 
 Definition sub := map2 (C.sub u) C.opp.
 
+(** Advantage of using foldl w.r.t foldr : foldl is tail-recursive *)
 Definition mul_coeff (p q : T) (n : nat) : C.T :=
   foldl (fun x i => C.add u
     (C.mul u (nth C.zero p i) (nth C.zero q (n - i))) x)
@@ -801,6 +802,16 @@ Proof. by case=> [|k]; exact: cont0. Qed.
 Lemma one_correct : one >:: PolR.one.
 Proof. by case=> [|k] /=; [apply: I.fromZ_correct|exact: zero_correct]. Qed.
 
+Lemma opp_correct pi p : pi >:: p -> opp pi >:: PolR.opp p.
+Proof.
+move=> Hp k; rewrite /opp /PolR.opp /nth /PolR.nth.
+apply(*:*) (@map_correct R I.type) =>//.
+- exact: cont0.
+- by move=> ? /only0 ->; rewrite Ropp_0; apply: cont0.
+- by move=> *; rewrite -(Ropp_0); apply: R_neg_correct.
+- move=> *; exact: R_neg_correct.
+Qed.
+
 Lemma add_correct u pi qi p q :
   pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 Proof.
@@ -832,6 +843,30 @@ apply (@map2_correct R I.type) =>//.
 - by move=> *; apply: R_sub_correct.
 Qed.
 
+Lemma mul_coeff_correct u pi qi p q :
+  pi >:: p -> qi >:: q ->
+  forall k : nat, mul_coeff u pi qi k >: PolR.mul_coeff tt p q k.
+Proof.
+move=> Hpi Hqi k.
+apply (foldl_correct (Rel := fun r i => i >: r)) =>//.
+- exact: cont0.
+- move=> a r i H.
+  apply: R_add_correct =>//.
+  exact: R_mul_correct =>//.
+Qed.
+
+Lemma mul_correct u pi qi p q :
+  pi >:: p -> qi >:: q -> mul u pi qi >:: PolR.mul tt p q.
+Proof.
+move=> Hp Hq; rewrite /mul /PolR.mul /nth /PolR.nth.
+apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
+- exact: cont0.
+- exact: mul_coeff_correct.
+- move=> k Hk; rewrite /mul_coeff.
+  admit. (* TODO *)
+  admit. (* TODO *)
+Qed.
+
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
 
@@ -851,21 +886,9 @@ by intuition.
 Qed.
 *)
 
-Lemma opp_correct pi p : pi >:: p -> opp pi >:: PolR.opp p.
-Proof.
-move=> Hp k; rewrite /opp /PolR.opp /nth /PolR.nth.
-apply(*:*) (@map_correct R I.type) =>//.
-- exact: cont0.
-- by move=> ? /only0 ->; rewrite Ropp_0; apply: cont0.
-- by move=> *; rewrite -(Ropp_0); apply: R_neg_correct.
-- move=> *; exact: R_neg_correct.
-Qed.
-
 Conjecture eval_correct :
   forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
-Conjecture mul_correct :
-  forall u pi qi p q, pi >:: p -> qi >:: q -> mul u pi qi >:: PolR.mul tt p q.
 Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
 Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
 Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)

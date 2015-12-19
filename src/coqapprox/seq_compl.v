@@ -261,7 +261,7 @@ Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
 Variables (vadd : V -> V -> V) (tadd : T -> T -> T).
 Variables (vmul : V -> V -> V) (tmul : T -> T -> T).
 *)
-Lemma fold_correct A fv ft (s : seq A) :
+Lemma foldr_correct A fv ft (s : seq A) :
   (forall a v t, Rel v t -> Rel (fv a v) (ft a t)) ->
   Rel (foldr fv dv s) (foldr ft dt s).
 Proof.
@@ -269,6 +269,15 @@ move=> Hf.
 elim: s => [ | a s IHs]; first exact: H0.
 apply: Hf.
 exact: IHs.
+Qed.
+Lemma foldl_correct A fv ft (s : seq A) :
+  (forall a v t, Rel v t -> Rel (fv v a) (ft t a)) ->
+  Rel (foldl fv dv s) (foldl ft dt s).
+Proof.
+move=> Hf.
+rewrite -(revK s) !foldl_rev.
+apply: foldr_correct.
+exact: Hf.
 Qed.
 End fold_proof.
 
@@ -278,13 +287,17 @@ Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
 Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
-Lemma mkseq_correct fv ft n :
+Lemma mkseq_correct fv ft m n :
   (forall k : nat, Rel (fv k) (ft k)) ->
-  RelP (mkseq fv n) (mkseq ft n).
+  (forall k : nat, m <= k < n -> Rel dv (ft k)) ->
+  (forall k : nat, n <= k < m -> Rel (fv k) dt) ->
+  RelP (mkseq fv m) (mkseq ft n).
 Proof.
-move=> Hk k; rewrite !nth_mkseq_dflt.
-case: ifP=> _.
+move=> Hk Hdv Hdt k; rewrite !nth_mkseq_dflt.
+do 2![case: ifP]=> A B.
 - exact: H0.
+- apply: Hdv; by rewrite B ltnNge A.
+- apply: Hdt; by rewrite A ltnNge B.
 - exact: Hk.
 Qed.
 End mkseq_proof.
