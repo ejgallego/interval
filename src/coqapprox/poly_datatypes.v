@@ -348,18 +348,29 @@ Definition add := map2 (C.add u) id.
 
 Definition sub := map2 (C.sub u) C.opp.
 
-(** Advantage of using foldl w.r.t foldr : foldl is tail-recursive *)
-Definition mul_coeff (p q : T) (n : nat) : C.T :=
-  foldl (fun x i => C.add u
-    (C.mul u (nth C.zero p i) (nth C.zero q (n - i))) x)
-  (C.zero) (iota 0 n.+1).
+Definition nth := nth C.zero.
 
-Definition mul_trunc n p q := mkseq (mul_coeff p q) n.+1.
+(** Advantage of using foldl w.r.t foldr : foldl is tail-recursive *)
+Definition mul_coeff (p q : T) (np k : nat) : C.T :=
+  foldl (fun x i => C.add u (C.mul u (nth p i) (nth q (k - i))) x) (C.zero)
+        (rev (iota 0 np)).
+
+Lemma mul_coeffE p q np k : mul_coeff p q np k =
+  \big[C.add u/C.zero]_(0 <= i < np) C.mul u (nth p i) (nth q (k - i)).
+Proof.
+rewrite BigOp.bigopE /reducebig /mul_coeff foldl_rev.
+by congr foldr; rewrite /index_iota subn0.
+Qed.
+
+Definition mul_trunc n p q := mkseq (mul_coeff p q (size p)) n.+1.
 
 Definition mul_tail n p q :=
-  mkseq (fun i => mul_coeff p q (n.+1+i)) ((size p).-1 + (size q).-1 - n).
+  let np := size p in
+  mkseq (fun i => mul_coeff p q np (n.+1+i)) (np.-1 + (size q).-1 - n).
 
-Definition mul p q := mkseq (mul_coeff p q) (size p + size q).-1.
+Definition mul p q :=
+  let np := size p in
+  mkseq (mul_coeff p q np) (np + size q).-1.
 
 (* Old definitions
 
@@ -374,7 +385,6 @@ Fixpoint eval' (p : T) (x : C.T) :=
   end.
 *)
 
-Definition nth := nth C.zero.
 Definition rec1 := @rec1up C.T.
 Definition rec2 := @rec2up C.T.
 Definition size := @size C.T.
@@ -753,23 +763,6 @@ End PolyIntOps.
 depend on the choice of a particular polynomial basis, especially for
 the multiplication and polynomial evaluation. *)
 
-Lemma eq_foldr (T0 T1 T2 : Type)
-  (f0 : T1 -> T0 -> T0)
-  (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
-  (forall x y, f0 x y = g (ftog x) y) ->
-  forall s x0, foldr f0 x0 s = foldr g x0 (map ftog s).
-Proof. by move=> Hfg; elim=> [//| a l IHl] x0 /=; rewrite IHl Hfg. Qed.
-
-Lemma rev_iota k: map (subn k) (iota 0 k.+1)= rev (iota 0 k.+1).
-Proof.
-have sameS : size (map (subn k) (iota 0 k.+1)) = size (rev (iota 0 k.+1))
-  by rewrite size_map size_rev.
-apply: (@eq_from_nth _ 0) => // i.
-rewrite size_map size_iota => iLs.
-rewrite (nth_map 0) ?(nth_rev 0) ?(nth_iota 0) ?size_iota //.
-by rewrite subSS ltnS leq_subr.
-Qed.
-
 (** Implementation of PolyOps with sequences and operations in monomial basis *)
 
 Module SeqPolyInt (I : IntervalOps) <: PolyIntOps I.
@@ -843,16 +836,49 @@ apply (@map2_correct R I.type) =>//.
 - by move=> *; apply: R_sub_correct.
 Qed.
 
+Lemma bigop_resize pi p f :
+  pi >:: p ->
+  \big[Rplus/0%R]_(0 <= i < PolR.size p) (PolR.nth p i * f i)%R =
+  \big[Rplus/0%R]_(0 <= i < size pi) (PolR.nth p i * f i)%R.
+Proof.
+move=> Hp.
+case: (leqP (PolR.size p) (size pi)) => Hsz.
+  rewrite [LHS](big_nat_leq_idx _ (m := size pi)) //.
+  by move=> i /andP[_i i_]; rewrite PolR.nth_default // Rmult_0_l.
+rewrite [RHS](big_nat_leq_idx _ (m := PolR.size p)) //; first exact: ltnW.
+move=> i /andP[_i i_]; move/(_ i): Hp.
+rewrite nth_default //; move/only0 ->.
+by rewrite Rmult_0_l.
+Qed.
+
+Arguments bigop_resize [pi p f] _.
+
+Lemma mul_coeff_resize pi qi p q :
+  pi >:: p ->
+  qi >:: q ->
+  forall k : nat, PolR.mul_coeff tt p q (PolR.size p) k = PolR.mul_coeff tt p q (size pi) k.
+Proof. by move=> Hpi Hqi k; rewrite !PolR.mul_coeffE (bigop_resize Hpi). Qed.
+
 Lemma mul_coeff_correct u pi qi p q :
   pi >:: p -> qi >:: q ->
-  forall k : nat, mul_coeff u pi qi k >: PolR.mul_coeff tt p q k.
+  forall k : nat, mul_coeff u pi qi (size pi) k >: PolR.mul_coeff tt p q (PolR.size p) k.
 Proof.
 move=> Hpi Hqi k.
-apply (foldl_correct (Rel := fun r i => i >: r)) =>//.
+rewrite mul_coeffE PolR.mul_coeffE (bigop_resize Hpi).
+apply (@big_ind2 R I.type (fun r i => i >: r)).
 - exact: cont0.
-- move=> a r i H.
-  apply: R_add_correct =>//.
-  exact: R_mul_correct =>//.
+- move=> *; exact: R_add_correct.
+- move=> *; exact: R_mul_correct.
+Qed.
+
+Lemma nth_default_alt pi p :
+  pi >:: p ->
+  forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
+Proof.
+move=> Hpi n Hn.
+case: (leqP (PolR.size p) (size pi)) => Hsz.
+  rewrite PolR.nth_default //; exact: leq_trans Hsz Hn.
+by move/(_ n): Hpi; rewrite nth_default //; move/only0=>->.
 Qed.
 
 Lemma mul_correct u pi qi p q :
@@ -862,9 +888,22 @@ move=> Hp Hq; rewrite /mul /PolR.mul /nth /PolR.nth.
 apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
 - exact: cont0.
 - exact: mul_coeff_correct.
-- move=> k Hk; rewrite /mul_coeff.
-  admit. (* TODO *)
-  admit. (* TODO *)
+- move=> k /andP [Hk _]; rewrite PolR.mul_coeffE.
+  case Ep0 : (seq.size p) => [|n]; first by rewrite big_mkord big_ord0.
+  rewrite Ep0 addSn /= in Hk.
+  rewrite big_mkord big1 //; move => [i Hi _] /=.
+  rewrite ltnS in Hi.
+  suff Hki: (seq.size q) <= k - i by rewrite (PolR.nth_default Hki) Rmult_0_r.
+  apply: leq_addLR; rewrite addnC; apply: leq_trans _ Hk.
+  by rewrite leq_add2r.
+- move=> k /andP [Hk _]; rewrite (mul_coeff_resize Hp Hq) PolR.mul_coeffE /size.
+  case Epi0 : (seq.size pi) => [|n]; first by rewrite big_mkord big_ord0.
+  rewrite Epi0 addSn /= in Hk.
+  rewrite big_mkord big1 //; move => [i Hi _] /=.
+  rewrite ltnS in Hi.
+  suff Hki: (size qi) <= k - i by rewrite (nth_default_alt Hq Hki) Rmult_0_r.
+  apply: leq_addLR; rewrite addnC; apply: leq_trans _ Hk.
+  by rewrite leq_add2r.
 Qed.
 
 Definition sizes := (size_polyNil, size_polyCons,

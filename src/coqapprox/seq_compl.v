@@ -74,6 +74,15 @@ apply: leq_trans IHn _.
 exact: leq_add H _.
 Qed.
 
+Lemma leq_addLRI m n p : n <= p -> (m + n <= p) = (m <= p - n).
+Proof. by move => H; rewrite -!subn_eq0 subnBA. Qed.
+
+Lemma leq_addLR m n p : (m + n <= p) -> (m <= p - n).
+move=> Hmnp.
+- have Hnp : n <= p by exact: leq_trans (leq_addl _ _) Hmnp.
+- move: Hmnp; rewrite -!subn_eq0 subnBA //.
+Qed.
+
 End NatCompl.
 
 (** Missing results about lists (aka sequences) *)
@@ -183,6 +192,13 @@ Corollary foldl_cons0 (r : seq A) :
 Proof. by rewrite foldl_cons. Qed.
 End Fold.
 
+Lemma eq_foldr (T0 T1 T2 : Type)
+  (f0 : T1 -> T0 -> T0)
+  (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
+  (forall x y, f0 x y = g (ftog x) y) ->
+  forall s x0, foldr f0 x0 s = foldr g x0 (map ftog s).
+Proof. by move=> Hfg; elim=> [//| a l IHl] x0 /=; rewrite IHl Hfg. Qed.
+
 (** Generic results to be instantiated for polynomials' opp, add, sub, mul... *)
 
 Section map_proof.
@@ -261,6 +277,7 @@ Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
 Variables (vadd : V -> V -> V) (tadd : T -> T -> T).
 Variables (vmul : V -> V -> V) (tmul : T -> T -> T).
 *)
+
 Lemma foldr_correct A fv ft (s : seq A) :
   (forall a v t, Rel v t -> Rel (fv a v) (ft a t)) ->
   Rel (foldr fv dv s) (foldr ft dt s).
@@ -281,23 +298,26 @@ exact: Hf.
 Qed.
 End fold_proof.
 
+
 Section mkseq_proof.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
 Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
-Lemma mkseq_correct fv ft m n :
-  (forall k : nat, Rel (fv k) (ft k)) ->
-  (forall k : nat, m <= k < n -> Rel dv (ft k)) ->
-  (forall k : nat, n <= k < m -> Rel (fv k) dt) ->
-  RelP (mkseq fv m) (mkseq ft n).
+Lemma mkseq_correct fv ft (nv nt mv mt : nat) :
+  (forall k : nat, Rel (fv nv k) (ft nt k)) ->
+  (* (forall k : nat, fv nv k = fv nt k) -> *)
+  (* the following 2 hyps hold if mv <> mt *)
+  (forall k : nat, mv <= k < mt -> fv nv k = dv) ->
+  (forall k : nat, mt <= k < mv -> fv nv k = dv) ->
+  RelP (mkseq (fv nv) mv) (mkseq (ft nt) mt).
 Proof.
-move=> Hk Hdv Hdt k; rewrite !nth_mkseq_dflt.
+move=> Hk Hv1 Hv2 k; rewrite !nth_mkseq_dflt.
 do 2![case: ifP]=> A B.
 - exact: H0.
-- apply: Hdv; by rewrite B ltnNge A.
-- apply: Hdt; by rewrite A ltnNge B.
+- by rewrite -(Hv1 k) // B ltnNge A.
+- by rewrite (Hv2 k) // A ltnNge B.
 - exact: Hk.
 Qed.
 End mkseq_proof.
