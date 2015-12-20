@@ -180,7 +180,7 @@ Parameter size_rec1 : forall F x n, size (rec1 F x n) = n.+1.
 Parameter size_rec2 : forall F x y n, size (rec2 F x y n) = n.+1.
 Parameter size_mul_trunc : forall u n p q, size (mul_trunc u n p q) = n.+1.
 Parameter size_mul_tail :
-  forall u n p q, size (mul_tail u n p q) = ((size p).-1 + (size q).-1 - n).
+  forall u n p q, size (mul_tail u n p q) = ((size p) + (size q)).-1 - n.+1.
 Parameter size_add :
   forall u p1 p2,
   size (add u p1 p2) = maxn (size p1) (size p2).
@@ -366,7 +366,7 @@ Definition mul_trunc n p q := mkseq (mul_coeff p q (size p)) n.+1.
 
 Definition mul_tail n p q :=
   let np := size p in
-  mkseq (fun i => mul_coeff p q np (n.+1+i)) (np.-1 + (size q).-1 - n).
+  mkseq (fun i => mul_coeff p q np (n.+1+i)) ((np + size q).-1 - n.+1).
 
 Definition mul p q :=
   let np := size p in
@@ -437,7 +437,7 @@ Lemma size_mul_trunc n p q: size (mul_trunc n p q) = n.+1.
 Proof. by rewrite /size size_mkseq. Qed.
 
 Lemma size_mul_tail n p q:
-     size (mul_tail n p q) = ((size p).-1 + (size q).-1 - n).
+     size (mul_tail n p q) = ((size p) + (size q)).-1 - n.+1.
 Proof. by rewrite /size size_mkseq. Qed.
 
 End PrecIsPropagated.
@@ -894,7 +894,7 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   rewrite big_mkord big1 //; move => [i Hi _] /=.
   rewrite ltnS in Hi.
   suff Hki: (seq.size q) <= k - i by rewrite (PolR.nth_default Hki) Rmult_0_r.
-  apply: leq_addLR; rewrite addnC; apply: leq_trans _ Hk.
+  apply: leq_addLRI; rewrite addnC; apply: leq_trans _ Hk.
   by rewrite leq_add2r.
 - move=> k /andP [Hk _]; rewrite (mul_coeff_resize Hp Hq) PolR.mul_coeffE /size.
   case Epi0 : (seq.size pi) => [|n]; first by rewrite big_mkord big_ord0.
@@ -902,7 +902,7 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   rewrite big_mkord big1 //; move => [i Hi _] /=.
   rewrite ltnS in Hi.
   suff Hki: (size qi) <= k - i by rewrite (nth_default_alt Hq Hki) Rmult_0_r.
-  apply: leq_addLR; rewrite addnC; apply: leq_trans _ Hk.
+  apply: leq_addLRI; rewrite addnC; apply: leq_trans _ Hk.
   by rewrite leq_add2r.
 Qed.
 
@@ -959,66 +959,43 @@ Conjecture grec1_correct :
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 
-Lemma mul_trunc_correct :
-  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+Lemma mul_trunc_correct u n pi qi p q :
+  pi >:: p -> qi >:: q ->
   mul_trunc u n pi qi >:: PolR.mul_trunc tt n p q.
 Proof.
-move=> u n pi qi p q  Hf Hg.
-admit. (* new archi *)
-(*
-move=> k; rewrite /mul_trunc /PolR.mul_trunc  /nth /PolR.nth !nth_mkseq //.
-rewrite (* mul_coeffE *) PolR.mul_coeffE.
-apply big_ind2 with (id1 := Int.tzero) (R2 := R).
-- by rewrite I.zero_correct; split; auto with real.
-- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
-move=> i _; apply: R_mul_correct;[apply: Hf| apply: Hg];case: i=> [i Hi] /=.
-  by apply:(@leq_ltn_trans k); rewrite ?leq_subr //; apply: (@leq_ltn_trans n).
-move: Hi Hkn; rewrite !ltnS=> Hi Hkn.
-by apply:(leq_ltn_trans Hi); apply:(leq_ltn_trans Hkn).
-*)
+move=> Hp Hq; rewrite /nth /PolR.nth.
+apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
+- exact: cont0.
+- exact: mul_coeff_correct.
+- by move=> k; rewrite ltn_leqN.
+- by move=> k; rewrite ltn_leqN.
 Qed.
 
-Lemma mul_tail_correct :
-  forall u n pi qi p q, pi >:: p -> qi >:: q ->
+Lemma mul_tail_correct u n pi qi p q :
+  pi >:: p -> qi >:: q ->
   mul_tail u n pi qi >:: PolR.mul_tail tt n p q.
 Proof.
-move=> u n pi qi p q Hf Hg.
-move=> k.
-rewrite /mul_tail /PolR.mul_tail /nth /PolR.nth /= !nth_mkseq //; last first.
-  admit. admit.
-  (* by rewrite Hsizef Hsizeg /PolR.size in Hkn. *)
-admit.
-(*
-rewrite mul_coeffE' PolR.mul_coeffE' /=.
-apply big_ind2 with (id1 := Int.tzero) (R2 := R) => //.
-- by rewrite I.zero_correct; split; auto with real.
-- by move=> x1 x2 y1 y2 Hx Hy; apply: R_add_correct.
-move=> [i Hi] _.
-case (boolP (n < (tsize fi).-1 + (tsize gi).-1)) => Hn; last first.
-  rewrite -leqNgt -subn_eq0 in Hn.
-  by rewrite (eqP Hn) in Hkn.
-case: (boolP (i < tsize gi))=> Hig /=.
-  case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
-    by apply: R_mul_correct; [apply: Hf| apply: Hg].
-  rewrite -ltnNge ltnS in Hif.
-  rewrite nth_default; last by rewrite /tsize in Hif.
-  set gii := (nth Int.tzero gi i).
-  rewrite nth_default; last by move: Hif; rewrite Hsizef /PolR.tsize.
-  apply: R_mul_correct; first by rewrite I.zero_correct; split; auto with real.
-  rewrite /gii; apply:Hg => //.
-rewrite -ltnNge ltnS in Hig.
-case :(boolP (n.+1 + k - i < tsize fi)) => Hif.
-  set s := (nth Int.tzero fi _).
-  rewrite nth_default; last by rewrite /tsize in Hig.
-  set t:= nth (R0) fx _.
-  rewrite nth_default; last by move: Hig; rewrite Hsizeg.
-  apply: R_mul_correct; last by rewrite I.zero_correct; split; auto with real.
-  by apply: Hf.
-rewrite -ltnNge ltnS in Hif.
-move: (Hig) (Hif); rewrite Hsizef Hsizeg.
-move : Hig Hif; rewrite /tsize /PolR.tsize=>*; rewrite !nth_default =>//.
-by apply: R_mul_correct; rewrite I.zero_correct; split; auto with real.
-*)
+move=> Hp Hq; rewrite /mul_tail /PolR.mul_tail /nth /PolR.nth.
+apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
+- exact: cont0.
+- move=> k; exact: mul_coeff_correct.
+- move=> k /andP [_k k_]; rewrite PolR.mul_coeffE.
+  case Ep0 : (seq.size p) => [|m]; first by rewrite big_mkord big_ord0.
+  rewrite Ep0 addSn /= in _k.
+  rewrite big_mkord big1 //; move => [i Hi _] /=.
+  rewrite ltnS in Hi.
+  suff Hki: (seq.size q) <= n.+1 + k - i by rewrite (PolR.nth_default Hki) Rmult_0_r.
+  apply: leq_addLRI; rewrite addnC; rewrite leq_subLR in _k.
+  by apply: leq_trans _ _k; rewrite leq_add2r.
+- move=> k /andP [_k k_]; rewrite (mul_coeff_resize Hp Hq) PolR.mul_coeffE /size.
+  case Epi0 : (seq.size pi) => [|m]; first by rewrite big_mkord big_ord0.
+  rewrite Epi0 addSn /= in _k.
+  rewrite big_mkord big1 //; move => [i Hi _] /=.
+  rewrite ltnS in Hi.
+  suff Hki: (size qi) <= n.+1 + k - i.
+    by rewrite (nth_default_alt Hq Hki) Rmult_0_r.
+  apply: leq_addLRI; rewrite addnC; rewrite leq_subLR in _k.
+  by apply: leq_trans _ _k; rewrite leq_add2r.
 Qed.
 
 End SeqPolyInt.

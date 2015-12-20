@@ -74,14 +74,21 @@ apply: leq_trans IHn _.
 exact: leq_add H _.
 Qed.
 
-Lemma leq_addLRI m n p : n <= p -> (m + n <= p) = (m <= p - n).
+Lemma leq_addLR m n p : n <= p -> (m + n <= p) = (m <= p - n).
 Proof. by move => H; rewrite -!subn_eq0 subnBA. Qed.
 
-Lemma leq_addLR m n p : (m + n <= p) -> (m <= p - n).
+Lemma leq_addLRI m n p : (m + n <= p) -> (m <= p - n).
+Proof.
 move=> Hmnp.
 - have Hnp : n <= p by exact: leq_trans (leq_addl _ _) Hmnp.
 - move: Hmnp; rewrite -!subn_eq0 subnBA //.
 Qed.
+
+Lemma leq_ltnN m n : m <= n < m = false.
+Proof. by apply/andP=> [[_n n_]]; have := leq_trans n_ _n; rewrite ltnn. Qed.
+
+Lemma ltn_leqN m n : m < n <= m = false.
+Proof. by apply/andP=> [[_n n_]]; have:= leq_ltn_trans n_ _n; rewrite ltnn. Qed.
 
 End NatCompl.
 
@@ -298,20 +305,18 @@ exact: Hf.
 Qed.
 End fold_proof.
 
-
 Section mkseq_proof.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
 Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
-Lemma mkseq_correct fv ft (nv nt mv mt : nat) :
-  (forall k : nat, Rel (fv nv k) (ft nt k)) ->
-  (* (forall k : nat, fv nv k = fv nt k) -> *)
+Lemma mkseq_correct fv ft (mv mt : nat) :
+  (forall k : nat, Rel (fv k) (ft k)) ->
   (* the following 2 hyps hold if mv <> mt *)
-  (forall k : nat, mv <= k < mt -> fv nv k = dv) ->
-  (forall k : nat, mt <= k < mv -> fv nv k = dv) ->
-  RelP (mkseq (fv nv) mv) (mkseq (ft nt) mt).
+  (forall k : nat, mv <= k < mt -> fv k = dv) ->
+  (forall k : nat, mt <= k < mv -> fv k = dv) ->
+  RelP (mkseq fv mv) (mkseq ft mt).
 Proof.
 move=> Hk Hv1 Hv2 k; rewrite !nth_mkseq_dflt.
 do 2![case: ifP]=> A B.
