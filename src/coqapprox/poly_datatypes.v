@@ -309,21 +309,22 @@ Definition invsqrt := --> fun x => (Rinv (sqrt tt x)).
 Definition mask : T -> T -> T := fun c _ => c.
 Definition tan := --> tan.
 Definition atan := --> atan.
-Lemma maskE : forall c x, mask c x = c.
+
+Lemma maskE c x : mask c x = c.
 Proof. done. Qed.
 
 Definition pow x n := (power_int tt x (Z_of_nat n)).
 
-Lemma pow_0 : forall x, pow x 0 = one.
+Lemma pow_0 x : pow x 0 = one.
 Proof. done. Qed.
 
-Lemma pow_S : forall x n, pow x n.+1 = mul tt x (pow x n).
+Lemma pow_S x n : pow x n.+1 = mul tt x (pow x n).
 Proof. by move=> *; rewrite /pow /power_int -!Interval_missing.pow_powerRZ. Qed.
 
-Lemma pow_opp :
-  forall x n, x <> zero -> power_int tt x (-n) = inv tt (power_int tt x n).
+Lemma pow_opp x n :
+  x <> zero -> power_int tt x (-n) = inv tt (power_int tt x n).
 Proof.
-move=> x [||p H] //=; auto with real.
+case: n=> [||p H] //=; auto with real.
 rewrite /inv ?Rinv_involutive //; exact: pow_nonzero.
 Qed.
 
@@ -460,10 +461,10 @@ match a, b, p with
 | _, _, _ => [::] (* e.g. *)
 end.
 
-Lemma fold_polyNil : forall U f iv, @fold U f iv polyNil = iv.
+Lemma fold_polyNil U f iv : @fold U f iv polyNil = iv.
 Proof. done. Qed.
 
-Lemma fold_polyCons : forall U f iv c p,
+Lemma fold_polyCons U f iv c p :
   @fold U f iv (polyCons c p) = f c (@fold U f iv p).
 Proof. done. Qed.
 
@@ -475,12 +476,12 @@ Lemma nth_set_nth p n val k :
   nth (set_nth p n val) k = if k == n then val else nth p k.
 Proof. by rewrite /nth nth_set_nth. Qed.
 
-Lemma nth_default : forall p n, size p <= n -> nth p n = C.zero.
+Lemma nth_default p n : size p <= n -> nth p n = C.zero.
 Proof. by move=> *; rewrite /nth nth_default. Qed.
 
-Lemma set_nth_nth : forall p n, n < size p -> set_nth p n (nth p n) = p.
+Lemma set_nth_nth p n : n < size p -> set_nth p n (nth p n) = p.
 Proof.
-move=> p n H.
+move=> H.
 apply: (eq_from_nth (x0 := C.zero)).
   by rewrite seq.size_set_nth; apply/maxn_idPr.
 move=> i Hi.
@@ -493,22 +494,20 @@ Qed.
 Lemma size_polyNil : size polyNil = 0.
 Proof. done. Qed.
 
-Lemma size_polyCons : forall a p, size (polyCons a p) = (size p).+1.
+Lemma size_polyCons a p : size (polyCons a p) = (size p).+1.
 Proof. by []. Qed.
 
-Lemma nth_polyNil n: nth polyNil n = C.zero.
+Lemma nth_polyNil n : nth polyNil n = C.zero.
 Proof. by rewrite nth_default. Qed.
 
-Lemma nth_polyCons : forall a p k, (* k <= size p -> *)
+Lemma nth_polyCons a p k : (* k <= size p -> *)
   nth (polyCons a p) k = if k is k'.+1 then nth p k' else a.
-Proof. by move=> a p; case. Qed.
+Proof. by case: k. Qed.
 
-Lemma size_opp p1 :
-  size (opp p1) = size p1.
+Lemma size_opp p1 : size (opp p1) = size p1.
 Proof. by rewrite /size /opp size_map. Qed.
 
-Lemma size_sub u p1 p2 :
-  size (sub u p1 p2) = maxn (size p1) (size p2).
+Lemma size_sub u p1 p2 : size (sub u p1 p2) = maxn (size p1) (size p2).
 Proof. by rewrite /sub /size size_map2. Qed.
 
 Lemma size_dotmuldiv (n : nat) (u : U) a b p :
@@ -530,15 +529,18 @@ Proof. by rewrite /size /tail size_drop. Qed.
 Definition toSeq (p : T) := p.
 Definition mkPoly (s : seq C.T) := (s : T).
 
-Lemma mkPoly_toSeq : forall p, mkPoly (toSeq p) = p.
+Lemma mkPoly_toSeq p : mkPoly (toSeq p) = p.
 Proof. by []. Qed.
 
-Lemma toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
+Lemma toSeq_mkPoly s : toSeq (mkPoly s) = s.
 Proof. by []. Qed.
 
 Lemma toSeq_nil : toSeq zero = [::].
 Proof. by []. Qed.
-Lemma eval_seq : forall u p x, eval u p x = C.mask (foldr (fun a b => C.add u (C.mul u b x) a) C.zero (toSeq p)) x.
+
+Lemma eval_seq u p x :
+  eval u p x = C.mask (foldr (fun a b => C.add u (C.mul u b x) a)
+    C.zero (toSeq p)) x.
 Proof. done. Qed.
 
 Lemma nth_toSeq p n : nth p n = seq.nth (C.zero) (toSeq p) n.
@@ -584,8 +586,7 @@ move => k c p Hkp.
 by apply: nth_primitive.
 Qed.
 
-Lemma size_primitive (c : C.T) (p : T):
-size (primitive c p) = (size p).+1.
+Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
 
 End precSection.
@@ -594,11 +595,9 @@ End SeqPoly.
 Module PolR <: PolyOps FullR.
 Include SeqPoly FullR.
 
-Lemma toSeq_eval0 : forall (u : U) (p : T),
-                           eval u p R0 = head R0 (toSeq p).
+Lemma toSeq_eval0 (u : U) (p : T) : eval u p R0 = head R0 (toSeq p).
 Proof.
-move => u.
-elim=> [| a q HI] ; first by [].
+elim: p=> [| a q HI] ; first by [].
 by rewrite /= HI; case: u HI; rewrite Rmult_0_r Rplus_0_l.
 Qed.
 
@@ -786,7 +785,7 @@ Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
-Lemma eval_propagate : forall u pi, I.propagate (eval u pi).
+Lemma eval_propagate u pi : I.propagate (eval u pi).
 Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
 
 Lemma zero_correct : zero >:: PolR.zero.
@@ -906,58 +905,6 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   by rewrite leq_add2r.
 Qed.
 
-Definition sizes := (size_polyNil, size_polyCons,
-                     PolR.size_polyNil, PolR.size_polyCons).
-
-(*
-Lemma poly2_ind :
-  forall K : T -> PolR.T -> Prop,
-  (* (forall pi p, K pi p -> size pi = PolR.size p) -> *)
-  K polyNil PolR.polyNil ->
-  (forall xi x pi p, size pi = PolR.size p -> K pi p -> K (polyCons xi pi) (PolR.polyCons x p)) ->
-  forall pi p, size pi = PolR.size p -> K pi p.
-Proof.
-move=> K H0 H1 pi p.
-(* suff: (K pi p /\ (*forall pi p,*) (size pi  PolR.size p -> K pi p)) by case. *)
-elim/poly_ind: pi p => [ |ai pi IHpi] p; elim/PolR.poly_ind: p =>[ |a p _] //.
-rewrite !sizes.
-by intuition.
-Qed.
-*)
-
-Conjecture eval_correct :
-  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
-
-Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
-Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
-Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
-Conjecture polyCons_correct :
-  forall pi xi p x, pi >:: p -> xi >: x ->
-  polyCons xi pi >:: PolR.polyCons x p.
-
-(* Conjecture size_correct *)
-Conjecture rec1_correct :
-  forall fi f fi0 f0 n,
-    (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
-    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
-Conjecture rec2_correct :
-  forall fi f fi0 f0 fi1 f1 n,
-    (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
-    fi0 >: f0 -> fi1 >: f1 ->
-    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
-Conjecture set_nth_correct :
-  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
-Conjecture deriv_correct :
-  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
-Conjecture grec1_correct :
-  forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
-  (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
-  (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
-  ai >:: a -> seq_contains_pointwise si s ->
-  grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
-
-(* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
-(* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 
 Lemma mul_trunc_correct u n pi qi p q :
   pi >:: p -> qi >:: q ->
@@ -997,5 +944,42 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   apply: leq_addLRI; rewrite addnC; rewrite leq_subLR in _k.
   by apply: leq_trans _ _k; rewrite leq_add2r.
 Qed.
+
+Definition sizes := (size_polyNil, size_polyCons,
+                     PolR.size_polyNil, PolR.size_polyCons).
+
+Conjecture eval_correct :
+  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
+
+Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
+Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
+Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
+Conjecture polyCons_correct :
+  forall pi xi p x, pi >:: p -> xi >: x ->
+  polyCons xi pi >:: PolR.polyCons x p.
+
+(* Conjecture size_correct *)
+Conjecture rec1_correct :
+  forall fi f fi0 f0 n,
+    (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
+    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
+Conjecture rec2_correct :
+  forall fi f fi0 f0 fi1 f1 n,
+    (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
+    fi0 >: f0 -> fi1 >: f1 ->
+    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
+Conjecture set_nth_correct :
+  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
+Conjecture deriv_correct :
+  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
+Conjecture grec1_correct :
+  forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
+  (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
+  (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
+  ai >:: a -> seq_contains_pointwise si s ->
+  grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
+
+(* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
+(* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 
 End SeqPolyInt.
