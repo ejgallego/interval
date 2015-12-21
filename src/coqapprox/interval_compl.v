@@ -202,6 +202,7 @@ Proof. move=> *; rewrite Xreal_sqr; exact: I.sqr_correct. Qed.
 
 Lemma R_power_int_correct prec (n : Z) :
   R_extension (powerRZ ^~ n) (I.power_int prec ^~ n).
+Proof.
 move=> ix x Hx.
 case: (is_zero_spec x) (Hx) => H; last first.
   rewrite Xreal_power_int //; last by left.
@@ -215,6 +216,14 @@ rewrite Xreal_power_int; last by right; auto with zarith.
 exact: I.power_int_correct.
 Qed.
 
+Lemma R_mask_correct : R_extension_2 (fun c x => c) I.mask.
+Proof.
+move=> ci xi c x Hc Hx /=.
+change (Xreal c) with (Xmask (Xreal c) (Xreal x)).
+exact: I.mask_correct.
+Qed.
+
+Arguments R_mask_correct [ix iy x] y _ _.
 (*
 Definition I_propagate fi :=
   forall b : I.type,

@@ -278,13 +278,30 @@ Section fold_proof.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
+Lemma foldr_correct fv ft sv st :
+  RelP sv st ->
+  (forall xv yv, Rel xv dt -> Rel yv dt -> Rel (fv xv yv) dt) ->
+  (forall xt yt, Rel dv xt -> Rel dv yt -> Rel dv (ft xt yt)) ->
+  (forall xv xt yv yt, Rel xv xt -> Rel yv yt -> Rel (fv xv yv) (ft xt yt)) ->
+  Rel (foldr fv dv sv) (foldr ft dt st).
+Proof.
+move=> Hs H0t H0v Hf.
+elim: sv st Hs => [ | xv sv IH1] st Hs /=.
+- elim: st Hs => [ | xt st IH2] Hs //=.
+  apply: H0v; first by move/(_ 0): Hs.
+  by apply: IH2 => k; move/(_ k.+1): Hs; rewrite /= nth_nil.
+- case: st Hs => [ | xt st] Hs /=.
+  + apply: H0t; first by move/(_ 0): Hs.
+    change dt with (foldr ft dt [::]).
+    apply/IH1 => k.
+    by move/(_ k.+1): Hs; rewrite /= nth_nil.
+  + apply: Hf; first by move/(_ 0): Hs.
+    apply: IH1.
+    move=> k; by move/(_ k.+1): Hs.
+Qed.
 (*
-Let RelP sv st := forall k : nat, Rel (nth dv sv k) (nth dt st k).
-Variables (vadd : V -> V -> V) (tadd : T -> T -> T).
-Variables (vmul : V -> V -> V) (tmul : T -> T -> T).
-*)
-
 Lemma foldr_correct A fv ft (s : seq A) :
   (forall a v t, Rel v t -> Rel (fv a v) (ft a t)) ->
   Rel (foldr fv dv s) (foldr ft dt s).
@@ -303,6 +320,7 @@ rewrite -(revK s) !foldl_rev.
 apply: foldr_correct.
 exact: Hf.
 Qed.
+*)
 End fold_proof.
 
 Section mkseq_proof.

@@ -945,11 +945,22 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   by apply: leq_trans _ _k; rewrite leq_add2r.
 Qed.
 
+Lemma eval_correct u pi ai p a :
+  pi >:: p -> ai >: a -> eval u pi ai >: PolR.eval tt p a.
+Proof.
+move=> Hp Ha.
+rewrite /eval /PolR.eval.
+apply: (R_mask_correct a _ Ha).
+apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
+- exact: cont0.
+- move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: cont0.
+- move=> x y Hx Hy; rewrite -(Rplus_0_r R0) -{1}(Rmult_0_l a).
+  apply: R_add_correct =>//; exact: R_mul_correct.
+- move=> x xi y yi Hx Hy; apply: R_add_correct=>//; exact: R_mul_correct.
+Qed.
+
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
-
-Conjecture eval_correct :
-  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
 
 Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
 Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
