@@ -975,6 +975,13 @@ apply: (foldri_correct (Rel := fun v t => t >: v)) =>//.
   by apply: R_mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
 Qed.
 
+Lemma set_nth_correct pi p n ai a :
+  pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
+Proof.
+move=> Hp Ha k; rewrite /nth /PolR.nth.
+exact: (seq_compl.set_nth_correct (Rel := fun v t => t >: v)).
+Qed.
+
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
 
@@ -995,8 +1002,6 @@ Conjecture rec2_correct :
     (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
     fi0 >: f0 -> fi1 >: f1 ->
     rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
-Conjecture set_nth_correct :
-  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
 Conjecture grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->

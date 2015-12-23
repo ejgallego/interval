@@ -403,3 +403,15 @@ do 2![case: ifP]=> A B.
 - exact: Hk.
 Qed.
 End mkseq_proof.
+
+Section nth_proof.
+Variables (V T : Type).
+Variable Rel : V -> T -> Prop.
+Variables (dv : V) (dt : T).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
+Lemma set_nth_correct sv st bv bt n :
+  RelP sv st ->
+  Rel bv bt ->
+  RelP (set_nth dv sv n bv) (set_nth dt st n bt).
+Proof. by move=> Hs Hb k; rewrite !nth_set_nth /=; case: ifP. Qed.
+End nth_proof.
