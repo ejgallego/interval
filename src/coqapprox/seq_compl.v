@@ -404,7 +404,7 @@ do 2![case: ifP]=> A B.
 Qed.
 End mkseq_proof.
 
-Section nth_proof.
+Section misc_proofs.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
@@ -414,4 +414,16 @@ Lemma set_nth_correct sv st bv bt n :
   Rel bv bt ->
   RelP (set_nth dv sv n bv) (set_nth dt st n bt).
 Proof. by move=> Hs Hb k; rewrite !nth_set_nth /=; case: ifP. Qed.
-End nth_proof.
+
+Lemma drop_correct sv st n :
+  RelP sv st ->
+  RelP (drop n sv) (drop n st).
+Proof. by move=> Hs k; rewrite !nth_drop; apply: Hs. Qed.
+
+Hypothesis H0 : Rel dv dt.
+Lemma ncons_correct sv st n :
+  RelP sv st ->
+  RelP (ncons n dv sv) (ncons n dt st).
+Proof. by move=> Hs k; rewrite !nth_ncons; case: ifP. Qed.
+
+End misc_proofs.

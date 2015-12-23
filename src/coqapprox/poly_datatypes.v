@@ -985,8 +985,17 @@ Qed.
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
 
-Conjecture lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
-Conjecture tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
+Lemma lift_correct n pi p : pi >:: p -> lift n pi >:: PolR.lift n p.
+Proof.
+move=> Hp k; rewrite /nth /PolR.nth.
+by apply: (ncons_correct (Rel := fun v t => t >: v)); first exact: cont0.
+Qed.
+
+Lemma tail_correct n pi p : pi >:: p -> tail n pi >:: PolR.tail n p.
+move=> Hp k; rewrite /nth /PolR.nth.
+exact: (drop_correct (Rel := fun v t => t >: v)).
+Qed.
+
 Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
 Conjecture polyCons_correct :
   forall pi xi p x, pi >:: p -> xi >: x ->
