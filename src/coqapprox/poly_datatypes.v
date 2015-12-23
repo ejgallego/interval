@@ -410,12 +410,8 @@ Proof.
 by move=> f h1 hrec; elim =>//= a e; apply:hrec.
 Qed.
 
-Fixpoint deriv_loop (p : T) (i : nat) :=
-  match p with
-    | [::] => [::]
-    | a :: e =>
-      C.mul u a (C.from_nat i) :: deriv_loop e i.+1
-  end.
+Definition deriv_loop := foldri (fun a i s => C.mul u a (C.from_nat i) :: s) [::].
+
 Definition deriv (p : T) := deriv_loop (behead p) 1%N.
 
 Definition grec1 (A : Type) := @grec1up A C.T.
@@ -959,6 +955,26 @@ apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - move=> x xi y yi Hx Hy; apply: R_add_correct=>//; exact: R_mul_correct.
 Qed.
 
+Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
+Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
+
+Lemma deriv_correct u pi p : pi >:: p -> deriv u pi >:: PolR.deriv tt p.
+
+Proof.
+move=> Hpi; rewrite /deriv /PolR.deriv /deriv_loop /PolR.deriv_loop.
+apply: (foldri_correct (Rel := fun v t => t >: v)) =>//.
+- by move=> k; rewrite !nth_behead.
+- move=> x s i Hx Hs [|k] /=.
+  + by move/only0: Hx->; rewrite Rmult_0_l; apply: cont0.
+  + by move: (Hs k); rewrite nth_nil.
+- move=> x s i Hx Hs [|k] /=.
+  rewrite -(Rmult_0_l (INR i)).
+  apply: R_mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+  by move: (Hs k); rewrite nth_nil.
+- move=> x xi y yi i Hx Hy [|k] //=.
+  by apply: R_mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+Qed.
+
 Definition sizes := (size_polyNil, size_polyCons,
                      PolR.size_polyNil, PolR.size_polyCons).
 
@@ -981,8 +997,6 @@ Conjecture rec2_correct :
     rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
 Conjecture set_nth_correct :
   forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
-Conjecture deriv_correct :
-  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
 Conjecture grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->

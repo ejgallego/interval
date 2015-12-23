@@ -92,6 +92,22 @@ Proof. by apply/andP=> [[_n n_]]; have:= leq_ltn_trans n_ _n; rewrite ltnn. Qed.
 
 End NatCompl.
 
+(** Missing result(s) about bigops *)
+
+Section bigops.
+Lemma big_nat_leq_idx :
+  forall (R : Type) (idx : R) (op : Monoid.law idx) (m n : nat) (F : nat -> R),
+  n <= m -> (forall i : nat, n <= i < m -> F i = idx) ->
+  \big[op/idx]_(0 <= i < n) F i = \big[op/idx]_(0 <= i < m) F i.
+Proof.
+move=> R idx op m n F Hmn H.
+rewrite [RHS](big_cat_nat _ (n := n)) //.
+rewrite [in X in _ = op _ X]big_nat_cond.
+rewrite [in X in _ = op _ X]big1 ?Monoid.mulm1 //.
+move=> i; rewrite andbT; move=> *; exact: H.
+Qed.
+End bigops.
+
 (** Missing results about lists (aka sequences) *)
 
 Section Head_Last.
@@ -104,6 +120,9 @@ Definition hb s := head d (behead s).
 
 Lemma nth1 : forall s, nth d s 1 = hb s.
 Proof. by move=> s; rewrite /hb -nth0 nth_behead. Qed.
+
+Lemma nth_behead s n : nth d (behead s) n = nth d s n.+1.
+Proof. by case: s =>//; rewrite /= nth_nil. Qed.
 
 Lemma last_rev : forall s, last d (rev s) = head d s.
 Proof. by elim=> [//|s IHs]; rewrite rev_cons last_rcons. Qed.
@@ -323,6 +342,46 @@ Qed.
 *)
 End fold_proof.
 
+Section Foldri.
+Variables (T R : Type) (f : T -> nat -> R -> R) (z0 : R).
+
+Fixpoint foldri (s : seq T) (i : nat) : R :=
+  match s with
+  | [::] => z0
+  | x :: s' => f x i (foldri s' i.+1)
+  end.
+End Foldri.
+
+Section foldri_proof.
+Variables (V T : Type).
+Variable Rel : V -> T -> Prop.
+Variables (dv : V) (dt : T).
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
+Hypothesis H0 : Rel dv dt.
+Lemma foldri_correct fv ft sv st (zv := [::]) (zt := [::]) i :
+  RelP sv st ->
+  (* RelP zv zt -> *)
+  (forall xv yv i, Rel xv dt -> RelP yv zt -> RelP (fv xv i yv) zt) ->
+  (forall xt yt i, Rel dv xt -> RelP zv yt -> RelP zv (ft xt i yt)) ->
+  (forall xv xt yv yt i, Rel xv xt -> RelP yv yt -> RelP (fv xv i yv) (ft xt i yt)) ->
+  RelP (foldri fv zv sv i) (foldri ft zt st i).
+Proof.
+move=> Hs H0t H0v Hf.
+elim: sv st Hs i => [ | xv sv IH1] st Hs i /=.
+- elim: st Hs i => [ | xt st IH2] Hs i //=.
+  apply: H0v; first by move/(_ 0): Hs.
+  by apply: IH2 => k; move/(_ k.+1): Hs; rewrite /= nth_nil.
+- case: st Hs => [ | xt st] Hs /=.
+  + apply: H0t; first by move/(_ 0): Hs.
+    change zt with (foldri ft zt [::] i.+1).
+    apply/IH1 => k.
+    by move/(_ k.+1): Hs; rewrite /= nth_nil.
+  + apply: Hf; first by move/(_ 0): Hs.
+    apply: IH1.
+    move=> k; by move/(_ k.+1): Hs.
+Qed.
+End foldri_proof.
+
 Section mkseq_proof.
 Variables (V T : Type).
 Variable Rel : V -> T -> Prop.
@@ -344,17 +403,3 @@ do 2![case: ifP]=> A B.
 - exact: Hk.
 Qed.
 End mkseq_proof.
-
-Section bigops.
-Lemma big_nat_leq_idx :
-  forall (R : Type) (idx : R) (op : Monoid.law idx) (m n : nat) (F : nat -> R),
-  n <= m -> (forall i : nat, n <= i < m -> F i = idx) ->
-  \big[op/idx]_(0 <= i < n) F i = \big[op/idx]_(0 <= i < m) F i.
-Proof.
-move=> R idx op m n F Hmn H.
-rewrite [RHS](big_cat_nat _ (n := n)) //.
-rewrite [in X in _ = op _ X]big_nat_cond.
-rewrite [in X in _ = op _ X]big1 ?Monoid.mulm1 //.
-move=> i; rewrite andbT; move=> *; exact: H.
-Qed.
-End bigops.
