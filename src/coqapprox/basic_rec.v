@@ -89,86 +89,97 @@ Definition rec1down n := loop1 n 1 a0 [:: a0].
 
 Definition rec1up n := rev (rec1down n).
 
-Lemma loop1SE :
-  forall n p a s,
-  (loop1 n.+1 p a s) = let c := F a p in loop1 n p.+1 c (c :: s).
+Lemma loop1SE n p a s :
+  loop1 n.+1 p a s = let c := F a p in loop1 n p.+1 c (c :: s).
 Proof. done. Qed.
 
-Lemma loop1E : forall p a s, (loop1 0 p a s) = s.
+Lemma loop1E p a s : loop1 0 p a s = s.
 Proof. done. Qed.
 
-Lemma size_loop1 : forall n p a s, size (loop1 n p a s) = n + size s.
-Proof. by elim=> [//|n IHn] *; rewrite IHn addSnnS. Qed.
+Lemma size_loop1 n p a s : size (loop1 n p a s) = n + size s.
+Proof. by elim: n p a s => [//|n IHn] *; rewrite IHn addSnnS. Qed.
 
-Lemma size_rec1down : forall n, size (rec1down n) = n.+1.
-Proof. by case=> [//|n]; rewrite size_loop1 addn1. Qed.
+Lemma size_rec1down n : size (rec1down n) = n.+1.
+Proof. by case: n => [//|n]; rewrite size_loop1 addn1. Qed.
 
 Lemma size_rec1up n : size (rec1up n) = n.+1.
 Proof. by rewrite size_rev size_rec1down. Qed.
 
 Variable d : T.
 
-Lemma head_loop1 :
-  forall n s a p, head d s = a ->
+Lemma head_loop1S n s a p :
+  head d s = a ->
   head d (loop1 n.+1 p a s) = F (head d (loop1 n p a s)) (n+p).
 Proof.
-by elim=> [_ _ _->//|n IHn s a p H]; rewrite !IHn // addSnnS.
+by elim: n s a p => [_ _ _->//|n IHn s a p H]; rewrite !IHn // addSnnS.
 Qed.
 
-Lemma head_rec1down n :
+Theorem head_loop1 (n p : nat) a s :
+  head d s = a ->
+  head d (loop1 n p a s) = iteri n (fun i c => F c (i + p)) a.
+Proof.
+elim: n p a s =>[//|n IHn] p a s H.
+move E: (n.+1) => n'.
+rewrite /= -{}E IHn //.
+clear; elim: n =>[//=|n IHn].
+by rewrite /= IHn /= addSnnS.
+Qed.
+
+Lemma head_rec1downS n :
   head d (rec1down n.+1) = F (head d (rec1down n)) n.+1.
-Proof. by rewrite head_loop1 ?addn1. Qed.
+Proof. by rewrite head_loop1S ?addn1. Qed.
+
+Theorem head_rec1down_loop1 n :
+  head d (rec1down n) = head d (loop1 n 1 a0 [:: a0]).
+Proof. done. Qed.
 
 (*
 Let co k := nth d (rec1up k) k.
 Let co' k := last d (rec1up k).
 *)
 
-Lemma rec1up_nth_last k : nth d (rec1up k) k = last d (rec1up k).
+Lemma nth_rec1downS k :
+  nth d (rec1down k.+1) 0 = F (nth d (rec1down k) 0) k.+1.
+Proof. by rewrite !nth0 head_rec1downS. Qed.
+
+Lemma nth_rec1up_last k : nth d (rec1up k) k = last d (rec1up k).
 Proof. by rewrite (last_nth d) size_rec1up. Qed.
 
-Lemma rec1down_correct k :
-  nth d (rec1down k.+1) 0 = F (nth d (rec1down k) 0) k.+1.
-Proof. by rewrite !nth0 head_rec1down. Qed.
+Lemma last_rec1up k : last d (rec1up k) = head d (loop1 k 1 a0 [:: a0]).
+Proof. by rewrite /rec1up /rec1down last_rev. Qed.
 
-Lemma rec1up_correct k :
+Lemma nth_rec1upS k :
   nth d (rec1up k.+1) k.+1 = F (nth d (rec1up k) k) k.+1.
-Proof.
-by rewrite !rec1up_nth_last !last_rev head_rec1down.
-Qed.
+Proof. by rewrite !nth_rec1up_last !last_rev head_rec1downS. Qed.
 
-Lemma loop1S_ex :
-  forall n p a s, exists c,
-  loop1 n.+1 p a s = c :: (loop1 n p a s).
+Lemma loop1S_ex n p a s :
+  exists c, loop1 n.+1 p a s = c :: (loop1 n p a s).
 Proof.
-elim=> [|n IH] p a s; first by exists (F a p).
+elim: n p a s=> [|n IH] p a s; first by exists (F a p).
 remember (S n) as n'; simpl.
 case: (IH p.+1 (F a p) (F a p :: s))=> [c Hc].
 rewrite Hc {}Heqn' /=.
 by exists c.
 Qed.
 
-Lemma behead_rec1down n: behead (rec1down n.+1) = rec1down n.
-Proof.
-rewrite /rec1down.
-by case: (loop1S_ex n 1 a0 [:: a0])=> [c ->].
-Qed.
+Lemma behead_rec1down n : behead (rec1down n.+1) = rec1down n.
+Proof. by rewrite /rec1down; case: (loop1S_ex n 1 a0 [:: a0])=> [c ->]. Qed.
 
-Lemma nth_rec1down d1 p q n:
+Lemma nth_rec1downD d1 p q n :
   nth d1 (rec1down (p+q+n)) (p+q) = nth d1 (rec1down (p+n)) p.
 Proof.
 elim: q=> [|q IH]; first by rewrite addn0.
 by rewrite !addnS addSn -nth_behead behead_rec1down.
 Qed.
 
-Lemma nth_rec1down_dflt2 d1 d2 p q n:
+Lemma nth_rec1downD_dflt2 d1 d2 p q n :
   nth d1 (rec1down (p+q+n)) (p+q) = nth d2 (rec1down (p+n)) p.
 Proof.
-rewrite nth_rec1down (nth_defaults d1 d2) // size_rec1down.
+rewrite nth_rec1downD (nth_defaults d1 d2) // size_rec1down.
 by iomega.
 Qed.
 
-Lemma rec1down_nth_indep d1 d2 m1 m2 n:
+Lemma nth_rec1down_indep d1 d2 m1 m2 n :
   n <= m1 -> n <= m2 ->
   nth d1 (rec1down m1) (m1 - n) = nth d2 (rec1down m2) (m2 - n).
 Proof.
@@ -184,7 +195,7 @@ case: (ltngtP m1 m2)=> Hm; last first.
     by rewrite addnC addnBA // subnK // ltnW.
   rewrite Hpq.
   have->: m1 = p + q + n by rewrite -Hpq subnK.
-  exact: nth_rec1down_dflt2.
+  exact: nth_rec1downD_dflt2.
 set p := m1 - n in h1' *.
 rewrite -h1' addnC.
 pose q := m2 - m1.
@@ -193,10 +204,10 @@ have Hpq : m2 - n = p + q.
   by rewrite addnC addnBA // subnK // ltnW.
 rewrite Hpq.
 have->: m2 = p + q + n by rewrite -Hpq subnK.
-symmetry; exact: nth_rec1down_dflt2.
+symmetry; exact: nth_rec1downD_dflt2.
 Qed.
 
-Lemma rec1up_nth_indep d1 d2 m1 m2 n :
+Lemma nth_rec1up_indep d1 d2 m1 m2 n :
   n <= m1 -> n <= m2 ->
   nth d1 (rec1up m1) n = nth d2 (rec1up m2) n.
 Proof.
@@ -205,32 +216,25 @@ rewrite !nth_rev; first last.
 - by rewrite size_loop1 /=; move: h1 h2; iomega_le.
 - by rewrite size_loop1 /=; move: h1 h2; iomega_le.
 rewrite !size_loop1 /= !addn1 !subSS.
-exact: rec1down_nth_indep.
+exact: nth_rec1down_indep.
 Qed.
 
 (** For the base case *)
 
 Lemma rec1down_co0 n: nth d (rec1down n) n = a0.
 Proof.
-elim: n=> [|n IH]; first done.
+elim: n=> [//|n IH].
 by rewrite /rec1down; have [c ->] := loop1S_ex n 1 a0 [:: a0].
 Qed.
 
 Lemma rec1down_co0' n: last d (rec1down n) = a0.
-Proof.
-rewrite (last_nth d) size_rec1down.
-exact: rec1down_co0.
-Qed.
+Proof. by rewrite (last_nth d) size_rec1down; apply: rec1down_co0. Qed.
 
 Lemma rec1up_co0 n : nth d (rec1up n) 0 = a0.
-Proof.
-by rewrite nth_rev size_rec1down // subn1 rec1down_co0.
-Qed.
+Proof. by rewrite nth_rev size_rec1down // subn1 rec1down_co0. Qed.
 
 Lemma rec1up_co0' n : head d (rec1up n) = a0.
-Proof.
-by rewrite -(nth0 d); exact: rec1up_co0.
-Qed.
+Proof. by rewrite -(nth0 d); apply: rec1up_co0. Qed.
 
 End Defix1.
 
@@ -291,21 +295,20 @@ Qed.
 
 Definition grec1up n := rev (grec1down n).
 
-Lemma gloop1SE :
-  forall n p a s,
-  (gloop1 n.+1 p a s) =
+Lemma gloop1SE n p a s :
+  gloop1 n.+1 p a s =
   let r := G a p in let c := F a p.+1 in gloop1 n p.+1 c (r :: s).
 Proof. done. Qed.
 
-Lemma gloop1E : forall p a s, (gloop1 0 p a s) = s.
+Lemma gloop1E p a s : gloop1 0 p a s = s.
 Proof. done. Qed.
 
-Lemma size_gloop1 : forall n p a s, size (gloop1 n p a s) = n + size s.
-Proof. by elim=> [//|n IHn] *; rewrite IHn addSnnS. Qed.
+Lemma size_gloop1 n p a s : size (gloop1 n p a s) = n + size s.
+Proof. by elim: n p a s => [//|n IHn] *; rewrite IHn addSnnS. Qed.
 
-Lemma size_grec1down : forall n, size (grec1down n) = n.+1.
+Lemma size_grec1down n : size (grec1down n) = n.+1.
 Proof.
-rewrite /grec1down => n.
+rewrite /grec1down.
 case E: (n.+1 - size init) =>[|k].
   rewrite size_rev size_take.
   move/eqP: E; rewrite subn_eq0 leq_eqVlt.
@@ -319,12 +322,12 @@ Qed.
 Lemma size_grec1up n : size (grec1up n) = n.+1.
 Proof. by rewrite size_rev size_grec1down. Qed.
 
-Theorem grec1down_init_correct n :
+Theorem grec1down_init n :
   n < size init ->
   grec1down n = rev (take n.+1 init).
 Proof. by rewrite /grec1down -subn_eq0; move/eqP ->. Qed.
 
-Theorem grec1up_init_correct n :
+Theorem grec1up_init n :
   n < size init ->
   grec1up n = take n.+1 init.
 Proof. by rewrite /grec1up /grec1down -subn_eq0; move/eqP ->; rewrite revK. Qed.
@@ -335,7 +338,7 @@ Theorem head_grec1down (d : T) (n : nat) :
   head d (gloop1 (n - size init).+1 (size init) a0 (rev init)).
 Proof. by move=> Hn; rewrite /grec1down subSn. Qed.
 
-Theorem head_grec1up (d : T) (n : nat) :
+Theorem last_grec1up (d : T) (n : nat) :
   size init <= n ->
   last d (grec1up n) =
   head d (gloop1 (n - size init).+1 (size init) a0 (rev init)).
@@ -352,11 +355,10 @@ clear; elim: n =>[//=|n IHn].
 by rewrite /= IHn /= addSnnS.
 Qed.
 
-Lemma gloop1S_ex :
-  forall n p a s, exists c,
-  gloop1 n.+1 p a s = c :: (gloop1 n p a s).
+Lemma gloop1S_ex n p a s :
+  exists c, gloop1 n.+1 p a s = c :: (gloop1 n p a s).
 Proof.
-elim=> [|n IH] p a s; first by exists (G a p).
+elim: n p a s => [|n IH] p a s; first by exists (G a p).
 remember (S n) as n'; simpl.
 case: (IH p.+1 (F a p.+1) (G a p :: s))=> [c Hc].
 rewrite Hc {}Heqn' /=.
@@ -380,17 +382,17 @@ rewrite ifF 1?leqNgt ?H //.
 by rewrite behead_rev_take // size_Tuple.
 Qed.
 
-Lemma nth_grec1down d1 p q n:
+Lemma nth_grec1downD d1 p q n:
   nth d1 (grec1down (p+q+n)) (p+q) = nth d1 (grec1down (p+n)) p.
 Proof.
 elim: q=> [|q IH]; first by rewrite addn0.
 by rewrite !addnS addSn -nth_behead behead_grec1down.
 Qed.
 
-Lemma nth_grec1down_dflt2 d1 d2 p q n:
+Lemma nth_grec1downD_dflt2 d1 d2 p q n:
   nth d1 (grec1down (p+q+n)) (p+q) = nth d2 (grec1down (p+n)) p.
 Proof.
-rewrite nth_grec1down (set_nth_default d1 d2) //.
+rewrite nth_grec1downD (set_nth_default d1 d2) //.
 by rewrite size_grec1down ltnS leq_addr.
 Qed.
 
@@ -410,7 +412,7 @@ case: (ltngtP m1 m2)=> Hm.
   rewrite Hpq.
   have->: m2 = p + q + n.
     by rewrite -Hpq subnK.
-  symmetry; exact: nth_grec1down_dflt2.
+  symmetry; exact: nth_grec1downD_dflt2.
 - set p := m2 - n in h2' *.
   rewrite -h2' addnC.
   pose q := m1 - m2.
@@ -420,7 +422,7 @@ case: (ltngtP m1 m2)=> Hm.
   rewrite Hpq.
   have->: m1 = p + q + n.
     by rewrite -Hpq subnK.
-  exact: nth_grec1down_dflt2.
+  exact: nth_grec1downD_dflt2.
 - rewrite Hm (nth_defaults d1 d2) // size_grec1down.
   exact: leq_ltn_trans (@leq_subr n m2) _.
 Qed.
@@ -453,91 +455,92 @@ Variables a0 a1 : T.
 Definition rec2down n :=
   if n is n'.+1 then (loop2 n' 2 a0 a1 [:: a1; a0]) else [:: a0].
 
-Definition rec2up n := (rev (rec2down n)).
+Definition rec2up n := rev (rec2down n).
 
-Lemma loop2E :
-  forall n p a b s,
-    (loop2 n.+1 p a b s) = let c := F a b p in loop2 n p.+1 b c (c :: s).
+Lemma loop2SE n p a b s :
+  loop2 n.+1 p a b s = let c := F a b p in loop2 n p.+1 b c (c :: s).
 Proof. done. Qed.
 
-Lemma size_loop2 : forall n p a b s, size (loop2 n p a b s) = n + size s.
-Proof. by elim=> [//|n IHn] *; rewrite IHn !addSnnS. Qed.
+Lemma loop2E p a b s : loop2 0 p a b s = s.
+Proof. done. Qed.
 
-Lemma size_rec2down : forall n, size (rec2down n) = n.+1.
-Proof. by case=> [//|[//|n]]; rewrite size_loop2 addn2. Qed.
+Lemma size_loop2 n p a b s : size (loop2 n p a b s) = n + size s.
+Proof. by elim: n p a b s => [//|n IHn] *; rewrite IHn !addSnnS. Qed.
+
+Lemma size_rec2down n : size (rec2down n) = n.+1.
+Proof. by case: n => [//|[//|n]]; rewrite size_loop2 addn2. Qed.
 
 Lemma size_rec2up n : size (rec2up n) = n.+1.
 Proof. by rewrite size_rev size_rec2down. Qed.
 
 Variable d : T.
 
-Lemma head_loop2 :
-  forall n s a b p, hb d s = a -> head d s = b ->
-    let s' := (loop2 n p a b s) in
-      head d (loop2 n.+1 p a b s) = F (hb d s') (head d s') (n+p).
+Lemma head_loop2S n s a b p :
+  hb d s = a -> head d s = b ->
+  let s' := (loop2 n p a b s) in
+  head d (loop2 n.+1 p a b s) = F (hb d s') (head d s') (n+p).
 Proof.
-elim; first by move=> s a b p Ha Hb; rewrite /= Ha Hb.
-by move=> n IHn s a b p Ha Hb; rewrite IHn // addSnnS.
+elim: n s a b p => [|n IHn] s a b p Ha Hb; first by rewrite /= Ha Hb.
+by rewrite IHn // addSnnS.
 Qed.
 
-Lemma head_rec2down :
-  forall n, head d (rec2down n.+2) =
-    F (hb d (rec2down n.+1)) (head d (rec2down n.+1)) n.+2.
-Proof. by case=> [//|n]; rewrite head_loop2 ?addn2. Qed.
+Lemma head_rec2downSS n :
+  head d (rec2down n.+2) =
+  F (hb d (rec2down n.+1)) (head d (rec2down n.+1)) n.+2.
+Proof. by case: n => [//|n]; rewrite head_loop2S ?addn2. Qed.
 
-Lemma behead_loop2 :
-  forall n s a b p, behead (loop2 n.+1 p a b s) = loop2 n p a b s.
-Proof. by elim=>// [n IHn s a b p]; rewrite IHn. Qed.
+Lemma head_rec2down_loop2 n :
+  head d (rec2down n.+1) = head d (loop2 n 2 a0 a1 [:: a1; a0]).
+Proof. done. Qed.
 
-Lemma behead_rec2down :
-  forall n, behead (rec2down n.+1) = rec2down n.
-Proof.
-by case=> [//|n]; rewrite behead_loop2.
-Qed.
+Lemma head_rec2down0 :
+  head d (rec2down 0) = a0.
+Proof. done. Qed.
+
+Lemma behead_loop2 n s a b p : behead (loop2 n.+1 p a b s) = loop2 n p a b s.
+Proof. by elim: n s a b p => [//|n IHn] s a b p; rewrite IHn. Qed.
+
+Lemma behead_rec2down n : behead (rec2down n.+1) = rec2down n.
+Proof. by case: n => [//|n]; rewrite behead_loop2. Qed.
 
 (* Let coa k := nth d (rec2up k) k.
 Let coa' k := last d (rec2up k). *)
 
-Lemma rec2up_nth_last : forall k, nth d (rec2up k) k = last d (rec2up k).
-Proof.
-by case=> [//|k]; rewrite (last_nth d) size_rec2up.
-Qed.
+Lemma nth_rec2up_last k : nth d (rec2up k) k = last d (rec2up k).
+Proof. by case: k => [//|k]; rewrite (last_nth d) size_rec2up. Qed.
 
-Lemma rec2down_correct k :
+Theorem last_rec2up k :
+  last d (rec2up k.+1) = head d (loop2 k 2 a0 a1 [:: a1; a0]).
+Proof. by rewrite /rec2up /rec2down last_rev. Qed.
+
+Lemma nth_rec2downSS k :
   nth d (rec2down k.+2) 0 =
   F (nth d (rec2down k.+1) 1) (nth d (rec2down k.+1) 0) k.+2.
-Proof.
-by rewrite !nth0 !nth1 head_rec2down.
-Qed.
+Proof. by rewrite !nth0 !nth1 head_rec2downSS. Qed.
 
-Lemma rec2down_correct' k :
+Lemma nth_rec2downSS' k :
   nth d (rec2down k.+2) 0 =
   F (nth d (rec2down k) 0) (nth d (rec2down k.+1) 0) k.+2.
+Proof. by rewrite !nth0 -[rec2down k]behead_rec2down head_rec2downSS. Qed.
+
+Lemma nth_rec2upSS k :
+  nth d (rec2up k.+2) k.+2 =
+  F (nth d (rec2up k.+1) k) (nth d (rec2up k.+1) k.+1) k.+2.
 Proof.
-by rewrite !nth0 -[rec2down k]behead_rec2down head_rec2down.
+by rewrite /rec2up !nth_rev ?size_rec2down // !subnn subSnn nth_rec2downSS.
 Qed.
 
-(** Relying on rec2down_correct *)
-Lemma rec2up_correct k :
-    nth d (rec2up k.+2) k.+2 =
-    F (nth d (rec2up k.+1) k) (nth d (rec2up k.+1) k.+1) k.+2.
+Lemma nth_rec2upSS' k :
+  nth d (rec2up k.+2) k.+2 =
+  F (nth d (rec2up k) k) (nth d (rec2up k.+1) k.+1) k.+2.
 Proof.
-by rewrite /rec2up !nth_rev ?size_rec2down // !subnn subSnn rec2down_correct.
+by rewrite /rec2up !nth_rev ?size_rec2down // !subnn nth_rec2downSS'.
 Qed.
 
-(** Relying on rec2down_correct' *)
-Lemma rec2up_correct' k :
-    nth d (rec2up k.+2) k.+2 =
-    F (nth d (rec2up k) k) (nth d (rec2up k.+1) k.+1) k.+2.
+Lemma loop2S_ex n p a b s :
+  exists c, loop2 n.+1 p a b s = c :: (loop2 n p a b s).
 Proof.
-by rewrite /rec2up !nth_rev ?size_rec2down // !subnn rec2down_correct'.
-Qed.
-
-Lemma loop2S_ex :
-  forall n p a b s, exists c,
-  loop2 n.+1 p a b s = c :: (loop2 n p a b s).
-Proof.
-elim=> [|n IH] p a b s.
+elim: n p a b s => [|n IH] p a b s.
   simpl.
   by exists (F a b p).
 remember (S n) as n'; simpl.
@@ -546,27 +549,25 @@ rewrite Hc {}Heqn' /=.
 by exists c.
 Qed.
 
-Lemma behead_rec2down_again :
-  forall n,
+Lemma behead_rec2down_again n :
   behead (rec2down n.+1) = rec2down n.
 Proof.
-case=> [|n]; first done.
-unfold rec2down.
+case: n => [//|n]; rewrite /rec2down.
 case: (loop2S_ex n 2 a0 a1 [:: a1; a0])=> [c Hc].
 by rewrite Hc.
 Qed.
 
-Lemma nth_rec2down d1 p q n :
+Lemma nth_rec2downD d1 p q n :
   nth d1 (rec2down (p+q+n)) (p+q) = nth d1 (rec2down (p+n)) p.
 Proof.
 elim: q=> [|q IH]; first by rewrite addn0.
 by rewrite !addnS addSn -nth_behead behead_rec2down.
 Qed.
 
-Lemma nth_rec2down_dflt2 d1 d2 p q n :
+Lemma nth_rec2downD_dflt2 d1 d2 p q n :
   nth d1 (rec2down (p+q+n)) (p+q) = nth d2 (rec2down (p+n)) p.
 Proof.
-rewrite nth_rec2down (nth_defaults d1 d2) // size_rec2down.
+rewrite nth_rec2downD (nth_defaults d1 d2) // size_rec2down.
 by iomega.
 Qed.
 
@@ -586,7 +587,7 @@ case: (ltngtP m1 m2)=> Hm; last first.
     by rewrite addnC addnBA // subnK // ltnW.
   rewrite Hpq.
   have->: m1 = p + q + n by rewrite -Hpq subnK.
-  exact: nth_rec2down_dflt2.
+  exact: nth_rec2downD_dflt2.
 - set p := m1 - n in h1' *.
   rewrite -h1' addnC.
   pose q := m2 - m1.
@@ -595,7 +596,7 @@ case: (ltngtP m1 m2)=> Hm; last first.
     by rewrite addnC addnBA // subnK // ltnW.
   rewrite Hpq.
   have->: m2 = p + q + n by rewrite -Hpq subnK.
-symmetry; exact: nth_rec2down_dflt2.
+symmetry; exact: nth_rec2downD_dflt2.
 Qed.
 
 Lemma nth_rec2up_indep d1 d2 m1 m2 n : n <= m1 -> n <= m2 ->
@@ -611,9 +612,9 @@ Qed.
 
 (** For the base case *)
 
-Lemma rec2down_co0 : forall n, nth d (rec2down n) n = a0.
+Lemma rec2down_co0 n : nth d (rec2down n) n = a0.
 Proof.
-elim=> [//|n IH].
+elim: n => [//|n IH].
 case: n IH=> [//|n IH].
 rewrite /rec2down.
 have [c Hc] := loop2S_ex n 2 a0 a1 [:: a1; a0].
@@ -627,9 +628,9 @@ rewrite nth_rev.
 by rewrite size_rec2down.
 Qed.
 
-Lemma rec2down_co1 : forall n, nth d (rec2down n.+1) n = a1.
+Lemma rec2down_co1 n : nth d (rec2down n.+1) n = a1.
 Proof.
-elim=> [//|n IH]; case: n IH=> [//|n IH]; rewrite /rec2down.
+elim: n => [//|n IH]; case: n IH=> [//|n IH]; rewrite /rec2down.
 by have [c ->] := loop2S_ex n.+1 2 a0 a1 [:: a1; a0].
 Qed.
 
@@ -743,9 +744,9 @@ elim: n p t s => [//|n IHn] p t s; first by rewrite /= nuncurry_const.
 by rewrite nuncurry_ncurry IHn addSnnS.
 Qed.
 
-Lemma size_recNdown : forall n, size (recNdown n) = n.+1.
+Lemma size_recNdown n : size (recNdown n) = n.+1.
 Proof.
-rewrite /recNdown => n.
+rewrite /recNdown.
 case E: (n.+1 - N) =>[|k].
   rewrite size_rev size_take size_Tuple.
   move/eqP: E; rewrite subn_eq0 leq_eqVlt.
@@ -756,18 +757,18 @@ rewrite nuncurry_ncurry size_loopN /= -addSnnS -E rev'E size_rev size_Tuple.
 by rewrite subnK // ltnW // -subn_gt0 E.
 Qed.
 
-Lemma size_recNup : forall n, size (recNup n) = n.+1.
-Proof. by move=> n; rewrite size_rev size_recNdown. Qed.
+Lemma size_recNup n : size (recNup n) = n.+1.
+Proof. by rewrite size_rev size_recNdown. Qed.
 
 End DefixN.
 
-Theorem recNdown_init_correct (T : Type) (N : nat)
+Theorem recNdown_init (T : Type) (N : nat)
   (init : T ^ N) (F : T ^^ N --> (nat -> T)) (F1 := nuncurry F) (n : nat) :
   n < N ->
   recNdown init F n = rev (take n.+1 (Ttoseq init)).
 Proof. by rewrite /recNdown -subn_eq0; move/eqP ->. Qed.
 
-Theorem recNup_init_correct (T : Type) (N : nat)
+Theorem recNup_init (T : Type) (N : nat)
   (init : T ^ N) (F : T ^^ N --> (nat -> T)) (F1 := nuncurry F) (n : nat) :
   n < N ->
   recNup init F n = take n.+1 (Ttoseq init).
@@ -819,7 +820,7 @@ rewrite ifF 1?leqNgt ?H //.
 by rewrite behead_rev_take // size_Tuple.
 Qed.
 
-Lemma nth_recNdown (T : Type) (m : nat)
+Lemma nth_recNdownD (T : Type) (m : nat)
   (init : T ^ m) (F : T ^^ m --> (nat -> T))
   (d1 : T) (p q n : nat) :
   nth d1 (recNdown init F (p+q+n)) (p+q) = nth d1 (recNdown init F (p+n)) p.
@@ -828,12 +829,12 @@ elim: q=> [|q IHq]; first by rewrite addn0.
 rewrite !addnS addSn -nth_behead behead_recNdown; exact: IHq.
 Qed.
 
-Lemma nth_recNdown_dflt2 (T : Type) (m : nat)
+Lemma nth_recNdownD_dflt2 (T : Type) (m : nat)
   (init : T ^ m) (F : T ^^ m --> (nat -> T))
   (d1 d2 : T) (p q n : nat) :
   nth d1 (recNdown init F (p+q+n)) (p+q) = nth d2 (recNdown init F (p+n)) p.
 Proof.
-rewrite nth_recNdown (nth_defaults d1 d2) // size_recNdown -addSn.
+rewrite nth_recNdownD (nth_defaults d1 d2) // size_recNdown -addSn.
 exact: ltn_addr.
 Qed.
 
@@ -858,7 +859,7 @@ case: (ltngtP m1 m2)=> Hm.
   rewrite Hpq.
   have->: m2 = p + q + n.
     by rewrite -Hpq subnK.
-  symmetry; exact: nth_recNdown_dflt2.
+  symmetry; exact: nth_recNdownD_dflt2.
 - set p := m2 - n in h2' *.
   rewrite -h2' addnC.
   pose q := m1 - m2.
@@ -868,7 +869,7 @@ case: (ltngtP m1 m2)=> Hm.
   rewrite Hpq.
   have->: m1 = p + q + n.
     by rewrite -Hpq subnK.
-  exact: nth_recNdown_dflt2.
+  exact: nth_recNdownD_dflt2.
 - rewrite Hm (nth_defaults d1 d2) // size_recNdown.
   exact: leq_ltn_trans (@leq_subr n m2) _.
 Qed.
@@ -1041,11 +1042,10 @@ elim: k => [|k IHk] Hkn; first by rewrite rec1up_co0.
 move/(_ (ltnW Hkn)) in IHk.
 move: IHk.
 rewrite /fact_seq.
-rewrite (@rec1up_nth_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
+rewrite (@nth_rec1up_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
 move => IHk.
-rewrite (@rec1up_nth_indep _ _ _ d d _ k.+1) //.
-rewrite rec1up_correct IHk /fact_rec.
-
+rewrite (@nth_rec1up_indep _ _ _ d d _ k.+1) //.
+rewrite nth_rec1upS IHk /fact_rec.
 rewrite fact_simpl.
 zify; ring.
 Qed.
@@ -1065,13 +1065,92 @@ elim: k => [|k IHk] Hkn; first by rewrite rec1up_co0 big_mkord big_ord0.
 move/(_ (ltnW Hkn)) in IHk.
 move: IHk.
 rewrite /falling_seq.
-rewrite (@rec1up_nth_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
+rewrite (@nth_rec1up_indep _ _ _ d d _ k); try exact: ltnW || exact: leqnn.
 move => IHk.
-rewrite (@rec1up_nth_indep _ _ _ d d _ k.+1) //.
-rewrite rec1up_correct IHk /falling_rec.
+rewrite (@nth_rec1up_indep _ _ _ d d _ k.+1) //.
+rewrite nth_rec1upS IHk /falling_rec.
 rewrite big_nat_recr //=.
 congr Z.mul.
 zify; ring.
 Qed.
 
 End RecZ.
+
+(** Refinement proofs for rec1, rec2, grec1 *)
+
+Section rec_proofs.
+Variables (V T : Type).
+Variable Rel : V -> T -> Prop.
+Variables (dv : V) (dt : T).
+Hypothesis H0 : Rel dv dt.
+Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
+
+Lemma grec1up_correct (A := seq V) Fi (F : A -> nat -> A) Gi (G : A -> nat -> V) ai a si s n :
+  (forall qi q m, RelP q qi -> RelP (F q m) (Fi qi m)) ->
+  (forall qi q m, RelP q qi -> Rel (G q m) (Gi qi m)) ->
+  RelP a ai ->
+  RelP s si ->
+  size s = size si ->
+  RelP (grec1up F G a s n) (grec1up Fi Gi ai si n).
+Proof.
+move=> HF HG Ha Hs Hsize k.
+pose s1 := (size (grec1up F G a s n)).-1.
+case: (ltnP n k) => Hnk; first by rewrite !nth_default ?size_grec1up.
+have H1 : k = (size (grec1up F G a s k)).-1 by rewrite size_grec1up.
+have H2 : k = (size (grec1up Fi Gi ai si k)).-1 by rewrite size_grec1up.
+rewrite ?(@nth_grec1up_indep _ _ _ _ _ _ dv dv n k k)
+  ?(@nth_grec1up_indep _ _ _ _ _ _ dt dt n k k) //.
+case: (ltnP k (size s)) => Hk.
+- have Hki : k < size si by rewrite -Hsize.
+  rewrite ?(grec1up_init _ _ _ Hk, grec1up_init _ _ _ Hki) ?nth_take_dflt ltnn.
+  exact: Hs.
+- have Hki : size si <= k by rewrite -Hsize.
+  rewrite {4}H2 {2}H1 !nth_last !last_grec1up ?head_gloop1 // Hsize.
+  apply: HG => j; set l := k - size si.
+  elim: l j => [|l IHl] j /=; by [apply: Ha | apply: HF; apply: IHl].
+Qed.
+
+Lemma rec1up_correct fi f fi0 f0 n :
+  (forall ai a m, Rel a ai -> Rel (f a m) (fi ai m)) ->
+  Rel f0 fi0 ->
+  RelP (rec1up f f0 n) (rec1up fi fi0 n).
+Proof.
+move=> Hf Hf0 k.
+case: (ltnP n k) => Hnk; first by rewrite !nth_default ?size_rec1up.
+have H1 : k = (size (rec1up f f0 k)).-1 by rewrite size_rec1up.
+have H2 : k = (size (rec1up fi fi0 k)).-1 by rewrite size_rec1up.
+rewrite (@nth_rec1up_indep _ _ _ dv dv n k k) //
+        (@nth_rec1up_indep _ _ _ dt dt n k k) //.
+rewrite !(nth_rec1up_last, last_rec1up).
+rewrite !head_loop1 //.
+elim: k Hnk {H1 H2} => [|k IHk] Hnk //=.
+apply: Hf; apply: IHk; exact: ltnW.
+Qed.
+
+Lemma rec2up_correct fi f fi0 f0 fi1 f1 n :
+  (forall ai bi a b m, Rel a ai -> Rel b bi -> Rel (f a b m) (fi ai bi m)) ->
+  Rel f0 fi0 ->
+  Rel f1 fi1 ->
+  RelP (rec2up f f0 f1 n) (rec2up fi fi0 fi1 n).
+Proof.
+move=> Hf Hf0 Hf1 k.
+case: (ltnP n k) => Hn; first by rewrite !nth_default ?size_rec2up.
+have H1 : k = (size (rec2up f f0 f1 k)).-1 by rewrite size_rec2up.
+have H2 : k = (size (rec2up fi fi0 fi1 k)).-1 by rewrite size_rec2up.
+rewrite (@nth_rec2up_indep _ _ _ _ dv dv n k k) //
+        (@nth_rec2up_indep _ _ _ _ dt dt n k k) //.
+case: k Hn {H1 H2} => [//|k] Hn.
+rewrite !(nth_rec2up_last, last_rec2up).
+elim: k {-2}k (leqnn k) Hn => [|k IHk] k' Hk' Hn.
+- by rewrite leqn0 in Hk'; move/eqP: Hk'->.
+- rewrite leq_eqVlt in Hk'; case/orP: Hk'=> Hk'; last exact: IHk =>//.
+  move/eqP: (Hk')->; rewrite !head_loop2S //; apply: Hf.
+  + case: k IHk Hn Hk' => [|k] IHk Hn Hk' //.
+    rewrite /hb !behead_loop2.
+    apply: IHk =>//.
+    move/eqP in Hk'; rewrite Hk' in Hn; apply: ltnW; exact: ltnW.
+  + apply: IHk =>//.
+    move/eqP in Hk'; rewrite Hk' in Hn; exact: ltnW.
+Qed.
+
+End rec_proofs.

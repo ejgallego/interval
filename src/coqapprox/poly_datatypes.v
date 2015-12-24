@@ -676,6 +676,8 @@ Definition contains_pointwise pi p : Prop :=
 Definition seq_contains_pointwise si s : Prop :=
   forall k, contains (I.convert (seq.nth Int.zero si k)) (Xreal (PolR.nth s k)).
 
+Notation seq_eq_size si s := (seq.size si = seq.size s).
+
 Module Import Notations.
 Delimit Scope ipoly_scope with IP.
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
@@ -702,16 +704,17 @@ Parameter mul_trunc_correct :
 Parameter mul_tail_correct :
   forall u n pi qi p q, pi >:: p -> qi >:: q ->
   mul_tail u n pi qi >:: PolR.mul_tail tt n p q.
+Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
+Parameter deriv_correct :
+  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
 Parameter lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
 Parameter tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
+Parameter set_nth_correct :
+  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
 Parameter polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
 Parameter polyCons_correct :
   forall pi xi p x, pi >:: p -> xi >: x ->
   polyCons xi pi >:: PolR.polyCons x p.
-
-Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
-
-(* Parameter size_correct *)
 Parameter rec1_correct :
   forall fi f fi0 f0 n,
     (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
@@ -721,37 +724,18 @@ Parameter rec2_correct :
     (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
     fi0 >: f0 -> fi1 >: f1 ->
     rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
-Parameter set_nth_correct :
-  forall pi p n ai a, pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
-Parameter deriv_correct :
-  forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
-(*
 Parameter grec1_correct :
   forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
   (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
-  ai >:: a -> cpw' si s ->
-  cpw (grec1 Fi Gi ai si n) (PolR.grec1 F G a s n).
-*)
+  ai >:: a ->
+  seq_contains_pointwise si s ->
+  seq_eq_size si s ->
+  grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
 
+(* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
-
-(*
-Parameter poly2_ind : forall K : T -> PolR.T -> Type,
-  K polyNil PolR.polyNil ->
-  (forall xi x pi p, K pi p -> K (polyCons xi pi) (PolR.polyCons x p)) ->
-  forall pi p, K pi p.
-*)
-
-(*
-Parameter poly2_ind :
-  forall K : T -> PolR.T -> Prop,
-  K polyNil PolR.polyNil ->
-  (forall xi x pi p, size pi = PolR.size p -> K pi p -> K (polyCons xi pi) (PolR.polyCons x p)) ->
-  forall pi p, size pi = PolR.size p -> K pi p.
-*)
-
 End PolyIntOps.
 
 (** Note that the implementation(s) of the previous signature will
@@ -772,6 +756,8 @@ Definition contains_pointwise pi p : Prop :=
 (* Very similar definition, suitable for specifying grec1 *)
 Definition seq_contains_pointwise si s : Prop :=
   forall k, contains (I.convert (seq.nth Int.zero si k)) (Xreal (PolR.nth s k)).
+
+Notation seq_eq_size si s := (seq.size si = seq.size s).
 
 Module Import Notations.
 Delimit Scope ipoly_scope with IP.
@@ -996,28 +982,46 @@ move=> Hp k; rewrite /nth /PolR.nth.
 exact: (drop_correct (Rel := fun v t => t >: v)).
 Qed.
 
-Conjecture polyNil_correct : polyNil >:: PolR.polyNil. (* strong enough ? *)
-Conjecture polyCons_correct :
-  forall pi xi p x, pi >:: p -> xi >: x ->
-  polyCons xi pi >:: PolR.polyCons x p.
+Lemma polyNil_correct : polyNil >:: PolR.polyNil.
+Proof. intro; rewrite /nth /PolR.nth ![seq.nth _ _ _]nth_nil; exact: cont0. Qed.
 
-(* Conjecture size_correct *)
-Conjecture rec1_correct :
-  forall fi f fi0 f0 n,
-    (forall ai a m, ai >: a -> fi ai m >: f a m) -> fi0 >: f0 ->
-    rec1 fi fi0 n >:: PolR.rec1 f f0 n.
-Conjecture rec2_correct :
-  forall fi f fi0 f0 fi1 f1 n,
-    (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
-    fi0 >: f0 -> fi1 >: f1 ->
-    rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
-Conjecture grec1_correct :
-  forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
+Lemma polyCons_correct pi xi p x :
+  pi >:: p -> xi >: x -> polyCons xi pi >:: PolR.polyCons x p.
+Proof. by move=> Hp Hx [|k] /=. Qed.
+
+Lemma rec1_correct fi f fi0 f0 n :
+  (forall ai a m, ai >: a -> fi ai m >: f a m) ->
+  fi0 >: f0 ->
+  rec1 fi fi0 n >:: PolR.rec1 f f0 n.
+Proof.
+move=> Hf Hf0.
+by apply: (rec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+Qed.
+
+Lemma rec2_correct fi f fi0 f0 fi1 f1 n :
+  (forall ai bi a b m, ai >: a -> bi >: b -> fi ai bi m >: f a b m) ->
+  fi0 >: f0 ->
+  fi1 >: f1 ->
+  rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
+Proof.
+move=> Hf Hf0 Hf1.
+by apply: (rec2up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+Qed.
+
+Lemma grec1_correct
+  (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n :
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
   (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
-  ai >:: a -> seq_contains_pointwise si s ->
+  ai >:: a ->
+  seq_contains_pointwise si s ->
+  eq_size si s ->
   grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
+Proof.
+move=> HF HG Ha Hs Hsize.
+by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+Qed.
 
+(* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
 

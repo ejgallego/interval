@@ -197,6 +197,13 @@ case: (leqP n i); last exact: nth_mkseq.
 by move=> ?; rewrite nth_default // size_mkseq.
 Qed.
 
+Lemma nth_take_dflt (n0 : nat) (T : Type) (x0 : T) (i : nat) (s : seq T) :
+  nth x0 (take n0 s) i = if n0 <= i then x0 else nth x0 s i.
+Proof.
+case: (leqP n0 i) => Hi; last by rewrite nth_take.
+by rewrite nth_default // size_take; case: ltnP=>// H'; apply: leq_trans H' Hi.
+Qed.
+
 Section Fold.
 (* Erik: is this still used in the library ? *)
 Variables (A B : Type) (f : A -> B).
