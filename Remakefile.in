@@ -30,6 +30,7 @@ CAFILES = \
 	poly_datatypes.v \
 	poly_inst_seq.v \
 	Rstruct.v \
+	reals_tac.v \
 	seq_compl.v \
 	taylor_model_int_sharp.v \
 	taylor_model_float_sharp.v \
