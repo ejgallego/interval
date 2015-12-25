@@ -119,7 +119,15 @@ Definition atan := I.atan.
 End FullInt.
 
 Module Type PolyOps (C : PowDivOps) <: BaseOps.
-Include BaseOps with Definition U := C.U. (* simplifying assumption *)
+(* Include BaseOps with Definition U := C.U. *)
+Definition U := C.U.
+Parameter T : Type.
+Parameter zero : T.
+Parameter one : T.
+Parameter opp : T -> T.
+Parameter add : U -> T -> T -> T.
+Parameter sub : U -> T -> T -> T.
+Parameter mul : U -> T -> T -> T.
 
 Parameter toSeq : T -> seq C.T.
 Parameter mkPoly : seq C.T -> T.
@@ -219,9 +227,9 @@ Parameter nth_default : forall p n, size p <= n -> nth p n = C.zero.
 Parameter set_nth_nth : forall p n, n < size p -> set_nth p n (nth p n) = p.
 
 (*
-Parameter Inline recN :
+Parameter recN :
   forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T.
-Parameter Inline lastN : C.T -> forall N : nat, T -> C.T ^ N.
+Parameter lastN : C.T -> forall N : nat, T -> C.T ^ N.
 
 Parameter rec1_spec0 :
   forall (F : C.T -> nat -> C.T) F0 n,
