@@ -119,36 +119,36 @@ Definition atan := I.atan.
 End FullInt.
 
 Module Type PolyOps (C : PowDivOps) <: BaseOps.
-Include Type BaseOps with Definition U := C.U. (* simplifying assumption *)
+Include BaseOps with Definition U := C.U. (* simplifying assumption *)
 
-Parameter Inline toSeq : T -> seq C.T.
-Parameter Inline mkPoly : seq C.T -> T.
-Parameter Inline nth : T -> nat -> C.T.
-Parameter Inline size : T -> nat.
-Parameter Inline rec1 : (C.T -> nat -> C.T) -> C.T -> nat -> T.
-Parameter Inline rec2 : (C.T -> C.T -> nat -> C.T) -> C.T -> C.T -> nat -> T.
-Parameter Inline grec1 :
+Parameter toSeq : T -> seq C.T.
+Parameter mkPoly : seq C.T -> T.
+Parameter nth : T -> nat -> C.T.
+Parameter size : T -> nat.
+Parameter rec1 : (C.T -> nat -> C.T) -> C.T -> nat -> T.
+Parameter rec2 : (C.T -> C.T -> nat -> C.T) -> C.T -> C.T -> nat -> T.
+Parameter grec1 :
   forall A : Type,
   (A -> nat -> A) ->
   (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
 (* Erik: We don't use [Parameter map : forall f : C.T -> C.T, T -> T.]
    as its specification would require [f C.tzero = C.tzero], which
    does not hold in general. Still, we can rely on fold(r) instead. *)
-Parameter Inline fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
-Parameter Inline set_nth : T -> nat -> C.T -> T.
-Parameter Inline mul_trunc : U -> nat -> T -> T -> T.
-Parameter Inline mul_tail : U -> nat -> T -> T -> T.
+Parameter fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
+Parameter set_nth : T -> nat -> C.T -> T.
+Parameter mul_trunc : U -> nat -> T -> T -> T.
+Parameter mul_tail : U -> nat -> T -> T -> T.
 (** [tlift j pol] represents [pol * X^j] if [pol] is in the monomial basis *)
-Parameter Inline lift : nat -> T -> T.
-Parameter Inline tail : nat -> T -> T.
+Parameter lift : nat -> T -> T.
+Parameter tail : nat -> T -> T.
 (* Parameter polyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
-Parameter Inline polyNil : T.
-Parameter Inline polyCons : C.T -> T -> T.
-Parameter Inline eval : U -> T -> C.T -> C.T.
-Parameter Inline deriv : U -> T -> T.
-Parameter Inline mul_mixed : U -> C.T -> T -> T.
-Parameter Inline div_mixed_r : U -> T -> C.T -> T.
-Parameter Inline dotmuldiv : U -> seq Z -> seq Z -> T -> T.
+Parameter polyNil : T.
+Parameter polyCons : C.T -> T -> T.
+Parameter eval : U -> T -> C.T -> C.T.
+Parameter deriv : U -> T -> T.
+Parameter mul_mixed : U -> C.T -> T -> T.
+Parameter div_mixed_r : U -> T -> C.T -> T.
+Parameter dotmuldiv : U -> seq Z -> seq Z -> T -> T.
 Parameter primitive : U -> C.T -> T -> T.
 
 (* specifications of toSeq *)

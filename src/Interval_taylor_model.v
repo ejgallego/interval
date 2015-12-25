@@ -114,9 +114,9 @@ Lemma tsize_tm_helper1_leq u X t :
   tmsize (tm_helper1 u X t) <= maxn (tsize t) (u.2).+1.
 Proof.
 case: t =>//; rewrite /tm_helper1.
-by rewrite /tmsize /Pol.size (*FIXME: WHY?*) size_TM_any leq_max ltnSn orbC.
-by move=> c; rewrite /tmsize /Pol.size size_TM_cst leq_max ltnSn orbC.
-by rewrite /tmsize /Pol.size size_TM_var max0n.
+by rewrite /tmsize size_TM_any leq_max ltnSn orbC.
+by move=> c; rewrite /tmsize size_TM_cst leq_max ltnSn orbC.
+by rewrite /tmsize size_TM_var max0n.
 move=> r /=; exact: leq_maxl.
 Qed.
 
@@ -124,8 +124,8 @@ Lemma tsize_tm_helper1 u X t :
   tmsize (tm_helper1 u X t) = if t is Tm _ then tsize t else u.2.+1.
 Proof.
 case: t => [|c||tm] //.
-  by rewrite /tmsize /Pol.size size_TM_any.
-  by rewrite /tmsize /Pol.size size_TM_cst.
+  by rewrite /tmsize size_TM_any.
+  by rewrite /tmsize size_TM_cst.
 by rewrite /tmsize Pol.size_rec2.
 Qed.
 
@@ -138,8 +138,8 @@ Lemma tsize_tm_helper2pad_maxn u X t :
   tmsize (tm_helper2pad u X t) = maxn (tsize t) (u.2).+1.
 Proof.
 case: t; rewrite /tm_helper2pad.
-by rewrite /tmsize /Pol.size size_TM_any (appP idP maxn_idPr).
-by move=> c; rewrite /tmsize /Pol.size size_TM_cst (appP idP maxn_idPr).
+by rewrite /tmsize size_TM_any (appP idP maxn_idPr).
+by move=> c; rewrite /tmsize size_TM_cst (appP idP maxn_idPr).
 by rewrite /tsize /tmsize /= Pol.size_rec2 (appP idP maxn_idPr) //.
 by move =>  [pol delta]; rewrite /tmsize /= Pol.size_set_nth maxnC.
 Qed.
@@ -198,12 +198,12 @@ Lemma tm_helper1_correct u Y tf f :
   approximates Y (Tm (tm_helper1 u Y tf)) f.
 Proof.
 case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
-- by rewrite /tmsize /Pol.size size_TM_any.
+- by rewrite /tmsize size_TM_any.
   move=> ?; apply: TM_any_correct.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
-- by rewrite /tmsize /Pol.size size_TM_cst.
+- by rewrite /tmsize size_TM_cst.
 - move=> Hne.
   apply TM_cst_correct_strong =>//.
   exact: Imid_subset.
@@ -231,14 +231,14 @@ Lemma tm_helper2pad_correct u X tf f :
 Proof.
 case: tf => [|c||[pol delta]]; rewrite /approximates /=.
 - case=> Hnan _ _; split=>//.
-  by rewrite /tmsize /Pol.size -lt0n size_TM_any ltnS //.
+  by rewrite /tmsize -lt0n size_TM_any ltnS //.
   move=> Hne.
   apply TM_any_correct=>//.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
 - case=> Hnan _ H; split=>//.
-  by rewrite /tmsize /Pol.size -lt0n size_TM_cst ltnS //.
+  by rewrite /tmsize -lt0n size_TM_cst ltnS //.
   move=> Hne.
   apply TM_cst_correct_strong=>//.
   exact: Imid_subset.
@@ -659,8 +659,8 @@ split=>//.
 by rewrite Hnan.
 rewrite /add_slow.
 set t' := pad2 u Y (tf, tg) in Hnil *.
-rewrite /= /tmsize /Pol.size size_TM_add /=.
-rewrite ![size _]tsize_tm_helper1.
+rewrite /= /tmsize size_TM_add /=.
+rewrite ![Pol.size _]tsize_tm_helper1.
 case: t'.1 Hnil =>[|c'| |t'1]; rewrite -lt0n ?maxSn //.
 rewrite /not_nil /= -lt0n.
 move=> H'1.
@@ -670,7 +670,7 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply: TM_add_correct;
   first
-    (rewrite ![size _]tsize_tm_helper1 size_pad2;
+    (rewrite ![Pol.size _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c||tm][|c'||tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
   try (apply: TM_any_correct;
@@ -715,8 +715,8 @@ move=> [Hnan Hnil Hmain].
 split=>//.
 by rewrite Hnan.
 rewrite /opp_slow.
-rewrite /= /tmsize /Pol.size size_TM_opp /=.
-rewrite ![size _]tsize_tm_helper1.
+rewrite /= /tmsize size_TM_opp /=.
+rewrite ![Pol.size _]tsize_tm_helper1.
 by case: tf Hnil Hmain =>[|c'| |tf'].
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
@@ -768,8 +768,8 @@ split=>//.
 by rewrite Hnan.
 rewrite /sub_slow.
 set t' := pad2 u Y (tf, tg) in Hnil *.
-rewrite /= /tmsize /Pol.size size_TM_sub /=.
-rewrite ![size _]tsize_tm_helper1.
+rewrite /= /tmsize size_TM_sub /=.
+rewrite ![Pol.size _]tsize_tm_helper1.
 case: t'.1 Hnil =>[|c'| |t'1]; rewrite -lt0n ?maxSn //.
 rewrite /not_nil /= -lt0n.
 move=> H'1.
@@ -780,7 +780,7 @@ have [v Hv] := Hne'.
 red.
 apply: TM_sub_correct;
   first
-    (rewrite ![size _]tsize_tm_helper1 size_pad2;
+    (rewrite ![Pol.size _]tsize_tm_helper1 size_pad2;
     case: pad2 (isTm_pad2 u Y (tf, tg)) => [[|c|| tm][|c'|| tm']] []; done);
   move: H H' {Hnil}; case: (pad2 _ _ _).1; case: (pad2 _ _ _).2 =>// *;
   try (apply: TM_any_correct;
@@ -840,12 +840,12 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_mul_correct=>//.
 (* . *)
-rewrite /t' ![size _]tsize_tm_helper1.
+rewrite /t' ![Pol.size _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by case=> [|c1| |t1] b [].
 (* . *)
-rewrite /t' ![size _]tsize_tm_helper1 size_pad2.
+rewrite /t' ![Pol.size _]tsize_tm_helper1 size_pad2.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by move=> a [|c2| |t2] [].
@@ -893,7 +893,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed size_TM_var);
+  first (by rewrite /= /tmsize size_TM_mul_mixed size_TM_var);
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -905,7 +905,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed (*size_TM_var*));
+  first (by rewrite /= /tmsize size_TM_mul_mixed (*size_TM_var*));
   red=>Hne.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -915,7 +915,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed size_TM_var);
+  first (by rewrite /= /tmsize size_TM_mul_mixed size_TM_var);
   red=>Hne.
 (* apply: TM_fun_eq (fun x _ => XmulC (g (Xreal x)) (f (Xreal x))) _. *)
 apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
@@ -929,7 +929,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_mul_mixed (*size_TM_var*));
+  first (by rewrite /= /tmsize size_TM_mul_mixed (*size_TM_var*));
   red=>Hne.
 apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
 apply: TM_mul_mixed_correct_strong =>//.
@@ -970,12 +970,12 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 apply TM_div_correct=>//.
 (* . *)
-rewrite /t' ![size _]tsize_tm_helper1.
+rewrite /t' ![Pol.size _]tsize_tm_helper1.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by case=> [|c1| |t1] b [].
 (* . *)
-rewrite /t' ![size _]tsize_tm_helper1 size_pad2.
+rewrite /t' ![Pol.size _]tsize_tm_helper1 size_pad2.
 have := isTm_pad2 u Y (tf, tg).
 case: pad2=>//=.
 by move=> a [|c2| |t2] [].
@@ -1023,7 +1023,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_div_mixed_r size_TM_var);
+  first (by rewrite /= /tmsize size_TM_div_mixed_r size_TM_var);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
@@ -1035,7 +1035,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//;
   first (by rewrite Hnan1);
-  first (by rewrite /= /tmsize /Pol.size size_TM_div_mixed_r);
+  first (by rewrite /= /tmsize size_TM_div_mixed_r);
   red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
@@ -1117,10 +1117,10 @@ split.
 - case: I.sign_large=>//.
     rewrite /opp /=.
     case: tf Hf Hnil {Hmain E} => [| | |tf] Hf //=.
-      rewrite /tmsize /Pol.size size_TM_opp.
+      rewrite /tmsize size_TM_opp.
       by rewrite size_TM_var.
-    by rewrite /tmsize /Pol.size size_TM_opp.
-  by rewrite /not_nil /tmsize /Pol.size size_TM_any.
+    by rewrite /tmsize size_TM_opp.
+  by rewrite /not_nil /tmsize size_TM_any.
 case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   case: tf Hf Hnil Hmain Habs {E} => [|cf| |tf] Hf Hnil Hmain Habs //.
 - have [[|y] Hy1 Hy2] := Hmain;
@@ -1208,7 +1208,7 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists y.
 - split; first by rewrite Hnan.
-  by rewrite /not_nil /ft /fun_gen /tmsize /Pol.size size_TM_comp.
+  by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
   move=> HneY; move/(_ HneY) in Hmain.
   have [Hzero Hsubset Htm] := Hmain.
   have Hne' := not_empty_Imid HneY.
@@ -1216,9 +1216,9 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply (TM_comp_correct u.1) =>//.
   + rewrite /tmsize.
     rewrite /= /tmsize in Hnil.
-    by rewrite /Pol.size in Hnil *; case: size Hnil.
+    by case: Pol.size Hnil.
   + move=> *; split; first exact: Hvalid.
-    by rewrite -/Pol.size -/(tmsize _) Hsiz.
+    by rewrite -/(tmsize _) Hsiz.
 Qed.
 
 (*
@@ -1449,7 +1449,7 @@ apply: (fun_gen_correct
   (ftm := fun prec => TM_power_int prec _)
   (fx := fun x => Xpower_int x _)) =>//;
 try (by move=> *; apply: I.power_int_correct);
-try (by move=> *; rewrite /tmsize /Pol.size size_TM_power_int);
+try (by move=> *; rewrite /tmsize size_TM_power_int);
 by move=> *; apply: TM_power_int_correct.
 Qed.
 
