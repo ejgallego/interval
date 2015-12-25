@@ -35,40 +35,6 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(*
-Module Type TaylorPolyOps (C : FullOps) (P : PolyOps C).
-
-Parameter T_cst : C.T -> C.T -> nat -> P.T.
-(** Note that in addition to the Taylor expansion point that is
-the 2nd parameter of T_cst, the first one is the value of
-the constant itself. *)
-
-Parameter T_var : C.T -> nat -> P.T.
-
-Parameter T_inv : P.U -> C.T -> nat -> P.T.
-
-Parameter T_exp : P.U -> C.T -> nat -> P.T.
-
-Parameter T_sin : P.U -> C.T -> nat -> P.T.
-
-Parameter T_cos : P.U -> C.T -> nat -> P.T.
-
-Parameter T_sqrt : P.U -> C.T -> nat -> P.T.
-
-Parameter T_invsqrt : P.U -> C.T -> nat -> P.T.
-
-Parameter T_tan : P.U -> C.T -> nat -> P.T.
-
-Parameter T_atan : P.U -> C.T -> nat -> P.T.
-
-(*
-Parameter T_ln : P.U -> C.T -> nat -> P.T.
-Parameter T_asin : P.U -> C.T -> nat -> P.T.
-Parameter T_acos : P.U -> C.T -> nat -> P.T.
-*)
-End TaylorPolyOps.
-*)
-
 Module TaylorPoly (C : FullOps) (P : PolyOps C).
 (** Needs functions defining the recurrences, as well as rec1, rec2, grec1. *)
 
@@ -77,6 +43,9 @@ Definition cst_rec (x : C.T) (n : nat) := C.mask C.zero x.
 Definition var_rec (a b : C.T) (n : nat) := C.mask (C.mask C.zero a) b.
 
 Definition T_cst c (x : C.T) := P.rec1 cst_rec (C.mask c x).
+(** Note that in addition to the Taylor expansion point that is
+the 2nd parameter of T_cst, the first one is the value of
+the constant itself. *)
 
 Definition T_var x := P.rec2 var_rec x (C.mask C.one x).
 
@@ -158,6 +127,13 @@ End PrecIsPropagated1.
 Section PrecIsPropagated2.
 Variable u : P.U.
 
+(*
+Definition T_ln x := trec2 (ln_rec u x) (tln u x) (C.inv u x).
+Definition T_atan x := trec2 (atan_rec u x) (tatan u x) (Deriv_atan u x).
+Definition T_asin x := trec2 (asin_rec u x) (tasin u x) (Deriv_asin u x).
+Definition T_acos x := trec2 (acos_rec u x) (tacos u x) (Deriv_acos u x).
+*)
+
 Definition T_inv x := P.rec1 (inv_rec u x) (C.inv u x).
 
 Definition T_exp x := P.rec1 (exp_rec u) (C.exp u x).
@@ -206,13 +182,6 @@ Definition T_ln x n :=
      P.dotmuldiv u (falling_seq p1 n') (behead (fact_seq n))
                   (P.rec1 (pow_aux_rec u p1 y) (C.power_int u y p1) n')
    else P.polyNil).
-
-(*
-Definition T_ln x := trec2 (ln_rec u x) (tln u x) (C.inv u x).
-Definition T_atan x := trec2 (atan_rec u x) (tatan u x) (Deriv_atan u x).
-Definition T_asin x := trec2 (asin_rec u x) (tasin u x) (Deriv_asin u x).
-Definition T_acos x := trec2 (acos_rec u x) (tacos u x) (Deriv_acos u x).
-*)
 
 End PrecIsPropagated2.
 End TaylorPoly.
