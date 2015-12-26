@@ -327,6 +327,28 @@ elim: sv st Hs => [ | xv sv IH1] st Hs /=.
     apply: IH1.
     move=> k; by move/(_ k.+1): Hs.
 Qed.
+
+Lemma seq_foldr_correct fv ft sv st (zv := [::]) (zt := [::]) :
+  RelP sv st ->
+  (forall xv yv, Rel xv dt -> RelP yv zt -> RelP (fv xv yv) zt) ->
+  (forall xt yt, Rel dv xt -> RelP zv yt -> RelP zv (ft xt yt)) ->
+  (forall xv xt yv yt, Rel xv xt -> RelP yv yt -> RelP (fv xv yv) (ft xt yt)) ->
+  RelP (foldr fv zv sv) (foldr ft zt st).
+Proof.
+move=> Hs H0t H0v Hf.
+elim: sv st Hs => [ | xv sv IH1] st Hs /=.
+- elim: st Hs => [ | xt st IH2] Hs //=.
+  apply: H0v; first by move/(_ 0): Hs.
+  by apply: IH2 => k; move/(_ k.+1): Hs; rewrite /= nth_nil.
+- case: st Hs => [ | xt st] Hs /=.
+  + apply: H0t; first by move/(_ 0): Hs.
+    change zt with (foldr ft zt [::]).
+    apply/IH1 => k.
+    by move/(_ k.+1): Hs; rewrite /= nth_nil.
+  + apply: Hf; first by move/(_ 0): Hs.
+    apply: IH1.
+    move=> k; by move/(_ k.+1): Hs.
+Qed.
 (*
 Lemma foldr_correct A fv ft (s : seq A) :
   (forall a v t, Rel v t -> Rel (fv a v) (ft a t)) ->
@@ -365,7 +387,7 @@ Variable Rel : V -> T -> Prop.
 Variables (dv : V) (dt : T).
 Local Notation RelP sv st := (forall k : nat, Rel (nth dv sv k) (nth dt st k)) (only parsing).
 Hypothesis H0 : Rel dv dt.
-Lemma foldri_correct fv ft sv st (zv := [::]) (zt := [::]) i :
+Lemma seq_foldri_correct fv ft sv st (zv := [::]) (zt := [::]) i :
   RelP sv st ->
   (* RelP zv zt -> *)
   (forall xv yv i, Rel xv dt -> RelP yv zt -> RelP (fv xv i yv) zt) ->

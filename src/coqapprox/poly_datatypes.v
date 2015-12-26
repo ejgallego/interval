@@ -785,6 +785,12 @@ Parameter mul_trunc_correct :
 Parameter mul_tail_correct :
   forall u n pi qi p q, pi >:: p -> qi >:: q ->
   mul_tail u n pi qi >:: PolR.mul_tail tt n p q.
+Parameter mul_mixed_correct :
+  forall u ai pi a p, ai >: a -> pi >:: p ->
+  mul_mixed u ai pi >:: PolR.mul_mixed tt a p.
+Parameter div_mixed_r_correct :
+  forall u pi bi p b, pi >:: p -> bi >: b ->
+  div_mixed_r u pi bi >:: PolR.div_mixed_r tt p b.
 Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
 Parameter deriv_correct :
   forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
@@ -1008,6 +1014,36 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   by apply: leq_trans _ _k; rewrite leq_add2r.
 Qed.
 
+Lemma mul_mixed_correct  u ai pi a p :
+  ai >: a ->
+  pi >:: p ->
+  mul_mixed u ai pi >:: PolR.mul_mixed tt a p.
+Proof.
+move=> Ha Hp; rewrite /mul_mixed /PolR.mul_mixed.
+apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
+- move=> x s /only0 -> Hs [|k] /=; first by rewrite Rmult_0_r; apply: cont0.
+  by move: (Hs k); rewrite nth_nil.
+- move=> x s Hx Hs [|k]; first by rewrite -(Rmult_0_r a); apply: R_mul_correct.
+  by move: (Hs k); rewrite nth_nil.
+- move=> x y s t Hx Hs [|k]; first by apply: R_mul_correct.
+  by apply: Hs.
+Qed.
+
+Lemma div_mixed_r_correct u pi bi p b :
+  pi >:: p ->
+  bi >: b ->
+  div_mixed_r u pi bi >:: PolR.div_mixed_r tt p b.
+Proof.
+move=> Ha Hp; rewrite /div_mixed_r /PolR.div_mixed_r.
+apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
+- move=> x s /only0 -> Hs [|k] /=; first by rewrite /Rdiv Rmult_0_l; apply: cont0.
+  by move: (Hs k); rewrite nth_nil.
+- move=> x s Hx Hs [|k]; last by move: (Hs k); rewrite nth_nil.
+  by rewrite -(Rmult_0_l (Rinv b)); apply: R_div_correct.
+- move=> x y s t Hx Hs [|k]; first by apply: R_div_correct.
+  by apply: Hs.
+Qed.
+
 Lemma eval_correct u pi ai p a :
   pi >:: p -> ai >: a -> eval u pi ai >: PolR.eval tt p a.
 Proof.
@@ -1029,7 +1065,7 @@ Lemma deriv_correct u pi p : pi >:: p -> deriv u pi >:: PolR.deriv tt p.
 
 Proof.
 move=> Hpi; rewrite /deriv /PolR.deriv /deriv_loop /PolR.deriv_loop.
-apply: (foldri_correct (Rel := fun v t => t >: v)) =>//.
+apply: (seq_foldri_correct (Rel := fun v t => t >: v)) =>//.
 - by move=> k; rewrite !nth_behead.
 - move=> x s i Hx Hs [|k] /=.
   + by move/only0: Hx->; rewrite Rmult_0_l; apply: cont0.
