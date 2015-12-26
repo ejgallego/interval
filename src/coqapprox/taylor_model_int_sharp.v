@@ -18,7 +18,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith Psatz.
+Require Import ZArith Psatz reals_tac.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
@@ -95,7 +95,7 @@ Import Pol.Notations.
 Local Open Scope ipoly_scope.
 Module Export Aux := IntervalAux I.
 Module Import TI := TaylorPoly Pol.Int Pol.
-Module TX := TaylorPoly FullR PolR.
+Module TR := TaylorPoly FullR PolR.
 (* TODO: the following 2 modules could be removed, using MonomPolyOps instead *)
 Module MapI := PolyMap Pol.Int Pol Pol.Int Pol.
 Module Import BndThm := PolyBoundThm I Pol Bnd.
@@ -2597,7 +2597,7 @@ Theorem i_validTM_Ztech X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (Ztech prec IP (IP X0 n) F0 X0 X n)) XF0.
-Proof.
+Proof using validPoly_ validIPoly_ F0 prec.
 move=> Hsub tHt.
 case E1 : (isNNegOrNPos (Pol.nth (IP X n.+1) n.+1)); last first.
   rewrite (ZtechE1 _ _ _ _ E1).
@@ -3991,6 +3991,173 @@ Proof. by rewrite Pol.size_grec1. Qed.
 
 Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
+
+Instance validIPoly_atan : validIPoly (TR.T_atan tt) (TI.T_atan prec).
+Proof.
+constructor.
+- admit.
+- move => X0 xi0 n Hx.
+  apply: Pol.grec1_correct =>//.
+  move=> qi q m Hq.
+  admit.
+  admit.
+  apply: Pol.one_correct.
+  admit.
+Qed.
+
+Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
+Proof.
+constructor.
+- admit. (* size *)
+- move=> xi0 n k; rewrite ltnS => H;
+  rewrite /TR.T_atan /PolR.nth /PolR.grec1
+    (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
+    nth_grec1up_last.
+  have Hf : f0 Xatan = atan by rewrite /f0 /Xatan toR_toXreal.
+  case: k H => [|k H]; first by rewrite /= Hf ?Rdiv_1.
+  rewrite last_grec1up // head_gloop1.
+  rewrite /Dn Hf [size _]/= subn1 [_.+1.-1]/=.
+  elim: k H xi0 => [|k IHk] H xi0.
+  + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
+    symmetry; apply: is_derive_unique; auto_derive =>//.
+    by rewrite Rmult_1_r.
+  + move/ltnW in H; move/(_ H) in IHk.
+    rewrite [INR]lock [PolR.lift]lock [iter]lock [fact]lock /= -!lock.
+    set qk := iteri k
+      (fun (i : nat) (c : PolR.T) =>
+        PolR.div_mixed_r tt
+        (PolR.sub tt (PolR.add tt (PolR.deriv tt c) (PolR.lift 2 (PolR.deriv tt c)))
+        (PolR.mul_mixed tt (INR ((i + 1).+1.-1).*2) (PolR.lift 1 c)))
+        (INR (i + 1).+1)) PolR.one in IHk *.
+    rewrite iterS.
+    rewrite (@Derive_ext _ (fun x =>
+      PolR.eval tt qk x / powerRZ (1+x*x) (Z.of_nat (k+1)) * INR (fact k.+1))%R);
+      first last.
+    move=> t; move/(_ t) in IHk; simpl_R.
+    apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk Rmult_assoc Hri0; try lra.
+    by rewrite -Hr0; apply: INR_fact_neq_0.
+    apply: Rinv_r_neq0 (Hri0 _).
+    by rewrite -Hr0; apply: INR_fact_neq_0.
+admit. (* TODO *)
+Qed.
+(* Check (Derive_scal_l, is_derive_unique, PolR.is_derive_horner). *)
+
+Lemma TM_atan_correct X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_atan X0 X n) Xatan.
+Proof.
+move=> Hsubset [t Ht].
+apply: i_validTM_Ztech =>//.
+by exists t.
+Qed.
+(*
+  (XDn :=
+    (fun k x => if k isn't k'.+1 then Xatan x else
+      if x is Xreal r then
+        Xreal (1 / (1 + x ^ 2))
+      else Xnan)%XR)); last by eexists; exact Ht.
+6: done.
+done.
+red=> x; simpl.
+apply nth_Xderive_pt_ln.
+apply: I.ln_correct.
+
+(* validXPoly *)
+instantiate (1 := TX.T_ln tt).
+split.
+move=> x [ |k]; rewrite /TX.T_ln !sizes ?PolR_tsize_dotmuldiv //.
+rewrite /T_ln /TX.T_ln.
+move=> x n' k Hk.
+rewrite PolR.tnth_polyCons; last first.
+  case: n' Hk =>[ |n']; first by rewrite ltnS leqn0; move/eqP->.
+  by rewrite ltnS => Hk; rewrite PolR_tsize_dotmuldiv.
+case: k Hk =>[//|k Hk]; first by rewrite Xdiv_1_r.
+rewrite ltnS in Hk.
+rewrite -(subnKC Hk) /= -addnE.
+have->: k + (n' - k.+1) = n'.-1 by rewrite -[in RHS](subnKC Hk) addSn.
+have->: k.+1 + (n' - k.+1) = n'.-1.+1 by rewrite -[in RHS](subnKC Hk) addSn.
+case: x =>[ |x] /=.
+rewrite PolR.tnth_dotmuldiv.
+case: k Hk =>[//|k Hk].
+rewrite PolR.trec1_spec0 XmulC //.
+rewrite PolR.trec1_spec.
+rewrite /TX.Rec.pow_aux_rec XmulC //.
+exact: ltn_leq_pred.
+rewrite PolR_tsize_dotmuldiv.
+exact: ltn_leq_pred.
+case: is_positive_spec=> Hx.
+rewrite /= zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
+rewrite PolR.tnth_dotmuldiv; last first.
+rewrite PolR_tsize_dotmuldiv.
+exact: ltn_leq_pred.
+rewrite Rmult_1_r Xreal_Rinv; last first.
+rewrite zeroF; case: (is_positive_spec x) Hx =>//; auto with real.
+rewrite aux_tnth_ln.
+rewrite [Xpower_int _ _]/=.
+rewrite zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
+rewrite falling_seq_correct.
+rewrite nth_behead.
+rewrite fact_seq_correct.
+rewrite !Xdiv_split.
+rewrite !Xmul_assoc (Xmul_comm (Xinv _)).
+rewrite -!Xmul_assoc; congr Xmul.
+- rewrite [Z.sub]lock /= -lock; repeat f_equal.
+  rewrite big_mkord.
+  apply: (@big_ind2 _ _ (fun a b => IZR a = b)) =>//.
+  by move=> a b c d <- <-; rewrite mult_IZR.
+  move=> i _;   rewrite minus_IZR /=.
+  rewrite Pos.of_nat_succ P2R_INR Nat2Pos.id // S_INR -INR_IZR_INZ.
+  rewrite Ropp_plus_distr Rplus_comm.
+  by auto with real.
+- by repeat f_equal; rewrite INR_IZR_INZ; repeat f_equal.
+exact: ltn_leq_pred.
+exact: ltn_leq_pred.
+done.
+by rewrite /is_positive /Rlt_bool Rcompare_Lt.
+rewrite PolR.tnth_dotmuldiv; last first.
+by rewrite PolR_tsize_dotmuldiv; apply: ltn_leq_pred.
+simpl.
+case: is_zero =>//.
+elim: k Hk =>[ |k IHk] Hk; first by rewrite PolR.trec1_spec0 XmulC.
+rewrite PolR.trec1_spec //=; exact: ltn_leq_pred.
+
+(* validPoly *)
+split=> Y y m.
+rewrite /TX.T_ln /T_ln sizes.
+case: m =>[ |m]; first by rewrite !sizes.
+by rewrite !sizes !PolR_tsize_dotmuldiv !PolI_tsize_dotmuldiv.
+(* . *)
+move=> k Hy Hk.
+rewrite /TX.T_ln /T_ln.
+rewrite ?(PolR.tnth_polyCons, tnth_polyCons); first last.
+case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
+by move=> Hk; rewrite PolI_tsize_dotmuldiv.
+case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
+by move=> Hk; rewrite PolR_tsize_dotmuldiv.
+case: k Hk =>[ |k] Hk.
+exact: I.ln_correct.
+rewrite ltnS in Hk.
+rewrite -(ltn_predK Hk).
+rewrite ?(PolR.tnth_dotmuldiv,tnth_dotmuldiv); first last.
+rewrite PolI_tsize_dotmuldiv; exact: ltn_leq_pred.
+rewrite PolR_tsize_dotmuldiv; exact: ltn_leq_pred.
+apply I.mul_correct.
+apply I.div_correct; rewrite -Z2R_IZR; exact: I.fromZ_correct.
+case: k Hk =>[ |k] Hk.
+rewrite trec1_spec0 // PolR.trec1_spec0 //.
+apply: I.power_int_correct.
+apply: I.mask_correct =>//.
+exact: I.ln_correct.
+rewrite trec1_spec // ?PolR.trec1_spec //.
+rewrite /Rec.pow_aux_rec /TX.Rec.pow_aux_rec.
+rewrite orTb.
+apply: I.power_int_correct.
+apply: I.mask_correct =>//.
+exact: I.ln_correct.
+exact: ltn_leq_pred.
+exact: ltn_leq_pred.
+*)
 
 (* **************************************************************** *)
 

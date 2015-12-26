@@ -435,6 +435,9 @@ move=> h1 h2; rewrite !nth_rev; try by rewrite size_grec1down.
 rewrite !size_grec1down !subSS; exact: nth_grec1down_indep.
 Qed.
 
+Lemma nth_grec1up_last (d : T) k : nth d (grec1up k) k = last d (grec1up k).
+Proof. by rewrite (last_nth d) size_grec1up. Qed.
+
 End GenDefix1.
 
 Section Defix2.

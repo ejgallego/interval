@@ -145,6 +145,11 @@ Lemma toR_toXreal (f : R -> R) :
   toR_fun (toXreal_fun f) = f.
 Proof. done. Qed.
 
+Lemma toR_toXreal_ext f g :
+  g =1 toXreal_fun f ->
+  toR_fun g =1 f.
+Proof. by move=> Hg r; rewrite /toR_fun /proj_fun Hg. Qed.
+
 Lemma toXreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
   defined f x ->
   toXreal_fun (toR_fun f) (Xreal x) = f (Xreal x).

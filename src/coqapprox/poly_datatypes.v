@@ -20,6 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith.
 Require Import Reals.
+Require Import Coquelicot.
 Require Import NaryFunctions.
 Require Import Flocq.Core.Fcore.
 Require Import Interval_interval.
@@ -36,6 +37,8 @@ Require Import Rstruct interval_compl nary_tuple basic_rec seq_compl.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Local Open Scope nat_scope.
 
 Reserved Notation "--> e"
   (at level 10, e at level 8, no associativity, format "-->  e").
@@ -593,6 +596,14 @@ Qed.
 Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
 
+Lemma size_deriv p : size (deriv u p) = (size p).-1.
+Proof.
+rewrite /deriv /deriv_loop.
+case: p => [|a p] //=.
+elim: p 1 => [|b p IHp] n //=.
+by rewrite IHp.
+Qed.
+
 End precSection.
 End SeqPoly.
 
@@ -627,6 +638,68 @@ Lemma hornerE_wide n p x :
 Proof.
 move=> Hn; rewrite hornerE (big_nat_leq_idx _ Hn) //.
 by move=> i /andP [Hi _]; rewrite nth_default // Rmult_0_l.
+Qed.
+
+Lemma coef_deriv p i :
+  nth (deriv tt p) i = (nth p i.+1 * INR i.+1)%R.
+Proof.
+rewrite /deriv /deriv_loop -{2}[in RHS]addn1.
+elim: p i 1 => [|a p IHp] i n; first by rewrite /nth !nth_nil Rmult_0_l.
+case: p IHp => [|b p] IHp; first by rewrite /= /nth !nth_nil Rmult_0_l.
+case: i => [|i] //=.
+rewrite IHp; congr Rmult.
+by rewrite addnS.
+Qed.
+
+Lemma horner_derivE_wide n p x :
+  (size p).-1 <= n ->
+  eval tt (deriv tt p) x =
+  \big[Rplus/R0]_(0 <= i < n) ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
+Proof.
+move=> H.
+rewrite (@hornerE_wide n); last by rewrite size_deriv.
+apply: eq_bigr => i _.
+congr Rmult.
+exact: coef_deriv.
+Qed.
+
+Lemma horner_derivE p x :
+  eval tt (deriv tt p) x =
+  \big[Rplus/R0]_(0 <= i < (size p).-1)
+    ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
+Proof. by rewrite (@horner_derivE_wide (size p).-1). Qed.
+
+Lemma is_derive_horner p x :
+  is_derive (eval tt p) x (eval tt (deriv tt p) x).
+Proof.
+elim: p => [|a p IHp].
+- rewrite /eval /=; exact: is_derive_const.
+- apply: (@is_derive_ext _ _ (fun x => eval tt p x * x + a)%R); first done.
+  rewrite -[eval _ _ _]Rplus_0_r.
+  apply: is_derive_plus; last by auto_derive.
+  suff->: eval tt (deriv tt (a :: p)) x =
+    ((eval tt (deriv tt p) x) * x + (eval tt p x) * 1)%R.
+    apply: is_derive_mult =>//.
+    apply: is_derive_id.
+    exact: Rmult_comm.
+  rewrite (@horner_derivE_wide (size p)) //
+          (@horner_derivE_wide (size p).-1) //
+          (@hornerE_wide (size p)) //.
+  (* Some bigop bookkeeping *)
+  rewrite Rmult_1_r.
+  rewrite big_distrl.
+  case E: (size p) => [|sp]; first by rewrite !(big_mkord, big_ord0) Rplus_0_l.
+  rewrite [LHS]big_ltn // [in LHS]big_add1.
+  rewrite [in X in _ = (_ + X)%R](big_ltn, big_add1) //.
+  rewrite [in RHS]Rplus_comm [in RHS]Rplus_assoc; congr Rplus.
+    by rewrite !Rmult_1_r.
+  rewrite big_add1.
+  rewrite -big_split.
+  apply: eq_bigr => i _.
+  have->: INR i.+2 = (INR i.+1 + 1)%R by [].
+  have->: nth (a :: p) i.+2 = nth p i.+1 by [].
+  rewrite FullR.pow_S /FullR.mul [nth]lock /= -lock.
+  ring.
 Qed.
 
 (*
@@ -975,9 +1048,6 @@ Proof.
 move=> Hp Ha k; rewrite /nth /PolR.nth.
 exact: (seq_compl.set_nth_correct (Rel := fun v t => t >: v)).
 Qed.
-
-Definition sizes := (size_polyNil, size_polyCons,
-                     PolR.size_polyNil, PolR.size_polyCons).
 
 Lemma lift_correct n pi p : pi >:: p -> lift n pi >:: PolR.lift n p.
 Proof.

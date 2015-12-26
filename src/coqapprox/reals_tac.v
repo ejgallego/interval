@@ -2,6 +2,11 @@ Require Import Reals.
 Require Import Rbase.
 Require Import Psatz.
 
+Lemma Rinv_r_neq0 r ri : (r * ri = 1)%R -> ri <> 0%R.
+Proof.
+now intros Hri Kri; rewrite Kri, Rmult_0_r in Hri; apply R1_neq_R0; rewrite Hri.
+Qed.
+
 (** Tactics inspired by Frédéric Besson's coq-club post on 2015-04-05:
     https://sympa.inria.fr/sympa/arc/coq-club/2012-04/msg00025.html *)
 
