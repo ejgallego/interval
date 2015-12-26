@@ -823,6 +823,9 @@ Parameter grec1_correct :
 (* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
+
+Parameter nth_default_alt : forall pi p, pi >:: p ->
+  forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
 End PolyIntOps.
 
 (** Note that the implementation(s) of the previous signature will

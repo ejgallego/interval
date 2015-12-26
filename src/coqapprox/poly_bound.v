@@ -94,18 +94,19 @@ Theorem ComputeBound_nth0 prec pi p X :
   forall r : R, (Pol.nth pi 0) >: r ->
                 ComputeBound prec pi X >: r.
 Proof.
-move=> Hnth HX0 r Hr.
-red in Hnth.
+move=> Hpi HX0 r Hr.
 case E: (Pol.size pi) =>[|n].
   have->: r = PolR.eval tt p 0%R.
   rewrite Pol.nth_default ?E // I.zero_correct /= in Hr.
   have [A B] := Hr.
   have H := Rle_antisym _ _ B A.
   rewrite PolR.hornerE big1 //.
-  admit. (* easy *)
+  by move=> i _; rewrite (Pol.nth_default_alt Hpi) ?E // Rmult_0_l.
   exact: ComputeBound_correct.
 have->: r = PolR.eval tt (PolR.set_nth p 0 r) 0%R.
-  admit. (* FIXME by case: (p) =>//= *; rewrite !(Rmult_0_l,Rmult_0_r,Rplus_0_l). *)
+  rewrite PolR.hornerE PolR.size_set_nth max1n big_nat_recl //.
+  rewrite PolR.nth_set_nth /= FullR.pow_0 Rmult_1_r big1 ?Rplus_0_r //.
+  by move=> i _; rewrite FullR.pow_S [FullR.mul tt _ _]Rmult_0_l Rmult_0_r.
 apply: ComputeBound_correct =>//.
 have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
   by rewrite Pol.set_nth_nth // E.

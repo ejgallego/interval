@@ -90,6 +90,9 @@ Proof. by apply/andP=> [[_n n_]]; have := leq_trans n_ _n; rewrite ltnn. Qed.
 Lemma ltn_leqN m n : m < n <= m = false.
 Proof. by apply/andP=> [[_n n_]]; have:= leq_ltn_trans n_ _n; rewrite ltnn. Qed.
 
+Lemma max1n n : maxn 1 n = n.-1.+1.
+Proof. by case: n =>//; case. Qed.
+
 End NatCompl.
 
 (** Missing result(s) about bigops *)
