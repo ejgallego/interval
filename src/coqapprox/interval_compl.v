@@ -19,14 +19,19 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Reals Psatz.
+Require Import Coquelicot.
+Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_interval Interval_xreal_derive.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat.
-Require Import xreal_ssr_compat.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
+Require Import MathComp.div Ssreflect.fintype MathComp.finfun MathComp.path MathComp.bigop.
+Require Import Rstruct xreal_ssr_compat taylor_thm.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
+Local Open Scope nat_scope.
 
 Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
 Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
@@ -428,3 +433,109 @@ Qed.
 
 End PrecArgument.
 End IntervalAux.
+
+Section NDerive.
+Variable xf : ExtendedR -> ExtendedR.
+Let f := toR_fun xf.
+Definition Dn := Derive_n f.
+Variable X : interval.
+Variable n : nat.
+Let dom r := contains X (Xreal r).
+Let Hdom : connected dom. Proof (contains_connected _).
+Let def r := defined xf r.
+Hypothesis Hdef : forall r, dom r -> def r.
+Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
+
+Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%Re.
+Proof. by move=> H; elim: (Rtotal_order r1 r2)=>[a|[b|c]];[left|done|right]. Qed.
+
+(*
+Lemma Xderive_propagate (f f' : ExtendedR -> ExtendedR) x :
+  Xderive f f' -> f x = Xnan -> f' x = Xnan.
+Proof.
+rewrite /Xderive /Xderive_pt.
+move/(_ x); case: x => [|r]; first by case: (f' Xnan).
+by move=> H Hnan; move: H; rewrite Hnan; case: (f' (Xreal r)).
+Qed.
+
+Lemma Xderive_propagate' (f f' : ExtendedR -> ExtendedR) :
+  Xderive f f' -> f' Xnan = Xnan.
+Proof. by rewrite /Xderive /Xderive_pt; move/(_ Xnan); case: (f' Xnan). Qed.
+*)
+
+Lemma Xsub_Xreal_l x y :
+  Xsub x y <> Xnan -> x = Xreal (proj_val x).
+Proof. by case: x. Qed.
+
+Lemma Xsub_Xreal_r x y :
+  Xsub x y <> Xnan -> y = Xreal (proj_val y).
+Proof. by case: x; case: y. Qed.
+
+Lemma Xsub_Xnan_r x :
+  Xsub x Xnan = Xnan.
+Proof. by case: x. Qed.
+
+Theorem ITaylor_Lagrange x0 x :
+  dom x0 ->
+  dom x ->
+  exists xi : R,
+  dom xi /\
+  (f x - \big[Rplus/0%R]_(0 <= i < n.+1)
+          (Dn i x0 / INR (fact i) * (x - x0)^i))%R =
+  (Dn n.+1 xi / INR (fact n.+1) * (x - x0) ^ n.+1)%R /\
+  (contains (Interval_interval.Ibnd (Xreal x) (Xreal x0)) (Xreal xi) \/
+   contains (Interval_interval.Ibnd (Xreal x0) (Xreal x)) (Xreal xi)).
+Proof.
+move=> Hx0 Hx.
+(*
+case: x0 Hx0.
+  case: X =>[|//] HX.
+  exists R0; split=>//; split.
+    rewrite !Xsub_Xnan_r Xmul_comm.
+    by rewrite big_ord_recr /= Xmul_comm Xadd_comm Xsub_Xnan_r.
+  case: x Hx => [|x]; first by left.
+  by case: (Rcompare_spec x R0)=> /=; auto with real.
+case: x Hx.
+  case:X =>// HX.
+  exists R0; split =>//; rewrite XD0_Xnan; split; first by rewrite Xmul_comm.
+  by case: (Rcompare_spec r R0)=> /=; auto with real.
+*)
+case (Req_dec x0 x)=> [->|Hneq].
+  exists x; split =>//=; split; last by auto with real.
+  rewrite (Rminus_diag_eq x) // Rmult_0_l Rmult_0_r.
+  rewrite big_nat_recl // pow_O big1 /Dn /=; try field.
+  by move=> i _; rewrite Rmult_0_l Rmult_0_r.
+have Hlim x1 x2 : (x1 < x2)%Re -> dom x1 -> dom x2 ->
+  forall (k : nat) (r1 : R), (k <= n)%coq_nat ->
+  (fun r2 : R => x1 <= r2 <= x2)%Re r1 ->
+  derivable_pt_lim (Dn k) r1 (Dn (S k) r1).
+  move=> Hx12 Hdom1 Hdom2 k y Hk Hy.
+  have Hdy: (dom y) by move: Hdom; rewrite /connected; move/(_ x1 x2); apply.
+  by apply/is_derive_Reals/Derive_correct; apply: (Hder k.+1 Hdy).
+destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
+    by case: Hneq.
+  have H0 : (x <= x0 <= x0)%Re by auto with real.
+  have H : (x <= x <= x0)%Re by auto with real.
+  case: (Cor_Taylor_Lagrange x x0 n (fun n r => (Dn n r))
+    (Hlim _ _ (Rgt_lt _ _ H3) Hx Hx0) x0 x H0 H) => [c [Hc Hc1]].
+  exists c.
+  have Hdc : dom c.
+    move: Hdom; rewrite /connected; move/(_ x x0); apply=>//.
+    by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+  split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
+  rewrite sum_f_to_big in Hc.
+  exact: Hc.
+have H0 : (x0 <= x0 <= x)%Re by auto with real.
+have H : (x0 <= x <= x)%Re by auto with real.
+case: (Cor_Taylor_Lagrange x0 x n (fun n r => Dn n r)
+  (Hlim _ _ (Rgt_lt _ _ H1) Hx0 Hx) x0 x H0 H) => [c [Hc Hc1]].
+exists c.
+have Hdc : dom c.
+  move: Hdom; rewrite /connected; move/(_ x0 x); apply=>//.
+  by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
+rewrite sum_f_to_big in Hc.
+exact: Hc.
+Qed.
+
+End NDerive.

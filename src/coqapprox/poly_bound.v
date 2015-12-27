@@ -88,6 +88,9 @@ Local Open Scope ipoly_scope.
 
 Module Import Aux := IntervalAux I.
 
+Lemma pow_S x n : (x ^ n.+1 = x * x ^ n)%R.
+Proof. done. Qed.
+
 Theorem ComputeBound_nth0 prec pi p X :
   pi >:: p ->
   X >: 0 ->
@@ -105,8 +108,8 @@ case E: (Pol.size pi) =>[|n].
   exact: ComputeBound_correct.
 have->: r = PolR.horner tt (PolR.set_nth p 0 r) 0%R.
   rewrite PolR.hornerE PolR.size_set_nth max1n big_nat_recl //.
-  rewrite PolR.nth_set_nth /= FullR.pow_0 Rmult_1_r big1 ?Rplus_0_r //.
-  by move=> i _; rewrite FullR.pow_S [FullR.mul tt _ _]Rmult_0_l Rmult_0_r.
+  rewrite PolR.nth_set_nth eqxx pow_O Rmult_1_r big1 ?Rplus_0_r //.
+  by move=> i _; rewrite pow_S Rmult_0_l Rmult_0_r.
 apply: ComputeBound_correct =>//.
 have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
   by rewrite Pol.set_nth_nth // E.

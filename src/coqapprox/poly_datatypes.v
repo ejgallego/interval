@@ -618,23 +618,23 @@ Qed.
 
 Lemma hornerE p x :
   horner tt p x =
-  \big[Rplus/R0]_(0 <= i < size p) Rmult (nth p i) (FullR.pow x i).
+  \big[Rplus/R0]_(0 <= i < size p) Rmult (nth p i) (x ^ i).
 Proof.
 elim: p; first by rewrite big_mkord big_ord0 /=.
 move=> t p /= ->.
-rewrite big_nat_recl // FullR.pow_0 /=.
+rewrite big_nat_recl // pow_O /=.
 rewrite Rmult_1_r Rplus_comm.
 case: (size p)=> [|n].
   by rewrite !big_mkord !big_ord0 /= Rmult_0_l.
 rewrite Rmult_comm big_distrr /=; congr Rplus.
-apply: eq_bigr => i _; rewrite FullR.pow_S /FullR.mul.
-by rewrite ![_ x _]Rmult_comm ![Rmult x _]Rmult_comm Rmult_assoc.
+apply: eq_bigr => i _.
+by rewrite ![Rmult x _]Rmult_comm Rmult_assoc.
 Qed.
 
 Lemma hornerE_wide n p x :
   size p <= n ->
   horner tt p x =
-  \big[Rplus/R0]_(0 <= i < n) Rmult (nth p i) (FullR.pow x i).
+  \big[Rplus/R0]_(0 <= i < n) Rmult (nth p i) (x ^ i).
 Proof.
 move=> Hn; rewrite hornerE (big_nat_leq_idx _ Hn) //.
 by move=> i /andP [Hi _]; rewrite nth_default // Rmult_0_l.
@@ -654,7 +654,7 @@ Qed.
 Lemma horner_derivE_wide n p x :
   (size p).-1 <= n ->
   horner tt (deriv tt p) x =
-  \big[Rplus/R0]_(0 <= i < n) ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
+  \big[Rplus/R0]_(0 <= i < n) ((nth p i.+1) * (INR i.+1) * (x ^ i))%R.
 Proof.
 move=> H.
 rewrite (@hornerE_wide n); last by rewrite size_deriv.
@@ -666,7 +666,7 @@ Qed.
 Lemma horner_derivE p x :
   horner tt (deriv tt p) x =
   \big[Rplus/R0]_(0 <= i < (size p).-1)
-    ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
+    ((nth p i.+1) * (INR i.+1) * (x ^ i))%R.
 Proof. by rewrite (@horner_derivE_wide (size p).-1). Qed.
 
 Lemma is_derive_horner p x :
@@ -698,8 +698,7 @@ elim: p => [|a p IHp].
   apply: eq_bigr => i _.
   have->: INR i.+2 = (INR i.+1 + 1)%R by [].
   have->: nth (a :: p) i.+2 = nth p i.+1 by [].
-  rewrite FullR.pow_S /FullR.mul [nth]lock /= -lock.
-  ring.
+  rewrite -tech_pow_Rmult; simpl; ring.
 Qed.
 
 (*

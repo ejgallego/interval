@@ -20,7 +20,6 @@ liability. See the COPYING file for more details.
 
 Require Import Reals.
 Require Import Psatz.
-Require Import taylor_thm.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
@@ -57,7 +56,6 @@ Arguments Xpow x n : simpl nomatch.
 
 Implicit Types n k : nat.
 Implicit Type r : R.
-Implicit Types x y : ExtendedR.
 Implicit Type X : interval.
 
 Definition Xpow_iter x n := iter_nat (Xmul x) n (Xmask (Xreal 1) x).
@@ -147,20 +145,22 @@ Lemma X0mul : right_id (Xreal 1%Re) Xmul.
 Proof. by case=> // r; rewrite /= Rmult_1_r. Qed.
 
 Lemma left_distr_Xmul_Xadd : left_distributive Xmul Xadd.
-Proof. by case=> [|rx]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
+Proof. by case=> [|x]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
 
 Lemma right_distr_Rmult_Rplus : right_distributive Xmul Xadd.
-Proof. by case=> [|rx]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
+Proof. by case=> [|x]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
 
 Lemma XmulC : commutative Xmul.
 Proof. by move=> *; rewrite Xmul_comm. Qed.
 
+(*
 Import Monoid.
 Canonical Xadd_monoid := Law XaddA Xadd0 X0add.
 Canonical Xadd_comoid := ComLaw XaddC.
 
 Canonical Xmul_monoid := Law XmulA Xmul0 X0mul.
 Canonical Xmul_comoid := ComLaw XmulC.
+*)
 
 Lemma ordinal1 : all_equal_to (ord0 : 'I_1).
 Proof. by case=> m Hm; apply: ord_inj; apply/eqP; rewrite -leqn0. Qed.
@@ -207,74 +207,11 @@ move=> i.
 by case: (F i) (HF i).
 Qed.
 
-Lemma bigXadd_Xreal_proj n (F : 'I_n -> ExtendedR) :
-  (forall i, F i <> Xnan) ->
-  \big[Xadd/Xreal 0]_(i < n) F i =
-  Xreal (\big[Rplus/R0]_(i < n) proj_val (F i)).
-Proof.
-elim: n F =>[|n IHn] F HF; first by rewrite 2!big_ord0.
-rewrite 2!big_ord_recr IHn //=.
-suff->: F ord_max = Xreal (proj_val (F ord_max)) by [].
-case E: (F ord_max) HF =>//.
-by move/(_ ord_max); rewrite E.
-Qed.
-
-Lemma bigXadd_Xnan n (F : 'I_n -> ExtendedR) :
-  \big[Xadd/Xreal 0]_(i < n) F i = Xnan ->
-  exists i, F i = Xnan.
-Proof.
-elim: n F; first by move=>F; rewrite big_ord0.
-move=> n IHn F; rewrite big_ord_recr /=.
-case E: (\big[Xadd/Xreal 0]_(i < n) F (widen_ord (leqnSn n) i)) =>[|br] /=.
-  elim: (IHn _ E) => i Hi _.
-  by exists (widen_ord (leqnSn n) i).
-case EF: (F ord_max) =>[|cr] =>// _.
-by exists ord_max.
-Qed.
-
-Lemma bigXadd_Xnan_i n (F : 'I_n -> ExtendedR) i :
-  F i = Xnan -> \big[Xadd/Xreal 0]_(i < n) F i = Xnan.
-Proof. by rewrite (bigD1 i)=> // ->. Qed.
-
-Lemma bigXadd_Xreal n (F : 'I_n -> ExtendedR) sx:
-  \big[Xadd/Xreal 0]_(i < n) F i = Xreal sx ->
-  forall i, exists gi, F i = Xreal (gi).
-Proof.
-move=> Hxreal i; case Cf: (F i) Hxreal => [|ri].
-  by rewrite (bigXadd_Xnan_i Cf).
-by exists ri.
-Qed.
-
-Lemma bigXadd_Xreal1 n (F : 'I_n -> ExtendedR) r :
-  \big[Xadd/Xreal 0]_(i < n) F i = Xreal r ->
-  exists g : 'I_n -> R, forall i, F i = Xreal (g i).
-Proof.
-move=> Hxreal; apply: not_Xnan_Xreal_fun => i.
-case C: (F i) Hxreal =>//.
-by rewrite (bigXadd_Xnan_i C).
-Qed.
-
-Lemma bigXadd_Xreal_i n (g : 'I_n -> R) :
-  \big[Xadd/Xreal 0]_(i < n) Xreal (g i) =
-  Xreal (\big[Rplus/R0]_(i < n) g i).
-Proof.
-elim: n g =>[g|n IHn g]; first by rewrite 2!big_ord0.
-by rewrite 2!big_ord_recr IHn.
-Qed.
-
 Lemma sum_f_to_big n (f : nat -> R) :
-  sum_f_R0 f n = \big[Rplus/R0]_(i < n.+1) f i.
+  sum_f_R0 f n = \big[Rplus/0%R]_(0 <= i < n.+1) f i.
 Proof.
-elim: n =>[|n IHn]; first by rewrite big_ord_recl big_ord0 Rplus_0_r.
-by rewrite big_ord_recr /= IHn.
-Qed.
-
-Lemma big_Xmul_Xadd_distr n (f : 'I_n -> ExtendedR) r :
-  ((\big[Xadd/Xreal 0]_(i < n) f i) * (Xreal r)
-  = \big[Xadd/Xreal 0]_(i < n) (f i * (Xreal r)))%XR.
-Proof.
-elim: n f =>[f| n IHn f]; first by rewrite !big_ord0 /= Rmult_0_l.
-by rewrite !big_ord_recl -(IHn _) Xmul_Xadd_distr_r.
+elim: n =>[|n IHn]; first by rewrite big_nat_recl // big_mkord big_ord0 Rplus_0_r.
+by rewrite big_nat_recr //= IHn.
 Qed.
 
 Lemma contains_Xnan (X : interval) :
@@ -286,158 +223,3 @@ Proof. by case: a; case: b; case: c =>// a b c /=; congr Xreal; ring. Qed.
 
 Lemma Xinv_1 : Xinv (Xreal 1%Re)= Xreal 1%Re.
 Proof. by rewrite /= zeroF ?Rinv_1 //; apply: R1_neq_R0. Qed.
-
-Section NDerive.
-Variable XD : nat -> ExtendedR -> ExtendedR.
-Variable X : interval.
-Variable n : nat.
-Let dom r := contains X (Xreal r).
-Let Hdom : connected dom. Proof (contains_connected _).
-
-Hypothesis Hder : forall n, Xderive (XD n) (XD (S n)).
-
-Hypothesis Hdif : forall r k, (k <= n.+1)%N -> dom r -> XD k (Xreal r) <> Xnan.
-
-Hypothesis XD0_Xnan : XD 0%N Xnan = Xnan.
-
-Lemma XD_Xnan_propagate x (k m : nat) :
-  (k <= m)%N -> XD k x = Xnan -> XD m x = Xnan.
-Proof.
-move=> Hkm Hk; elim: m Hkm =>[Hk0 | m IHm].
- by move: Hk0 Hk; rewrite leqn0; move/eqP ->.
-case: (leqP k m) =>[Hkm _| Hkm H1].
-  move:(IHm Hkm) (Hder m x); rewrite /Xderive_pt => {IHm} {Hk}.
-  case: x => [|x].
-    by case: (XD m.+1 (Xnan)).
-  case: (XD m.+1 (Xreal x)) =>//.
-  by case: (XD m (Xreal x)).
-suff->: m.+1 = k by [].
- by apply: anti_leq; apply/andP.
-Qed.
-
-Lemma XD_Xreal k r :
-  (k <= n.+1)%N -> dom r ->
-  XD k (Xreal r) = Xreal (proj_val (XD k (Xreal r))).
-Proof.
-by move=> Hk Hx; case E: (XD k (Xreal r)) =>[|//]; case: (Hdif Hk Hx).
-Qed.
-
-Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%Re.
-Proof. by move=> H; elim: (Rtotal_order r1 r2)=>[a|[b|c]];[left|done|right]. Qed.
-
-Lemma Xderive_propagate (f f' : ExtendedR -> ExtendedR) x :
-  Xderive f f' -> f x = Xnan -> f' x = Xnan.
-Proof.
-rewrite /Xderive /Xderive_pt.
-move/(_ x); case: x => [|r]; first by case: (f' Xnan).
-by move=> H Hnan; move: H; rewrite Hnan; case: (f' (Xreal r)).
-Qed.
-
-Lemma Xderive_propagate' (f f' : ExtendedR -> ExtendedR) :
-  Xderive f f' -> f' Xnan = Xnan.
-Proof. by rewrite /Xderive /Xderive_pt; move/(_ Xnan); case: (f' Xnan). Qed.
-
-Lemma bigXadd_bigRplus (r s : R) :
-  dom r ->
-  let xi0 := Xreal r in
-  \big[Xadd/Xreal 0]_(i < n.+1)
-    ((XD i xi0) / Xreal (INR (fact i)) * Xreal s ^ i)%XR =
-  Xreal (\big[Rplus/R0]_(i < n.+1)
-    (proj_val (XD i xi0) / (INR (fact i)) * s ^ i)%Re).
-Proof.
-move=> Hxi0 xi0.
-elim/big_ind2: _ =>[//|x1 x2 y1 y2 Hx Hy|i _]; [by rewrite Hx // Hy|].
-rewrite XD_Xreal //; last by apply: ltnW; case: i.
-rewrite [Xdiv _ _]/= zeroF; last exact: INR_fact_neq_0.
-by rewrite Xpow_idem Xpow_Xreal.
-Qed.
-
-Lemma Xsub_Xreal_l x y :
-  Xsub x y <> Xnan -> x = Xreal (proj_val x).
-Proof. by case: x. Qed.
-
-Lemma Xsub_Xreal_r x y :
-  Xsub x y <> Xnan -> y = Xreal (proj_val y).
-Proof. by case: x; case: y. Qed.
-
-Lemma Xsub_Xnan_r x :
-  Xsub x Xnan = Xnan.
-Proof. by case: x. Qed.
-
-Theorem XTaylor_Lagrange x0 x :
-  contains X x0 ->
-  contains X x ->
-  exists xi : R,
-  contains X (Xreal xi) /\
-  (XD 0 x - (\big[Xadd/Xreal 0]_(i < n.+1)
-    (XD i x0 / Xreal (INR (fact i)) * (x - x0)^i)))%XR =
-  (XD n.+1 (Xreal xi) / Xreal (INR (fact n.+1)) * (x - x0) ^ n.+1)%XR /\
-  (contains (Interval_interval.Ibnd x x0) (Xreal xi) \/
-   contains (Interval_interval.Ibnd x0 x) (Xreal xi)).
-Proof.
-move=> Hx0 Hx.
-case: x0 Hx0.
-  case: X =>[|//] HX.
-  exists R0; split=>//; split.
-    rewrite !Xsub_Xnan_r Xmul_comm.
-    by rewrite big_ord_recr /= Xmul_comm Xadd_comm Xsub_Xnan_r.
-  case: x Hx => [|x]; first by left.
-  by case: (Rcompare_spec x R0)=> /=; auto with real.
-case: x Hx.
-  case:X =>// HX.
-  exists R0; split =>//; rewrite XD0_Xnan; split; first by rewrite Xmul_comm.
-  by case: (Rcompare_spec r R0)=> /=; auto with real.
-move=> rx Hrx rx0 Hrx0; case (Req_dec rx0 rx)=> [->|Hneq].
-  exists rx; split =>//=; split;[| auto with real].
-  rewrite Rminus_diag_eq // pow_ne_zero; last by rewrite SuccNat2Pos.id_succ.
-  rewrite bigXadd_bigRplus // XD_Xreal // [in RHS]XD_Xreal //=.
-  change (_ + _)%coq_nat with (fact n.+1).
-  rewrite fact_zeroF /= Rmult_0_r big_ord_recl big1 /=.
-    by congr Xreal; field.
-  by move=>i _; rewrite Rmult_0_l Rmult_0_r.
-have Hlim rx1 rx2 : (rx1 < rx2)%Re -> dom rx1 -> dom rx2 ->
-  forall (k : nat) (r1 : R), (k <= n)%coq_nat ->
-  (fun r2 : R => rx1 <= r2 <= rx2)%Re r1 ->
-  derivable_pt_lim
-  ((fun (n : nat) (r : R) => proj_val (XD n (Xreal r))) k) r1
-  ((fun (n : nat) (r : R) => proj_val (XD n (Xreal r))) (S k) r1).
-  move=> Hrx12 Hdom1 Hdom2 k y Hk Hy.
-  have Hdy: (dom y) by move: Hdom; rewrite /connected; move/(_ rx1 rx2); apply.
-  have Hderk := Hder k (Xreal y).
-  case E: (XD (S k) (Xreal y)) Hk.
-    move/leP; rewrite -ltnS=> Hk.
-    by case (@Hdif y (S k) Hk Hdy).
-  rewrite /Xderive_pt E in Hderk. move => Hk.
-  destruct (XD k (Xreal y))=>//.
-  exact: Hderk.
-destruct (total_order_T rx0 rx) as [[H1|H2]|H3]; last 2 first.
-    by case: Hneq.
-  have H0 : (rx <= rx0 <= rx0)%Re by auto with real.
-  have H : (rx <= rx <= rx0)%Re by auto with real.
-  case: (Cor_Taylor_Lagrange rx rx0 n (fun n r => proj_val (XD n (Xreal r)))
-    (Hlim _ _ (Rgt_lt _ _ H3) Hrx Hrx0) rx0 rx H0 H) => [c [Hc Hc1]].
-  exists c.
-  have Hdc : dom c.
-    move: Hdom; rewrite /connected; move/(_ rx rx0); apply=>//.
-    by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
-  split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
-  rewrite XD_Xreal //.
-  rewrite sum_f_to_big in Hc.
-  rewrite bigXadd_bigRplus// XD_Xreal// [in RHS]XD_Xreal//= SuccNat2Pos.id_succ.
-  by change (_ + _)%coq_nat with (fact n.+1); rewrite fact_zeroF Hc.
-have H0 : (rx0 <= rx0 <= rx)%Re by auto with real.
-have H : (rx0 <= rx <= rx)%Re by auto with real.
-case: (Cor_Taylor_Lagrange rx0 rx n (fun n r => proj_val (XD n (Xreal r)))
-  (Hlim _ _ (Rgt_lt _ _ H1) Hrx0 Hrx) rx0 rx H0 H) => [c [Hc Hc1]].
-exists c.
-have Hdc : dom c.
-  move: Hdom; rewrite /connected; move/(_ rx0 rx); apply=>//.
-  by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
-split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
-rewrite sum_f_to_big in Hc.
-rewrite XD_Xreal // bigXadd_bigRplus // XD_Xreal // [in RHS]XD_Xreal //=.
-rewrite SuccNat2Pos.id_succ.
-by change (_ + _)%coq_nat with (fact n.+1); rewrite fact_zeroF Hc.
-Qed.
-
-End NDerive.

@@ -76,6 +76,7 @@ replace (n - k.+1)%nat with (predn (n-k)).
 by rewrite -/predn subnS.
 Qed.
 
+(*
 Lemma nth_Xderive_pt_pow n x :
   nth_Xderive_pt (fun x => x ^ n)%XR
   (fun k x => \big[Xmul/Xreal 1]_(i < k) Xreal (INR (n - i)) * x^(n - k))%XR x.
@@ -187,6 +188,7 @@ move=> r.
 rewrite /= !Rmult_0_l.
 exact: derivable_pt_lim_const.
 Qed.
+*)
 
 Lemma nth_derivable_pt_inv_pow n x :
   x <> R0 ->
@@ -424,6 +426,7 @@ rewrite Rpower_Ropp Rpower_sqrt //.
 by field; apply Rgt_not_eq; apply sqrt_lt_R0.
 Qed.
 
+(*
 Lemma nth_Xderive_pt_sqrt (x : ExtendedR) :
   nth_Xderive_pt (fun x => Xsqrt x)
   (fun k x => \big[Xmul/Xreal 1]_(i < k) Xreal (/2 - INR i) * ((Xsqrt x)/ x ^ k))%XR x.
@@ -642,6 +645,7 @@ have-> : (sqrt r ^ 3 = sqrt r * r)%Re.
   by field.
 by field.
 Qed.
+*)
 
 End square_root.
 

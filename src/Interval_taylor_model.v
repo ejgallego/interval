@@ -273,7 +273,7 @@ rewrite (big_cat_nat Radd_monoid (n := PolR.size p)) =>//.
   rewrite [in X in Radd_monoid _ X]big1_seq /=.
     rewrite Rplus_0_r.
     rewrite (eq_bigr (fun i => Rmult (PolR.nth p i)
-                                     (FullR.pow (Rminus x xi0) i))) =>//.
+                                     ((Rminus x xi0) ^ i))) =>//.
     move=> i _; rewrite PolR.nth_set_nth /=.
     case E : eq_op =>//.
     move/eqP: E =>->.

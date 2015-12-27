@@ -87,7 +87,8 @@ c + \big[Rplus/0]_(0 <= i < (size p)) (nth (primitive tt c p) i.+1 *
                                                  powerRZ t (Z.of_nat i.+1)).
 Proof.
 rewrite hornerE size_primitive big_nat_recl //.
-congr (_ + _); rewrite /FullR.pow /=. (* rewrite PolR.primitive_correct //=; ring. *) ring.
+congr (_ + _); first by rewrite /= Rmult_1_r.
+by apply: eq_big_nat => i Hi; rewrite Interval_missing.pow_powerRZ.
 Qed.
 
 Lemma ex_derive_powerRZ x n:  ex_derive (powerRZ^~ (Z.of_nat n)) x.
@@ -123,8 +124,6 @@ have -> :
   Derive (fun _ : Rdefinitions.R => nth (primitive tt c p) i.+1) x = 0.
   by apply: Derive_const.
 ring_simplify.
-rewrite /FullR.pow /FullR.power_int.
-rewrite -Interval_missing.pow_powerRZ.
 rewrite (Derive_ext _ (fun x => x ^ (i.+1))); last first.
  by move => t; rewrite -Interval_missing.pow_powerRZ.
 rewrite primitive_correct => //.

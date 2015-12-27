@@ -193,7 +193,7 @@ rewrite big_mkord big_distrl.
 apply: eq_bigr=> i _.
 (* rewrite PolR.nth_tail. *) rewrite /PolR.tail /PolR.nth nth_drop.
 (* some bookkeeping about powers *)
-rewrite /FullR.pow /FullR.power_int [3%Z]/(Z.of_nat 3) -!pow_powerRZ.
+change 3%Z with (Z.of_nat 3); rewrite -!pow_powerRZ.
 rewrite /= !Rmult_assoc; f_equal; ring.
 by rewrite addnC leq_subnK.
 move=> i /andP [Hi _].
