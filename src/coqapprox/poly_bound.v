@@ -56,7 +56,7 @@ Parameter ComputeBound : Pol.U -> Pol.T -> I.type -> I.type.
 Parameter ComputeBound_correct :
   forall u pi p,
   pi >:: p ->
-  R_extension (PolR.eval tt p) (ComputeBound u pi).
+  R_extension (PolR.horner tt p) (ComputeBound u pi).
 
 Parameter ComputeBound_propagate :
   forall u pi p,
@@ -67,7 +67,7 @@ Parameter ComputeBound_propagate :
 Lemma ComputeBound_correct' :
   forall u p px,
   Link.contains_pointwise p px ->
-  I.extension (toXreal_fun (PolR.teval tt px)) (ComputeBound u p).
+  I.extension (toXreal_fun (PolR.horner tt px)) (ComputeBound u p).
 Proof.
 move=> u p px H.
 apply: R_extension_correct.
@@ -96,14 +96,14 @@ Theorem ComputeBound_nth0 prec pi p X :
 Proof.
 move=> Hpi HX0 r Hr.
 case E: (Pol.size pi) =>[|n].
-  have->: r = PolR.eval tt p 0%R.
+  have->: r = PolR.horner tt p 0%R.
   rewrite Pol.nth_default ?E // I.zero_correct /= in Hr.
   have [A B] := Hr.
   have H := Rle_antisym _ _ B A.
   rewrite PolR.hornerE big1 //.
   by move=> i _; rewrite (Pol.nth_default_alt Hpi) ?E // Rmult_0_l.
   exact: ComputeBound_correct.
-have->: r = PolR.eval tt (PolR.set_nth p 0 r) 0%R.
+have->: r = PolR.horner tt (PolR.set_nth p 0 r) 0%R.
   rewrite PolR.hornerE PolR.size_set_nth max1n big_nat_recl //.
   rewrite PolR.nth_set_nth /= FullR.pow_0 Rmult_1_r big1 ?Rplus_0_r //.
   by move=> i _; rewrite FullR.pow_S [FullR.mul tt _ _]Rmult_0_l Rmult_0_r.
@@ -127,55 +127,24 @@ Local Open Scope ipoly_scope.
 Module Import Aux := IntervalAux I.
 
 Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
-  Pol.eval.
+  Pol.horner.
 
 Theorem ComputeBound_correct :
   forall prec pi p,
   pi >:: p ->
-  R_extension (PolR.eval tt p) (ComputeBound prec pi).
+  R_extension (PolR.horner tt p) (ComputeBound prec pi).
 Proof.
 move=> Hfifx X x Hx; rewrite /ComputeBound.
-by move=> *; apply Pol.eval_correct.
+by move=> *; apply Pol.horner_correct.
 Qed.
 
 Arguments ComputeBound_correct [prec pi p] _ b x _.
-
-(*
-elim/PolR.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
-- rewrite PolR.teval_polyNil teval_polyNil.
-  change (Xreal 0) with (Xmask (Xreal 0) (Xreal x)).
-  move=> *; apply: I.mask_correct =>//.
-  by rewrite I.zero_correct; split; auto with real.
-- clear; move=> c p _ [K1 K2].
-  by rewrite tsize_polyCons PolR.tsize_polyNil in K1.
-- clear; move=> [K1 K2].
-  by rewrite PolR.tsize_polyCons tsize_polyNil in K1.
-move=> d p _ [K1 K2].
-rewrite PolR.teval_polyCons teval_polyCons.
-rewrite Xreal_add.
-apply: I.add_correct =>//.
-  rewrite Xreal_mul.
-  apply: I.mul_correct =>//.
-  apply: IH.
-  rewrite tsize_polyCons in K2.
-  split.
-    rewrite tsize_polyCons PolR.tsize_polyCons in K1.
-    by case: K1.
-  move=> k Hk.
-  move/(_ k.+1 Hk) in K2.
-  rewrite PolR.tnth_polyCons ?tnth_polyCons // in K2.
-  rewrite tsize_polyCons PolR.tsize_polyCons in K1.
-  by case: K1 =><-.
-rewrite tsize_polyCons in K2.
-move/(_ 0 erefl) in K2.
-by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
-*)
 
 Lemma ComputeBound_propagate :
   forall prec pi p,
   pi >:: p ->
   I.propagate (ComputeBound prec pi).
-Proof. by red=> *; rewrite /ComputeBound Pol.eval_propagate. Qed.
+Proof. by red=> *; rewrite /ComputeBound Pol.horner_propagate. Qed.
 
 Arguments ComputeBound_propagate [prec pi p] _ xi _.
 

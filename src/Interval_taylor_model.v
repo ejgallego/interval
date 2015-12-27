@@ -612,15 +612,15 @@ apply I.subset_correct in HXY.
 case Def : (defined f x) => [|]; last first.
   rewrite Def in Hdelta.
   move/definedF: Def => ->.
-  rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.eval tt qx (Rminus x c0)))) =>//.
+  rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.horner tt qx (Rminus x c0)))) =>//.
   apply: Bnd.ComputeBound_correct =>//.
   apply: R_sub_correct =>//.
   rewrite /c0.
   exact: Imid_contains_Xreal.
   apply/contains_Xnan.
   by move/(_ (subset_contains _ _ HXY _ Hx)): Hdelta.
-have->: f (Xreal x) = Xadd (Xreal (PolR.eval tt qx (Rminus x c0)))
-  (Xsub (f (Xreal x)) (Xreal (PolR.eval tt qx (Rminus x c0)))).
+have->: f (Xreal x) = Xadd (Xreal (PolR.horner tt qx (Rminus x c0)))
+  (Xsub (f (Xreal x)) (Xreal (PolR.horner tt qx (Rminus x c0)))).
 case Efx : (f (Xreal x)) => [|r]; first by rewrite XaddC.
 simpl.
 by congr Xreal; auto with real.

@@ -103,15 +103,15 @@ Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
             (I.add prec (I.sub prec (a 0) b2)
                    (I.mul prec (a 2) (I.sqr prec (I.add prec x b1))))
             (I.mul prec (I.power_int prec x 3)
-                   (Pol.eval prec (Pol.tail 3 pol) x))
-    else Pol.eval prec pol x
-  else Pol.eval prec pol x.
+                   (Pol.horner prec (Pol.tail 3 pol) x))
+    else Pol.horner prec pol x
+  else Pol.horner prec pol x.
 
 Import Pol.Notations. Local Open Scope ipoly_scope.
 
 Theorem ComputeBound_correct prec pi p :
   pi >:: p ->
-  R_extension (PolR.eval tt p) (ComputeBound prec pi).
+  R_extension (PolR.horner tt p) (ComputeBound prec pi).
 Proof.
 move=> Hnth X x Hx; rewrite /ComputeBound.
 case E: (2 < Pol.size pi); last by apply: Bnd.ComputeBound_correct.
@@ -128,10 +128,10 @@ pose a2 := PolR.nth p 2.
 pose q3 := PolR.tail 3 p.
 have Hi3: Pol.size pi = 3 + (Pol.size pi - 3) by rewrite subnKC //.
 (* have Hx3: PolR.size p = 3 + (PolR.size p - 3) by rewrite -Hsiz -Hi3. *)
-suff->: PolR.eval tt p x =
+suff->: PolR.horner tt p x =
   (Rplus (Rplus (Rminus a0 (Rdiv (Rsqr a1) (Rplus (Rplus a2 a2) (Rplus a2 a2))))
               (Rmult a2 (Rsqr (Rplus x (Rdiv a1 (Rplus a2 a2))))))
-        (Rmult (powerRZ x 3) (PolR.eval tt q3 x))).
+        (Rmult (powerRZ x 3) (PolR.horner tt q3 x))).
 have Hnth3 : Q3 >:: q3 by apply(*:*) Pol.tail_correct.
 apply: R_add_correct;
   [apply: R_add_correct;
@@ -147,7 +147,7 @@ apply: R_add_correct;
        |apply: R_div_correct;
          [apply: Hnth|apply: R_add_correct; apply: Hnth ]]]]
   |apply: R_mul_correct;
-    [exact: R_power_int_correct|exact: Pol.eval_correct]].
+    [exact: R_power_int_correct|exact: Pol.horner_correct]].
 rewrite 2!PolR.hornerE.
 rewrite (@big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
 rewrite big_mkord.
@@ -210,7 +210,7 @@ Proof.
 red=> *; rewrite /ComputeBound /=.
 by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
   rewrite !(I.add_propagate_r,I.mul_propagate_l,I.power_int_propagate,
-            Pol.eval_propagate).
+            Pol.horner_propagate).
 Qed.
 
 Arguments ComputeBound_propagate [prec pi p] _ xi _.

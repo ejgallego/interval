@@ -84,10 +84,10 @@ Notation i_approx := TM.RPA.approx.
 Notation r_poly := PolR.T.
 
 Notation i_prec := I.precision.
-Notation i_eval := Pol.teval.
-(* FIXME=> Notation i_eval := Bnd.ComputeBound. *)
-Notation r_eval := (PolR.teval tt).
-(* Erik: [Pol.teval]/[PolX.teval] may take 1 more argument *)
+Notation i_horner := Pol.horner.
+(* FIXME=> Notation i_horner := Bnd.ComputeBound. *)
+Notation r_horner := (PolR.horner tt).
+(* Erik: [Pol.horner]/[PolX.horner] may take 1 more argument *)
 
 Definition i2f_mid : i_type -> f_type := I.midpoint.
 
@@ -126,25 +126,25 @@ Definition f_validTM
     subset_ X0 X &
     forall xi0 x : ExtendedR, contains X0 xi0 -> contains X x ->
     contains (i2ix (f_error M0))
-    (Xsub (f x) (x_eval (f2x_poly (f_approx M0)) (Xsub x xi0)))].
+    (Xsub (f x) (x_horner (f2x_poly (f_approx M0)) (Xsub x xi0)))].
 
 Definition i2f_tm (pr : i_prec) (X0 X : i_type) (M : i_rpa) : f_rpa :=
   f_RPA
   (i2f_poly (i_approx M))
-  (I.add pr (i_error M) (i_eval pr (i2f_rem pr (i_approx M)) (I.sub pr X X0))).
+  (I.add pr (i_error M) (i_horner pr (i2f_rem pr (i_approx M)) (I.sub pr X X0))).
 
-(* Erik: (X - X0) could be handled by [i_eval] in order not to appear here *)
+(* Erik: (X - X0) could be handled by [i_horner] in order not to appear here *)
 
-Lemma teval_contains_0 pr P (X : i_type) :
+Lemma horner_contains_0 pr P (X : i_type) :
   (forall k, k < Pol.tsize P -> contains (I.convert(Pol.tnth P k)) (Xreal 0)) ->
   contains (I.convert X) (Xreal 0) ->
-  contains (I.convert (i_eval pr P X)) (Xreal 0).
+  contains (I.convert (i_horner pr P X)) (Xreal 0).
 Proof.
 move=> HP0 HX0.
 elim/Pol.tpoly_ind: P HP0 => [|x P IHP] HP0.
-  rewrite Pol.teval_polyNil; case: X HX0 =>//=.
+  rewrite Pol.horner_polyNil; case: X HX0 =>//=.
   by rewrite /I.I.convert_bound F.zero_correct /=; split; auto with real.
-rewrite Pol.teval_polyCons.
+rewrite Pol.horner_polyCons.
 have->: Xreal 0 = Xadd (Xreal 0) (Xreal 0) by rewrite Xadd_0_r.
 apply: I.add_correct.
   have->: Xreal 0 = Xmul (Xreal 0) (Xreal 0) by rewrite Xmul_0_r.
@@ -203,10 +203,10 @@ Proof.
 move=> [t Ht] [Hzero Hsubset].
 set N := Pol.tsize (i_approx M) => H.
 have Hcut :
-  contains (I.convert (i_eval pr (i2f_rem pr (i_approx M)) (I.sub pr X X0)))
+  contains (I.convert (i_horner pr (i2f_rem pr (i_approx M)) (I.sub pr X X0)))
   (Xreal 0).
   have L := @subset_sub_contains_0 pr t X0 X Ht Hsubset.
-  apply: teval_contains_0 =>// k Hk; rewrite /i2f_rem.
+  apply: horner_contains_0 =>// k Hk; rewrite /i2f_rem.
   rewrite MapI.tnth_polymap; last by rewrite MapI.tsize_polymap in Hk.
   set xi := Pol.tnth (i_approx M) k.
   apply: sub_midp_contains_0.
@@ -218,8 +218,8 @@ red; split=>//.
 move=> xi0 x Hxi0 Hx.
 have {H} [alpha [Hsize Hpw Hdelta]] := (H xi0 Hxi0).
 move/(_ x Hx) in Hdelta.
-set T'x := x_eval (f2x_poly (i2f_poly (i_approx M))) (Xsub x xi0).
-pose Tx := x_eval alpha (Xsub x xi0).
+set T'x := x_horner (f2x_poly (i2f_poly (i_approx M))) (Xsub x xi0).
+pose Tx := x_horner alpha (Xsub x xi0).
 case E: Tx =>[|r].
   rewrite /Tx in E; rewrite E Xsub_Xnan_r in Hdelta.
   have Hnan := contains_Xnan Hdelta.
@@ -235,7 +235,7 @@ elim/tpoly_ind: (i_approx M) alpha {Hdelta Tx T'x E} @N Hsize Hpw.
   rewrite /i2f_poly !MapIF.tpolymap_polyNil.
   rewrite /f2x_poly !MapFX.tpolymap_polyNil.
   rewrite /i2f_rem !MapI.tpolymap_polyNil.
-  rewrite Xsub_diag_eq !(teval_polyNil,PolX.teval_polyNil).
+  rewrite Xsub_diag_eq !(horner_polyNil,PolX.horner_polyNil).
   apply: I.mask_correct; first by rewrite I.zero_correct; split; auto with real.
   change I.I.convert with I.convert.
   case: x Hx =>[|x] Hx; case: xi0 Hxi0 =>[|y] Hxi0 /=;
@@ -253,8 +253,8 @@ have Hsize' : PolX.tsize alpha = tsize p.
   by rewrite PolX.tsize_polyCons /N tsize_polyCons in Hsize; case: Hsize.
 rewrite /i2f_poly !MapIF.tpolymap_polyCons.
 rewrite /f2x_poly !MapFX.tpolymap_polyCons.
-rewrite !teval_polyCons !PolX.teval_polyCons.
-set t1 := (Xmul (x_eval _ _) _).
+rewrite !horner_polyCons !PolX.horner_polyCons.
+set t1 := (Xmul (x_horner _ _) _).
 set t2 := (Xmul _ _).
 set t3 := f2x _.
 have->: ((t1 + a0) - (t2 + t3) = t1 - t2 + (a0 - t3))%XR.

@@ -157,7 +157,7 @@ Definition T_tan x :=
   let F q n :=
     let q' := P.deriv u q in
     P.div_mixed_r u (P.add u q' (P.lift 2 q')) (C.from_nat n) in
-  let G q _ := P.eval u q J (* in monomial basis *) in
+  let G q _ := P.horner u q J (* in monomial basis *) in
   P.grec1 F G polyX s.
 
 Definition T_atan x :=
@@ -169,7 +169,7 @@ Definition T_atan x :=
     let q' := P.deriv u q in
     P.div_mixed_r u (P.sub u (P.add u q' (P.lift 2 q')) q2nX) (C.from_nat n) in
   let G q n :=
-    C.div u (P.eval u q x)
+    C.div u (P.horner u q x)
       (C.power_int u (C.add u C.one (C.sqr u x)) (Z_of_nat n)) in
   P.grec1 F G q1 s.
 

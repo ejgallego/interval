@@ -5,12 +5,12 @@ Require Import poly_datatypes Rstruct.
 
 Import PolR.
 
-Lemma Rpol_continuous p (x : R) : continuous (eval tt p) x.
+Lemma Rpol_continuous p (x : R) : continuous (horner tt p) x.
 Proof.
 have Hext : forall t, foldr (fun a b =>
                                 (b * t) + a) 0 (toSeq p) =
-                      eval tt p t  => [t|].
-by rewrite PolR.eval_seq.
+                      horner tt p t  => [t|].
+by rewrite PolR.horner_seq.
 apply: (continuous_ext _ _ _ Hext). (* implicit parameters? *)
 elim: (toSeq p) => [|a q HI] /=.
 - exact: continuous_const.
@@ -18,18 +18,18 @@ elim: (toSeq p) => [|a q HI] /=.
   by apply: continuous_mult => //; exact: continuous_id.
 Qed.
 
-Lemma Rpol_integrable p (x1 x2 : R) : ex_RInt (eval tt p) x1 x2.
+Lemma Rpol_integrable p (x1 x2 : R) : ex_RInt (horner tt p) x1 x2.
 Proof.
 apply: ex_RInt_continuous => x _.
 exact: Rpol_continuous.
 Qed.
 
-Lemma ex_Rpol_derive p (x : R) : ex_derive (eval tt p) x.
+Lemma ex_Rpol_derive p (x : R) : ex_derive (horner tt p) x.
 Proof.
 have Hext : forall t, foldr (fun a b =>
                                 (b * t) + a) 0 (toSeq p) =
-                      eval tt p t  => [t|].
-by rewrite PolR.eval_seq.
+                      horner tt p t  => [t|].
+by rewrite PolR.horner_seq.
 apply: (ex_derive_ext _ _ _ Hext). (* implicit parameters? *)
 elim: (toSeq p) => [|a q HI] /=.
 - exact: ex_derive_const.
@@ -82,7 +82,7 @@ elim: s => [ | a b Hrec] => /= .
     by rewrite big_cons.
 Qed.
 
-Lemma horner_primitive (c : R) (p : T) (t : R):  eval tt (primitive tt c p) t =
+Lemma horner_primitive (c : R) (p : T) (t : R):  horner tt (primitive tt c p) t =
 c + \big[Rplus/0]_(0 <= i < (size p)) (nth (primitive tt c p) i.+1 *
                                                  powerRZ t (Z.of_nat i.+1)).
 Proof.
@@ -97,7 +97,7 @@ apply: (ex_derive_ext (fun x => x ^ n) _) => [t|].
 apply: ex_derive_pow; exact: ex_derive_id.
 Qed.
 
-Lemma Rpol_derive p (c : R) (x : R) : Derive (eval tt (primitive tt c p)) x = eval tt p x.
+Lemma Rpol_derive p (c : R) (x : R) : Derive (horner tt (primitive tt c p)) x = horner tt p x.
 Proof.
 have derMonom : forall k : (* ordinal_finType (size p), *) nat,
    ex_derive
@@ -140,14 +140,14 @@ by [].
 by apply: ex_derive_big.
 Qed.
 
-Lemma Rpol_integral_0 (x1 x2 : R) (p : T) : RInt (eval tt p) x1 x2 =
-            eval tt (primitive tt R0 p) x2 - eval tt (primitive tt R0 p) x1.
+Lemma Rpol_integral_0 (x1 x2 : R) (p : T) : RInt (horner tt p) x1 x2 =
+            horner tt (primitive tt R0 p) x2 - horner tt (primitive tt R0 p) x1.
 Proof.
-rewrite (RInt_ext _ (Derive (eval tt (primitive tt R0 p)))); last first.
+rewrite (RInt_ext _ (Derive (horner tt (primitive tt R0 p)))); last first.
 by move => x _; rewrite  Rpol_derive.
 rewrite RInt_Derive => //.
 move => x _; apply: ex_Rpol_derive.
-move => x _. apply: (continuous_ext (eval tt p) ) => [t|] .
+move => x _. apply: (continuous_ext (horner tt p) ) => [t|] .
   by rewrite Rpol_derive.
 exact: Rpol_continuous.
 Qed.

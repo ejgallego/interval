@@ -42,17 +42,17 @@ COMMENTED FOR NOW... WILL BE UPDATED OR REMOVED.
 
 Module Type SliceMonomPolyOps (C : MaskBaseOps) (Import A : PolyOps C).
 (** Horner evaluation of polynomial in monomial basis *)
-Parameter eval_polyCons :
+Parameter horner_polyCons :
   forall u c p x,
-  teval u (tpolyCons c p) x =
-  C.tadd u (C.tmul u (teval u p x) x) c.
-Parameter eval_polyNil :
-  forall u x, teval u tpolyNil x = C.tcst C.tzero x.
+  thorner u (tpolyCons c p) x =
+  C.tadd u (C.tmul u (thorner u p x) x) c.
+Parameter horner_polyNil :
+  forall u x, thorner u tpolyNil x = C.tcst C.tzero x.
 
 (** A way to deal with NaNs without having them in the signature *)
-Parameter eval_nan :
+Parameter horner_nan :
   forall u nan p, (forall x, C.tcst x nan = nan) ->
-  teval u p nan = nan.
+  thorner u p nan = nan.
 End SliceMonomPolyOps.
 
 Module Type MonomPolyOps (C : MaskBaseOps) := PolyOps C <+ SliceMonomPolyOps C.
@@ -84,7 +84,7 @@ Module Type SliceExactMonomPolyOps
 Local Notation Ctpow prec x n := (C.tpower_int prec x (Z_of_nat n)).
 
 Parameter is_horner :
- forall p x, teval tt p x =
+ forall p x, thorner tt p x =
   \big[C.tadd tt/C.tzero]_(i < tsize p)
   C.tmul tt (tnth p i) (Ctpow tt x i).
 
@@ -190,10 +190,10 @@ Definition tpolyC (c : C.T) : T := [:: c].
 
 Definition tpolyX := [:: C.tzero; C.tone].
 
-Fixpoint teval' (p : T) (x : C.T) :=
+Fixpoint thorner' (p : T) (x : C.T) :=
   match p with
     | [::] => C.tzero
-    | c :: p' => C.tadd u (C.tmul u (teval' p' x) x) c
+    | c :: p' => C.tadd u (C.tmul u (thorner' p' x) x) c
   end.
 *)
 
@@ -204,7 +204,7 @@ Definition trecN := @recNup C.T.
 Definition tsize := @size C.T.
 
 Definition tfold := @foldr C.T.
-Definition teval p x :=
+Definition thorner p x :=
   C.tcst
   (@tfold C.T (fun a b => C.tadd u (C.tmul u b x) a) C.tzero p)
   x.
@@ -367,19 +367,19 @@ Lemma tnth_set_nth p n val k :
   tnth (tset_nth p n val) k = if k == n then val else tnth p k.
 Proof. by rewrite /tnth nth_set_nth. Qed.
 
-Lemma teval_polyNil : forall x, teval tpolyNil x = C.tcst C.tzero x.
+Lemma thorner_polyNil : forall x, thorner tpolyNil x = C.tcst C.tzero x.
 Proof. done. Qed.
 
-Lemma teval_polyCons : (* Erik: this spec is probably too low-level *)
-  forall c p x, teval (tpolyCons c p) x = C.tadd u (C.tmul u (teval p x) x) c.
+Lemma thorner_polyCons : (* Erik: this spec is probably too low-level *)
+  forall c p x, thorner (tpolyCons c p) x = C.tadd u (C.tmul u (thorner p x) x) c.
 Proof.
-rewrite /tpolyCons /teval.
+rewrite /tpolyCons /thorner.
 simpl.
 Abort.
 
-Lemma teval_nan :
-  forall nan p, (forall x, C.tcst x nan = nan) -> teval p nan = nan.
-Proof. by move=> nan p Hnan; rewrite /teval Hnan. Qed.
+Lemma thorner_nan :
+  forall nan p, (forall x, C.tcst x nan = nan) -> thorner p nan = nan.
+Proof. by move=> nan p Hnan; rewrite /thorner Hnan. Qed.
 
 Lemma tnth_out p n: tsize p <= n -> tnth p n = C.tzero.
 Proof. by move=> H; rewrite /tnth nth_default. Qed.
@@ -518,7 +518,7 @@ Ltac magic_mask :=
 Local Notation Ctpow prec x n := (C.tpower_int prec x (Z_of_nat n)).
 
 Lemma is_horner p x:
-  teval tt p x =
+  thorner tt p x =
   \big[C.tadd tt/C.tzero]_(i < tsize p)
   C.tmul tt (tnth p i) (Ctpow tt x i).
 Proof.

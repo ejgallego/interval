@@ -155,7 +155,7 @@ Parameter tail : nat -> T -> T.
 (* Parameter polyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
 Parameter polyNil : T.
 Parameter polyCons : C.T -> T -> T.
-Parameter eval : U -> T -> C.T -> C.T.
+Parameter horner : U -> T -> C.T -> C.T.
 Parameter deriv : U -> T -> T.
 Parameter mul_mixed : U -> C.T -> T -> T.
 Parameter div_mixed_r : U -> T -> C.T -> T.
@@ -166,7 +166,7 @@ Parameter primitive : U -> C.T -> T -> T.
 Parameter toSeq_nil : toSeq zero = [::].
 Parameter mkPoly_toSeq : forall p, mkPoly (toSeq p) = p.
 Parameter toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
-Parameter eval_seq : forall u p x, eval u p x =
+Parameter horner_seq : forall u p x, horner u p x =
   C.mask (foldr (fun a b => C.add u (C.mul u b x) a) C.zero (toSeq p)) x.
 Parameter nth_toSeq : forall p n, nth p n = seq.nth (C.zero) (toSeq p) n.
 
@@ -390,10 +390,10 @@ Definition polyC (c : C.T) : T := [:: c].
 
 Definition polyX := [:: C.tzero; C.tone].
 
-Fixpoint eval' (p : T) (x : C.T) :=
+Fixpoint horner' (p : T) (x : C.T) :=
   match p with
     | [::] => C.tzero
-    | c :: p' => C.tadd u (C.tmul u (teval' p' x) x) c
+    | c :: p' => C.tadd u (C.tmul u (thorner' p' x) x) c
   end.
 *)
 
@@ -401,7 +401,7 @@ Definition rec1 := @rec1up C.T.
 Definition rec2 := @rec2up C.T.
 Definition size := @size C.T.
 Definition fold := @foldr C.T.
-Definition eval p x :=
+Definition horner p x :=
   C.mask
   (@fold C.T (fun a b => C.add u (C.mul u b x) a) C.zero p)
   x.
@@ -545,8 +545,8 @@ Proof. by []. Qed.
 Lemma toSeq_nil : toSeq zero = [::].
 Proof. by []. Qed.
 
-Lemma eval_seq u p x :
-  eval u p x = C.mask (foldr (fun a b => C.add u (C.mul u b x) a)
+Lemma horner_seq u p x :
+  horner u p x = C.mask (foldr (fun a b => C.add u (C.mul u b x) a)
     C.zero (toSeq p)) x.
 Proof. done. Qed.
 
@@ -610,14 +610,14 @@ End SeqPoly.
 Module PolR <: PolyOps FullR.
 Include SeqPoly FullR.
 
-Lemma toSeq_eval0 (u : U) (p : T) : eval u p R0 = head R0 (toSeq p).
+Lemma toSeq_horner0 (u : U) (p : T) : horner u p R0 = head R0 (toSeq p).
 Proof.
 elim: p=> [| a q HI] ; first by [].
 by rewrite /= HI; case: u HI; rewrite Rmult_0_r Rplus_0_l.
 Qed.
 
 Lemma hornerE p x :
-  eval tt p x =
+  horner tt p x =
   \big[Rplus/R0]_(0 <= i < size p) Rmult (nth p i) (FullR.pow x i).
 Proof.
 elim: p; first by rewrite big_mkord big_ord0 /=.
@@ -633,7 +633,7 @@ Qed.
 
 Lemma hornerE_wide n p x :
   size p <= n ->
-  eval tt p x =
+  horner tt p x =
   \big[Rplus/R0]_(0 <= i < n) Rmult (nth p i) (FullR.pow x i).
 Proof.
 move=> Hn; rewrite hornerE (big_nat_leq_idx _ Hn) //.
@@ -653,7 +653,7 @@ Qed.
 
 Lemma horner_derivE_wide n p x :
   (size p).-1 <= n ->
-  eval tt (deriv tt p) x =
+  horner tt (deriv tt p) x =
   \big[Rplus/R0]_(0 <= i < n) ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
 Proof.
 move=> H.
@@ -664,21 +664,21 @@ exact: coef_deriv.
 Qed.
 
 Lemma horner_derivE p x :
-  eval tt (deriv tt p) x =
+  horner tt (deriv tt p) x =
   \big[Rplus/R0]_(0 <= i < (size p).-1)
     ((nth p i.+1) * (INR i.+1) * FullR.pow x i)%R.
 Proof. by rewrite (@horner_derivE_wide (size p).-1). Qed.
 
 Lemma is_derive_horner p x :
-  is_derive (eval tt p) x (eval tt (deriv tt p) x).
+  is_derive (horner tt p) x (horner tt (deriv tt p) x).
 Proof.
 elim: p => [|a p IHp].
-- rewrite /eval /=; exact: is_derive_const.
-- apply: (@is_derive_ext _ _ (fun x => eval tt p x * x + a)%R); first done.
-  rewrite -[eval _ _ _]Rplus_0_r.
+- rewrite /horner /=; exact: is_derive_const.
+- apply: (@is_derive_ext _ _ (fun x => horner tt p x * x + a)%R); first done.
+  rewrite -[horner _ _ _]Rplus_0_r.
   apply: is_derive_plus; last by auto_derive.
-  suff->: eval tt (deriv tt (a :: p)) x =
-    ((eval tt (deriv tt p) x) * x + (eval tt p x) * 1)%R.
+  suff->: horner tt (deriv tt (a :: p)) x =
+    ((horner tt (deriv tt p) x) * x + (horner tt p x) * 1)%R.
     apply: is_derive_mult =>//.
     apply: is_derive_id.
     exact: Rmult_comm.
@@ -767,8 +767,8 @@ Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
-Parameter eval_correct :
-  forall u pi ci p x, pi >:: p -> ci >: x -> eval u pi ci >: PolR.eval tt p x.
+Parameter horner_correct :
+  forall u pi ci p x, pi >:: p -> ci >: x -> horner u pi ci >: PolR.horner tt p x.
 
 Parameter zero_correct : zero >:: PolR.zero.
 Parameter one_correct : one >:: PolR.one.
@@ -791,7 +791,7 @@ Parameter mul_mixed_correct :
 Parameter div_mixed_r_correct :
   forall u pi bi p b, pi >:: p -> bi >: b ->
   div_mixed_r u pi bi >:: PolR.div_mixed_r tt p b.
-Parameter eval_propagate : forall u pi, I.propagate (eval u pi).
+Parameter horner_propagate : forall u pi, I.propagate (horner u pi).
 Parameter deriv_correct :
   forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
 Parameter lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
@@ -857,8 +857,8 @@ Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
-Lemma eval_propagate u pi : I.propagate (eval u pi).
-Proof. by red=> *; rewrite /eval I.mask_propagate_r. Qed.
+Lemma horner_propagate u pi : I.propagate (horner u pi).
+Proof. by red=> *; rewrite /horner I.mask_propagate_r. Qed.
 
 Lemma zero_correct : zero >:: PolR.zero.
 Proof. by case=> [|k]; exact: cont0. Qed.
@@ -1047,11 +1047,11 @@ apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
   by apply: Hs.
 Qed.
 
-Lemma eval_correct u pi ai p a :
-  pi >:: p -> ai >: a -> eval u pi ai >: PolR.eval tt p a.
+Lemma horner_correct u pi ai p a :
+  pi >:: p -> ai >: a -> horner u pi ai >: PolR.horner tt p a.
 Proof.
 move=> Hp Ha.
-rewrite /eval /PolR.eval.
+rewrite /horner /PolR.horner.
 apply: (R_mask_correct a _ Ha).
 apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - exact: cont0.
