@@ -1073,7 +1073,10 @@ Class validPoly : Prop := ValidPoly {
 Class validIPoly : Prop := ValidIPoly {
   IPoly_size :
     forall (X0 : I.type) xi0 n, eq_size (IP X0 n) (P xi0 n);
-  IPoly_nth : forall (X0 : I.type) xi0 n, X0 >: xi0 -> IP X0 n >:: P xi0 n }.
+  IPoly_nth : forall (X0 : I.type) xi0 n, X0 >: xi0 -> IP X0 n >:: P xi0 n;
+  IPoly_nan : forall X, (exists2 x, X >: x & ~ def x) ->
+              forall n, contains (I.convert (Pol.nth (IP X n.+1) n.+1)) Xnan
+}.
 
 Context { validPoly_ : validPoly }.
 Context { validIPoly_ : validIPoly }.
@@ -1116,13 +1119,6 @@ Qed.
 (* exists x, i, XDn i x = Xnan ~~> have Hn1 := XDn_Xnan (n.+1-i) Hi *)
 *)
 
-Lemma notDef_Xnan :
-  (exists2 x, dom x & ~ def x) ->
-  forall n : nat, contains (I.convert (Pol.nth (IP X n.+1) n.+1)) Xnan.
-Proof.
-admit. (* FIXME *)
-Qed.
-
 Theorem i_validTM_TLrem n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -1164,7 +1160,7 @@ rewrite Hbig.
 (* ~ def x *)
 rewrite /TLrem.
 rewrite I.mul_propagate_l //.
-apply/contains_Xnan/notDef_Xnan.
+apply/contains_Xnan/IPoly_nan.
 exists x =>//.
 by rewrite /def Def.
 Qed.
@@ -3843,7 +3839,7 @@ Proof. by rewrite Pol.size_grec1. Qed.
 Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
-Instance validIPoly_atan : validIPoly (TR.T_atan tt) (TI.T_atan prec).
+Instance validIPoly_atan : validIPoly Xatan (TR.T_atan tt) (TI.T_atan prec).
 Proof.
 constructor.
 - admit.
@@ -3854,6 +3850,9 @@ constructor.
   admit.
   apply: Pol.one_correct.
   admit.
+- move=> X [x H1 H2] n.
+  rewrite /T_atan.
+  admit. (* FIXME *)
 Qed.
 
 Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
