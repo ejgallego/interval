@@ -96,6 +96,18 @@ Proof. by move ->; rewrite is_zero_correct_zero. Qed.
 Lemma fact_zeroF i : is_zero (INR (fact i)) = false.
 Proof. by apply: zeroF=> Hri; apply: (fact_neq_0 i); apply: INR_eq. Qed.
 
+Lemma positiveT x : (0 < x)%Re -> is_positive x = true.
+Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
+
+Lemma negativeF x : (0 <= x)%Re -> is_negative x = false.
+Proof. by case: is_negative_spec =>//; move/Rle_not_lt. Qed.
+
+Lemma positiveF x : (x <= 0)%Re -> is_positive x = false.
+Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
+
+Lemma negativeT x : (x < 0)%Re -> is_negative x = true.
+Proof. by case: is_negative_spec =>//; move/Rle_not_lt. Qed.
+
 Lemma XReq_EM_T : forall r1 r2:ExtendedR, {r1 = r2} + {r1 <> r2}.
 Proof.
 case=>[|r1] []; [left|move=> ?; right|right|move=> r2] =>//.

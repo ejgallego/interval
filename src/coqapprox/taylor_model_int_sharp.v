@@ -3842,23 +3842,37 @@ Proof. by rewrite Pol.size_grec1. Qed.
 Instance validIPoly_atan : validIPoly Xatan (TR.T_atan tt) (TI.T_atan prec).
 Proof.
 constructor.
-- admit.
+- by move=> *; rewrite PolR.size_grec1 Pol.size_grec1.
 - move => X0 xi0 n Hx.
   apply: Pol.grec1_correct =>//.
-  move=> qi q m Hq.
-  admit.
-  admit.
-  apply: Pol.one_correct.
-  admit.
+  + move=> qi q m Hq.
+    by repeat first [apply: Pol.div_mixed_r_correct|
+                     apply: Pol.sub_correct|
+                     apply: Pol.add_correct|
+                     apply: Pol.deriv_correct|
+                     apply: Pol.lift_correct|
+                     apply: Pol.mul_mixed_correct|
+                     apply: R_from_nat_correct].
+  + move=> qi q m Hq.
+    by repeat first [apply: R_div_correct|
+                     apply: R_power_int_correct|
+                     apply: Pol.horner_correct|
+                     apply: R_add_correct|
+                     apply: R_sqr_correct|
+                     apply: I.fromZ_correct|
+                     apply: Pol.one_correct].
+  + exact: Pol.one_correct.
+  + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: cont0.
+    exact: R_atan_correct.
 - move=> X [x H1 H2] n.
   rewrite /T_atan.
-  admit. (* FIXME *)
+  admit. (* TODO: Xnan prop *)
 Qed.
 
 Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
 Proof.
 constructor.
-- admit. (* size *)
+- by move=> *; rewrite PolR.size_grec1.
 - move=> xi0 n k; rewrite ltnS => H;
   rewrite /TR.T_atan /PolR.nth /PolR.grec1
     (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
@@ -3886,8 +3900,9 @@ constructor.
     by rewrite -Hr0; apply: INR_fact_neq_0.
     apply: Rinv_r_neq0 (Hri0 _).
     by rewrite -Hr0; apply: INR_fact_neq_0.
-admit. (* TODO *)
+admit. (* TODO: derivatives' recurrence *)
 Qed.
+
 (* Check (Derive_scal_l, is_derive_unique, PolR.is_derive_horner). *)
 
 Lemma TM_atan_correct X0 X n :
@@ -3899,7 +3914,7 @@ move=> Hsubset [t Ht].
 apply: i_validTM_Ztech =>//; last by exists t.
 move=> k r Hr.
 elim: k => [//|k IHk].
-admit. (* FIXME *)
+admit. (* TODO: derivability *)
 Qed.
 
 (*

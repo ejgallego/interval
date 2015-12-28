@@ -33,6 +33,9 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope nat_scope.
 
+Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
+Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
+
 Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
 Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
 
@@ -92,30 +95,6 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
-Lemma Xreal_sub x y : Xreal (x - y) = Xsub (Xreal x) (Xreal y).
-Proof. done. Qed.
-
-Lemma Xreal_add x y : Xreal (x + y) = Xadd (Xreal x) (Xreal y).
-Proof. done. Qed.
-
-Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
-Proof. done. Qed.
-
-Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
-Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
-
-Lemma Xreal_sqr x : Xreal (x ²) = Xsqr (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_power_int x n :
-  x <> 0%R \/ (n >= 0)%Z -> Xreal (powerRZ x n) = Xpower_int (Xreal x) n.
-Proof.
-case: n => [//|//|n].
-case=> [Hx|Hn]; by [rewrite /= zeroF | exfalso; auto with zarith].
-Qed.
 
 Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
   match f (Xreal x) with
@@ -160,14 +139,65 @@ Lemma toXreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
   toXreal_fun (toR_fun f) (Xreal x) = f (Xreal x).
 Proof. by rewrite /= /toR_fun /proj_fun /defined; case: (f (Xreal x)). Qed.
 
+(** Some Reals-based specs to ease the CoqApprox formalization *)
+
+Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_sub x y : Xreal (x - y) = Xsub (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_add x y : Xreal (x + y) = Xadd (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
+Proof. done. Qed.
+
+Lemma Xreal_sqr x : Xreal (x ²) = Xsqr (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_power_int x n :
+  x <> 0%R \/ (n >= 0)%Z -> Xreal (powerRZ x n) = Xpower_int (Xreal x) n.
+Proof.
+case: n => [//|//|n].
+case=> [Hx|Hn]; by [rewrite /= zeroF | exfalso; auto with zarith].
+Qed.
+
+Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
+Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
+
+Lemma Xreal_inv y : y <> 0%R -> Xreal (/ y) = Xinv (Xreal y).
+Proof. by move=> H; rewrite /Xinv zeroF. Qed.
+
+Lemma Xreal_abs x : Xreal (Rabs x) = Xabs (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_sqrt x : (0 <= x)%R -> Xreal (sqrt x) = Xsqrt (Xreal x).
+Proof.
+move=> H; rewrite /Xsqrt ifF //.
+case: is_negative_spec =>//.
+by move/Rle_not_lt in H.
+Qed.
+
+Lemma Xreal_cos x : Xreal (cos x) = Xcos (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_sin x : Xreal (sin x) = Xsin (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_tan x : cos x <> 0%R -> Xreal (tan x) = Xtan (Xreal x).
+Proof. by move=> H; rewrite Xreal_div. Qed.
+
+Lemma Xreal_atan x : Xreal (atan x) = Xatan (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_exp x : Xreal (exp x) = Xexp (Xreal x).
+Proof. done. Qed.
+
+Lemma Xreal_ln x : (0 < x)%R -> Xreal (ln x) = Xln (Xreal x).
+Proof. by move=> H; rewrite /Xln positiveT. Qed.
 
 Module IntervalAux (I : IntervalOps).
-
-Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
-Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
-
-Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
-Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.
 
 Definition R_extension f fi :=
   forall (b : I.type) (x : R),
@@ -226,6 +256,72 @@ rewrite Xreal_power_int; last by right; auto with zarith.
 exact: I.power_int_correct.
 Qed.
 
+Lemma R_from_nat_correct :
+  forall (b : I.type) (n : nat),
+  contains (I.convert (I.fromZ (Z.of_nat n)))
+           (Xreal (INR n)).
+Proof. move=> b n; rewrite INR_Z2R; exact: I.fromZ_correct. Qed.
+
+Lemma R_inv_correct : forall prec, R_extension Rinv (I.inv prec).
+Proof.
+move=> prec ix x Hx.
+case: (is_zero_spec x) => H; last first.
+  rewrite Xreal_inv //.
+  exact: I.inv_correct.
+suff->: I.convert (I.inv prec ix) = IInan by [].
+apply/contains_Xnan.
+have->: Xnan = (Xinv (Xreal x)) by simpl; rewrite zeroT.
+exact: I.inv_correct.
+Qed.
+
+Lemma R_abs_correct : R_extension Rabs I.abs.
+Proof. move=> *; rewrite Xreal_abs; exact: I.abs_correct. Qed.
+
+Lemma R_sqrt_correct : forall prec, R_extension sqrt (I.sqrt prec).
+move=> prec ix x Hx.
+case: (is_negative_spec x) => H; last first.
+  rewrite Xreal_sqrt //.
+  exact: I.sqrt_correct.
+suff->: I.convert (I.sqrt prec ix) = IInan by [].
+apply/contains_Xnan.
+have->: Xnan = (Xsqrt (Xreal x)) by simpl; rewrite negativeT.
+exact: I.sqrt_correct.
+Qed.
+
+Lemma R_cos_correct : forall prec, R_extension cos (I.cos prec).
+Proof. red=> *; rewrite Xreal_cos; exact: I.cos_correct. Qed.
+
+Lemma R_sin_correct : forall prec, R_extension sin (I.sin prec).
+Proof. red=> *; rewrite Xreal_sin; exact: I.sin_correct. Qed.
+
+Lemma R_tan_correct : forall prec, R_extension tan (I.tan prec).
+move=> prec ix x Hx.
+case: (is_zero_spec (cos x)) => H; last first.
+  rewrite Xreal_tan //.
+  exact: I.tan_correct.
+suff->: I.convert (I.tan prec ix) = IInan by [].
+apply/contains_Xnan.
+have->: Xnan = (Xtan (Xreal x)) by rewrite /Xtan /= zeroT.
+exact: I.tan_correct.
+Qed.
+
+Lemma R_atan_correct : forall prec, R_extension atan (I.atan prec).
+Proof. red=> *; rewrite Xreal_atan; exact: I.atan_correct. Qed.
+
+Lemma R_exp_correct : forall prec, R_extension exp (I.exp prec).
+Proof. red=> *; rewrite Xreal_exp; exact: I.exp_correct. Qed.
+
+Lemma R_ln_correct : forall prec, R_extension ln (I.ln prec).
+move=> prec ix x Hx.
+case: (is_positive_spec x) => H.
+  rewrite Xreal_ln //.
+  exact: I.ln_correct.
+suff->: I.convert (I.ln prec ix) = IInan by [].
+apply/contains_Xnan.
+have->: Xnan = (Xln (Xreal x)) by simpl; rewrite positiveF.
+exact: I.ln_correct.
+Qed.
+
 Lemma R_mask_correct : R_extension_2 (fun c x => c) I.mask.
 Proof.
 move=> ci xi c x Hc Hx /=.
@@ -248,6 +344,12 @@ case: x H => [|r].
   rewrite !contains_Xnan; exact: B.
 exact: A.
 Qed.
+
+Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
+Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
+
+Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
+Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.
 
 Section PrecArgument.
 

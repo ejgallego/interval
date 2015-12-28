@@ -1060,9 +1060,6 @@ apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - move=> x xi y yi Hx Hy; apply: R_add_correct=>//; exact: R_mul_correct.
 Qed.
 
-Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
-Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
-
 Lemma deriv_correct u pi p : pi >:: p -> deriv u pi >:: PolR.deriv tt p.
 
 Proof.
