@@ -825,6 +825,24 @@ Parameter grec1_correct :
 
 Parameter nth_default_alt : forall pi p, pi >:: p ->
   forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
+
+Definition eqNai X := match I.convert X with
+                      | IInan => true
+                      | _ => false
+                      end.
+
+Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
+Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
+
+Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
+
+Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
+
+Parameter grec1_propagate :
+  forall A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si,
+  (forall qi m, eqNai (Gi qi m)) ->
+  seq_eqNai si ->
+  forall n, poly_eqNai (grec1 Fi Gi ai si n).
 End PolyIntOps.
 
 (** Note that the implementation(s) of the previous signature will
@@ -1133,6 +1151,42 @@ Proof.
 move=> HF HG Ha Hs Hsize.
 by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
 Qed.
+
+Definition eqNai X := match I.convert X with
+                      | IInan => true
+                      | _ => false
+                      end.
+
+Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
+Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
+
+Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
+
+Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
+
+(* Check all_nthP *)
+Lemma grec1_propagate A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si :
+  (forall qi m, eqNai (Gi qi m)) ->
+  seq_eqNai si ->
+  forall n, poly_eqNai (grec1 Fi Gi ai si n).
+Proof.
+move=> HG Hs n k Hk.
+rewrite /grec1 /size size_grec1up ltnS in Hk.
+rewrite /grec1 /nth nth_grec1up.
+rewrite ltnNge Hk /=.
+case: ltnP => H2.
+- exact: Hs.
+- exact: HG.
+Qed.
+
+(*
+have{2}->: k = k - seq.size si + seq.size si by rewrite subnK.
+move Ej : (k - seq.size si) => j.
+apply: HG.
+case: j Ej => [/=|j] Ej; first exact: Ha.
+apply: HG.
+elim: j {Ej} => [//|j IHj] /=.
+*)
 
 (* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)

@@ -435,8 +435,26 @@ move=> h1 h2; rewrite !nth_rev; try by rewrite size_grec1down.
 rewrite !size_grec1down !subSS; exact: nth_grec1down_indep.
 Qed.
 
+Arguments nth_grec1up_indep [d1 d2 m1 m2 n] _ _.
+
 Lemma nth_grec1up_last (d : T) k : nth d (grec1up k) k = last d (grec1up k).
 Proof. by rewrite (last_nth d) size_grec1up. Qed.
+
+Theorem nth_grec1up d n k :
+  nth d (grec1up n) k =
+  if n < k then d
+  else
+    if k < size init then nth d init k
+    else G (iteri (k - size init) (fun i c => F c (i + size init).+1) a0) k.
+Proof.
+case: (ltnP n k) => H; first by rewrite nth_default // size_grec1up.
+rewrite (nth_grec1up_indep (d2 := d) (m2 := k)) //.
+case: (ltnP k (size init)) => H'; first by rewrite grec1up_init // nth_take.
+rewrite nth_grec1up_last last_grec1up // head_gloop1; congr G.
+by rewrite subnK.
+Qed.
+
+Arguments nth_grec1up [d] n k.
 
 End GenDefix1.
 

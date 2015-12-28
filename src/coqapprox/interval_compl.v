@@ -95,7 +95,6 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
-
 Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
   match f (Xreal x) with
   | Xnan => false
