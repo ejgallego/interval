@@ -753,13 +753,17 @@ Qed.
 
 Lemma nth_mul_mixed a p1 k :
   nth (mul_mixed tt a p1) k = Rmult a (nth p1 k).
-Proof.
-Admitted.
+Proof. (* TODO: revise proof, using [map] rather than [foldr] ? *)
+elim: p1 k => [|x p IHp] k; first by rewrite nth_default // Rmult_0_r.
+case: k IHp => [|k] IHp //; by rewrite /= IHp.
+Qed.
 
 Lemma nth_div_mixed_r p1 b k :
   nth (div_mixed_r tt p1 b) k = Rdiv (nth p1 k) b.
 Proof.
-Admitted.
+elim: p1 k => [|x p IHp] k; first by rewrite nth_default // /Rdiv Rmult_0_l.
+case: k IHp => [|k] IHp //; by rewrite /= IHp.
+Qed.
 
 Lemma nth_lift n p k :
   nth (lift n p) k = if k < n then 0%R else nth p (k - n).
@@ -813,12 +817,24 @@ Qed.
 Lemma horner_mul_mixed a p x :
   horner tt (mul_mixed tt a p) x = (a * horner tt p x)%R.
 Proof.
-Admitted.
+rewrite !hornerE size_mul_mixed.
+rewrite big_endo; first last.
+  by rewrite Rmult_0_r.
+  by move=> *; rewrite Rmult_plus_distr_l.
+apply: eq_bigr => i _.
+by rewrite nth_mul_mixed Rmult_assoc.
+Qed.
 
 Lemma horner_div_mixed_r p b x :
   horner tt (div_mixed_r tt p b) x = (horner tt p x / b)%R.
 Proof.
-Admitted.
+rewrite !hornerE size_div_mixed_r /Rdiv Rmult_comm.
+rewrite big_endo; first last.
+  by rewrite Rmult_0_r.
+  by move=> *; rewrite Rmult_plus_distr_l.
+apply: eq_bigr => i _.
+by rewrite nth_div_mixed_r -Rmult_assoc; congr Rmult; rewrite Rmult_comm.
+Qed.
 
 (*
 Lemma mul_coeffE p1 p2 k : mul_coeff tt p1 p2 k =
