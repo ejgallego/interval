@@ -78,6 +78,26 @@ do 2 rewrite (Rmult_comm r).
 exact H.
 Qed.
 
+(** Define a shorter name *)
+Notation Rmult_neq0 := Rmult_integral_contrapositive_currified.
+
+(** Lemma to be used with [field_simplify] and [ring] *)
+Lemma Rdiv_eq_reg a b c d :
+  (a * d = b * c -> b <> 0%R -> d <> 0%R -> a / b = c / d)%R.
+Proof.
+intros Heq Hb Hd.
+apply (Rmult_eq_reg_r (b * d)).
+field_simplify; trivial.
+now rewrite Heq.
+now apply Rmult_neq0.
+Qed.
+
+Lemma Rsqr_plus1_pos x : (0 < 1 + Rsqr x)%R.
+Proof. now apply (Rplus_lt_le_0_compat _ _ Rlt_0_1 (Rle_0_sqr x)). Qed.
+
+Lemma Rsqr_plus1_neq0 x : (1 + Rsqr x <> 0)%R.
+Proof. now apply Rgt_not_eq; apply Rlt_gt; apply Rsqr_plus1_pos. Qed.
+
 Lemma Rmin_Rle :
   forall r1 r2 r,
   (Rmin r1 r2 <= r)%R <-> (r1 <= r)%R \/ (r2 <= r)%R.

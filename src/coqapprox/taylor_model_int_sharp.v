@@ -92,6 +92,7 @@ End PolyMap.
 
 Module TaylorModel (I : IntervalOps) (Pol : PolyIntOps I) (Bnd : PolyBound I Pol).
 Import Pol.Notations.
+Import PolR.Notations.
 Local Open Scope ipoly_scope.
 Module Export Aux := IntervalAux I.
 Module Import TI := TaylorPoly Pol.Int Pol.
@@ -3871,14 +3872,14 @@ Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
 Proof.
 constructor.
 - by move=> *; rewrite PolR.size_grec1.
-- move=> xi0 n k; rewrite ltnS => H;
+- move=> x n k; rewrite ltnS => H;
   rewrite /TR.T_atan /PolR.nth /PolR.grec1
     (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
     nth_grec1up_last.
   case: k H => [|k H]; first by rewrite /= ?Rdiv_1.
   rewrite last_grec1up // head_gloop1.
   rewrite [size _]/= subn1 [_.+1.-1]/=.
-  elim: k H xi0 => [|k IHk] H xi0.
+  elim: k H x => [|k IHk] H x.
   + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
     symmetry; apply: is_derive_unique; auto_derive =>//.
     by rewrite Rmult_1_r.
@@ -3891,21 +3892,49 @@ constructor.
         (PolR.mul_mixed tt (INR ((i + 1).+1.-1).*2) (PolR.lift 1 c)))
         (INR (i + 1).+1)) PolR.one in IHk *.
     rewrite (@Derive_ext _ (fun x =>
-      PolR.horner tt qk x / powerRZ (1+x*x) (Z.of_nat (k+1)) * INR (fact k.+1))%R);
+      PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
       first last.
-    move=> t; move/(_ t) in IHk; simpl_R.
+    move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
+    simpl_R.
     apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk Rmult_assoc Hri0; try lra.
     by rewrite -Hr0; apply: INR_fact_neq_0.
     apply: Rinv_r_neq0 (Hri0 _).
     by rewrite -Hr0; apply: INR_fact_neq_0.
     clear IHk.
     rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
-    rewrite PolR.horner_mul_mixed !PolR.horner_lift.
-    Check (is_derive_unique, PolR.is_derive_horner).
-admit. (* TODO: derivatives' recurrence *)
+    rewrite PolR.horner_mul_mixed !PolR.horner_lift Derive_scal_l.
+    rewrite Derive_div; first last.
+    * by apply: pow_nonzero; apply: Rsqr_plus1_neq0.
+    * by auto_derive.
+    * by eexists; apply: PolR.is_derive_horner. (* TODO: avoid [eexists] *)
+    rewrite Derive_pow; try by auto_derive.
+    rewrite Derive_plus; try by auto_derive.
+    rewrite Derive_const ?Rplus_0_l.
+    rewrite Derive_mult; try by auto_derive.
+    rewrite Derive_id.
+    rewrite PolR.Derive_horner.
+    rewrite -{1}(Rmult_1_r (qk^`().[x])%P) -Rmult_plus_distr_l.
+    rewrite SuccNat2Pos.id_succ.
+    rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
+    (* Now, some reals' bookkeeping *)
+    suff->: forall x, x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2.
+    suff->: INR (k.+1).*2 = (2 * INR k.+1)%R.
+    suff->: (((1 + x * x) ^ k.+1) ^ 2 = (1 + x * x) ^ k.+2 * (1 + x * x) ^ k)%R.
+    suff->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R.
+    * by field_simplify; first apply: Rdiv_eq_reg; first ring;
+      repeat first [ split
+                   | apply: Rmult_neq0
+                   | apply: not_0_INR
+                   | apply: pow_nonzero
+                   | apply: Rsqr_plus1_neq0].
+    * by rewrite !pow_S pow_O Rmult_1_r.
+    * by rewrite -pow_mult multE muln2 -pow_add plusE addSnnS -addnn.
+    * by rewrite -mul2n -multE mult_INR.
+    * clear; move=> x; apply: Rdiv_eq_reg.
+      - by rewrite [in RHS]fact_simpl mult_INR; lra.
+      - exact: INR_fact_neq_0.
+      - exact: not_0_INR.
 Qed.
-
-(* Check (Derive_scal_l, is_derive_unique, PolR.is_derive_horner). *)
 
 Lemma TM_atan_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->

@@ -47,6 +47,10 @@ Reserved Notation "i >: x"
 Reserved Notation "i >:: x"
   (at level 70, no associativity, format "i  >::  x").
 
+Reserved Notation "p .[ x ]"
+  (at level 2, left associativity, format "p .[ x ]").
+Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
+
 Module Type BaseOps.
 Parameter U : Type.
 Parameter T : Type.
@@ -619,6 +623,13 @@ End SeqPoly.
 Module PolR <: PolyOps FullR.
 Include SeqPoly FullR.
 
+Module Import Notations.
+Delimit Scope rpoly_scope with P.
+Notation "p .[ x ]" := (PolR.horner tt p x) : rpoly_scope.
+Notation "p ^` ()" := (PolR.deriv tt p) : rpoly_scope.
+End Notations.
+Local Open Scope rpoly_scope.
+
 Lemma toSeq_horner0 (u : U) (p : T) : horner u p R0 = head R0 (toSeq p).
 Proof.
 elim: p=> [| a q HI] ; first by [].
@@ -709,6 +720,13 @@ elim: p => [|a p IHp].
   have->: nth (a :: p) i.+2 = nth p i.+1 by [].
   rewrite -tech_pow_Rmult; simpl; ring.
 Qed.
+
+Corollary Derive_horner p x :
+  Derive (horner tt p) x = horner tt (deriv tt p) x.
+Proof. apply: is_derive_unique; exact: is_derive_horner. Qed.
+
+Corollary ex_derive_horner p x : ex_derive (horner tt p) x.
+Proof. exists (horner tt (deriv tt p) x); exact: is_derive_horner. Qed.
 
 Lemma nth_add p1 p2 k :
   nth (add tt p1 p2) k = Rplus (nth p1 k) (nth p2 k).
