@@ -3839,8 +3839,6 @@ Proof. by rewrite Pol.size_grec1. Qed.
 Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
-
-
 Instance validIPoly_atan : validIPoly Xatan (TR.T_atan tt) (TI.T_atan prec).
 Proof.
 constructor.
@@ -3866,13 +3864,7 @@ constructor.
   + exact: Pol.one_correct.
   + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: cont0.
     exact: R_atan_correct.
-- move=> X [x H1 H2] n.
-  done.
-  (*
-  apply/contains_Xnan/Pol.eqNaiP.
-  apply: Pol.grec1_propagate.
-  ...
-  *)
+- move=> X [x H1 H2] n; done.
 Qed.
 
 Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
@@ -3906,6 +3898,10 @@ constructor.
     by rewrite -Hr0; apply: INR_fact_neq_0.
     apply: Rinv_r_neq0 (Hri0 _).
     by rewrite -Hr0; apply: INR_fact_neq_0.
+    clear IHk.
+    rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
+    rewrite PolR.horner_mul_mixed !PolR.horner_lift.
+    Check (is_derive_unique, PolR.is_derive_horner).
 admit. (* TODO: derivatives' recurrence *)
 Qed.
 

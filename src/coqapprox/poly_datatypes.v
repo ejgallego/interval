@@ -144,7 +144,9 @@ Parameter grec1 :
   (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
 (* Erik: We don't use [Parameter map : forall f : C.T -> C.T, T -> T.]
    as its specification would require [f C.tzero = C.tzero], which
-   does not hold in general. Still, we can rely on fold(r) instead. *)
+   does not hold in general. Still, we can rely on fold(r) instead.
+
+Erik[2015-12-29]: is this remark still relevant with the new archi? *)
 Parameter fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
 Parameter set_nth : T -> nat -> C.T -> T.
 Parameter mul_trunc : U -> nat -> T -> T -> T.
@@ -184,20 +186,19 @@ Parameter primitive_correct : forall u p c k, k < (size p).+1 ->
 Parameter size_primitive : forall u c p, size (primitive u c p) = (size p).+1.
 (* FIXME: remove if possible *)
 
-Parameter size_sub :
-  forall u p1 p2,
-  size (sub u p1 p2) = maxn (size p1) (size p2).
+Parameter size_lift : forall n p, size (lift n p) = n + size p.
+Parameter size_mul_mixed : forall u a p, size (mul_mixed u a p) = size p.
+Parameter size_div_mixed_r : forall u p b, size (div_mixed_r u p b) = size p.
 Parameter size_rec1 : forall F x n, size (rec1 F x n) = n.+1.
 Parameter size_rec2 : forall F x y n, size (rec2 F x y n) = n.+1.
 Parameter size_mul_trunc : forall u n p q, size (mul_trunc u n p q) = n.+1.
 Parameter size_mul_tail :
   forall u n p q, size (mul_tail u n p q) = ((size p) + (size q)).-1 - n.+1.
 Parameter size_add :
-  forall u p1 p2,
-  size (add u p1 p2) = maxn (size p1) (size p2).
-Parameter size_opp :
-  forall p1,
-  size (opp p1) = size p1.
+  forall u p1 p2, size (add u p1 p2) = maxn (size p1) (size p2).
+Parameter size_opp : forall p1, size (opp p1) = size p1.
+Parameter size_sub :
+  forall u p1 p2, size (sub u p1 p2) = maxn (size p1) (size p2).
 Parameter size_polyNil : size polyNil = 0.
 Parameter size_polyCons : forall a p, size (polyCons a p) = (size p).+1.
 Parameter size_grec1 :
@@ -430,23 +431,35 @@ Definition grec1 (A : Type) := @grec1up A C.T.
 Lemma size_grec1 A F G (q : A) s n : size (grec1 F G q s n) = n.+1.
 Proof. by apply size_grec1up. Qed.
 
-
-Lemma size_add p1 p2 : size (add p1 p2) = maxn (size p1) (size p2).
-Proof. by rewrite /size /add size_map2. Qed.
-
 Lemma size_rec1 F x n: size (rec1 F x n) = n.+1.
 Proof. by apply size_rec1up. Qed.
 
 Lemma size_rec2 F x y n: size (rec2 F x y n) = n.+1.
 Proof. by apply size_rec2up. Qed.
 
-
 Lemma size_mul_trunc n p q: size (mul_trunc n p q) = n.+1.
 Proof. by rewrite /size size_mkseq. Qed.
 
 Lemma size_mul_tail n p q:
-     size (mul_tail n p q) = ((size p) + (size q)).-1 - n.+1.
+  size (mul_tail n p q) = ((size p) + (size q)).-1 - n.+1.
 Proof. by rewrite /size size_mkseq. Qed.
+
+Lemma size_add p1 p2 : size (add p1 p2) = maxn (size p1) (size p2).
+Proof. by rewrite /size /add size_map2. Qed.
+
+Lemma size_opp p1 : size (opp p1) = size p1.
+Proof. by rewrite /size /opp size_map. Qed.
+
+Lemma size_sub p1 p2 : size (sub p1 p2) = maxn (size p1) (size p2).
+Proof. by rewrite /sub /size size_map2. Qed.
+
+Lemma size_deriv p : size (deriv p) = (size p).-1.
+Proof.
+rewrite /deriv /deriv_loop.
+case: p => [|a p] //=.
+elim: p 1 => [|b p IHp] n //=.
+by rewrite IHp.
+Qed.
 
 End PrecIsPropagated.
 
@@ -454,11 +467,20 @@ Definition tail := @drop C.T.
 
 Definition lift (n : nat) p := ncons n C.zero p.
 
+Lemma size_lift n p : size (lift n p) = n + size p.
+Proof (size_ncons n C.zero p).
+
 Definition mul_mixed (u : U) (a : C.T) (p : T) :=
   @foldr C.T T (fun x acc => (C.mul u a x) :: acc) [::] p.
 
 Definition div_mixed_r (u : U) (p : T) (b : C.T) :=
   @foldr C.T T (fun x acc => (C.div u x b) :: acc) [::] p.
+
+Lemma size_mul_mixed u a p : size (mul_mixed u a p) = size p.
+Proof. by elim: p => [//|x p IHp]; rewrite /= IHp. Qed.
+
+Lemma size_div_mixed_r u p b : size (div_mixed_r u p b) = size p.
+Proof. by elim: p => [//|x p IHp]; rewrite /= IHp. Qed.
 
 Fixpoint dotmuldiv (u : U) (a b : seq Z) (p : T) : T :=
 match a, b, p with
@@ -510,12 +532,6 @@ Proof. by rewrite nth_default. Qed.
 Lemma nth_polyCons a p k : (* k <= size p -> *)
   nth (polyCons a p) k = if k is k'.+1 then nth p k' else a.
 Proof. by case: k. Qed.
-
-Lemma size_opp p1 : size (opp p1) = size p1.
-Proof. by rewrite /size /opp size_map. Qed.
-
-Lemma size_sub u p1 p2 : size (sub u p1 p2) = maxn (size p1) (size p2).
-Proof. by rewrite /sub /size size_map2. Qed.
 
 Lemma size_dotmuldiv (n : nat) (u : U) a b p :
   size p = n -> seq.size a = n -> seq.size b = n ->
@@ -596,15 +612,8 @@ Qed.
 Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
 
-Lemma size_deriv p : size (deriv u p) = (size p).-1.
-Proof.
-rewrite /deriv /deriv_loop.
-case: p => [|a p] //=.
-elim: p 1 => [|b p IHp] n //=.
-by rewrite IHp.
-Qed.
-
 End precSection.
+
 End SeqPoly.
 
 Module PolR <: PolyOps FullR.
@@ -701,30 +710,99 @@ elim: p => [|a p IHp].
   rewrite -tech_pow_Rmult; simpl; ring.
 Qed.
 
-(*
 Lemma nth_add p1 p2 k :
   nth (add tt p1 p2) k = Rplus (nth p1 k) (nth p2 k).
 Proof.
-elim: p1 p2 k =>[//|c1 p1 IHp] p2 k.
-  by rewrite /= !nth_polyNil Rplus_0_l.
-by case: p2 k =>[//|c2 p2] k; case: k IHp =>[//|k] IHp //=; rewrite Rplus_0_r.
+rewrite /nth /add nth_map2_dflt -!/(nth _ _).
+by case: (leqP (size p1) k) => H1; case: (leqP (size p2) k) => H2;
+  rewrite ?(nth_default H1) ?(nth_default H2); auto with real.
 Qed.
 
 Lemma nth_opp p1 k : nth (opp p1) k = Ropp (nth p1 k).
 Proof.
-elim: p1 k =>[//|c1 p1 IHp] k.
-  by rewrite /= !nth_polyNil Ropp_0.
-by case: k IHp =>[//|k] IHp //=; rewrite Rplus_0_r.
+rewrite /nth /add nth_map_dflt -!/(nth _ _).
+by case: (leqP (size p1) k) => H1;
+  rewrite ?(nth_default H1); auto with real.
 Qed.
 
 Lemma nth_sub p1 p2 k :
   nth (sub tt p1 p2) k = Rminus (nth p1 k) (nth p2 k).
 Proof.
-elim: p1 p2 k =>[//|c1 p1 IHp] p2 k.
-  by rewrite /= !nth_polyNil Rminus_0_l nth_opp.
-by case: p2 k =>[//|c2 p2] k; case: k IHp =>[//|k] IHp //=; rewrite Rminus_0_r.
+rewrite /nth /add nth_map2_dflt -!/(nth _ _).
+by case: (leqP (size p1) k) => H1; case: (leqP (size p2) k) => H2;
+  rewrite ?(nth_default H1) ?(nth_default H2); auto with real.
 Qed.
 
+Lemma nth_mul_mixed a p1 k :
+  nth (mul_mixed tt a p1) k = Rmult a (nth p1 k).
+Proof.
+Admitted.
+
+Lemma nth_div_mixed_r p1 b k :
+  nth (div_mixed_r tt p1 b) k = Rdiv (nth p1 k) b.
+Proof.
+Admitted.
+
+Lemma nth_lift n p k :
+  nth (lift n p) k = if k < n then 0%R else nth p (k - n).
+Proof (nth_ncons 0%R n 0%R p k).
+
+Lemma horner_add p q x :
+  horner tt (add tt p q) x = (horner tt p x + horner tt q x)%R.
+Proof.
+rewrite !(@hornerE_wide (maxn (size p) (size q))).
+rewrite -big_split; apply: eq_bigr => i _ /=.
+by rewrite nth_add Rmult_plus_distr_r.
+exact: leq_maxr.
+exact: leq_maxl.
+by rewrite size_add.
+Qed.
+
+Lemma horner_sub p q x :
+  horner tt (sub tt p q) x = (horner tt p x - horner tt q x)%R.
+Proof.
+rewrite !(@hornerE_wide (maxn (size p) (size q))).
+rewrite /Rminus.
+rewrite (big_endo Ropp); first last.
+  by rewrite Ropp_0.
+  exact: Ropp_plus_distr.
+rewrite -big_split; apply: eq_bigr => i _ /=.
+by rewrite -/(Rminus _ _) nth_sub Rmult_minus_distr_r.
+exact: leq_maxr.
+exact: leq_maxl.
+by rewrite size_sub.
+Qed.
+
+Lemma horner_lift n p x :
+  horner tt (lift n p) x = (horner tt p x * x ^ n)%R.
+Proof.
+rewrite !hornerE (*(@hornerE_wide (size (lift n p))) *).
+rewrite (big_endo (fun y => y * x ^ n)%R); first last.
+  by rewrite Rmult_0_l.
+  by red=> *; rewrite Rmult_plus_distr_r.
+rewrite size_lift.
+rewrite (@big_cat_nat _ _ _ n) ?leq_addr //=.
+rewrite big1_seq; first last.
+  move=> i /andP [_ Hi]; rewrite nth_lift ifT ?Rmult_0_l //.
+  by move: Hi; rewrite mem_index_iota; case/andP.
+rewrite Rplus_0_l -{1}(add0n n) big_addn addKn.
+apply: eq_bigr => i _ /=.
+rewrite nth_lift ifF ?(ltnNge, leq_addl) //.
+rewrite addnK Rmult_assoc; congr Rmult.
+by rewrite pow_add.
+Qed.
+
+Lemma horner_mul_mixed a p x :
+  horner tt (mul_mixed tt a p) x = (a * horner tt p x)%R.
+Proof.
+Admitted.
+
+Lemma horner_div_mixed_r p b x :
+  horner tt (div_mixed_r tt p b) x = (horner tt p x / b)%R.
+Proof.
+Admitted.
+
+(*
 Lemma mul_coeffE p1 p2 k : mul_coeff tt p1 p2 k =
          \big[Rplus/0%R]_(i < k.+1) Rmult (PolR.nth p1 (k - i)) (PolR.nth p2 i).
 Proof.
@@ -743,6 +821,7 @@ by rewrite rev_iota.
 Qed.
 
 *)
+
 End PolR.
 
 Module Type PolyIntOps (I : IntervalOps).
@@ -1178,15 +1257,6 @@ case: ltnP => H2.
 - exact: Hs.
 - exact: HG.
 Qed.
-
-(*
-have{2}->: k = k - seq.size si + seq.size si by rewrite subnK.
-move Ej : (k - seq.size si) => j.
-apply: HG.
-case: j Ej => [/=|j] Ej; first exact: Ha.
-apply: HG.
-elim: j {Ej} => [//|j IHj] /=.
-*)
 
 (* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
