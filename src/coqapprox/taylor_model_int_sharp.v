@@ -3886,13 +3886,9 @@ constructor.
   + move/ltnW in H; move/(_ H) in IHk.
     rewrite [INR]lock [PolR.lift]lock [fact]lock /= -!lock.
     set qk := iteri k
-      (fun (i : nat) (c : PolR.T) =>
-        PolR.div_mixed_r tt
-        (PolR.sub tt (PolR.add tt (PolR.deriv tt c) (PolR.lift 2 (PolR.deriv tt c)))
-        (PolR.mul_mixed tt (INR ((i + 1).+1.-1).*2) (PolR.lift 1 c)))
-        (INR (i + 1).+1)) PolR.one in IHk *.
-    rewrite (@Derive_ext _ (fun x =>
-      PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
+      (fun i c => PolR.div_mixed_r tt _ (INR (i + 1).+1)) PolR.one in IHk *.
+    rewrite (@Derive_ext _
+      (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
       first last.
     move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
     simpl_R.
@@ -3906,7 +3902,7 @@ constructor.
     rewrite Derive_div; first last.
     * by apply: pow_nonzero; apply: Rsqr_plus1_neq0.
     * by auto_derive.
-    * by eexists; apply: PolR.is_derive_horner. (* TODO: avoid [eexists] *)
+    * exact: PolR.ex_derive_horner.
     rewrite Derive_pow; try by auto_derive.
     rewrite Derive_plus; try by auto_derive.
     rewrite Derive_const ?Rplus_0_l.
