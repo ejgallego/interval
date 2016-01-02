@@ -1,3 +1,6 @@
+Version 2.2.1:
+ - moved to MathComp 1.6
+
 Version 2.2.0:
  - improved tactic so that it handles goals with non floating-point bounds
  - added a dependency on Coquelicot to remove an assumption about ln
