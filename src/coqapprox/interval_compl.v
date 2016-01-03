@@ -104,7 +104,7 @@ Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
 Lemma definedF f x : defined f x = false -> f (Xreal x) = Xnan.
 Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
 
-Lemma defined_ext f g x :
+Lemma defined_ext g f x :
   f (Xreal x) = g (Xreal x) -> defined f x = defined g x.
 Proof.
 by rewrite /defined =>->.
@@ -197,6 +197,14 @@ Lemma Xreal_ln x : (0 < x)%R -> Xreal (ln x) = Xln (Xreal x).
 Proof. by move=> H; rewrite /Xln positiveT. Qed.
 
 Module IntervalAux (I : IntervalOps).
+
+Definition eqNai X := match I.convert X with
+                      | IInan => true
+                      | _ => false
+                      end.
+
+Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
+Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
 
 Definition R_extension f fi :=
   forall (b : I.type) (x : R),

@@ -243,36 +243,67 @@ Definition TM_sub (Mf Mg : rpa) : rpa :=
   RPA (Pol.sub prec (approx Mf) (approx Mg))
       (I.sub prec (error Mf) (error Mg)).
 
+(** Define a higher-order predicate [forall_or_undef] to better handle
+    the Reals spec and the "NaN" spec apart *)
+
+(*
+Definition forall_if_def
+  (X : interval) xf (Def : R -> Prop) (Undef : Prop) :=
+  forall x, contains X (Xreal x) ->
+  if defined xf x then Def x else Undef.
+*)
+(* The same predicate, defined inductively, to ease case analyses: *)
+
+Inductive forall_if_def
+  (X : interval) xf (Def : R -> Prop) (Undef : Prop) : Prop :=
+  | Forall_if_def :
+    (forall x, contains X (Xreal x) -> defined xf x -> Def x) ->
+    (forall x, contains X (Xreal x) -> ~~ defined xf x -> Undef) ->
+    forall_if_def X xf Def Undef.
+
 Definition i_validTM (X0 X : interval (* not I.type *) )
-  (M : rpa) (xF : ExtendedR -> ExtendedR) :=
-  let f := toR_fun xF in
-  let dom := defined xF in
+  (M : rpa) (xf : ExtendedR -> ExtendedR (* C^infty or Xnan *)) :=
+  let f := toR_fun xf in
+  let dom := defined xf in
   [/\ contains (I.convert (error M)) (Xreal 0),
     I.subset_ X0 X &
-    forall x0,
-      contains X0 (Xreal x0) ->
-      exists2 Q,
-        approx M >:: Q
-        & forall x, contains X (Xreal x) ->
-                    contains (I.convert (error M))
-                    (if dom x then
-                       (Xreal (f x - (PolR.horner tt Q (x - x0))))%R
-                     else Xnan)].
+    forall_if_def X0 xf
+    (fun x0 => exists2 Q,
+      approx M >:: Q
+      & forall_if_def X xf
+        (fun x => error M >: f x - (PolR.horner tt Q (x - x0)))%R
+        (eqNai (error M)))
+    (Pol.poly_eqNai (approx M))].
 
-Lemma TM_fun_eq f g X0 X TMf :
+Definition restriction (dom : R -> bool) (xf : ExtendedR -> ExtendedR) (x : ExtendedR) :=
+  match x, xf x with
+  | Xnan, _ | _, Xnan => Xnan
+  | Xreal x, Xreal y => if dom x then Xreal y else Xnan
+  end.
+
+Lemma defined_restriction dom xf x :
+  defined (restriction dom xf) x -> defined xf x.
+Proof. by rewrite /defined /=; case: xf. Qed.
+
+Lemma TM_fun_eq g f X0 X TMf :
   (forall x, contains X (Xreal x) -> f (Xreal x) = g (Xreal x)) ->
   i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
 Proof.
-move=> Hfg [H0 H1 H2].
-split=>// x0 Hx0.
-have [Q HQ Hmain] := H2 x0 Hx0.
-exists Q=>//.
-move=> x Hx.
-have Def := defined_ext (Hfg x Hx).
-case G: (defined g x) (Hmain x Hx).
-  have F : defined f x by rewrite Def.
-  by rewrite F Xreal_sub Xreal_toR // Hfg // -[g _]Xreal_toR.
-by rewrite Def G.
+move=> Hfg [H0 Hsubs [Hmain Hnan0]].
+repeat split=>//.
+- move=> x0 Hx0 Dx0.
+  rewrite (@defined_ext f) -?Hfg // in Dx0; try exact: subset_contains Hsubs _ _.
+  have [Q HQ [Hf Hnan]] := Hmain x0 Hx0 Dx0.
+    exists Q =>//.
+    split =>// x Hx Dx.
+    have F : defined f x by rewrite (@defined_ext g) // Hfg.
+    by rewrite Xreal_sub Xreal_toR // -Hfg // -[f _]Xreal_toR /=; try apply: Hf =>//.
+  rewrite (@defined_ext f) -?Hfg // in Dx.
+  exact: Hnan.
+- move=> x Hx Dx.
+  rewrite (@defined_ext f) -?Hfg // in Dx.
+  exact: Hnan0.
+  exact: subset_contains Hsubs _ _.
 Qed.
 
 (*
@@ -541,12 +572,15 @@ Lemma i_validTM_subset_X0 (X0 : I.type) (SX0 : interval) (X : I.type) f Mf :
   i_validTM (I.convert X0) (I.convert X) Mf f ->
   i_validTM (SX0) (I.convert X) Mf f.
 Proof.
-move=> Hsub [Hf0 Hf1 Hf2].
-split=>//.
-exact: (subset_subset _ (I.convert X0)).
-move=> x0 Hx0.
-have [|Q H1 H2] := Hf2 x0; first exact: (subset_contains SX0).
-by exists Q.
+red.
+move=> HSX0 [Hf0 Hsubs [Hmain Hnan0]].
+repeat split=>//; first exact: (subset_subset _ (I.convert X0)).
+- move=> x0 Hx0 Dx0.
+  have [|Q Hpol Herr] := Hmain x0 _ Dx0; first exact: (subset_contains SX0).
+  by exists Q.
+- move=> x0 Hx0 Dx0.
+  apply: Hnan0 =>//.
+  exact: subset_contains _ HSX0 _ _.
 Qed.
 
 Definition ComputeBound (M : rpa) (X0 X : I.type) :=
@@ -660,7 +694,8 @@ Lemma TM_integral_error_0 (x0 : R):
   contains (I.convert (TM_integral_error TM_integral_poly)) (Xreal 0).
 Proof.
 move => Hx0X0 [] ErrMf0 HX0X HPol /=.
-case: (HPol (x0) Hx0X0) => p Hcontains _.
+admit. (* FIXME LATER by Thomas or Erik
+case: (HPol (x0) Hx0X0) => [p Hcontains _].
 have -> : Xreal 0 = Xadd (Xreal 0) (Xadd (Xreal 0) (Xreal 0)).
 by rewrite /= 2!Rplus_0_l.
 apply: I.add_correct; last apply: I.add_correct.
@@ -685,6 +720,7 @@ suff->: 0%R = PolR.nth (PolR.primitive tt 0%Re p) 0.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
 have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
 by apply: I.sub_correct.
+*)
 Qed.
 
 Definition TM_integral :=
@@ -918,9 +954,12 @@ i_validTM (I.convert X0) iX TM_integral (toXreal_fun (RInt f x0)).
 Proof.
 move => Hx0X0 [] ErrMf0 HX0X HPol /=; split => //.
   by apply: (TM_integral_error_0 Hx0X0) => //.
+admit. (* FIXME LATER by Thomas or Erik
 move=> /= x1 HX0x1 {ErrMf0}.
-case: (HPol (x0) Hx0X0) => p Hcontains H3.
-case: (HPol (x1) HX0x1) => p1 Hcontains1 H31 {HPol}.
+case: (HPol (x0) Hx0X0) => [|p Hcontains H3].
+admit. (* missing hyp *)
+case: (HPol (x1) HX0x1) => [|p1 Hcontains1 H31 {HPol}].
+admit. (* missing hyp *)
 exists (PolR.primitive tt 0 p1).
 (* split.
 - by rewrite PolR.psize_primitive Hsizep1 /= psize_primitive. *)
@@ -1008,6 +1047,7 @@ rewrite  {H3}.
       by rewrite /Rmax;case (Rle_dec x1 x) => _ //;apply: (subset_contains iX0).
       move/(_ x2 hx2) in H31.
       by rewrite x_Def in H31.
+*)
 Qed.
 End TM_integral.
 
@@ -1049,32 +1089,41 @@ Section ProofOfRec.
 Section GenericProof.
 (** Generic proof for [TLrem]/[Ztech]. *)
 
+Variables X0 X : I.type.
+Let cont r := contains (I.convert X) (Xreal r).
 Variable xf : ExtendedR -> ExtendedR.
 Variable F : I.type -> I.type.
-Variables X0 X : I.type.
 Variable P : R -> nat -> PolR.T.
 Variable IP : I.type -> nat -> Pol.T.
 
 Let f0 := toR_fun xf.
 Let def := defined xf.
-Let dom r := contains (I.convert X) (Xreal r).
 Let Dn n := Derive_n f0 n.
+
+(* Old code:
+   For instantiating [i_validTM_Ztech], the predicate [dom_Cinfty]
+   can be set as [defined xf], or a smaller domain:
+
+Variable dom_Cinfty : R -> bool.
+*)
+Hypothesis Hder : forall n r, def r -> ex_derive_n f0 n r.
+(* FIXME: problem if {r | def r} is not connected; filterlim ? *) *)
 
 Hypothesis xf_Xnan : xf Xnan = Xnan.
 Hypothesis F_contains : I.extension xf F.
-Hypothesis Hdef : forall r, dom r -> def r.
-Hypothesis Hder : forall n r, dom r -> ex_derive_n f0 n r.
 
 Class validPoly : Prop := ValidPoly {
   Poly_size : forall (x0 : R) n, PolR.size (P x0 n) = n.+1;
   Poly_nth :
-    forall (x0 : R) n k, k < n.+1 ->
-    PolR.nth (P x0 n) k = Rdiv (Dn k x0) (INR (fact k)) }.
+    forall (x : R) n k,
+    def x ->
+    k <= n ->
+    PolR.nth (P x n) k = Rdiv (Dn k x) (INR (fact k)) }.
 
 Class validIPoly : Prop := ValidIPoly {
   IPoly_size :
-    forall (X0 : I.type) xi0 n, eq_size (IP X0 n) (P xi0 n);
-  IPoly_nth : forall (X0 : I.type) xi0 n, X0 >: xi0 -> IP X0 n >:: P xi0 n;
+    forall (X0 : I.type) x0 n, eq_size (IP X0 n) (P x0 n);
+  IPoly_nth : forall (X0 : I.type) x0 n, X0 >: x0 -> IP X0 n >:: P x0 n;
   IPoly_nan : forall X, (exists2 x, X >: x & ~ def x) ->
               forall n, contains (I.convert (Pol.nth (IP X n.+1) n.+1)) Xnan
 }.
@@ -1082,8 +1131,8 @@ Class validIPoly : Prop := ValidIPoly {
 Context { validPoly_ : validPoly }.
 Context { validIPoly_ : validIPoly }.
 
-Lemma Poly_nth0 x n : PolR.nth (P x n) 0 = f0 x.
-Proof. by rewrite Poly_nth // Rcomplements.Rdiv_1. Qed.
+Lemma Poly_nth0 x n : def x -> PolR.nth (P x n) 0 = f0 x.
+Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1. Qed.
 
 Lemma Poly_size' n : Pol.size (IP X0 n) = n.+1.
 Proof. by rewrite (IPoly_size X0 (*dummy*)0) Poly_size. Qed.
@@ -1120,6 +1169,46 @@ Qed.
 (* exists x, i, XDn i x = Xnan ~~> have Hn1 := XDn_Xnan (n.+1-i) Hi *)
 *)
 
+(*
+ATTEMPT on 2015-12-30:
+
+Definition i_validTM_Cinfty (X0 X : interval (* not I.type *) )
+  (M : rpa) (xf : ExtendedR -> ExtendedR) :=
+  let f := toR_fun xf in
+  let dom := dom_Cinfty in
+  [/\ contains (I.convert (error M)) (Xreal 0),
+    I.subset_ X0 X &
+    forall x0,
+      contains X0 (Xreal x0) ->
+      exists2 Q,
+        approx M >:: Q
+        & forall x, contains X (Xreal x) ->
+                    contains (I.convert (error M))
+                    (if dom x then
+                       (Xreal (f x - (PolR.horner tt Q (x - x0))))%R
+                     else Xnan)].
+
+Lemma i_validTM_CinftyP M :
+  i_validTM (I.convert X0) (I.convert X) M xf
+  <-> i_validTM_Cinfty (I.convert X0) (I.convert X) M xf.
+Proof.
+split => [[]|[]] A B C; split =>// x0 Hx0;
+  have {C} [Q H1 H2] := C x0 Hx0;
+  exists Q =>// x Hx; move/(_ x Hx) in H2;
+  case Ex: (dom_Cinfty x).
+- by rewrite [defined _ _]dom_def in H2.
+- apply/contains_Xnan.
+  have := @IPoly_nan validIPoly_ X.
+  (...)
+- by rewrite Ex in H2; rewrite [defined _ _]dom_def.
+- rewrite Ex in H2.
+- by move/contains_Xnan: H2->.
+Qed.
+
+CONCLUSION on 2015-12-30:
+Keep the current version of [i_validTM], and use [restriction] if need be.
+*)
+
 Theorem i_validTM_TLrem n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -1138,26 +1227,26 @@ split=>//=.
   apply: pow_contains_0 =>//.
   exact: subset_sub_contains_0 Ht _.
 (* |- Main condition for i_validTM *)
-move=> xi0 Hxi0; exists (P xi0 n); first by apply: IPoly_nth.
-move=> x Hx.
-case Def: defined.
-rewrite PolR.hornerE Poly_size //.
-have Hbig :
-  \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P xi0 n) i * (x - xi0) ^ i)%R =
-  \big[Rplus/R0]_(0 <= i < n.+1) (Dn i xi0 / INR (fact i) * (x - xi0)^i)%R.
-apply: eq_big_nat => i Hi; rewrite Poly_nth //.
-rewrite Hbig.
-  (* forall i <= n.+1, XDn i x <> Xnan *)
-  have H1 : contains (I.convert X) (Xreal xi0).
-    exact: (subset_contains (I.convert X0)).
-  have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder xi0 x H1 Hx).
-  rewrite Hc {Hc t Ht} /TLrem.
-  apply: R_mul_correct.
-    rewrite -(@Poly_nth _ c n.+1 n.+1); last done.
-    by apply: IPoly_nth.
-  rewrite pow_powerRZ.
-  apply: R_power_int_correct.
-  exact: R_sub_correct.
+split.
+- move=> x0 Hx0 Dx0; exists (P x0 n); first by apply: IPoly_nth.
+  split; first move=> x Hx Dx.
+  rewrite PolR.hornerE Poly_size //.
+  have Hbig :
+    \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
+    \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
+  apply: eq_big_nat => i Hi; rewrite Poly_nth //.
+  rewrite Hbig.
+    (* forall i <= n.+1, XDn i x <> Xnan *)
+    have H1 : contains (I.convert X) (Xreal x0).
+      exact: (subset_contains (I.convert X0)).
+    have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder x0 x H1 Hx).
+    rewrite Hc {Hc t Ht} /TLrem.
+    apply: R_mul_correct.
+      rewrite -(@Poly_nth _ c n.+1 n.+1); last done.
+      by apply: IPoly_nth.
+    rewrite pow_powerRZ.
+    apply: R_power_int_correct.
+    exact: R_sub_correct.
 (* ~ def x *)
 rewrite /TLrem.
 rewrite I.mul_propagate_l //.

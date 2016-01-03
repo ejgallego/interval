@@ -860,6 +860,7 @@ End PolR.
 
 Module Type PolyIntOps (I : IntervalOps).
 Module Int := FullInt I.
+Module Import Aux := IntervalAux I. (* for Aux.eqNai *)
 Include PolyOps Int.
 
 Definition contains_pointwise pi p : Prop :=
@@ -938,14 +939,6 @@ Parameter grec1_correct :
 
 Parameter nth_default_alt : forall pi p, pi >:: p ->
   forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
-
-Definition eqNai X := match I.convert X with
-                      | IInan => true
-                      | _ => false
-                      end.
-
-Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
-Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
 
 Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
 
@@ -1264,14 +1257,6 @@ Proof.
 move=> HF HG Ha Hs Hsize.
 by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
 Qed.
-
-Definition eqNai X := match I.convert X with
-                      | IInan => true
-                      | _ => false
-                      end.
-
-Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
-Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
 
 Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
 
