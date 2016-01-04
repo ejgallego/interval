@@ -100,7 +100,6 @@ Proof.
 have := (F.real_correct fl); rewrite /I.convert_bound /T.toR.
 by case: (F.toF fl)=> [||y z t] ->; constructor.
 Qed.
-About F.toF.
 
 Definition notFnan (f : F.type) :=
   match F.toF f with
@@ -331,7 +330,6 @@ suff: F.cmp b a = Xgt.
 rewrite !F.cmp_correct !Interval_generic_proof.Fcmp_correct.
 case: (FtoX (F.toF b)); case: (FtoX (F.toF a)) => // r1 r2.
 rewrite /Xcmp.
-Search _ Rcompare.
 rewrite Rcompare_sym.
 by case: (Rcompare r1 r2).
 apply: RgtToFcmp => //.
@@ -446,79 +444,6 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
         * by move : hx => [] _ Hltxb; apply: Rlt_le.
 Qed.
 
-Lemma all_integrals_correct_lt_swap (ia ib: I.type) (a b : R) :
-  (b < a) ->
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  ex_RInt f a b ->
-  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
-Proof.
-(* for now it is impossible to prove this because we don't know that I.join is symmetrical*)
-Admitted.
-
-Lemma all_integrals_correct (ia ib: I.type) (a b : R) :
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  ex_RInt f a b ->
-  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
-Proof.
-move: (Rle_dec a b).
-case => [Hleab | Hltba].
-move: Hleab.
-by apply: all_integrals_correct_leq.
-apply: all_integrals_correct_lt_swap.
-Search _ (~ _ <= _).
-by apply: Rnot_le_lt.
-Qed.
-
-(* Search _ F.type. *)
-(* Check Ibnd. *)
-(* Print f_interval. *)
-(* Check F.toF. *)
-(* Print I.type. *)
-(* Print f_interval. *)
-
-(* this lemma is actually false *)
-(* Lemma toto ia ib :  *)
-(*   Int.notInan (I.sub prec ia ib) -> *)
-(*   (match ia with *)
-(*       | Ibnd l u => F.real l /\ F.real u *)
-(*       | Inan => False *)
-(*   end). *)
-(* case: ia => // la ua. *)
-(* rewrite /I.sub. *)
-(* case: ib => // lb ub.  *)
-
-
-(* (* this lemma is false *) *)
-(* Lemma all_integrals_not_Inan_implies_bounded (ia ib : I.type ) : *)
-(*     Int.notInan (all_integrals ia ib) ->  *)
-(*     exists a b, *)
-(*     (contains (I.convert ia) (Xreal a)) /\  *)
-(*     (contains (I.convert ib) (Xreal b)) /\ *)
-(*     ex_RInt f a b. *)
-(* Proof. *)
-(* move => HnotInan. *)
-(* case Hia : ia => [| la ua]. *)
-(* - exists 0 . *)
-(*   case Hib : ib => [| lb ub] . *)
-(*   + exists 0. *)
-(*     split; split; try done. *)
-(*     exact: ex_RInt_point. *)
-(*   + case Hbreal : (F.real lb). *)
-(*     exists (T.toR lb). *)
-
-(*     split; split; try done. *)
-(*     move/F_realP : Hbreal => Hbreal; rewrite -Hbreal. *)
-
-                                        
-
-(* case Hia : (I.bounded ia); case Hib : (I.bounded ib) => // . *)
-(* - move: (I.bounded_correct ib);  *)
-(*   case Hilb : (I.lower_bounded ib); *)
-(*   case Hiub : (I.upper_bounded ib) => // . *)
-
-
 Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
 Definition integral_intBounds depth (i1 i2 : I.type) :=
@@ -611,14 +536,14 @@ have -> : Xreal (RInt f a b) =
      by split.
    apply: I.add_correct.
    + apply: I.add_correct.
-     * apply: (all_integrals_correct _ _ a (T.toR ua)) => //.
+     * apply: all_integrals_correct_leq => // .
        generalize (thin_correct ua).
        unfold I.convert_bound, T.toR.
        by destruct FtoX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
      * apply: integral_float_signed_correct => // ; apply: toX_toF_Freal => // .
-   + apply: (all_integrals_correct _ _ (T.toR lb) b) => //.
+   + apply: (all_integrals_correct_leq _ _ (T.toR lb) b) => //.
      generalize (thin_correct lb).
      unfold I.convert_bound, T.toR.
      by destruct (FtoX (F.toF lb)).
