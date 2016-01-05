@@ -194,8 +194,14 @@ rewrite ex; split; exact: Rle_refl.
 Qed.
 
 Lemma thin_correct_toR (fl : F.type) :
-  (F.real fl) -> contains (I.convert (thin fl)) (Xreal (T.toR fl)).
-Proof. move/F_realP<-; exact: thin_correct. Qed.
+  contains (I.convert (thin fl)) (Xreal (T.toR fl)).
+Proof.
+  case Hrealfl : (F.real fl);move: Hrealfl; move/F_realP => Hrealfl.
+  * rewrite -Hrealfl.
+      by apply: (thin_correct fl).
+  * move/F_realP: Hrealfl; rewrite /thin.
+      by rewrite -Bool.if_negb; move ->. (* probably not ideal *)
+Qed.
 
 End ExtraFloats.
 
