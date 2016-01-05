@@ -188,7 +188,6 @@ Parameter primitive_correct : forall u p c k, k < (size p).+1 ->
                                                 | S m => C.div u (nth p m) (C.from_nat k) end.
 
 Parameter size_primitive : forall u c p, size (primitive u c p) = (size p).+1.
-(* FIXME: remove if possible *)
 
 Parameter size_lift : forall n p, size (lift n p) = n + size p.
 Parameter size_mul_mixed : forall u a p, size (mul_mixed u a p) = size p.
@@ -277,26 +276,9 @@ Parameter size_trecN :
   forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
          (d : C.T),
   tsize (trecN L0 F n) = n.+1.
-
-Parameter nth_polyCons :
-  forall a p k, k <= tsize p ->
-  tnth (tpolyCons a p) k = if k is k'.+1 then tnth p k' else a.
-Parameter nth_polyNil : forall n, tnth tpolyNil n = C.tzero.
-Parameter nth_out : forall p n, tsize p <= n -> tnth p n = C.tzero.
-(** Note that we explicitely choose a default value here *)
-Parameter size_set_nth : forall p n val,
-  tsize (tset_nth p n val) = maxn n.+1 (tsize p).
-(* i.e., tsize (tset_nth p n val) = maxn n.+1 (tsize p) = tsize p. *)
-Parameter nth_set_nth : forall p n val k,
-  tnth (tset_nth p n val) k = if k == n then val else tnth p k.
-Parameter fold_polyNil : forall U f iv, @tfold U f iv tpolyNil = iv.
-Parameter fold_polyCons : forall U f iv c p,
-  @tfold U f iv (tpolyCons c p) = f c (@tfold U f iv p).
-
-Parameter nth_tail :
-  forall p n k,
-  tnth (ttail k p) n = tnth p (k + n).
 *)
+
+Parameter nth_tail : forall n p k, nth (tail n p) k = nth p (n + k).
 
 End PolyOps.
 
@@ -617,6 +599,9 @@ Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
 
 End precSection.
+
+Lemma nth_tail n p k : nth (tail n p) k = nth p (n + k).
+Proof (nth_drop n _ p k).
 
 End SeqPoly.
 
@@ -980,6 +965,10 @@ Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
+Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
+
+Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
+
 Lemma horner_propagate u pi : I.propagate (horner u pi).
 Proof. by red=> *; rewrite /horner I.mask_propagate_r. Qed.
 
@@ -1012,6 +1001,16 @@ apply (@map2_correct R I.type) =>//.
 - by move=> v2 ? ? ? ?; rewrite -(Rplus_0_l v2); apply: R_add_correct.
 - by move=> *; apply: R_add_correct.
 Qed.
+
+(*
+Lemma add_propagate_l u pi qi :
+  poly_eqNai pi -> poly_eqNai (add u pi qi).
+Proof.
+move=> H k Hk.
+rewrite size_add in Hk.
+have := H k.
+Abort.
+*)
 
 Lemma sub_correct u pi qi p q :
   pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
@@ -1257,10 +1256,6 @@ Proof.
 move=> HF HG Ha Hs Hsize.
 by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
 Qed.
-
-Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
-
-Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
 
 (* Check all_nthP *)
 Lemma grec1_propagate A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si :
