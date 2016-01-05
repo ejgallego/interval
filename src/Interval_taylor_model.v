@@ -1144,7 +1144,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     exists (Xneg (Xreal y));
     by [exact: I.neg_correct | move=> x Hx; rewrite Habs // Hy2].
 - red=> Hne.
-  apply: (@TM_fun_eq _ (*!*) (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq (fun x => Xneg (f x))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   apply: TM_var_correct_strong =>//.
@@ -1152,7 +1152,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply Imid_contains in Hne.
   apply: not_emptyE; by eexists; apply Hne.
 - red=> Hne.
-  apply: (@TM_fun_eq _ (*!*) (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq (fun x => Xneg (f x))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   exact: Hmain.

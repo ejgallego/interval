@@ -293,7 +293,7 @@ Lemma defined_restriction dom xf x :
   defined (restriction dom xf) x -> defined xf x.
 Proof. by rewrite /defined /=; case: xf. Qed.
 
-Lemma TM_fun_eq g f X0 X TMf :
+Lemma TM_fun_eq f g X0 X TMf :
   (forall x, contains X (Xreal x) -> f (Xreal x) = g (Xreal x)) ->
   i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
 Proof.
