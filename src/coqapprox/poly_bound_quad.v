@@ -203,8 +203,7 @@ Qed.
 Arguments ComputeBound_correct [prec pi p] _ b x _.
 
 Lemma ComputeBound_propagate :
-  forall prec pi p,
-  pi >:: p ->
+  forall prec pi,
   I.propagate (ComputeBound prec pi).
 Proof.
 red=> *; rewrite /ComputeBound /=.
@@ -213,6 +212,6 @@ by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
             Pol.horner_propagate).
 Qed.
 
-Arguments ComputeBound_propagate [prec pi p] _ xi _.
+Arguments ComputeBound_propagate [prec pi] xi _.
 
 End PolyBoundHornerQuad.

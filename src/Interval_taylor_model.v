@@ -257,6 +257,7 @@ rewrite /tmsize /= Pol.size_set_nth /= maxnC -lt0n; exact: maxnS.
 move=> Hne; move/(_ Hne) in H.
 have [H1 H2 H3] := H.
 split=>//= xi0 Hxi0.
+admit. (*
 have /= [p h1 h2] := H3 xi0 Hxi0.
 exists (PolR.set_nth p u.2 0%R).
   move=> k.
@@ -287,6 +288,7 @@ rewrite (big_cat_nat Radd_monoid (n := PolR.size p)) =>//.
   by case/andP: Hi.
 rewrite PolR.size_set_nth.
 by rewrite leq_maxr.
+*)
 Qed.
 
 Definition pad2 (u0 : U) (X : I.type) (arg : T * T) : T * T :=
@@ -596,19 +598,25 @@ move/(_ HneY): Htm.
 case => [/= Hzero _ Hmain].
 have [L1 L2] := I.midpoint_correct Y (not_empty'E HneY).
 set c0 := proj_val (I.convert_bound (I.midpoint Y)) in L1.
-have [|qx Hcont Hdelta] := Hmain c0.
+have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
   apply: Imid_contains_Xreal.
   apply: not_emptyE; exists x.
   apply: subset_contains Hx.
   exact: I.subset_correct.
+move/(_ c0 Hc0) in Hmain.
+case Dc0 : (defined f c0); last first.
+  rewrite Dc0 in Hmain.
+  rewrite I.add_propagate_l //.
+  admit; rewrite Bnd.ComputeBound_propagate //.
+rewrite Dc0 in Hmain.
+have [qx Hcont Hdelta] := Hmain.
 move: x Hx =>[|x Hx].
   move/contains_Xnan => H0.
   rewrite Hnan.
   rewrite (Iadd_Inan_propagate_l _ Hzero) //.
-  apply: (Bnd.ComputeBound_propagate Hcont).
+  apply: Bnd.ComputeBound_propagate.
   by rewrite I.sub_propagate_l.
 move/(_ x) in Hdelta.
-apply I.subset_correct in HXY.
 case Def : (defined f x) => [|]; last first.
   rewrite Def in Hdelta.
   move/definedF: Def => ->.
@@ -616,9 +624,8 @@ case Def : (defined f x) => [|]; last first.
   apply: Bnd.ComputeBound_correct =>//.
   apply: R_sub_correct =>//.
   rewrite /c0.
-  exact: Imid_contains_Xreal.
-  apply/contains_Xnan.
-  by move/(_ (subset_contains _ _ HXY _ Hx)): Hdelta.
+  apply/eqNaiP/Hdelta.
+  exact: (subset_contains _ _ Hsubset).
 have->: f (Xreal x) = Xadd (Xreal (PolR.horner tt qx (Rminus x c0)))
   (Xsub (f (Xreal x)) (Xreal (PolR.horner tt qx (Rminus x c0)))).
 case Efx : (f (Xreal x)) => [|r]; first by rewrite XaddC.
@@ -626,15 +633,13 @@ simpl.
 by congr Xreal; auto with real.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
-  apply: R_sub_correct =>//.
-  apply: Imid_contains_Xreal.
-  exists x.
-  exact: subset_contains Hx.
+  exact: R_sub_correct.
 rewrite Xreal_sub Xreal_toR // in Hdelta.
 rewrite Def in Hdelta.
 apply: Hdelta.
-exact: subset_contains HXY _ _.
+exact: (subset_contains _ _ Hsubset).
 Qed.
+(* Check Imid_contains_Xreal. *)
 
 Definition add_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let t' := pad2 u X (t1, t2) in
@@ -668,6 +673,7 @@ by rewrite -(ltn_predK H'1) maxSn.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
+admit. (*
 apply: TM_add_correct;
   first
     (rewrite ![Pol.size _]tsize_tm_helper1 size_pad2;
@@ -680,6 +686,7 @@ apply: TM_add_correct;
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
   by auto 2.
+*)
 Qed.
 
 Theorem add_correct u (Y : I.type) tf tg f g :
@@ -1137,7 +1144,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     exists (Xneg (Xreal y));
     by [exact: I.neg_correct | move=> x Hx; rewrite Habs // Hy2].
 - red=> Hne.
-  apply: (@TM_fun_eq (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq _ (*!*) (fun x => Xneg (f x))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   apply: TM_var_correct_strong =>//.
@@ -1145,7 +1152,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply Imid_contains in Hne.
   apply: not_emptyE; by eexists; apply Hne.
 - red=> Hne.
-  apply: (@TM_fun_eq (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq _ (*!*) (fun x => Xneg (f x))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   exact: Hmain.

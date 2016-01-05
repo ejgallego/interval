@@ -59,8 +59,7 @@ Parameter ComputeBound_correct :
   R_extension (PolR.horner tt p) (ComputeBound u pi).
 
 Parameter ComputeBound_propagate :
-  forall u pi p,
-  pi >:: p ->
+  forall u pi,
   I.propagate (ComputeBound u pi).
 
 (*
@@ -144,11 +143,10 @@ Qed.
 Arguments ComputeBound_correct [prec pi p] _ b x _.
 
 Lemma ComputeBound_propagate :
-  forall prec pi p,
-  pi >:: p ->
+  forall prec pi,
   I.propagate (ComputeBound prec pi).
 Proof. by red=> *; rewrite /ComputeBound Pol.horner_propagate. Qed.
 
-Arguments ComputeBound_propagate [prec pi p] _ xi _.
+Arguments ComputeBound_propagate [prec pi] xi _.
 
 End PolyBoundHorner.
