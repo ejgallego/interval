@@ -262,7 +262,8 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
       & forall_if_def X xf
         (fun x => error M >: f x - (PolR.horner tt Q (x - x0)))%R
         (eqNai (error M)))
-    (Pol.poly_eqNai (* Pol.tail 1 *) (approx M))].
+    (* (Pol.poly_eqNai (approx M)) *)
+    (eqNai (error M))].
 
 (*
 Definition i_validTM2 (X0 X : interval (* not I.type *) )
@@ -1139,9 +1140,9 @@ Class validIPoly : Prop := ValidIPoly {
   IPoly_size :
     forall (X0 : I.type) x0 n, eq_size (IP X0 n) (P x0 n);
   IPoly_nth : forall (X0 : I.type) x0 n, X0 >: x0 -> IP X0 n >:: P x0 n;
-  IPoly_nan :
+  IPoly_nai :
     forall X, forall r : R, contains (I.convert X) (Xreal r) -> ~~ def r ->
-    forall n k, k <= n -> contains (I.convert (Pol.nth (IP X n) k)) Xnan
+    forall n k, k <= n -> I.convert (Pol.nth (IP X n) k) = IInan
 }.
 
 Context { validPoly_ : validPoly }.
@@ -1275,17 +1276,15 @@ have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 
 have {Hundef} [x Hx nDx] := Hundef.
 move=> x0 Hx0.
 case Dx0: defined.
-- have Hnan := @IPoly_nan validIPoly_ _ x Hx nDx.
+- have Hnan := @IPoly_nai validIPoly_ _ x Hx nDx.
   rewrite /TLrem.
   rewrite /eqNai.
   rewrite I.mul_propagate_l //; first last.
-    apply/contains_Xnan; exact: Hnan.
+    exact: Hnan.
   exists (P x0 n); first by apply: IPoly_nth.
   by move=> *; case: defined.
-red=> k Hk.
-rewrite (IPoly_size _ x0) Poly_size ltnS /= in Hk.
-apply/eqNaiP/contains_Xnan.
-exact: (@IPoly_nan validIPoly_ _ x0 Hx0 (negbT Dx0)).
+apply/eqNaiP.
+by rewrite /TLrem I.mul_propagate_l // (IPoly_nai Hx).
 Qed.
 
 Lemma isNNegOrNPos_false :
@@ -4310,15 +4309,11 @@ have := Hf2 x Hx; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
 by apply/eqNaiP; rewrite I.add_propagate_l.
 have := Hg2 x Hx; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
 by apply/eqNaiP; rewrite I.add_propagate_r.
-move/definedF in Dfg0.
-move=> n Hn; apply/eqNaiP.
-(* finally *)
-admit.
-(*
-have /orP [nDf0|nDg0] : ~~ defined f x0 || ~~ defined g x0 by tac_def Dfg0 f g.
-have H := Hf x0 Hx0; rewrite (negbTE nDf0) /TM_add /= in H.
-rewrite /TM_add /=.
-*)
+have /orP [nDf|nDg] : ~~ defined f x0 || ~~ defined g x0 by tac_def Dfg0 f g.
+have := Hf x0 Hx0; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
+by apply/eqNaiP; rewrite I.add_propagate_l.
+have := Hg x0 Hx0; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
+by apply/eqNaiP; rewrite I.add_propagate_r.
 Qed.
 
 Lemma TM_add_correct (X0 X : I.type) (TMf TMg : rpa) f g :
