@@ -530,7 +530,7 @@ Definition toXreal_fun : ExtendedR -> ExtendedR :=
   fun x => match x with Xnan => Xnan | Xreal r => Xreal (f r) end.
 
 (* Interval_xreal.extension should be boolean *)
-Lemma xreal_extension_toXreal_fun : extension f toXreal_fun.
+Lemma toXreal_fun_correct : extension f toXreal_fun.
 Proof. by case. Qed.
 
 End ExtensionOfFunctionsToXreal.

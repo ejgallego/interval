@@ -101,7 +101,13 @@ Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
   | Xreal _ => true
   end.
 
-Lemma definedF f x : defined f x = false -> f (Xreal x) = Xnan.
+Lemma definedP f x : reflect (f (Xreal x) <> Xnan) (defined f x).
+Proof. by apply: introP; rewrite /defined; case: (f _) =>//; intuition. Qed.
+
+Lemma definedPn f x : f (Xreal x) = Xnan <-> ~~ defined f x.
+Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
+
+Lemma definedPf f x : f (Xreal x) = Xnan <-> defined f x = false.
 Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
 
 Lemma defined_ext g f x :
@@ -343,13 +349,41 @@ Definition I_propagate fi :=
   contains (I.convert b) Xnan -> contains (I.convert (fi b)) Xnan.
 *)
 
-Lemma R_extension_correct f fi (fx := toXreal_fun f) :
-  R_extension f fi -> I.propagate fi -> I.extension fx fi.
+Lemma extension_propagate (f : R -> R) fi fx :
+  extension f fx -> I.extension fx fi -> I.propagate fi.
 Proof.
-move=> A B b x H.
-case: x H => [|r].
-  rewrite !contains_Xnan; exact: B.
-exact: A.
+move=> Hfx Hfi x /contains_Xnan Hx.
+apply/contains_Xnan.
+suff->: Xnan = fx Xnan by exact: Hfi.
+by move: (Hfx Xnan); case: (fx).
+Qed.
+
+Lemma extension_I2R f fi fx :
+  extension f fx -> I.extension fx fi -> R_extension f fi.
+Proof.
+move=> Hfx Hfi X x Hx.
+case Df: (defined fx x).
+suff->: Xreal (f x) = fx (Xreal x) by exact: Hfi.
+move: (Hfx (Xreal x)) Df; rewrite /defined.
+by case: (fx) =>[//|r Hr _]; rewrite Hr.
+move/definedPf in Df.
+rewrite (iffLR (contains_Xnan (I.convert (fi X)))) //.
+rewrite -Df.
+exact: Hfi.
+Qed.
+
+Lemma extension_R2I f fi fx :
+  extension f fx -> R_extension f fi -> I.propagate fi ->
+  (forall x, defined fx x) ->
+  I.extension fx fi.
+Proof.
+move=> Hfx Hfi Hp Dfx X x Hx.
+case: x Hx => [|x] Hx.
+  move/contains_Xnan in Hx.
+  by rewrite Hp.
+suff->: fx (Xreal x) = Xreal (f x) by exact: Hfi.
+move: (Hfx (Xreal x)) (Dfx x); rewrite /defined.
+by case: (fx) =>[//|r Hr]; rewrite Hr.
 Qed.
 
 Lemma cont0 : contains (I.convert I.zero) (Xreal 0).

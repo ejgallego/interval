@@ -1093,206 +1093,10 @@ by case: x =>[|x]; case: l =>[|l]; case: u =>[|u]; case: a =>[|a]; case: b =>[|b
   psatzl R.
 Qed.
 
-Section ProofOfRec.
 
-Section GenericProof.
-(** Generic proof for [TLrem]/[Ztech]. *)
+Section Prelim.
 
-Variables X0 X : I.type.
-Let cont r := contains (I.convert X) (Xreal r).
-Variable xf : ExtendedR -> ExtendedR.
-Variable F : I.type -> I.type.
-Variable P : R -> nat -> PolR.T.
-Variable IP : I.type -> nat -> Pol.T.
-
-Let f0 := toR_fun xf.
-Let def := defined xf.
-(**
-For simplicity, rather than declaring another predicate
-[Variable der : R -> Prop.] satisfying
-[Hypothesis der_def : forall r, der r -> def r.],
-we assume that the function [xf] is derivable (Cinf) over its domain.
-
-Still, it is possible to "reduce" the domain of a function [xf]
-by using the [restriction] function.
-*)
-Notation der := (defined xf) (only parsing).
-
-Hypothesis Hder_n : forall n r, der r -> ex_derive_n f0 n r.
-Let Dn n := Derive_n f0 n.
-
-Hypothesis ex_der :
-  forall X : interval, { (forall r : R, contains X (Xreal r) -> der r) }
-                       + { (exists2 r : R, contains X (Xreal r) & ~~ der r) }.
-
-Hypothesis xf_Xnan : xf Xnan = Xnan.
-Hypothesis F_contains : I.extension xf F.
-
-Class validPoly : Prop := ValidPoly {
-  Poly_size : forall (x0 : R) n, PolR.size (P x0 n) = n.+1;
-  Poly_nth :
-    forall (x : R) n k,
-    def x ->
-    k <= n ->
-    PolR.nth (P x n) k = Rdiv (Dn k x) (INR (fact k)) }.
-
-Class validIPoly : Prop := ValidIPoly {
-  IPoly_size :
-    forall (X0 : I.type) x0 n, eq_size (IP X0 n) (P x0 n);
-  IPoly_nth : forall (X0 : I.type) x0 n, X0 >: x0 -> IP X0 n >:: P x0 n;
-  IPoly_nai :
-    forall X, forall r : R, contains (I.convert X) (Xreal r) -> ~~ def r ->
-    forall n k, k <= n -> I.convert (Pol.nth (IP X n) k) = IInan
-}.
-
-Context { validPoly_ : validPoly }.
-Context { validIPoly_ : validIPoly }.
-
-Lemma Poly_nth0 x n : def x -> PolR.nth (P x n) 0 = f0 x.
-Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1. Qed.
-
-Lemma Poly_size' n : Pol.size (IP X0 n) = n.+1.
-Proof. by rewrite (IPoly_size X0 (*dummy*)0) Poly_size. Qed.
-
-(*
-Lemma not_and_impl : forall P Q : Prop, ~ (P /\ Q) -> P -> ~ Q.
-Proof. now intuition. Qed.
-
-(** Note that we define the following predicate using [exists] quantifiers, to
-    be able to use [not_ex_all_not] later on, rather than [not_all_ex_not]. *)
-Definition Xnan_ex (D : nat -> ExtendedR -> ExtendedR)
-  (n : nat) (X : interval) : Prop :=
-  exists k : 'I_n.+1,
-(* FIXME: Use exists2 *)
-  exists x : R, contains X (Xreal x) /\ D k (Xreal x) = Xnan.
-
-Lemma Xnan_ex_or D n X : Xnan_ex D n X \/ ~ Xnan_ex D n X.
-Proof. by apply: classic. Qed.
-
-Lemma Xnan_ex_not D n X : ~ Xnan_ex D n X ->
-  forall k : nat, forall x : R, k <= n ->
-  contains X (Xreal x) ->
-  D k (Xreal x) = Xreal (proj_val (D k (Xreal x))).
-Proof.
-move=> Hnot k x Hk Hx; have H'k : k < n.+1 by rewrite ltnS.
-move:(not_ex_all_not _ _ Hnot).
-move/(_ (Ordinal H'k)) => Hnot'.
-move: (not_ex_all_not _ _ Hnot').
-move/(_ x)=> Hnot''.
-move: (not_and_impl Hnot'' Hx).
-by case: (D k (Xreal x)).
-Qed.
-
-(* exists x, i, XDn i x = Xnan ~~> have Hn1 := XDn_Xnan (n.+1-i) Hi *)
-*)
-
-(*
-ATTEMPT on 2015-12-30:
-
-Definition i_validTM_Cinfty (X0 X : interval (* not I.type *) )
-  (M : rpa) (xf : ExtendedR -> ExtendedR) :=
-  let f := toR_fun xf in
-  let dom := dom_Cinfty in
-  [/\ contains (I.convert (error M)) (Xreal 0),
-    I.subset_ X0 X &
-    forall x0,
-      contains X0 (Xreal x0) ->
-      exists2 Q,
-        approx M >:: Q
-        & forall x, contains X (Xreal x) ->
-                    contains (I.convert (error M))
-                    (if dom x then
-                       (Xreal (f x - (PolR.horner tt Q (x - x0))))%R
-                     else Xnan)].
-
-Lemma i_validTM_CinftyP M :
-  i_validTM (I.convert X0) (I.convert X) M xf
-  <-> i_validTM_Cinfty (I.convert X0) (I.convert X) M xf.
-Proof.
-split => [[]|[]] A B C; split =>// x0 Hx0;
-  have {C} [Q H1 H2] := C x0 Hx0;
-  exists Q =>// x Hx; move/(_ x Hx) in H2;
-  case Ex: (dom_Cinfty x).
-- by rewrite [defined _ _]dom_def in H2.
-- apply/contains_Xnan.
-  have := @IPoly_nan validIPoly_ X.
-  (...)
-- by rewrite Ex in H2; rewrite [defined _ _]dom_def.
-- rewrite Ex in H2.
-- by move/contains_Xnan: H2->.
-Qed.
-
-CONCLUSION on 2015-12-30:
-Keep the current version of [i_validTM], and use [restriction] if need be.
-*)
-
-Theorem i_validTM_TLrem n :
-  I.subset_ (I.convert X0) (I.convert X) ->
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X)
-  (RPA (IP X0 n) (TLrem prec IP X0 X n)) xf.
-Proof.
-move=> Hsubs [t Ht].
-pose err := TLrem prec IP X0 X n.
-(* have XDn_0_Xnan : Dn 0 Xnan = Xnan by rewrite XDn_0. *)
-split=>//=.
-  (* |- 0 \in err *)
-  set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
-  apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
-    apply: IPoly_nth =>//.
-    exact: subset_contains (I.convert X0) _ _ _ _ =>//.
-  apply: pow_contains_0 =>//.
-  exact: subset_sub_contains_0 Ht _.
-have [Hdef|Hundef] := (ex_der (I.convert X)).
-move=> x0 Hx0.
-have->: defined xf x0 = true.
-  rewrite Hdef //.
-  exact: (subset_contains _ _ Hsubs).
-(* |- Main condition for i_validTM *)
-exists (P x0 n); first by apply: IPoly_nth.
-move=> x Hx; rewrite Hdef //.
-rewrite PolR.hornerE Poly_size //.
-have H0 : X >: x0 by exact: (subset_contains (I.convert X0)).
-have Hbig :
-  \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
-  \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
-apply: eq_big_nat => i Hi; rewrite Poly_nth //.
-by rewrite /def Hdef.
-rewrite Hbig.
-have Hder' : forall n r, X >: r -> ex_derive_n (toR_fun xf) n r.
-  move=> m r Hr.
-  apply: Hder_n.
-  by rewrite Hdef.
-have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 Hx).
-  rewrite Hc {Hc t Ht} /TLrem.
-  apply: R_mul_correct=>//.
-    rewrite -(@Poly_nth _ c n.+1 n.+1); last done.
-      by apply: IPoly_nth.
-    by rewrite /def Hdef.
-  rewrite pow_powerRZ.
-  apply: R_power_int_correct.
-  exact: R_sub_correct.
-(* ~ def x *)
-have {Hundef} [x Hx nDx] := Hundef.
-move=> x0 Hx0.
-case Dx0: defined.
-- have Hnan := @IPoly_nai validIPoly_ _ x Hx nDx.
-  rewrite /TLrem.
-  rewrite /eqNai.
-  rewrite I.mul_propagate_l //; first last.
-    exact: Hnan.
-  exists (P x0 n); first by apply: IPoly_nth.
-  by move=> *; case: defined.
-apply/eqNaiP.
-by rewrite /TLrem I.mul_propagate_l // (IPoly_nai Hx).
-Qed.
-
-Lemma isNNegOrNPos_false :
-  I.convert X = IInan -> isNNegOrNPos X = false.
-Proof.
-move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
-by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
-Qed.
+Variable X : I.type.
 
 Lemma bounded_singleton_contains_lower_upper :
   I.bounded X = true ->
@@ -1304,6 +1108,13 @@ have [H1 H2] := I.bounded_correct X HX.
 have [H1a H1b] := I.lower_bounded_correct X H1.
 have [H2a H2b] := I.upper_bounded_correct X H2.
 by rewrite !I.bnd_correct /contains H1a H2a; psatzl R.
+Qed.
+
+Lemma isNNegOrNPos_false :
+  I.convert X = IInan -> isNNegOrNPos X = false.
+Proof.
+move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
+by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
 Qed.
 
 Lemma bounded_IInan :
@@ -1600,7 +1411,203 @@ right; exact: (@Xderive_neg_imp_decr _ f' X).
 Qed.
 *)
 
-Definition delta (n : nat) (xi0 x : R) :=
+End Prelim.
+
+Section ProofOfRec.
+
+Section GenericProof.
+(** Generic proof for [TLrem]/[Ztech]. *)
+
+Variables X0 X : I.type.
+Let cont r := contains (I.convert X) (Xreal r).
+Variable xf : ExtendedR -> ExtendedR.
+Variable F : I.type -> I.type.
+Variable P : R -> nat -> PolR.T.
+Variable IP : I.type -> nat -> Pol.T.
+
+Let f0 := toR_fun xf.
+Let def := defined xf.
+(**
+For simplicity, rather than declaring another predicate
+[Variable der : R -> Prop.] satisfying
+[Hypothesis der_def : forall r, der r -> def r.],
+we assume that the function [xf] is derivable (Cinf) over its domain.
+
+Still, it is possible to "reduce" the domain of a function [xf]
+by using the [restriction] function.
+*)
+Notation der := (defined xf) (only parsing).
+
+Hypothesis Hder_n : forall n r, der r -> ex_derive_n f0 n r.
+Let Dn n := Derive_n f0 n.
+
+Hypothesis ex_der :
+  forall X : interval, { (forall r : R, contains X (Xreal r) -> der r) }
+                       + { (exists2 r : R, contains X (Xreal r) & ~~ der r) }.
+
+Hypothesis xf_Xnan : xf Xnan = Xnan.
+Hypothesis F_contains : I.extension xf F.
+
+Class validPoly : Prop := ValidPoly {
+  Poly_size : forall (x0 : R) n, PolR.size (P x0 n) = n.+1;
+  Poly_nth :
+    forall (x : R) n k,
+    def x ->
+    k <= n ->
+    PolR.nth (P x n) k = Rdiv (Dn k x) (INR (fact k)) }.
+
+Class validIPoly : Prop := ValidIPoly {
+  IPoly_size :
+    forall (X0 : I.type) x0 n, eq_size (IP X0 n) (P x0 n);
+  IPoly_nth : forall (X0 : I.type) x0 n, X0 >: x0 -> IP X0 n >:: P x0 n;
+  IPoly_nai :
+    forall X, forall r : R, contains (I.convert X) (Xreal r) -> ~~ def r ->
+    forall n k, k <= n -> I.convert (Pol.nth (IP X n) k) = IInan
+}.
+
+Context { validPoly_ : validPoly }.
+Context { validIPoly_ : validIPoly }.
+
+Lemma Poly_nth0 x n : def x -> PolR.nth (P x n) 0 = f0 x.
+Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1. Qed.
+
+Lemma Poly_size' n : Pol.size (IP X0 n) = n.+1.
+Proof. by rewrite (IPoly_size X0 (*dummy*)0) Poly_size. Qed.
+
+(*
+Lemma not_and_impl : forall P Q : Prop, ~ (P /\ Q) -> P -> ~ Q.
+Proof. now intuition. Qed.
+
+(** Note that we define the following predicate using [exists] quantifiers, to
+    be able to use [not_ex_all_not] later on, rather than [not_all_ex_not]. *)
+Definition Xnan_ex (D : nat -> ExtendedR -> ExtendedR)
+  (n : nat) (X : interval) : Prop :=
+  exists k : 'I_n.+1,
+(* FIXME: Use exists2 *)
+  exists x : R, contains X (Xreal x) /\ D k (Xreal x) = Xnan.
+
+Lemma Xnan_ex_or D n X : Xnan_ex D n X \/ ~ Xnan_ex D n X.
+Proof. by apply: classic. Qed.
+
+Lemma Xnan_ex_not D n X : ~ Xnan_ex D n X ->
+  forall k : nat, forall x : R, k <= n ->
+  contains X (Xreal x) ->
+  D k (Xreal x) = Xreal (proj_val (D k (Xreal x))).
+Proof.
+move=> Hnot k x Hk Hx; have H'k : k < n.+1 by rewrite ltnS.
+move:(not_ex_all_not _ _ Hnot).
+move/(_ (Ordinal H'k)) => Hnot'.
+move: (not_ex_all_not _ _ Hnot').
+move/(_ x)=> Hnot''.
+move: (not_and_impl Hnot'' Hx).
+by case: (D k (Xreal x)).
+Qed.
+
+(* exists x, i, XDn i x = Xnan ~~> have Hn1 := XDn_Xnan (n.+1-i) Hi *)
+*)
+
+(*
+ATTEMPT on 2015-12-30:
+
+Definition i_validTM_Cinfty (X0 X : interval (* not I.type *) )
+  (M : rpa) (xf : ExtendedR -> ExtendedR) :=
+  let f := toR_fun xf in
+  let dom := dom_Cinfty in
+  [/\ contains (I.convert (error M)) (Xreal 0),
+    I.subset_ X0 X &
+    forall x0,
+      contains X0 (Xreal x0) ->
+      exists2 Q,
+        approx M >:: Q
+        & forall x, contains X (Xreal x) ->
+                    contains (I.convert (error M))
+                    (if dom x then
+                       (Xreal (f x - (PolR.horner tt Q (x - x0))))%R
+                     else Xnan)].
+
+Lemma i_validTM_CinftyP M :
+  i_validTM (I.convert X0) (I.convert X) M xf
+  <-> i_validTM_Cinfty (I.convert X0) (I.convert X) M xf.
+Proof.
+split => [[]|[]] A B C; split =>// x0 Hx0;
+  have {C} [Q H1 H2] := C x0 Hx0;
+  exists Q =>// x Hx; move/(_ x Hx) in H2;
+  case Ex: (dom_Cinfty x).
+- by rewrite [defined _ _]dom_def in H2.
+- apply/contains_Xnan.
+  have := @IPoly_nan validIPoly_ X.
+  (...)
+- by rewrite Ex in H2; rewrite [defined _ _]dom_def.
+- rewrite Ex in H2.
+- by move/contains_Xnan: H2->.
+Qed.
+
+CONCLUSION on 2015-12-30:
+Keep the current version of [i_validTM], and use [restriction] if need be.
+*)
+
+Theorem i_validTM_TLrem n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X)
+  (RPA (IP X0 n) (TLrem prec IP X0 X n)) xf.
+Proof.
+move=> Hsubs [t Ht].
+pose err := TLrem prec IP X0 X n.
+(* have XDn_0_Xnan : Dn 0 Xnan = Xnan by rewrite XDn_0. *)
+split=>//=.
+  (* |- 0 \in err *)
+  set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
+  apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
+    apply: IPoly_nth =>//.
+    exact: subset_contains (I.convert X0) _ _ _ _ =>//.
+  apply: pow_contains_0 =>//.
+  exact: subset_sub_contains_0 Ht _.
+have [Hdef|Hundef] := (ex_der (I.convert X)).
+move=> x0 Hx0.
+have->: defined xf x0 = true.
+  rewrite Hdef //.
+  exact: (subset_contains _ _ Hsubs).
+(* |- Main condition for i_validTM *)
+exists (P x0 n); first by apply: IPoly_nth.
+move=> x Hx; rewrite Hdef //.
+rewrite PolR.hornerE Poly_size //.
+have H0 : X >: x0 by exact: (subset_contains (I.convert X0)).
+have Hbig :
+  \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
+  \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
+apply: eq_big_nat => i Hi; rewrite Poly_nth //.
+by rewrite /def Hdef.
+rewrite Hbig.
+have Hder' : forall n r, X >: r -> ex_derive_n (toR_fun xf) n r.
+  move=> m r Hr.
+  apply: Hder_n.
+  by rewrite Hdef.
+have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 Hx).
+  rewrite Hc {Hc t Ht} /TLrem.
+  apply: R_mul_correct=>//.
+    rewrite -(@Poly_nth _ c n.+1 n.+1); last done.
+      by apply: IPoly_nth.
+    by rewrite /def Hdef.
+  rewrite pow_powerRZ.
+  apply: R_power_int_correct.
+  exact: R_sub_correct.
+(* ~ def x *)
+have {Hundef} [x Hx nDx] := Hundef.
+move=> x0 Hx0.
+case Dx0: defined.
+- have Hnan := @IPoly_nai validIPoly_ _ x Hx nDx.
+  rewrite /TLrem.
+  rewrite /eqNai.
+  rewrite I.mul_propagate_l //; first last.
+    exact: Hnan.
+  exists (P x0 n); first by apply: IPoly_nth.
+  by move=> *; case: defined.
+apply/eqNaiP.
+by rewrite /TLrem I.mul_propagate_l // (IPoly_nai Hx).
+Qed.
+
+Definition Rdelta (n : nat) (xi0 x : R) :=
   (f0 x - PolR.horner tt (P xi0 n) (x - xi0))%R.
 (* TODO: Notations for PolR.horner, etc., would be convenient *)
 
@@ -1624,7 +1631,7 @@ Qed.
 *)
 
 (** Now let's define the derivative of (Xdelta n xi0) *)
-Definition delta'_big (n : nat) (xi0 x : R) :=
+Definition Rdelta'_big (n : nat) (xi0 x : R) :=
   (Dn 1 x - \big[Rplus/R0]_(i < n) (PolR.nth (P xi0 n) i.+1 *
   (INR i.+1) * (x - xi0) ^ i))%R.
 
@@ -2566,52 +2573,48 @@ Theorem i_validTM_Ztech n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (Ztech prec IP (IP X0 n) F X0 X n)) xf.
-Proof using validPoly_ validIPoly_ xf F prec X0 X Hder_n def ex_der.
-move=> Hsub tHt.
+Proof using validPoly_ validIPoly_ xf F prec X0 X Hder_n def ex_der F_contains.
+move=> Hsubs tHt.
 case E1 : (isNNegOrNPos (Pol.nth (IP X n.+1) n.+1)); last first.
   rewrite (ZtechE1 _ _ _ _ E1).
   exact: i_validTM_TLrem.
 case E2 : (I.bounded X); last first.
   rewrite (ZtechE2 _ _ _ _ _ _ E2).
   exact: i_validTM_TLrem.
-have [t Ht] := tHt.
-admit. (*
-have XDn_0_Xnan : Dn 0 Xnan = Xnan by rewrite XDn_0.
-set err := Ztech prec IP (IP X0 n) F0 X0 X n.
+have [t Ht] := tHt. (* TODO : useful ? *)
+set err := Ztech prec IP (IP X0 n) F X0 X n.
 have [r' Hr'0] : not_empty (I.convert X0).
   exact: contains_not_empty Ht.
 have Hr' : contains (I.convert X) (Xreal r').
-  exact: subset_contains Hsub _ Hr'0.
+  exact: subset_contains Hsubs _ Hr'0.
 pose x' := Xreal r'.
 have XNNan : I.convert X <> IInan.
   move=> HX.
-  rewrite isNNegOrNPos_false // in E1.
-  move: (@Poly_nth validPoly_ X Xnan n.+1 n.+1).
-  have XL := @XPoly_nth validXPoly_ Xnan n.+1 n.+1 (leqnn _).
-  rewrite HX {}XL; move/(_ I (leqnn _)); rewrite XDn_Xnan'.
-  by move/(contains_Xnan).
+  exact: bounded_IInan E2 _.
+have Hdef : forall r : R, X >: r -> defined xf r.
+  move=> r Hr.
+  rewrite -[defined _ _]negbK; apply/negP => Kr.
+  have Knai := @IPoly_nai validIPoly_ X r Hr Kr n.+1 n.+1 (leqnn _).
+  by rewrite isNNegOrNPos_false in E1.
 split=>//.
   rewrite /= /err /Ztech E1 E2 /=.
   apply: I.join_correct; right.
-  have C1 : contains (I.convert (F0 X0)) (XF0 (Xreal r')) by exact: F0_contains.
-  case E0 : (XF0 (Xreal r')) => [|r'0].
-    set J := I.convert (I.sub prec _ _).
-    suff->: J = Interval_interval.Inan by done.
-    rewrite E0 in C1.
-    have {C1} C1 := contains_Xnan C1.
-    rewrite {}/J.
-    have L := @Poly_nth validPoly_ X0 x' n 0 Hr'0 erefl.
-    exact: (Isub_Inan_propagate_l _ L).
+  have C1 : contains (I.convert (F X0)) (xf (Xreal r')) by exact: F_contains.
+  case E0 : (xf (Xreal r')) => [|r'0].
+    rewrite I.sub_propagate_r //.
+    rewrite (IPoly_nai Hr'0) //.
+    exact/definedPn.
   have->: Xreal 0 = Xsub (Xreal r'0) (Xreal r'0) by simpl; f_equal; ring.
   apply: I.sub_correct; rewrite E0 // in C1.
   rewrite -{}E0 in C1 *.
-  have HK := @Poly_nth validPoly_ X0 (Xreal r') n 0 Hr'0 erefl.
-  by rewrite XPoly_nth0 in HK.
-move=> /= xi0 Hxi0; exists (XP xi0 n); split; first exact: Poly_size.
-  by move=> k Hk; apply: Poly_nth; rewrite // Poly_size' in Hk.
-pose Idelta := fun X => I.sub prec (F0 X) (horner prec (IP X0 n) (I.sub prec X X0)).
-pose Xdelta0 := Xdelta n xi0.
-move=> x Hx.
+  suff->: xf (Xreal r') = Xreal (PolR.nth (P r' n) 0) by apply: IPoly_nth.
+  by rewrite Poly_nth0 ?Xreal_toR; try apply: Hdef.
+move=> x0 Hx0; rewrite Hdef; last by apply: subset_contains Hsubs _ _.
+exists (P x0 n); first by move=> k; apply: IPoly_nth.
+pose Idelta := fun X => I.sub prec (F X) (Pol.horner prec (IP X0 n) (I.sub prec X X0)).
+pose Rdelta0 := Rdelta n x0.
+move=> x Hx; rewrite Hdef //.
+(*
 have [Hex|Hnot] := Xnan_ex_or XDn n.+1 (I.convert X).
   have [i [y [H1 H2]]] := Hex.
   rewrite isNNegOrNPos_false // in E1.
@@ -2621,13 +2624,18 @@ have [Hex|Hnot] := Xnan_ex_or XDn n.+1 (I.convert X).
   rewrite subnK in Hn1; last by case: i {H2}.
   rewrite Hn1 /= in HK.
   exact: contains_Xnan.
+*)
 rewrite /err /Ztech E1 E2 /=.
-set Delta := I.join (I.join _ _) _; rewrite -/(Xdelta n xi0 x) -/(Xdelta0 x).
+set Delta := I.join (I.join _ _) _; rewrite -/(Rdelta n x0 x) -/(Rdelta0 x).
 have [Hlower Hupper] := bounded_singleton_contains_lower_upper E2.
-have {Hlower} Hlower: contains
-  (I.convert (Idelta (Ibnd2 (I.lower X))))
-  (Xdelta0 (I.convert_bound (I.lower X))).
-  apply: I.sub_correct; first exact: F0_contains.
+have {Hlower} Hlower :
+  Idelta (Ibnd2 (I.lower X)) >: Rdelta0 (proj_val (I.convert_bound (I.lower X))).
+  apply: R_sub_correct =>//.
+  admit.
+  admit.
+  admit.
+(*
+  have := extension_I2R (toXreal_fun_correct _) F_contains.
   apply: convert_horner; [by rewrite (Poly_size X0)|..|exact: I.sub_correct].
   move=> k Hk; apply: Poly_nth =>//.
   by rewrite Poly_size' in Hk.
@@ -2727,7 +2735,7 @@ Class compat_rec1 := Compat_rec1 :
 Context { H_XF_rec : compat_rec1 }.
 
 Definition IP_rec1 X0 := trec1 (F_rec X0) (F0 X0).
-Definition XP_rec1 xi0 := PolR.trec1 (XF_rec xi0) (XF0 xi0).
+Definition XP_rec1 xi0 := PolR.trec1 (XF_rec xi0) (xf xi0).
 
 Instance validXPoly_rec1 :
   validXPoly XP_rec1.
@@ -2736,10 +2744,10 @@ constructor; first by move=> *; rewrite PolR.tsize_trec1.
 move=> r n k Hkn.
 elim: k n Hkn =>[|k IHk] n Hkn.
   rewrite PolR.trec1_spec0 /= XDn_0.
-  case (XF0 r)=> // r0 /=.
+  case (xf r)=> // r0 /=.
   case C: (is_zero 1); last by f_equal; field.
     by rewrite /is_zero (Req_bool_false _ _ R1_neq_R0) in C.
-have K := @PolR.trec1_spec (XF_rec r) (XF0 r) n k.
+have K := @PolR.trec1_spec (XF_rec r) (xf r) n k.
 move: Hkn; rewrite /leq subSS -/(leq _ _) =>/K ->.
 by rewrite IHk.
 Qed.
@@ -2755,7 +2763,7 @@ elim: k n Hk =>[|k IHk] n Hk.
 have K := @trec1_spec (F_rec X0) (F0 X0) n k.
 case: (leqP k n)=> Hkn.
   move: Hk; rewrite /leq subSS -/(leq _ _) => Hk; rewrite (K Hk).
-  have K' := @PolR.trec1_spec (XF_rec r0) (XF0 r0) n k.
+  have K' := @PolR.trec1_spec (XF_rec r0) (xf r0) n k.
   rewrite (K' Hk).
   apply: H_F_rec =>//.
   exact: IHk.
@@ -2770,7 +2778,7 @@ Corollary TM_rec1_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
+  (RPA (trec1 (F_rec X0) (F0 X0) n) err) xf.
 Proof. exact: (@i_validTM_TLrem XP_rec1). (* Rely on typeclass_instances *) Qed.
 
 Corollary TM_rec1_correct' X0 X n :
@@ -2779,7 +2787,7 @@ Corollary TM_rec1_correct' X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (trec1 (F_rec X0) (F0 X0) n) err) XF0.
+  (RPA (trec1 (F_rec X0) (F0 X0) n) err) xf.
 Proof. exact: (@i_validTM_Ztech XP_rec1). (* Rely on typeclass_instances *) Qed.
 
 End rec1_correct.
@@ -2814,7 +2822,7 @@ Class compat_rec2 := Compat_rec2 :
 Context { H_XF_rec : compat_rec2 }.
 
 Definition IP_rec2 X0 := trec2 (F_rec X0) (F0 X0) (F1 X0).
-Definition XP_rec2 xi0 := PolR.trec2 (XF_rec xi0) (XF0 xi0) (XF1 xi0).
+Definition XP_rec2 xi0 := PolR.trec2 (XF_rec xi0) (xf xi0) (XF1 xi0).
 
 Instance validXPoly_rec2 :
   validXPoly XP_rec2.
@@ -2825,7 +2833,7 @@ move: n Hkn.
 elim/nat_ind_gen : k => k Hk n Hkn.
 case ck : k=> [|k'].
   rewrite PolR.trec2_spec0 /= XDn_0.
-  case: (XF0 r) => // r0 /=.
+  case: (xf r) => // r0 /=.
   case C: (is_zero 1)=>//.
     by rewrite /is_zero (Req_bool_false _ _ R1_neq_R0) in C.
   by f_equal; field.
@@ -2839,7 +2847,7 @@ case ck' : k' => [|k''].
     by rewrite /is_zero (Req_bool_false _ _ R1_neq_R0) in C.
   by f_equal; field.
 rewrite ck ck' /leq subSS -/(leq _ _) in Hkn.
-have K := @PolR.trec2_spec (XF_rec r) (XF0 r) (XF1 r) n k'' Hkn.
+have K := @PolR.trec2_spec (XF_rec r) (xf r) (XF1 r) n k'' Hkn.
 by rewrite K Hk =>//; [rewrite Hk // ck ck'|rewrite ck ck'].
 Qed.
 
@@ -2860,7 +2868,7 @@ case ck' : k' => [|k''].
   rewrite PolR.trec2_spec1 trec2_spec1.
   exact: F1_contains.
 rewrite ck ck' /leq subSS -/(leq _ _) in Hkn.
-rewrite (@PolR.trec2_spec (XF_rec r0) (XF0 r0) (XF1 r0) n k'' Hkn).
+rewrite (@PolR.trec2_spec (XF_rec r0) (xf r0) (XF1 r0) n k'' Hkn).
 rewrite (@trec2_spec (F_rec X0) (F0 X0) (F1 X0) n k'' Hkn).
 by apply: H_F_rec=>//; apply: Hk; rewrite ?ck ?ck'//.
 Qed.
@@ -2873,7 +2881,7 @@ Corollary TM_rec2_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
+  (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) xf.
 Proof. exact: (@i_validTM_TLrem XP_rec2). (* Rely on typeclass_instances *) Qed.
 
 Corollary TM_rec2_correct' X0 X n :
@@ -2882,7 +2890,7 @@ Corollary TM_rec2_correct' X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) XF0.
+  (RPA (trec2 (F_rec X0) (F0 X0) (F1 X0) n) err) xf.
 Proof. exact: (@i_validTM_Ztech XP_rec2). (* Rely on typeclass_instances *) Qed.
 
 End rec2_correct.
@@ -4063,6 +4071,7 @@ move=> k r Hr.
 elim: k => [//|k IHk].
 admit. (* TODO: derivability *)
 move=> X1; by left.
+exact: I.atan_correct.
 Qed.
 
 (*

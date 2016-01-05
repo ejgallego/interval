@@ -619,7 +619,7 @@ move: x Hx =>[|x Hx].
 move/(_ x) in Hdelta.
 case Def : (defined f x) => [|]; last first.
   rewrite Def in Hdelta.
-  move/definedF: Def => ->.
+  move/definedPf: Def => ->.
   rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.horner tt qx (Rminus x c0)))) =>//.
   apply: Bnd.ComputeBound_correct =>//.
   apply: R_sub_correct =>//.
