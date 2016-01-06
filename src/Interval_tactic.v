@@ -468,6 +468,18 @@ elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
     * admit. (* property of midpoint... *)
 Qed.
 
+Lemma Xcmp_rev x y:
+  Xcmp y x = match Xcmp x y with
+    | Xeq => Xeq
+    | Xlt => Xgt
+    | Xgt => Xlt
+    | Xund => Xund end.
+Proof.
+case: x; case: y => // rx ry.
+rewrite /Xcmp. Search _ Rcompare.
+by rewrite Rcompare_sym; case: (Rcompare ry rx).
+Qed.
+
 Lemma integral_float_signed_ex_RInt
       (depth : nat) prog bounds u0 l1 :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
