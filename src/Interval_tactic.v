@@ -504,40 +504,27 @@ Lemma integral_float_signed_ex_RInt
     (T.toR u0)
     (T.toR l1).
 Proof.
-Admitted.
-(* elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder. *)
-(* - admit.  *)
-(* - apply: (ex_RInt_Chasles _ _ (T.toR (I.midpoint (Int.I.bnd u0 l1)))). *)
-(*   + apply: HId. *)
-(*     * move: HnotInan.  *)
-(*       set resi := Int.integral_float_signed _ _ _ _ (I.midpoint _). *)
-(*       rewrite /Int.integral_float_signed -/Int.integral_float_signed. *)
-(*       rewrite /=. *)
-
-
-
-(* move => l0 u0 l1 u1 a b ia ib f iF i Hia Hib HnotInan Horder. *)
-(*   apply: integrableProg. *)
-(*   exact: (Interval_interval_float.Ibnd u0 l1). *)
-(*   move => x Hx. *)
-(*   admit. (* careful with F.real, but should work thanks to HnotInan *) *)
-(*   move: HnotInan. *)
-(*   rewrite /Int.integral_float_signed /Int.integral_float. *)
-(*   have -> : *)
-(*     (iF (Int.I.bnd u0 l1)) = (nth 0 *)
-(*                                   (evalInt prog *)
-(*                                            (Interval_interval_float.Ibnd u0 l1 :: boundsToInt bounds)) I.nai) by []. *)
-(*   move: Horder. case Horder1 : (F.cmp u0 l1) => // _. *)
-(*   case: (nth 0 *)
-(*         (evalInt prog *)
-(*            (Interval_interval_float.Ibnd u0 l1 :: boundsToInt bounds)) I.nai) => // . *)
-(*   case: (nth 0 *)
-(*         (evalInt prog *)
-(*            (Interval_interval_float.Ibnd u0 l1 :: boundsToInt bounds)) I.nai) => // . *)
-
-
-(* Admitted. *)
-
+move => f iF i.
+rewrite /Int.integral_float_signed.
+move => HnotInan.
+case Horder : (F.cmp u0 l1) HnotInan => HnotInan.
+apply: (integral_float_ex_RInt depth).
+by move: HnotInan.
+by rewrite Horder.
+apply: (integral_float_ex_RInt depth).
+by move: HnotInan.
+by rewrite Horder.
+suff: notInan (Int.integral_float prec iF depth l1 u0) => [HnotInan2|].
+apply: ex_RInt_swap.
+apply: (integral_float_ex_RInt depth).
+by move: HnotInan2.
+move: Horder.
+rewrite !F.cmp_correct !Fcmp_correct.
+rewrite Xcmp_rev.
+by case: (Xcmp (FtoX (F.toF l1)) (FtoX (F.toF u0))) => // .
+by move: HnotInan; case: (Int.integral_float prec iF depth l1 u0).
+admit. (* stems from the fact that the comparison can't be Xund if u0 and l1 are not Fnan, which has to ba because of HnotInan *)
+Qed.
 
 
 Lemma integral_correct :
