@@ -1030,7 +1030,7 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
       * by rewrite INR_IZR_INZ -Z2R_IZR; apply: I.fromZ_correct.
       (* * by rewrite size_primitive -Hsizep in Hi. *)
       (* by rewrite psize_primitive in Hi. *)
-        admit. admit. (* size *)
+        admit. admit. (* size. *)
   + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
       by apply: f_int => //; apply: (subset_contains iX0) => // .
       apply: contains_RInt_full => // .
@@ -1303,9 +1303,35 @@ move=> x y Hx Hy z Hz; split.
 - exact: Rle_trans (proj2 Hz) (proj2 Hy).
 Qed.
 
-Lemma intvlP a b x :
-  (a <= x <= b)%R <-> contains (IIbnd (Xreal a) (Xreal b)) (Xreal x).
-Proof. by split; case => [A B]; split. Qed.
+Lemma intvlE a b x : intvl a b x = contains (IIbnd (Xreal a) (Xreal b)) (Xreal x).
+Proof. done. Qed.
+
+Lemma intvlP (*X*) :
+  I.bounded X = true ->
+  forall x,
+  (contains (I.convert X) (Xreal x) <->
+   intvl (proj_val (I.convert_bound (I.lower X)))
+         (proj_val (I.convert_bound (I.upper X))) x).
+Proof.
+move=> HX x.
+split.
+- rewrite bounded_IIbnd // => H.
+  by rewrite bounded_Ilower // bounded_Iupper in H.
+- move=> H; rewrite bounded_IIbnd //.
+  by rewrite bounded_Ilower // bounded_Iupper.
+Qed.
+
+Lemma intvl_trans x y a b z :
+  intvl a b x -> intvl a b y -> intvl x y z -> intvl a b z.
+Proof. by move=> H1 H2 H3; apply: (@intvl_connected a b _ _ H1 H2 _ H3). Qed.
+
+Lemma intvl_l l u x0 :
+  intvl l u x0 -> intvl l x0 x0.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
+
+Lemma intvl_u l u x0 :
+  intvl l u x0 -> intvl x0 u x0.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
 
 Section PredArg.
 Variable P : R -> Prop.
@@ -1680,16 +1706,16 @@ Qed.
 *)
 
 Lemma Rderive_delta (Pr : R -> Prop) (n : nat) (x0 : R) :
-  (forall r : R, Pr r -> der r) ->
+  (forall r : R, Pr r -> def r) ->
   Pr x0 ->
   Rderive_over Pr (Rdelta n x0) (Rdelta' n x0).
 Proof.
-move=> Hder Hx0 x Hx.
+move=> Hdef Hx0 x Hx.
 rewrite /Rdelta /Rdelta'.
 apply: is_derive_minus.
   apply: Derive_correct.
   apply: (Hder_n 1).
-  by rewrite Hder.
+  exact: Hdef.
 set d := (_ ^`()).[_]%P.
 have->: d = scal R1 d by rewrite /scal /= /mult /= Rmult_1_l.
 apply: is_derive_comp; last first.
@@ -2006,64 +2032,44 @@ Theorem Zumkeller_monot_rem (X : I.type) (x0 : R) (n : nat)
   Rmonot (intvl l x0) (Rdelta n x0) /\
   Rmonot (intvl x0 u) (Rdelta n x0).
 Proof.
-move=> Hbnd Hx0 Hder.
-have contains_l : contains (I.convert X) (Xreal l).
+move=> Hbnd Hx0 Hdef.
+have /(intvlP Hbnd) Hl : contains (I.convert X) (Xreal l).
   exact: bounded_contains_lower Hx0.
-have contains_u : contains (I.convert X) (Xreal u).
+have /(intvlP Hbnd) Hu : contains (I.convert X) (Xreal u).
   exact: bounded_contains_upper Hx0.
+move/(intvlP Hbnd) in Hx0.
+fold l u in Hl, Hu, Hx0.
 case: n =>[|nm1] ; last set n := nm1.+1.
   move=> Hsign; split; apply (@Rderive_cst_sign _ _ (Dn 1)) =>//;
     try exact: intvl_connected.
-  - move=> x /intvlP Hx.
-    have contains_x : contains (I.convert X) (Xreal x).
-      exact: contains_trans Hx.
+  - move=> x Hx.
+    have intvl_x : intvl l u x.
+      exact: intvl_trans Hl Hx0 Hx.
+    have contains_x : X >: x by apply/intvlP.
     rewrite -[Dn 1 x]Rminus_0_r.
     apply: is_derive_minus.
       apply: Derive_correct.
       apply: (Hder_n 1).
-      by rewrite Hder.
+      exact: Hdef.
     auto_derive =>//.
       exact: PolR.ex_derive_horner.
     rewrite Rmult_1_l (Derive_ext _ (fun r => PolR.nth (P x0 0) 0)).
       by rewrite Derive_const.
     by move=> r; rewrite PolR.hornerE Poly_size big_nat1 pow_O Rmult_1_r.
-    (*
-    move=> x Hx.
-    rewrite /Xdelta.
-    have->: (XDn 1 x = XDn 1 x - Xmask (Xreal 0) x)%XR.
-      case: (x) =>//=; by [rewrite XDn_Xnan'|move=>?; rewrite Xsub_0_r].
-    apply: Xderive_pt_sub.
-      case: (XDn_ x) =>_ /(_ 0).
-      apply: Xderive_pt_eq_fun.
-      by move=> y; rewrite XDn_0.
-    have := (Xderive_pt_mulXmask (proj_val (PolR.tnth (XP xi0 0) 0)) x).
-    apply: Xderive_pt_eq_fun.
-    move=> y; rewrite is_horner_mask XPoly_size.
-    case: y =>[//|r /=].
-    rewrite (bigXadd_XP _(X:=I.convert X))// (bigXadd_real _(X:=I.convert X))//.
-      rewrite XPoly_nth // big_ord_recl big_ord0; f_equal.
-      by rewrite /= Rdiv_1_r !Rmult_1_r Rplus_0_r Xdiv_1_r.
-    by move/(Xnan_ex_S).
-    *)
   - case: Hsign => Hsign; [left|right]; move: Hsign; rewrite /Rpos_over /Rneg_over.
     + move=> Htop x Hx; apply: Htop.
-      admit.
-      (* move: Hxi0 Hx; rewrite /contains bounded_IIbnd //.
-      rewrite /l /u {l u} !(I.lower_correct,I.upper_correct).
-      by case: Xlower=> [|l]; case: Xupper =>[|u] //=; psatzl R. *)
+      exact: intvl_trans Hl Hx0 Hx.
     + move=> Htop x Hx; apply: Htop.
-      admit.
-      (* move: Hxi0 Hx; rewrite /contains bounded_IIbnd //.
-      rewrite /l /u {l u} !(I.lower_correct,I.upper_correct).
-      by case: Xlower=> [|l]; case: Xupper =>[|u] //=; psatzl R. *)
-  - move=> x /intvlP Hx.
-    have contains_x : contains (I.convert X) (Xreal x).
-      exact: contains_trans Hx.
+      exact: intvl_trans Hl Hx0 Hx.
+  - move=> x Hx.
+    have intvl_x : intvl l u x.
+      exact: intvl_trans Hx0 Hu Hx.
+    have contains_x : X >: x by apply/intvlP.
     rewrite -[Dn 1 x]Rminus_0_r.
     apply: is_derive_minus.
       apply: Derive_correct.
       apply: (Hder_n 1).
-      by rewrite Hder.
+      exact: Hdef.
     auto_derive =>//.
       exact: PolR.ex_derive_horner.
     rewrite Rmult_1_l (Derive_ext _ (fun r => PolR.nth (P x0 0) 0)).
@@ -2071,39 +2077,33 @@ case: n =>[|nm1] ; last set n := nm1.+1.
     by move=> r; rewrite PolR.hornerE Poly_size big_nat1 pow_O Rmult_1_r.
   case: Hsign => Hsign; [left|right]; move: Hsign; rewrite /Rpos_over /Rneg_over.
   + move=> Htop x Hx; apply: Htop.
-    admit.
-    (* move: Hxi0 Hx; rewrite /contains bounded_IIbnd //.
-    rewrite /l /u {l u} !(I.lower_correct,I.upper_correct).
-    by case: Xlower=> [|l]; case: Xupper =>[|u] //=; psatzl R. *)
+    exact: intvl_trans Hx0 Hu Hx.
   + move=> Htop x Hx; apply: Htop.
-    admit.
-    (* move: Hxi0 Hx; rewrite /contains bounded_IIbnd //.
-    rewrite /l /u {l u} !(I.lower_correct,I.upper_correct).
-    by case: Xlower=> [|l]; case: Xupper =>[|u] //=; psatzl R. *)
-have Hlower : contains (I.convert X) (Xreal l).
-  exact: bounded_contains_lower Hx0.
-have Hupper : contains (I.convert X) (Xreal u).
-  exact: bounded_contains_upper Hx0.
+    exact: intvl_trans Hx0 Hu Hx.
 case=>[Hpos|Hneg].
   split.
     apply: (@Rderive_cst_sign _ _ (Rdelta' n x0)) =>//.
     * exact: intvl_connected.
     * apply: Rderive_delta.
-      move=> r H; rewrite Hder //.
-      by apply: contains_trans (iffLR (intvlP _ _ _) H);
-        [apply: bounded_contains_lower Hx0|].
-      apply/intvlP.
-      admit.
+        move=> r Hr; apply: Hdef.
+        apply/(intvlP Hbnd).
+        exact: intvl_trans Hl Hx0 Hr.
+        exact: intvl_l.
     { have [Heven|Hodd] := (Z.Even_or_Odd (Z_of_nat nm1.+1)).
       - left.
         move=> x Hx.
         have H'x : contains (I.convert X) (Xreal x).
-        admit; apply: contains_trans Hx; by [apply: bounded_contains_lower Hxi0|].
-        admit. (*
-        have TL := @XTaylor_Lagrange (fun n => XDn n.+1) (I.convert X) n.-1
-          (fun n => @Xder XDn_ n.+1) _
-           XDn_1_Xnan xi0 (Xreal x) Hxi0 H'x.
-        have [|c [H1 [H2 H3]]] := TL.
+        apply/(intvlP Hbnd).
+        exact: intvl_trans Hl Hx0 Hx.
+        have TL :=
+          @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+        have [|||c [H1 [H2 H3]]] := TL =>//.
+          move=> k t Ht.
+          rewrite toR_toXreal.
+          admit; apply: (Hder_n k.+2) =>//.
+          exact/(intvlP Hbnd).
+          admit.
+          (*
           by move=> y k Hk Hy; rewrite Hnot' // ltnS; apply/leP.
         rewrite /Xdelta'_big /proj_fun.
         rewrite (bigXadd'_XP _(X:=I.convert X)) //.
@@ -2243,89 +2243,77 @@ by rewrite /l /u I.lower_correct I.upper_correct in Hneg.
 *)
 Qed.
 
-(*
 Lemma Ztech_derive_sign (X : I.type) (n : nat) :
   not_empty (I.convert X) ->
-  ~ Xnan_ex XDn n.+1 (I.convert X) ->
+  (forall r : R, X >: r -> defined xf r) ->
   I.bounded X = true ->
-  isNNegOrNPos (tnth (IP X n.+1) n.+1) = true ->
-  Xcst_sign (XDn n.+1) (I.convert_bound (I.lower X)) (I.convert_bound (I.upper X)).
+  isNNegOrNPos (Pol.nth (IP X n.+1) n.+1) = true ->
+  Rcst_sign (intvl (proj_val (I.convert_bound (I.lower X)))
+                   (proj_val (I.convert_bound (I.upper X)))) (Dn n.+1).
 Proof.
-move=> [t Ht] Hnot Hbnd Hsign.
-have Hnot' := Xnan_ex_not Hnot.
-have Hstep : Xcst_sign
-  (fun x => (XDn n.+1 x) / Xreal (INR (fact n.+1)))%XR
-  (I.convert_bound (I.lower X)) (I.convert_bound (I.upper X)).
-  move: Hsign; set Gamma := tnth _ _.
-  set g := fun x => ((XDn n.+1 x) / Xreal (INR (fact n.+1)))%XR.
+move=> [t Ht] Hdef Hbnd Hsign.
+have Hstep : Rcst_sign
+  (intvl (proj_val (I.convert_bound (I.lower X)))
+         (proj_val (I.convert_bound (I.upper X))))
+  (fun x => (Dn n.+1 x) / INR (fact n.+1))%R.
+  move: Hsign; set Gamma := Pol.nth _ _.
+  set g := fun x => ((Dn n.+1 x) / INR (fact n.+1))%R.
   rewrite /isNNegOrNPos.
   case E : I.sign_large =>// _;
     have := I.sign_large_correct Gamma; rewrite E => Hmain.
-  - left; move=> x Hx v.
-    have inGamma : contains (I.convert Gamma) (g (Xreal x)).
-      rewrite /g -(XPoly_nth _ (n:=n.+1)) //.
-      apply: Poly_nth =>//.
-      apply: contains_trans Hx;
+  - left; move=> x Hx.
+    have inGamma : Gamma >: g x.
+      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
+      apply: IPoly_nth =>//.
+      admit; apply: contains_trans Hx;
         by [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
-      move/(_ _ inGamma) in Hmain.
-      rewrite /proj_fun.
-      by rewrite Hmain; auto with real.
-  - right; move=> x Hx v.
-    have inGamma : contains (I.convert Gamma) (g (Xreal x)).
-      rewrite /g -(XPoly_nth _ (n:=n.+1)) //.
-      apply: Poly_nth =>//.
-      apply: contains_trans Hx;
+      apply: Hdef.
+      admit. (* easy *)
+      case/(_ _ inGamma): Hmain =>->.
+      exact: Rle_refl.
+  - right; move=> x Hx.
+    have inGamma : Gamma >: g x.
+      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
+      apply: IPoly_nth =>//.
+      admit; apply: contains_trans Hx;
         by [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
+      apply: Hdef.
+      admit. (* easy *)
       move/(_ _ inGamma) in Hmain.
-      rewrite /proj_fun.
-      rewrite (proj1 Hmain).
       exact: proj2 Hmain.
-  - left; move=> x Hx v.
-    have inGamma : contains (I.convert Gamma) (g (Xreal x)).
-      rewrite /g -(XPoly_nth _ (n:=n.+1)) //.
-      apply: Poly_nth =>//.
-      apply: contains_trans Hx;
+  - left; move=> x Hx.
+    have inGamma : Gamma >: g x.
+      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
+      apply: IPoly_nth =>//.
+      admit; apply: contains_trans Hx;
         by [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
+      apply: Hdef.
+      admit. (* easy *)
       move/(_ _ inGamma) in Hmain.
       rewrite /proj_fun.
-      rewrite (proj1 Hmain).
       exact: proj2 Hmain.
-have: Xcst_sign
-  (fun x : ExtendedR => (Xreal (proj_val (XDn n.+1 x)) / Xreal (INR (fact n.+1)))%XR)
-  (I.convert_bound (I.lower X)) (I.convert_bound (I.upper X)).
-  apply: eq'_Xcst_sign Hstep.
-  case=> [//|x] Hx.
-  rewrite (Hnot' n.+1) //.
-  apply: contains_trans Hx;
-  by [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
+have: Rcst_sign
+  (intvl (proj_val (I.convert_bound (I.lower X)))
+         (proj_val (I.convert_bound (I.upper X))))
+  (fun x : R => Dn n.+1 x / INR (fact n.+1))%R.
+  exact: eq'_Rcst_sign Hstep.
 case=>[Hpos|Hneg]; [left|right].
-- move=> x Hx v.
-  move/(_ x Hx v): Hpos.
-  rewrite /= zeroF /proj_fun.
-  rewrite (Hnot' n.+1 _) //=.
+- move=> x Hx.
+  move/(_ x Hx): Hpos.
   move=> Htop; apply: Rdiv_pos_compat_rev Htop _.
   change R0 with (INR O).
   apply: lt_INR.
   change (fact n + _)%coq_nat with (fact n.+1).
-  apply: lt_O_fact.
-  apply: contains_trans Hx;
-    by [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
-  by change (fact n + _)%coq_nat with (fact n.+1); apply: INR_fact_neq_0.
-move=> x Hx v.
-move/(_ x Hx v): Hneg.
-rewrite /= zeroF /proj_fun.
-  rewrite (Hnot' n.+1 _) //=.
-     move=> Htop; apply: Rdiv_neg_compat_rev Htop _.
-     change R0 with (INR O).
-     apply: lt_INR.
-     change (fact n + _)%coq_nat with (fact n.+1).
-     exact: lt_O_fact.
-  by apply: contains_trans Hx;
-    [apply: bounded_contains_lower Ht|apply: bounded_contains_upper Ht].
-by change (fact n + _)%coq_nat with (fact n.+1); apply: INR_fact_neq_0.
+  exact: lt_O_fact.
+  (* by change (fact n + _)%coq_nat with (fact n.+1); apply: INR_fact_neq_0. *)
+move=> x Hx.
+move/(_ x Hx): Hneg.
+   move=> Htop; apply: Rdiv_neg_compat_rev Htop _.
+   change R0 with (INR O).
+   apply: lt_INR.
+   change (fact n + _)%coq_nat with (fact n.+1).
+   exact: lt_O_fact.
 Qed.
-FIXME
-*)
 
 Lemma F_Rcontains : forall X x, X >: x -> F X >: f0 x.
 Proof.
@@ -2432,26 +2420,29 @@ have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
   rewrite big1 ?(Rplus_0_r, Rmult_1_r) //.
   move=> i _.
   by rewrite /= Rmult_0_l Rmult_0_r.
-set (l := (proj_val (I.convert_bound (I.lower X)))) in *.
-set (u := (proj_val (I.convert_bound (I.upper X)))) in *.
 have [Hlow|Hup] := @contains_lower_or_upper X (Xreal x0) (Xreal x) XNNan Hx H'x0.
   rewrite Hcl in Hlow.
+admit. admit.
+(*
   have [|||H1|H2] := @Rmonot_contains Rdelta0 l x0 _ _ _ _ _ _ Hlow.
   + apply: (proj1 (@Zumkeller_monot_rem X x0 n E2 H'x0 _ _)) =>//.
-    admit; apply: Ztech_derive_sign =>//.
-    admit.
-    admit.
+    apply: Ztech_derive_sign =>//.
+    by exists x0.
+    admit. (* admit *)
+    admit. (* admit *)
   + admit; exact: contains_trans (I.convert Delta) _ _ (Rdelta0 x) Hlower HX0 H1.
     admit; exact: contains_trans (I.convert Delta) _ _ (Xdelta0 x) HX0 Hlower H2.
 rewrite Hcu in Hup.
 have [|||H1|H2] := @Rmonot_contains Rdelta0 x0 u _ _ _ _ _ _ Hup.
 (* Check bounded_contains_upper. *)
 + apply: (proj2 (@Zumkeller_monot_rem X x0 n E2 H'x0 _ _)) =>//.
-  admit; apply: Ztech_derive_sign =>//.
+  apply: Ztech_derive_sign =>//.
+  by exists x0.
   admit.
   admit.
 + admit; exact: contains_trans (I.convert Delta) _ _ (Rdelta0 x) HX0 Hupper H1.
 admit; exact: contains_trans (I.convert Delta) _ _ (Rdelta0 x) Hupper HX0 H2.
+*)
 Qed.
 
 End GenericProof.
