@@ -580,7 +580,7 @@ End IntervalAux.
 Section NDerive.
 Variable xf : ExtendedR -> ExtendedR.
 Let f := toR_fun xf.
-Definition Dn := Derive_n f.
+Let Dn := Derive_n f.
 Variable X : interval.
 Variable n : nat.
 Let dom r := contains X (Xreal r).
@@ -626,8 +626,7 @@ Theorem ITaylor_Lagrange x0 x :
   (f x - \big[Rplus/0%R]_(0 <= i < n.+1)
           (Dn i x0 / INR (fact i) * (x - x0)^i))%R =
   (Dn n.+1 xi / INR (fact n.+1) * (x - x0) ^ n.+1)%R /\
-  (contains (Interval_interval.Ibnd (Xreal x) (Xreal x0)) (Xreal xi) \/
-   contains (Interval_interval.Ibnd (Xreal x0) (Xreal x)) (Xreal xi)).
+  (x <= xi <= x0 \/ x0 <= xi <= x)%R.
 Proof.
 move=> Hx0 Hx.
 (*
