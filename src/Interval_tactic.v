@@ -365,29 +365,6 @@ Qed.
 Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
 
-Lemma all_integrals_Inan iF la ua lb ub :
-  match (F.real la, F.real ua, F.real lb, F.real ub) with
-    | (true,true,true,true) => True
-    | _ => Int.all_integrals prec iF (I.bnd la ua) (I.bnd lb ub) = Interval_interval_float.Inan
-  end.
-Proof.
-Admitted. (* TODO, below are some clues *)
-(* move: (F.real_correct la) (F.real_correct ua) (F.real_correct lb) (F.real_correct ub). *)
-(* rewrite /Int.all_integrals /Int.I.sub /=. *)
-(* case Hla : (F.toF la) => // Hla1. *)
-(* Search _  F.min. *)
-(* Check F.sub_correct. *)
-(* Check I.mul_correct. *)
-(* case Hua : (F.toF ua) => Hua1; case Hlb : (F.toF lb) => Hlb1; case Hub : (F.toF ub) => Hub1; rewrite ?Hla1 ?Hua1 ?Hlb1 ?Hub1 /=; rewrite /all_integrals. *)
-
-(* Search _ F.toF . *)
-
-(* assert((Int.I.sub prec (I.bnd lb ub) (I.bnd la ua)) = Interval_interval_float.Inan). *)
-(* rewrite /Int.I.sub /=. Check F.sub_correct. *)
-(* Check F.real_correct. *)
-
-
-
 Lemma all_integrals_correct_prog :
   forall prog bounds ia ib a b,
    contains (I.convert ia) (Xreal a) ->
@@ -513,21 +490,6 @@ case Hl : (F.toF l) Hlreal => [|| x y z]-> => // .
   by have := (Fcmp_aux2_not_Xund y z b c).
 Qed.
 
-
-(* Lemma contains_connected_toR u0 l1 x :  *)
-(*   match F.cmp u0 l1 with *)
-(*     | Xeq => True *)
-(*     | Xlt => True *)
-(*     | Xgt => False *)
-(*     | Xund => False *)
-(*   end -> *)
-(* (T.toR u0)  <= x <=  (T.toR l1) -> *)
-(* contains (I.convert (Interval_interval_float.Ibnd u0 l1)) (Xreal x). *)
-(* Proof. *)
-(* case Hrealu0 : (F.real u0) => // ; case Hreall1 : (F.real l1) => // . *)
-(* have := (Fcmp_not_Xund u0 l1). *)
-(* Admitted. *)
-
 Lemma integral_float_ex_RInt
       (depth : nat) prog bounds u0 l1 :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
@@ -584,14 +546,49 @@ elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
 - pose m := I.midpoint (Int.I.bnd u0 l1).
   set intf := Int.integral_float prec iF.
   have aux : intf (S d) u0 l1 = Int.I.add prec (intf d u0 m) (intf d m l1) by [].
+    (* some preleminary stuff *)  
+  have Hrealu0l1 : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF (S d)).
+  move: Hrealu0l1 => [].
+  move/Int.F_realP => Hrealu0 /Int.F_realP Hreall1.
+  rewrite /Int.I.convert_bound in Hrealu0.
+  rewrite /Int.I.convert_bound in Hreall1.
+  have Hleu0l1 : (T.toR u0) <= (T.toR l1).
+  move: Horder.
+  rewrite F.cmp_correct Fcmp_correct /Xcmp Hrealu0 Hreall1.
+  case Hcomp : (Rcompare (T.toR u0) (T.toR l1)) => // .
+  have := (Rcompare_Eq_inv _ _ Hcomp) => -> _. 
+  exact: Rle_refl.
+  have := (Rcompare_Lt_inv _ _ Hcomp). 
+    by move => H1 _; apply: Rlt_le.
+  move/Int.F_realP : Hrealu0 => Hrealu0.
+  move/Int.F_realP : Hreall1 => Hreall1.
+  have := (Int.midpoint_bnd_in u0 l1 Hrealu0 Hreall1 Hleu0l1).
+  move => Hl0mu1.
+  have Hrealm : (F.real m). 
+    suff: Int.I.convert_bound m = Xreal (Int.T.toR m).
+      by move/Int.F_realP.
+    have := (I.midpoint_correct ((Int.I.bnd u0 l1))).
+      case.
+      exists (Xreal (Int.T.toR u0)).  
+      move: (Int.contains_convert_bnd_l u0 l1 Hrealu0 Hreall1 Hleu0l1).
+      by move/Int.F_realP :Hrealu0 => -> .
+    by [].
   apply: (ex_RInt_Chasles _ _ (T.toR m)).
   + apply: HId.
     * by move: HnotInan; rewrite -/intf aux; case: (intf d u0 m).
-    * admit. (* property of midpoint... *)
+    * case: Hl0mu1; move => Hle.
+      have := (Rle_lt_or_eq_dec _ _ Hle).
+      case => [Hlt|Heq].
+      by have := (Int.RltToFcmp u0 m Hrealu0 Hrealm Hlt) => -> .
+      by have := (Int.ReqToFcmp u0 m Hrealu0 Hrealm Heq) => -> .
   + apply: HId.
     * move: HnotInan; rewrite -/intf aux; case: (intf d m l1) => //.
       by case: (intf d u0 m).
-    * admit. (* property of midpoint... *)
+    * case: Hl0mu1; move => _ Hle.
+      have := (Rle_lt_or_eq_dec _ _ Hle).
+      case => [Hlt|Heq].
+      by have := (Int.RltToFcmp m l1 Hrealm Hreall1 Hlt) => -> .
+      by have := (Int.ReqToFcmp m l1 Hrealm Hreall1 Heq) => -> .
 Qed.
 
 
