@@ -144,6 +144,30 @@ apply: continuous_comp => //.
 by apply: continuous_exp.
 Qed.
 
+(* 0 <= x is an unnecessary hypothesis thanks to sqrt(-x) = 0 for x >= 0 *)
+(* still I don't know how to explain this to Coquelicot *)
+Lemma continuous_sqrt x : (0 <= x) -> continuous sqrt x. 
+Proof.
+move => Hx.
+apply continuity_pt_filterlim.
+by apply: continuity_pt_sqrt.
+Qed.
+
+Lemma continuous_sqrt_comp (f : R -> R) x:
+  continuous f x ->
+  0 <= f x ->
+  continuous (fun x => sqrt (f x)) x.
+Proof.
+move => Hcont Hfxpos.
+apply: continuous_comp => // .
+by apply: continuous_sqrt.
+Qed.
+
+Lemma continuous_ln x : (0 < x) -> continuous ln x.
+Proof.
+move => Hxgt0.
+Admitted.
+
 Lemma continuous_Rabs_comp f (x : R) :
   continuous f x -> continuous (fun x0 => Rabs (f x0)) x.
 Proof.
@@ -161,6 +185,27 @@ move => HnotXnan Hfxeq0.
 by rewrite Hfxeq0 /= is_zero_correct_zero in HnotXnan.
 Qed.
 
+Lemma Xnan_inversion_sqrt f (x : R) :
+  notXnan (Xsqrt (Xreal (f x))) ->
+  0 <= f x.
+Proof.
+rewrite /Xsqrt.
+case Hneg : (is_negative (f x)) => // .
+move:  (is_negative_spec (f x)); rewrite Hneg.
+move => Habs.
+by inversion Habs.
+Qed.
+
+Lemma Xnan_inversion_ln f (x : R) :
+  notXnan(Xln (Xreal (f x))) ->
+  0 < f x.
+Proof.
+rewrite /Xln.
+case Hpos : (is_positive (f x)) => // .
+move:  (is_positive_spec (f x)); rewrite Hpos.
+move => Habs.
+by inversion Habs.
+Qed.
 
 Lemma domain_correct unop a b x :
   (notXnan b -> b = Xreal (a x) /\ continuous a x) ->
@@ -191,13 +236,14 @@ case: unop HbnotXnan.
 - move => HnotXnan. apply: continuous_Rinv_comp => // .
   by apply: (Xnan_inversion_Inv); rewrite Hbnan Hb in HnotXnan.
 - move => _. by apply: continuous_mult.
-- move => HnotXnan. admit.
+- move => HnotXnan. apply: continuous_sqrt_comp => // . 
+  by apply: Xnan_inversion_sqrt; rewrite -Hb -Hbnan.
 - move => _. by apply: continuous_cos_comp.
 - move => _. by apply: continuous_sin_comp.
 - move => HnotXnan. admit.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
-- move => HnotXnan. admit.
+- move => HnotXnan. apply: Xnan_inversion_ln. admit.
 - move => n HnotXnan. admit.
 Qed.
 
@@ -250,32 +296,32 @@ have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
 by apply: I.inv_correct.
 Qed.
 
-Lemma notInan_inversion_Inv_stronger prec i :
-  notInan (I.inv prec i) ->
-  (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/
-  (forall x, contains (I.convert i) (Xreal x) -> x > 0).
-Proof.
-move => HnotInan.
-suff: ~ contains (I.convert i) (Xreal 0); last first.
-  by apply: notInan_inversion_Inv.
-move => Hnot0.
-set P :=  (X in X \/ _).
-set Q :=  (X in _ \/ X).
-suff: ~ (~ P /\ ~ Q).
-move => H_andnot.
-apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *)
-move => H1.
-apply: H_andnot.
-split.
-+ move => HP.
-  apply: H1.
-  by left.
-+ move => HQ.
-  apply: H1.
-  by right.
-move => Habs.
-apply: Hnot0.
-Admitted. (* maybe reason on the middle of the interval? *)
+(* Lemma notInan_inversion_Inv_stronger prec i : *)
+(*   notInan (I.inv prec i) -> *)
+(*   (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/ *)
+(*   (forall x, contains (I.convert i) (Xreal x) -> x > 0). *)
+(* Proof. *)
+(* move => HnotInan. *)
+(* suff: ~ contains (I.convert i) (Xreal 0); last first. *)
+(*   by apply: notInan_inversion_Inv. *)
+(* move => Hnot0. *)
+(* set P :=  (X in X \/ _). *)
+(* set Q :=  (X in _ \/ X). *)
+(* suff: ~ (~ P /\ ~ Q). *)
+(* move => H_andnot. *)
+(* apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *) *)
+(* move => H1. *)
+(* apply: H_andnot. *)
+(* split. *)
+(* + move => HP. *)
+(*   apply: H1. *)
+(*   by left. *)
+(* + move => HQ. *)
+(*   apply: H1. *)
+(*   by right. *)
+(* move => Habs. *)
+(* apply: Hnot0. *)
+(* Admitted. (* maybe reason on the middle of the interval? *) *)
 
 
 (* the two following lemmas (and the next two) are close copies of the above, but for any negative power instead of just (-1) *)
@@ -568,14 +614,6 @@ rewrite /eval_ext /eval_real.
 intros m H.
 eapply proj2.
 revert H.
-(*
-have {H} : (List.nth m
-         (eval_generic Xnan ext_operations prog
-            (Xreal x :: List.map A.xreal_from_bp bounds)%SEQ) Xnan = Xreal
- (List.nth m
-     (eval_generic 0 real_operations prog (x :: boundsToR bounds)%SEQ) 0)).
-admit.
-*)
 apply: (eval_inductive_prop_fun _ _ (fun (f : R -> R) v => notXnan v -> v = Xreal (f x) /\ continuous f x)) => //.
 intros f1 f2 Heq b H Hb.
 case: (H Hb) => {H} H H'.
@@ -609,8 +647,8 @@ case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
     case: (is_zero b2) => // .
     by inversion Heq1; inversion Heq2.
   + apply: continuous_mult => // .
-    apply: continuous_Rinv_comp => // .
-    admit. (* easy but tiresome *)
+    apply: continuous_Rinv_comp => // Habs .
+    by move: Heq2 HnotXnan => ->; rewrite Habs /= is_zero_correct_zero.
 intros [|n].
 simpl.
 intros _.
