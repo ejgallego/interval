@@ -891,7 +891,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.sqrt_correct.
 - exact: size_TM_sqrt.
-- exact: TM_sqrt_correct.
+- admit; exact: TM_sqrt_correct.
 Qed.
 
 Definition exp := Eval hnf in fun_gen I.exp TM_exp.

@@ -144,6 +144,79 @@ Lemma toXreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
   toXreal_fun (toR_fun f) (Xreal x) = f (Xreal x).
 Proof. by rewrite /= /toR_fun /proj_fun /defined; case: (f (Xreal x)). Qed.
 
+
+Definition Xsign_large_ xl xu :=
+  match Xcmp xl (Xreal 0), Xcmp xu (Xreal 0) with
+  | Xeq, Xeq => Xeq
+  | _, Xlt => Xlt
+  | _, Xeq => Xlt
+  | Xgt, _ => Xgt
+  | Xeq, _ => Xgt
+  | _, _ => Xund
+  end.
+
+Definition Xsign_large xi :=
+  match xi with
+  | IIbnd xl xu => Xsign_large_ xl xu
+  | IInan => Xund
+  end.
+
+Definition Xsign_strict_ xl xu :=
+  match Xcmp xl (Xreal 0), Xcmp xu (Xreal 0) with
+  | Xeq, Xeq => Xeq
+  | _, Xlt => Xlt
+  | Xgt, _ => Xgt
+  | _, _ => Xund
+  end.
+
+Definition Xsign_strict xi :=
+  match xi with
+  | IIbnd xl xu => Xsign_strict_ xl xu
+  | IInan => Xund
+  end.
+
+Definition Xge0 xi : bool :=
+  if Xsign_large xi is Xgt then true else false.
+
+Definition Xle0 xi : bool :=
+  if Xsign_large xi is Xlt then true else false.
+
+Definition Xgt0 xi : bool :=
+  if Xsign_strict xi is Xgt then true else false.
+
+Definition Xlt0 xi : bool :=
+  if Xsign_strict xi is Xlt then true else false.
+
+Definition contains_bool xi v : bool :=
+match xi with
+| IInan => true
+| IIbnd l u =>
+    match v with
+    | Xnan => false
+    | Xreal x =>
+        match l with
+        | Xnan => true
+        | Xreal r => Rle_bool r x
+        end && match u with
+               | Xnan => true
+               | Xreal r => Rle_bool x r
+               end
+    end
+end.
+
+Definition containsP xi v : reflect (contains xi v) (contains_bool xi v).
+Proof.
+apply: introP; rewrite /contains /contains_bool;
+  case: xi => [|[|l][|u]]; case: v => [|v] //; try by intuition.
+by case: Rle_bool_spec.
+by case: Rle_bool_spec.
+by do 2!case: Rle_bool_spec.
+by case: Rle_bool_spec =>//; move/Rlt_not_le; intuition.
+by case: Rle_bool_spec =>//; move/Rlt_not_le; intuition.
+by do 2!case: Rle_bool_spec =>//;
+  move/Rlt_not_le; (by intuition) || move=> H; move/Rlt_not_le; by intuition.
+Qed.
+
 (** Some Reals-based specs to ease the CoqApprox formalization *)
 
 Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).

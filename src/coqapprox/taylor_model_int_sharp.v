@@ -273,9 +273,28 @@ Definition restriction (dom : R -> bool) (xf : ExtendedR -> ExtendedR) (x : Exte
   | Xreal x, Xreal y => if dom x then Xreal y else Xnan
   end.
 
-Lemma defined_restriction dom xf x :
+Lemma defined_restrictionW dom xf x :
   defined (restriction dom xf) x -> defined xf x.
 Proof. by rewrite /defined /=; case: xf. Qed.
+
+Lemma defined_restriction dom xf x :
+  defined (restriction dom xf) x = defined xf x && dom x.
+Proof. by rewrite /defined /=; case: xf =>//; case: dom. Qed.
+
+Lemma Xreal_toR_restr (dom : R -> bool) xf x :
+  defined xf x -> dom x -> Xreal (toR_fun (restriction dom xf) x) = xf (Xreal x).
+Proof.
+move=> H H'; rewrite Xreal_toR; last by rewrite defined_restriction; apply/andP.
+by rewrite /restriction H'; tac_def1 H xf.
+Qed.
+
+Lemma toR_restr_toXreal (dom : R -> bool) f x :
+  toR_fun (restriction dom (toXreal_fun f)) x =
+  if dom x then f x else (* dummy *) some_real.
+Proof.
+rewrite /toR_fun /restriction /proj_fun /=.
+by case Dx : (dom x).
+Qed.
 
 Lemma TM_fun_eq f g X0 X TMf :
   (forall x, contains X (Xreal x) -> f (Xreal x) = g (Xreal x)) ->
@@ -3322,13 +3341,48 @@ by rewrite size_rec1up.
 by rewrite size_behead size_rec1up.
 Qed.
 
+Definition is_not_empty X : bool :=
+  match Xlower X, Xupper X with
+  | Xnan, _ | _ , Xnan => true
+  | Xreal l, Xreal u => Rle_bool l u
+  end.
+
+Lemma not_emptyP X : reflect (not_empty X) (is_not_empty X).
+Proof.
+apply: introP; rewrite /is_not_empty /not_empty; case: X => [|[|l][|u]]//=;
+  move=> H.
+by exists R0; split.
+by exists R0; split.
+by exists u; split; try apply: Rle_refl.
+by exists l; split; try apply: Rle_refl.
+exists l; split; try exact: Rle_refl.
+by case: Rle_bool_spec H.
+move=> [v Hv].
+have Hlu := Rle_trans _ _ _ (proj1 Hv) (proj2 Hv).
+case: Rle_bool_spec H =>//.
+by move/Rlt_not_le.
+Qed.
+
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
+  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n)
+  (restriction (fun r => if Rlt_dec 0%R r then true else false) Xsqrt).
 Proof.
-move=> Hsubset Hex.
-admit.
+move=> Hsubset [t Ht].
+apply(*:*) (i_validTM_Ztech (P := TR.T_sqrt tt)) =>//; last by exists t.
+move=> k r; rewrite defined_restriction => /andP [H H'].
+admit; rewrite toR_restr_toXreal.
+clear; move=> X.
+  pose b := is_not_empty X && Xgt0 X; case Eb : b; [left|right].
+  admit. (* TODO / easy / automated ? *)
+  admit. (* TODO / easy / automated ? *)
+red.
+admit. (* FIXME *)
+admit. (* TODO *)
+admit. (* TODO *)
+Qed.
+
 (*
 apply TM_rec1_correct' with
   (XDn := (fun (k : nat) (x : ExtendedR) =>
@@ -3387,9 +3441,9 @@ congr Xreal.
 rewrite fact_simpl !mult_INR -(addn1 k) /=.
 field.
 by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
-*)
-Qed.
 
+Qed.
+*)
 Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec1. Qed.
 
