@@ -754,6 +754,15 @@ Lemma nth_lift n p k :
   nth (lift n p) k = if k < n then 0%R else nth p (k - n).
 Proof (nth_ncons 0%R n 0%R p k).
 
+Lemma horner_opp p x :
+  horner tt (opp p) x = Ropp (horner tt p x).
+Proof.
+rewrite !hornerE size_opp.
+rewrite big_endo ?Ropp_0 //; last exact: Ropp_plus_distr.
+apply: eq_bigr => i _ /=.
+by rewrite nth_opp Ropp_mult_distr_l_reverse.
+Qed.
+
 Lemma horner_add p q x :
   horner tt (add tt p q) x = (horner tt p x + horner tt q x)%R.
 Proof.

@@ -3739,8 +3739,9 @@ Lemma TM_atan_correct X0 X n :
 Proof.
 move=> Hsubset [t Ht].
 apply: i_validTM_Ztech =>//; last by exists t.
-move=> k r Hr.
-elim: k => [//|k IHk].
+move=> k r Hr; rewrite toR_toXreal.
+rewrite /Xatan /defined in Hr.
+elim: k => [//|k IHk] /=.
 admit. (* TODO: derivability *)
 move=> X1; by left.
 exact: I.atan_correct.
@@ -3862,6 +3863,7 @@ Local Notation "a - b" := (Xsub a b).
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
 
+(*
 Lemma horner_add pf pg x :
   PolR.size pf = PolR.size pg ->
   PolR.horner tt (PolR.add tt pf pg) x =
@@ -3871,7 +3873,7 @@ Proof.
 move=> Heq.
 have Hsize := PolR.size_add tt pf pg.
 rewrite Heq maxnn in Hsize.
-admit.
+
 (*
 case Eg : (PolR.tsize pg) => [| n'].
   rewrite !PolR.is_horner Heq Hsize Eg !big_ord0.
@@ -3894,7 +3896,7 @@ Lemma horner_opp pf x :
   Ropp (PolR.horner tt pf x).
 Proof.
 (* Erik: Ideally, we should put this lemma in a more generic place *)
-admit.
+
 (*
 have Hsize := PolR.size_opp pf.
 case Ef : (PolR.tsize pf) => [| n'].
@@ -3923,7 +3925,7 @@ Lemma horner_sub pf pg x :
 Proof.
 (* Erik: Ideally, we should put this lemma in a more generic place *)
 move=> Heq.
-admit.
+
 (*
 have Hsize := PolR.size_sub tt pf pg.
 rewrite Heq maxnn in Hsize.
@@ -3949,9 +3951,10 @@ by move=>*; rewrite Xneg_Xadd.
 by congr Xreal; auto with real.
 *)
 Qed.
+*)
 
-
-Ltac tac_def Hyp f g := move: Hyp; rewrite /defined; case: (f); case: (g).
+Ltac tac_def1 Hyp f := move: Hyp; rewrite /defined; case: (f).
+Ltac tac_def2 Hyp f g := move: Hyp; rewrite /defined; case: (f); case: (g).
 
 Lemma TM_add_correct_gen (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   I.subset_ smallX0 (I.convert X) ->
@@ -3966,15 +3969,15 @@ split=>//.
   by rewrite /= Rplus_0_l.
 move=> x0 Hx0.
 case Dfg0 : defined.
-  have Df0 : defined f x0 by tac_def Dfg0 f g.
-  have Dg0 : defined g x0 by tac_def Dfg0 f g.
+  have Df0 : defined f x0 by tac_def2 Dfg0 f g.
+  have Dg0 : defined g x0 by tac_def2 Dfg0 f g.
   move: (Hf x0 Hx0) (Hg x0 Hx0); rewrite Df0 Dg0.
   move => [pf Hf1 Hf2] [pg Hg1 Hg2].
   exists (PolR.add tt pf pg); first exact: Pol.add_correct.
 move=> x Hx.
 case Dfg : defined.
-  have Df : defined f x by tac_def Dfg f g.
-  have Dg : defined g x by tac_def Dfg f g.
+  have Df : defined f x by tac_def2 Dfg f g.
+  have Dg : defined g x by tac_def2 Dfg f g.
 rewrite PolR.horner_add.
 rewrite Xreal_sub Xreal_toR // Xreal_add.
 set fx := f _; set gx := g _; set pfx := _ (pf.[_])%P; set pgx := _ (pg.[_])%P.
@@ -3985,12 +3988,12 @@ rewrite /fx /gx /pfx /pgx -(Xreal_toR Df) -(Xreal_toR Dg) /=.
 apply: R_add_correct.
 by have := Hf2 x Hx; rewrite Df.
 by have := Hg2 x Hx; rewrite Dg.
-have /orP [nDf|nDg] : ~~ defined f x || ~~ defined g x by tac_def Dfg f g.
+have /orP [nDf|nDg] : ~~ defined f x || ~~ defined g x by tac_def2 Dfg f g.
 have := Hf2 x Hx; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
 by apply/eqNaiP; rewrite I.add_propagate_l.
 have := Hg2 x Hx; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
 by apply/eqNaiP; rewrite I.add_propagate_r.
-have /orP [nDf|nDg] : ~~ defined f x0 || ~~ defined g x0 by tac_def Dfg0 f g.
+have /orP [nDf|nDg] : ~~ defined f x0 || ~~ defined g x0 by tac_def2 Dfg0 f g.
 have := Hf x0 Hx0; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
 by apply/eqNaiP; rewrite I.add_propagate_l.
 have := Hg x0 Hx0; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
@@ -4015,29 +4018,31 @@ Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
 Proof.
 move=> [Hsubset Hzero /= Hmain].
 split=>//.
-have->: let x := (Xreal 0) in x = Xneg x by simpl; f_equal; rewrite Ropp_0.
-exact: I.neg_correct.
+  rewrite -Ropp_0 Xreal_neg.
+  exact: I.neg_correct.
 simpl=> x0 Hx0.
-admit.
-(*
-have [a [Hsize Hcont Hdelta]] := Hmain _ Hx0.
-exists (PolR.opp a).
-split=>//.
-by rewrite PolR.tsize_opp tsize_opp.
-move=> k Hk.
-rewrite tsize_opp in Hk.
-have Hk' := Hk.
-
-rewrite -Hsize in Hk'.
-rewrite PolR.tnth_opp // tnth_opp //.
-apply: I.neg_correct.
-exact: Hcont.
+case D1f0 : defined.
+have Df0: defined f x0 by tac_def1 D1f0 f.
+move/(_ x0 Hx0) in Hmain.
+rewrite Df0 in Hmain.
+have [Q H1 H2] := Hmain.
+exists (PolR.opp Q); first exact: Pol.opp_correct.
 move=> x Hx.
-rewrite Xsub_split -Xneg_Xadd.
-apply: I.neg_correct.
-rewrite horner_opp -Xsub_split.
-exact: Hdelta.
-*)
+case D1f : defined.
+have Df : defined f x by tac_def1 D1f f.
+move/(_ x Hx) in H2.
+rewrite Df in H2.
+rewrite PolR.horner_opp.
+set g := Xreal (toR_fun _ _ - - _)%R.
+suff->: g = Xreal (Ropp ((toR_fun f x) - (Q.[(x - x0)%Re])%P)%R) by exact: R_neg_correct.
+rewrite /g !(Xreal_sub, Xreal_toR, Xreal_neg) //.
+by rewrite !(Xsub_split, Xneg_involutive, Xneg_Xadd).
+have nDf : ~~ defined f x by tac_def1 D1f f.
+move/(_ x Hx): H2; rewrite (negbTE nDf); move/eqNaiP => H2.
+apply/eqNaiP; by rewrite I.neg_propagate.
+have nDf : ~~ defined f x0 by tac_def1 D1f0 f.
+move/(_ x0 Hx0): Hmain; rewrite (negbTE nDf); move/eqNaiP => ?.
+apply/eqNaiP; by rewrite I.neg_propagate.
 Qed.
 
 Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
