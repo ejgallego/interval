@@ -81,6 +81,27 @@ Notation "X ∋ x" := (contains X x) (at level 70).
 Notation "X ⊂ Y" := (I.subset_ X Y) (at level 70).
 *)
 
+
+Ltac tac_def1 Hyp f := move: Hyp; rewrite /defined; case: (f).
+Ltac tac_def2 Hyp f g := move: Hyp; rewrite /defined; case: (f); case: (g).
+
+Ltac step_xr xr :=
+  match goal with
+  [ |- contains ?i ?g ] => rewrite -(_ : xr = g)
+  end.
+Ltac step_r r :=
+  match goal with
+  [ |- contains ?i (Xreal ?g) ] => rewrite -(_ : r = g)
+  end.
+Ltac step_xi xi :=
+  match goal with
+  [ |- contains ?g ?xr ] => rewrite -(_ : xi = g)
+  end.
+Ltac step_i i :=
+  match goal with
+  [ |- contains (I.convert ?g) ?xr ] => rewrite -(_ : i = g)
+  end.
+
 (* Erik: Some lemmas could be generalized from [I.type] to [interval]. *)
 
 (** Rigorous Polynomial Approximation structure *)
@@ -146,11 +167,11 @@ Section PrecArgument.
 Variable prec : I.precision.
 
 (** Note that Zumkeller's technique is not necessary for [TM_cst] & [TM_var]. *)
-Definition TM_cst c (X0 X : I.type) (n : nat) : rpa :=
-  RPA (T_cst c X0 n) (TLrem prec (T_cst c) X0 X n).
+Definition TM_cst c : rpa :=
+  RPA (Pol.polyC c) (I.mask I.zero c).
 
-Definition TM_var X0 X (n : nat) :=
-  RPA (T_var X0 n) (TLrem prec T_var X0 X n).
+Definition TM_var X0 :=
+  RPA (Pol.set_nth Pol.polyX 0 X0) I.zero.
 
 Definition TM_power_int (p : Z) X0 X (n : nat) :=
   let P := (T_power_int prec p X0 n) in RPA P
@@ -2532,57 +2553,55 @@ End rec2_correct.
 *)
 End ProofOfRec.
 
-Theorem TM_cst_correct n (icst X0 X : I.type) (cst : ExtendedR) :
+Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  contains (I.convert icst) cst ->
-  i_validTM (I.convert X0) (I.convert X) (TM_cst icst X0 X n) (Xmask cst).
+  contains (I.convert ci) c ->
+  i_validTM (I.convert X0) (I.convert X) (TM_cst ci) (Xmask c).
 Proof.
-move=> Hsubset Hex Hcst.
-admit. (*apply TM_rec1_correct with
- (XDn := (fun n x => match n with
-                | 0 => Xmask cst x
-                | _ => Xmask (Xmask (Xreal 0) cst) x
-              end)%XR)
- (XF0 := Xmask cst)
- (F_rec := fun _ => Rec.cst_rec)
- (XF_rec := fun _ => TX.Rec.cst_rec) =>//.
-+ exact: nth_Xderive_pt_cst.
-+ by move=> *; apply: I.mask_correct.
-+ move=> x0 x ix0 ix k h0 h.
-  rewrite /Rec.cst_rec /TX.Rec.cst_rec.
-  apply: I.mask_correct =>//.
-  by rewrite I.zero_correct; split; auto with real.
-move=> r; case=> [/=|k].
-  case: r=> [|r]=>//.
-  case: cst Hcst => [|cst /=] Hcst=>//.
-  rewrite zeroF; last by discrR.
-  by rewrite /=; f_equal; field.
-rewrite /TX.Rec.cst_rec.
-case: cst Hcst; case: r => // a b Hb.
-rewrite [fact]lock /= -lock.
-rewrite !zeroF; first last.
-    by apply: not_0_INR; apply: fact_neq_0.
-  by apply: not_0_INR; apply: fact_neq_0.
-by rewrite /Rdiv !Rmult_0_l.*)
+move=> Hsubset [t Ht] Hc.
+split=>//=.
+  case Eci: (I.convert ci) => [|rci].
+    by rewrite I.mask_propagate_r.
+  case Ec: c Hc => [|rc] Hc.
+    by rewrite I.mask_propagate_r //; apply/contains_Xnan.
+    change (Xreal 0%R) with (Xmask (Xreal 0%R) (Xreal rc)).
+    apply: I.mask_correct =>//.
+    exact: cont0.
+move=> x0 Hx0.
+case D0 : defined.
+move: D0; rewrite /defined /=.
+case: c Hc => [|c] Hc // => _.
+exists (PolR.polyC c); first exact: Pol.polyC_correct.
+move=> x Hx /=.
+rewrite Xreal_sub Xreal_toR //=.
+rewrite Rmult_0_l Rplus_0_l Rminus_diag_eq //.
+change (Xreal 0) with (Xmask (Xreal 0) (Xreal c)).
+apply: I.mask_correct =>//.
+exact: cont0.
+apply/eqNaiP.
+case Eci: (I.convert ci) => [|rci].
+  by rewrite I.mask_propagate_r.
+case Ec: c Hc D0 => [|rc] Hc D0; last done.
+by rewrite I.mask_propagate_r //; apply/contains_Xnan.
 Qed.
 
-Theorem TM_cst_correct_strong n (icst X0 X : I.type) (f:ExtendedR->ExtendedR) :
+Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : ExtendedR -> ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  is_const f X icst ->
-  i_validTM (I.convert X0) (I.convert X) (TM_cst icst X0 X n) f.
+  is_const f X ci ->
+  i_validTM (I.convert X0) (I.convert X) (TM_cst ci) f.
 Proof.
-move=> Hsubset [t Ht] [cst Hcst1 Hcst2].
-admit.
-(*apply: (@TM_fun_eq_real (Xmask cst) _ _ _ _ _ (TM_cst_correct _ _ _ _)) =>//.
-  by move=> x Hx; rewrite Hcst2.
-by exists t.*)
+move=> Hsubset Hne [c H1 H2].
+apply: TM_fun_eq; last apply: (TM_cst_correct Hsubset Hne H1).
+move=> x Hx; by rewrite /= H2.
 Qed.
 
-Lemma size_TM_cst c X0 X n : Pol.size (approx (TM_cst c X0 X n)) = n.+1.
-Proof. by rewrite Pol.size_rec1. Qed.
+Lemma size_TM_cst c : Pol.size (approx (TM_cst c)) <= 1.
+Proof. by rewrite /TM_cst Pol.polyCE Pol.size_polyCons Pol.size_polyNil. Qed.
 
+(** Note/Erik: This definition could be simplified, removing parameter
+    [n], just like [TM_cst]... *)
 Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
   let pol := Pol.polyCons (Imid Y) Pol.polyNil in
   {| approx := if n == 0 then pol
@@ -2798,76 +2817,38 @@ have Hr' := contains_not_empty _ _ Hr.
 *)
 Qed.
 
-Lemma size_TM_var X0 X n : Pol.size (approx (TM_var X0 X n)) = n.+1.
-Proof. exact: Pol.size_rec2. Qed.
-
-Lemma TM_var_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_var X0 X n) (fun x => x).
+Lemma size_TM_var X0 : Pol.size (approx (TM_var X0)) = 2.
 Proof.
-move=> Hss Hex.
-rewrite /TM_var /T_var.
-admit. (*
-apply TM_rec2_correct with
-  (XDn := fun n x =>
-    if n == O then x else
-      if n == 1 then Xmask (Xreal 1) x else
-        Xmask (Xreal 0) x)
-  (XF1 := fun x => Xmask (Xreal 1) x)
-  (F_rec := fun _ => Rec.var_rec)
-  (XF_rec := fun _ => TX.Rec.var_rec)=> //.
-+ exact: nth_Xderive_pt_var.
-+ move=> x X1 HX1.
-  rewrite /tone.
-  by apply: I.mask_correct; first exact: I.fromZ_correct.
-+ move=> x0 x x1 X1 X2 X3 h0 h h1;
-  rewrite /Rec.var_rec /TX.Rec.var_rec.
-  by apply I.mask_correct; apply: I.mask_correct;
-  first by rewrite I.zero_correct; split; auto with real.
-move=> r k.
-rewrite /TX.Rec.var_rec.
-rewrite [fact]lock /= -lock.
-case: r=> [|r].
-  rewrite [fact]lock /= -lock.
-  by case: k.
-case: k=> [|k].
-  rewrite /= !zeroF; discrR.
-  by rewrite /=; f_equal; field.
-rewrite [fact]lock /= -lock.
-rewrite !zeroF; discrR; first last.
-    by apply: not_0_INR; apply: fact_neq_0.
-  by apply: not_0_INR; apply: fact_neq_0.
-case: k=> [|k].
-  rewrite /= !zeroF; discrR.
-  by rewrite /=; f_equal; field.
-rewrite [fact]lock /= -lock.
-rewrite !zeroF; discrR.
-  rewrite [fact]lock /= -lock.
-  f_equal; field.
-  by apply: not_0_INR; apply: fact_neq_0.
-by apply: not_0_INR; apply: fact_neq_0.
-*)
-
+rewrite /TM_var Pol.size_set_nth 
+Pol.polyXE Pol.size_lift Pol.oneE Pol.polyCE.
+by rewrite Pol.size_polyCons Pol.size_polyNil.
 Qed.
 
-Theorem TM_var_correct_strong X0 X n (f : ExtendedR -> ExtendedR) :
+Lemma TM_var_correct X0 X :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_var X0) (fun x => x).
+Proof.
+move=> Hsubs Hne.
+split=>//; first exact: cont0.
+move=> x0 Hx0 /=.
+exists (PolR.set_nth PolR.polyX 0 x0).
+  apply: Pol.set_nth_correct =>//.
+  exact: Pol.polyX_correct.
+move=> x Hx /=; rewrite Xreal_sub Xreal_toR //=.
+rewrite Rmult_0_l Rplus_0_l Rmult_1_l.
+step_r R0; [exact: cont0|ring].
+Qed.
+
+Theorem TM_var_correct_strong X0 X (f : ExtendedR -> ExtendedR) :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = (Xreal x)) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_var X0 X n) f.
+  i_validTM (I.convert X0) (I.convert X) (TM_var X0) f.
 Proof.
-move=> Hsubset [v Hv] H.
-admit.
-(*
-apply: (TM_fun_eq
-  (f := fun x => match x with Xnan => f Xnan | Xreal _ => f x end)).
-  by case=> [|r] _.
-apply: (i_validTM_nan (v := Xnan)).
-apply: (TM_fun_eq (f := id)); last by apply: TM_var_correct =>//; exists v.
-case=>//.
-by move=> *; symmetry; apply: H.
-*)
+move=> Hsubset Hne Hid.
+apply: TM_fun_eq; last apply: TM_var_correct Hsubset Hne.
+by move=> *; rewrite Hid.
 Qed.
 
 (*
@@ -3826,9 +3807,6 @@ Local Notation "a - b" := (Xsub a b).
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
 
-Ltac tac_def1 Hyp f := move: Hyp; rewrite /defined; case: (f).
-Ltac tac_def2 Hyp f g := move: Hyp; rewrite /defined; case: (f); case: (g).
-
 Lemma TM_add_correct_gen (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   I.subset_ smallX0 (I.convert X) ->
   i_validTM smallX0 (I.convert X) TMf f ->
@@ -4618,8 +4596,8 @@ Qed.
 
 Definition poly_horner_tm n p (Mf : rpa) (X0 X : I.type) : rpa :=
   @Pol.fold rpa
-  (fun a b => (TM_add (TM_cst a X0 X n) (TM_mul b Mf X0 X n)))
-  (TM_cst I.zero X0 X n) p.
+  (fun a b => (TM_add (TM_cst a) (TM_mul b Mf X0 X n)))
+  (TM_cst I.zero) p.
 
 Lemma size_TM_add Mf Mg :
   Pol.size (approx (TM_add Mf Mg)) =
@@ -4646,8 +4624,10 @@ Lemma size_poly_horner_tm n p Mf X0 X :
 Proof.
 rewrite /poly_horner_tm.
 elim/Pol.poly_ind: p =>[|a p IHp].
+  admit. admit. (* FIXME/WIP
   by rewrite Pol.fold_polyNil /TM_cst Pol.size_rec1.
 by rewrite Pol.fold_polyCons size_TM_add /TM_cst Pol.size_rec1 size_TM_mul maxnn.
+*)
 Qed.
 
 (* Attention!

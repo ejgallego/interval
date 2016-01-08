@@ -154,7 +154,8 @@ Parameter mul_tail : U -> nat -> T -> T -> T.
 (** [tlift j pol] represents [pol * X^j] if [pol] is in the monomial basis *)
 Parameter lift : nat -> T -> T.
 Parameter tail : nat -> T -> T.
-(* Parameter polyX : T. (Subsumed by [tpolyNil] and [tpolyCons].) *)
+Parameter polyC : C.T -> T.
+Parameter polyX : T.
 Parameter polyNil : T.
 Parameter polyCons : C.T -> T -> T.
 Parameter horner : U -> T -> C.T -> C.T.
@@ -171,6 +172,12 @@ Parameter toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
 Parameter horner_seq : forall u p x, horner u p x =
   C.mask (foldr (fun a b => C.add u (C.mul u b x) a) C.zero (toSeq p)) x.
 Parameter nth_toSeq : forall p n, nth p n = seq.nth (C.zero) (toSeq p) n.
+
+Parameter polyCE : forall c, polyC c = polyCons c polyNil.
+Parameter polyXE : polyX = lift 1 one.
+Parameter size_polyX : size polyX = 2.
+Parameter oneE : one = polyC C.one.
+Parameter zeroE : zero = polyNil.
 
 Parameter poly_ind : forall (f : T -> Type),
   f polyNil ->
@@ -370,10 +377,6 @@ Definition mul p q :=
 
 (* Old definitions
 
-Definition polyC (c : C.T) : T := [:: c].
-
-Definition polyX := [:: C.tzero; C.tone].
-
 Fixpoint horner' (p : T) (x : C.T) :=
   match p with
     | [::] => C.tzero
@@ -395,6 +398,10 @@ Definition map := @map C.T C.T.
 Definition polyCons := @Cons C.T.
 
 Definition polyNil := @Nil C.T.
+
+Definition polyC (c : C.T) : T := polyCons c polyNil.
+
+Definition polyX := [:: C.zero; C.one].
 
 (* TODO: Revise *)
 Lemma poly_ind : forall (f : T -> Type),
@@ -602,6 +609,23 @@ Proof (nth_drop n _ p k).
 
 Lemma size_map f p : size (map f p) = size p.
 Proof (size_map f p).
+
+Lemma polyCE c : polyC c = polyCons c polyNil.
+Proof. done. Qed.
+
+Lemma polyXE : polyX = lift 1 one.
+Proof. done. Qed.
+
+Lemma oneE : one = polyC C.one.
+Proof. done. Qed.
+
+Lemma zeroE : zero = polyNil.
+Proof. done. Qed.
+
+(* TODO/Erik: Remove polyNil and only speak of zero *)
+
+Lemma size_polyX : size polyX = 2.
+Proof. done. Qed.
 
 End SeqPoly.
 
@@ -876,6 +900,9 @@ Local Open Scope ipoly_scope.
 
 Parameter horner_correct :
   forall u pi ci p x, pi >:: p -> ci >: x -> horner u pi ci >: PolR.horner tt p x.
+
+Parameter polyC_correct : forall ci c, ci >: c -> polyC ci >:: PolR.polyC c.
+Parameter polyX_correct : polyX >:: PolR.polyX.
 
 Parameter zero_correct : zero >:: PolR.zero.
 Parameter one_correct : one >:: PolR.one.
@@ -1304,5 +1331,22 @@ Qed.
 (* TODO size_correct *)
 (* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
 (* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
+
+Lemma polyC_correct ci c : ci >: c -> polyC ci >:: PolR.polyC c.
+Proof.
+move=> Hc [//|k].
+rewrite /polyC /PolR.polyC.
+rewrite nth_polyCons PolR.nth_polyCons.
+rewrite nth_polyNil PolR.nth_polyNil.
+exact: cont0.
+Qed.
+
+Lemma polyX_correct : polyX >:: PolR.polyX.
+Proof.
+case=> [|k] /=; first exact: cont0.
+case: k => [|k] /=; first by change R1 with (INR 1); apply: I.fromZ_correct.
+rewrite /nth /PolR.nth !nth_nil.
+exact: cont0.
+Qed.
 
 End SeqPolyInt.
