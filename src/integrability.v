@@ -146,7 +146,7 @@ Qed.
 
 (* 0 <= x is an unnecessary hypothesis thanks to sqrt(-x) = 0 for x >= 0 *)
 (* still I don't know how to explain this to Coquelicot *)
-Lemma continuous_sqrt x : (0 <= x) -> continuous sqrt x. 
+Lemma continuous_sqrt x : (0 <= x) -> continuous sqrt x.
 Proof.
 move => Hx.
 apply continuity_pt_filterlim.
@@ -177,7 +177,7 @@ apply: continuous_Rabs.
 Qed.
 
 
-Lemma Xnan_inversion_Inv f (x : R) : 
+Lemma Xnan_inversion_Inv f (x : R) :
  notXnan (Xinv (Xreal (f x))) ->
  f x <> 0.
 Proof.
@@ -236,14 +236,14 @@ case: unop HbnotXnan.
 - move => HnotXnan. apply: continuous_Rinv_comp => // .
   by apply: (Xnan_inversion_Inv); rewrite Hbnan Hb in HnotXnan.
 - move => _. by apply: continuous_mult.
-- move => HnotXnan. apply: continuous_sqrt_comp => // . 
+- move => HnotXnan. apply: continuous_sqrt_comp => // .
   by apply: Xnan_inversion_sqrt; rewrite -Hb -Hbnan.
 - move => _. by apply: continuous_cos_comp.
 - move => _. by apply: continuous_sin_comp.
 - move => HnotXnan. admit.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
-- move => HnotXnan. apply: Xnan_inversion_ln. admit.
+- move => HnotXnan. (* apply: Xnan_inversion_ln.*) admit.
 - move => n HnotXnan. admit.
 Qed.
 
@@ -641,7 +641,7 @@ case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
 - move: HnotXnan Ha1 Ha2.
   case: b1 => [|b1] // ;case: b2 => [|b2] // .
   move => HnotXnan [] // Heq1 Hconta1 [] // Heq2 Hconta2.
-  split => // . 
+  split => // .
   + move: HnotXnan.
     rewrite /binary /ext_operations /Xdiv.
     case: (is_zero b2) => // .
