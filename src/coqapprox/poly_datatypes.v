@@ -146,11 +146,7 @@ Parameter grec1 :
   forall A : Type,
   (A -> nat -> A) ->
   (A -> nat -> C.T) -> A -> seq C.T -> nat -> T.
-(* Erik: We don't use [Parameter map : forall f : C.T -> C.T, T -> T.]
-   as its specification would require [f C.tzero = C.tzero], which
-   does not hold in general. Still, we can rely on fold(r) instead.
-
-Erik[2015-12-29]: is this remark still relevant with the new archi? *)
+Parameter map : forall f : C.T -> C.T, T -> T.
 Parameter fold : forall V : Type, (C.T -> V -> V) -> V -> T -> V.
 Parameter set_nth : T -> nat -> C.T -> T.
 Parameter mul_trunc : U -> nat -> T -> T -> T.
@@ -200,6 +196,7 @@ Parameter size_mul_tail :
 Parameter size_add :
   forall u p1 p2, size (add u p1 p2) = maxn (size p1) (size p2).
 Parameter size_opp : forall p1, size (opp p1) = size p1.
+Parameter size_map : forall f p, size (map f p) = size p.
 Parameter size_sub :
   forall u p1 p2, size (sub u p1 p2) = maxn (size p1) (size p2).
 Parameter size_polyNil : size polyNil = 0.
@@ -603,6 +600,9 @@ End precSection.
 Lemma nth_tail n p k : nth (tail n p) k = nth p (n + k).
 Proof (nth_drop n _ p k).
 
+Lemma size_map f p : size (map f p) = size p.
+Proof (size_map f p).
+
 End SeqPoly.
 
 Module PolR <: PolyOps FullR.
@@ -880,6 +880,12 @@ Parameter horner_correct :
 Parameter zero_correct : zero >:: PolR.zero.
 Parameter one_correct : one >:: PolR.one.
 Parameter opp_correct : forall pi p, pi >:: p -> opp pi >:: PolR.opp p.
+Parameter map_correct :
+  forall fi f pi p,
+  (f 0%R = 0%R) ->
+  (forall xi x, xi >: x -> fi xi >: f x) ->
+  pi >:: p ->
+  map fi pi >:: PolR.map f p.
 Parameter add_correct :
   forall u pi qi p q, pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 Parameter sub_correct :
@@ -995,6 +1001,20 @@ apply(*:*) (@map_correct R I.type) =>//.
 - by move=> ? /only0 ->; rewrite Ropp_0; apply: cont0.
 - by move=> *; rewrite -(Ropp_0); apply: R_neg_correct.
 - move=> *; exact: R_neg_correct.
+Qed.
+
+Lemma map_correct fi f pi p :
+  (f 0%R = 0%R) ->
+  (forall xi x, xi >: x -> fi xi >: f x) ->
+  pi >:: p ->
+  map fi pi >:: PolR.map f p.
+Proof.
+move=> H0 Hf Hp k; rewrite /map /PolR.map /nth /PolR.nth.
+apply(*:*) (@map_correct R I.type) =>//.
+- exact: cont0.
+- by move=> ? /only0 ->; rewrite H0; apply: cont0.
+- by move=> *; rewrite -(H0); apply: Hf.
+- move=> *; exact: Hf.
 Qed.
 
 Lemma add_correct u pi qi p q :
