@@ -270,8 +270,8 @@ have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
 move/(_ c0 Hc0) in Hmain.
 case Dc0 : (defined f c0); last first.
   rewrite Dc0 in Hmain.
-  rewrite I.add_propagate_l //.
-  admit; rewrite Bnd.ComputeBound_propagate //.
+  rewrite I.add_propagate_r //.
+  exact/eqNaiP.
 rewrite Dc0 in Hmain.
 have [qx Hcont Hdelta] := Hmain.
 move: x Hx =>[|x Hx].
