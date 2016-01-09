@@ -778,6 +778,12 @@ Lemma nth_lift n p k :
   nth (lift n p) k = if k < n then 0%R else nth p (k - n).
 Proof (nth_ncons 0%R n 0%R p k).
 
+Lemma horner_polyC c x : horner tt (polyC c) x = c.
+Proof.
+rewrite !hornerE polyCE size_polyCons size_polyNil big_nat1 nth_polyCons.
+by rewrite pow_O Rmult_1_r.
+Qed.
+
 Lemma horner_opp p x :
   horner tt (opp p) x = Ropp (horner tt p x).
 Proof.

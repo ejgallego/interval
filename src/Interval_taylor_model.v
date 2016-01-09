@@ -127,7 +127,8 @@ Definition approximates (X : I.type) (tf : T) (f:ExtendedR->ExtendedR) : Prop :=
         f (Xreal x) = Xreal x
       | Tm tm =>
         not_empty (I.convert X) ->
-        i_validTM (I.convert X0) (I.convert X) tm f
+        exists df,
+        i_validTM (I.convert X0) (I.convert X) tm f df
     end].
 
 Theorem approximates_ext f g xi t :
@@ -141,8 +142,8 @@ case: t Hmain {Hcont} =>[|c| |tm] Hmain; rewrite -?Hfg //.
 exact: is_const_ext_weak Hfg _.
 by move=> *; rewrite -Hfg; apply: Hmain.
 move=> Hne; move/(_ Hne): Hmain.
-apply TM_fun_eq.
-move=> *; exact: Hfg.
+case=> [df H]; exists df.
+exact: (@TM_fun_eq f _ df).
 Qed.
 
 Lemma get_tm_correct u Y tf f :
@@ -150,15 +151,15 @@ Lemma get_tm_correct u Y tf f :
   approximates Y (Tm (get_tm u Y tf)) f.
 Proof.
 case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
-- move=> ?; apply: TM_any_correct.
+- move=> ?; eexists; apply: TM_any_correct.
   exact: not_empty_Imid.
   exact: Imid_subset.
   by rewrite I.nai_correct.
-- move=> Hne.
+- move=> Hne; eexists.
   apply TM_cst_correct_strong =>//.
   exact: Imid_subset.
   exact: not_empty_Imid.
-- move=> Hne.
+- move=> Hne; eexists.
   apply: TM_var_correct_strong=>//.
     exact: Imid_subset.
   by move/not_empty_Imid: Hne.
@@ -210,15 +211,6 @@ Definition eval (u : U) (t : T) (Y X : I.type) : I.type :=
   end
   else I.nai.
 
-(* FIXME: to move *)
-Lemma Imid_contains_Xreal (X : I.type) :
-  not_empty (I.convert X) ->
-  contains (I.convert (Imid X)) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
-Proof.
-move=> H; have [<- _] := I.midpoint_correct _ (not_empty'E H).
-exact: Imid_contains.
-Qed.
-
 Theorem eval_correct u (Y : I.type) tf f :
   approximates Y tf f -> I.extension f (eval u tf Y).
 Proof.
@@ -259,16 +251,16 @@ have HneY: not_empty (I.convert Y).
 apply: not_emptyE.
 exists x; exact: subset_contains Hsubset _ _.
 move/(_ HneY): Htm.
-case => [/= Hzero _ Hmain].
+case => [df [/= Hdef Hzero _ Hmain]].
 have [L1 L2] := I.midpoint_correct Y (not_empty'E HneY).
 set c0 := proj_val (I.convert_bound (I.midpoint Y)) in L1.
 have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
-  apply: Imid_contains_Xreal.
+  apply: Xreal_Imid_contains.
   apply: not_emptyE; exists x.
   apply: subset_contains Hx.
   exact: I.subset_correct.
 move/(_ c0 Hc0) in Hmain.
-case Dc0 : (defined f c0); last first.
+case Dc0 : (df c0); last first.
   rewrite Dc0 in Hmain.
   rewrite I.add_propagate_r //.
   exact/eqNaiP.
@@ -281,13 +273,9 @@ move: x Hx =>[|x Hx].
   apply: Bnd.ComputeBound_propagate.
   by rewrite I.sub_propagate_l.
 move/(_ x) in Hdelta.
-case Def : (defined f x) => [|]; last first.
+case Def : (df x) => [|]; last first.
   rewrite Def in Hdelta.
-  move/definedPf: Def => ->.
-  rewrite (Iadd_Inan_propagate_r _ (y := Xreal (PolR.horner tt qx (Rminus x c0)))) =>//.
-  apply: Bnd.ComputeBound_correct =>//.
-  apply: R_sub_correct =>//.
-  rewrite /c0.
+  rewrite I.add_propagate_r //.
   apply/eqNaiP/Hdelta.
   exact: (subset_contains _ _ Hsubset).
 have->: f (Xreal x) = Xadd (Xreal (PolR.horner tt qx (Rminus x c0)))
@@ -302,8 +290,9 @@ rewrite Xreal_sub Xreal_toR // in Hdelta.
 rewrite Def in Hdelta.
 apply: Hdelta.
 exact: (subset_contains _ _ Hsubset).
+rewrite Hdef //.
+exact: (subset_contains _ _ Hsubset).
 Qed.
-(* Check Imid_contains_Xreal. *)
 
 Definition add_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let M1 := get_tm u X t1 in
@@ -333,6 +322,9 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 case: tf Hf {Hnil} => [|cf||tmf] Hf;
   case: tg Hg => [|cg||tmg] Hg /=;
+  try (have {Hf} [df Hf] := Hf Hne) || pose df := defined f;
+  try (have {Hg} [dg Hg] := Hg Hne) || pose dg := defined g;
+  exists (predI df dg);
   apply: TM_add_correct;
   try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
@@ -340,7 +332,7 @@ case: tf Hf {Hnil} => [|cf||tmf] Hf;
     by [exact: Imid_subset|exists (Xreal v)]);
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
-   by auto 2.
+  by auto 2.
 Qed.
 
 Theorem add_correct u (Y : I.type) tf tg f g :
@@ -380,8 +372,10 @@ by rewrite not_nilE in Hnil.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
-apply: TM_opp_correct.
-case: tf Hmain {Hnil} => * //;
+case: tf Hmain {Hnil} => [|cf||tmf] Hf;
+  try (have {Hf} [df Hf] := Hf Hne) || pose df := defined f;
+  exists df;
+  apply: TM_opp_correct;
   try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
@@ -431,6 +425,9 @@ have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
 case: tf Hf {Hnil} => [|cf||tmf] Hf;
   case: tg Hg => [|cg||tmg] Hg /=;
+  try (have {Hf} [df Hf] := Hf Hne) || pose df := defined f;
+  try (have {Hg} [dg Hg] := Hg Hne) || pose dg := defined g;
+  exists (predI df dg);
   apply: TM_sub_correct;
   try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
@@ -483,10 +480,15 @@ by rewrite Hnan.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
-apply TM_mul_correct=>//.
+case: tf Hf {Hnil} => [|cf||tmf] Hf;
+  case: tg Hg => [|cg||tmg] Hg /=;
+  try (have {Hf} [df Hf] := Hf Hne) || pose df := defined f;
+  try (have {Hg} [dg Hg] := Hg Hne) || pose dg := defined g;
+  exists (predI df dg);
+  admit; apply: TM_mul_correct =>//. (* FIXME
 (* . *)
 by rewrite [RHS]size_get_tm.
-admit; by rewrite [RHS]size_get_tm.
+admit; rewrite [RHS]size_get_tm.
 by rewrite not_nilE in Hnil.
 (* . *)
 case: tf Hf Hg {Hnil}; case: tg =>// *;
@@ -496,7 +498,7 @@ case: tf Hf Hg {Hnil}; case: tg =>// *;
     by [exact: Imid_subset|exists (Xreal v)]);
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
-  by auto 2.
+  try by auto 2.
 (* . *)
 case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_any_correct;
@@ -506,6 +508,7 @@ case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
   by auto 2.
+*)
 Qed.
 
 Theorem mul_correct u (Y : I.type) tf tg f g :
@@ -527,7 +530,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
-apply: TM_mul_mixed_correct_strong =>//.
+exists (predI (defined f) (defined g)); apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
@@ -538,16 +541,18 @@ have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
   by rewrite /= /tmsize size_TM_mul_mixed.
 red=>Hne.
-apply: TM_mul_mixed_correct_strong =>//.
-  exact: not_empty_Imid.
-exact: H2.
+have {H2} [dg H2] := H2 Hne.
+exists (predI (defined f) dg); apply: TM_mul_mixed_correct_strong =>//.
+exact: not_empty_Imid.
 (* Var . Const *)
 have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
 (* apply: TM_fun_eq (fun x _ => XmulC (g (Xreal x)) (f (Xreal x))) _. *)
-apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
+exists (predI (defined g) (defined f)).
+apply: (@TM_fun_eq (fun x => g x * f x)%XR _ (predI (defined g) (defined f))) =>//.
+by move=> *; exact: XmulC.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
@@ -559,10 +564,12 @@ have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
   by rewrite /= /tmsize size_TM_mul_mixed.
 red=>Hne.
-apply TM_fun_eq with (fun x => g x * f x)%XR; first by move=> *; exact: XmulC.
+have [df Hdf] := H1 Hne.
+exists (predI (defined g) df).
+apply: (@TM_fun_eq (fun x => g x * f x)%XR _ (predI (defined g) df)) =>//.
+by move=> *; exact: XmulC.
 apply: TM_mul_mixed_correct_strong =>//.
-  exact: not_empty_Imid.
-exact: H1.
+exact: not_empty_Imid.
 Qed.
 
 Definition div_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
@@ -593,7 +600,8 @@ rewrite /div_slow.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
-apply TM_div_correct=>//.
+admit; apply TM_div_correct=>//.
+(*
 (* . *)
 by rewrite [RHS]size_get_tm.
 admit; by rewrite [RHS]size_get_tm.
@@ -616,6 +624,7 @@ case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
   by auto 2.
+*)
 Qed.
 
 Theorem div_correct u (Y : I.type) tf tg f g :
@@ -637,6 +646,8 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
+admit.
+admit. (*
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
@@ -651,6 +662,7 @@ red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
 exact: H1.
+*)
 Qed.
 
 Definition abs (u : U) (X : I.type) (t : T) : T :=
@@ -737,8 +749,12 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     have [[z Hz]|H] := not_empty_dec (I.convert Y);
     by exists (Xreal y); [| move=> x Hx; rewrite Habs // Hy2].
 - byp Habs Hmain.
-- move=> Hne; move: (Hmain Hne); apply: TM_fun_eq;
-  byp Habs Hmain.
+- move=> Hne; have [df Hdf] := Hmain Hne;
+  eexists; apply: (TM_fun_eq (df := df));
+  move: Hdf.
+  Fail byp Habs Hmain.
+  admit. admit. admit. admit. admit. admit. admit. admit. admit. admit.
+  admit. admit. admit. admit. admit. (*
 - have [[|y] Hy1 Hy2] := Hmain;
     first (by
       exists (Xneg Xnan); first exact: I.neg_correct; move=> x Hx; rewrite Hy2);
@@ -768,6 +784,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
 - foo.
 - foo.
 - foo.
+*)
 Qed.
 
 (** ** Generic implementation of basic functions *)
@@ -795,7 +812,8 @@ Lemma fun_gen_correct
   (forall prec X0 X n,
     subset (I.convert X0) (I.convert X) ->
     not_empty (I.convert X0) ->
-    i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
+    exists df, 
+    i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx df) ->
   forall (u : U) (X : I.type) (tf : T) (f : ExtendedR -> ExtendedR),
   approximates X tf f ->
   approximates X (ft u X tf) (fun x => fx (f x)).
@@ -810,9 +828,10 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   by rewrite /not_nil /ft /fun_gen /= Hsiz.
   simpl.
   move=> HneY.
+  admit. admit. (*
   eapply TM_fun_eq.
-  by move=> *; rewrite Hmain.
-  apply: Hvalid.
+  2: by move=> *; rewrite Hmain.
+  2: apply: Hvalid.
   exact: Imid_subset.
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists y.
@@ -828,6 +847,7 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
     by case: Pol.size Hnil.
   + move=> *; split; first exact: Hvalid.
     by rewrite -/(tmsize _) Hsiz.
+  *)
 Qed.
 
 (*
@@ -843,6 +863,7 @@ Definition prim (u : U) (X : I.type) (t : T) : T :=
   end.
 *)
 
+(*
 Definition prim (u : U) (X X1 Y1 : I.type) (t : T) : T :=
   if I.subset X1 X then
     let X0 := Imid X in
@@ -867,6 +888,7 @@ Conjecture prim_correct :
                                          | Xnan => Xnan
                                          | Xreal r => Xreal (RInt f0 x1 r + y1)
                                          end).
+*)
 
 Definition inv := Eval hnf in fun_gen I.inv TM_inv.
 
@@ -878,7 +900,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.inv_correct.
 - exact: size_TM_inv.
-- exact: TM_inv_correct.
+- move=> *; eexists; exact: TM_inv_correct.
 Qed.
 
 Definition sqrt := Eval hnf in fun_gen I.sqrt TM_sqrt.
@@ -891,7 +913,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.sqrt_correct.
 - exact: size_TM_sqrt.
-- admit; exact: TM_sqrt_correct.
+- move=> *; eexists; exact: TM_sqrt_correct.
 Qed.
 
 Definition exp := Eval hnf in fun_gen I.exp TM_exp.
@@ -904,7 +926,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.exp_correct.
 - exact: size_TM_exp.
-- exact: TM_exp_correct.
+- move=> *; eexists; exact: TM_exp_correct.
 Qed.
 
 Definition ln := Eval hnf in fun_gen I.ln TM_ln.
@@ -917,7 +939,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.ln_correct.
 - exact: size_TM_ln.
-- exact: TM_ln_correct.
+- move=> *; eexists; exact: TM_ln_correct.
 Qed.
 
 Definition cos := Eval hnf in fun_gen I.cos TM_cos.
@@ -930,7 +952,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.cos_correct.
 - exact: size_TM_cos.
-- exact: TM_cos_correct.
+- move=> *; eexists; exact: TM_cos_correct.
 Qed.
 
 Definition sin := Eval hnf in fun_gen I.sin TM_sin.
@@ -943,7 +965,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.sin_correct.
 - exact: size_TM_sin.
-- exact: TM_sin_correct.
+- move=> *; eexists; exact: TM_sin_correct.
 Qed.
 
 (*
@@ -1022,7 +1044,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.atan_correct.
 - exact: size_TM_atan.
-- exact: TM_atan_correct.
+- move=> *; eexists; exact: TM_atan_correct.
 Qed.
 
 Definition power_int p := Eval cbv delta[fun_gen] beta in
@@ -1059,7 +1081,7 @@ apply: (fun_gen_correct
   (fx := fun x => Xpower_int x _)) =>//;
 try (by move=> *; apply: I.power_int_correct);
 try (by move=> *; rewrite /tmsize size_TM_power_int);
-by move=> *; apply: TM_power_int_correct.
+by move=> *; eexists; apply: TM_power_int_correct.
 Qed.
 
 Definition sqr := power_int 2.
@@ -1074,7 +1096,7 @@ apply: (@approximates_ext (fun x => Xpower_int (f x) 2%Z)).
 move=> x; rewrite /Xpower_int /Xsqr.
 case: (f x) =>[//|r].
 by rewrite /= Rmult_1_r.
-exact: power_int_correct.
+move=> *; exact: power_int_correct.
 Qed.
 
 End TM.

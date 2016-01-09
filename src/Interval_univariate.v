@@ -61,6 +61,7 @@ Parameter eval_correct :
   forall u (Y : I.type) t f,
   approximates Y t f -> I.extension f (eval u t Y).
 
+(*
 Parameter prim : U -> I.type -> I.type -> I.type -> T -> T.
 
 Parameter prim_correct :
@@ -73,6 +74,7 @@ Parameter prim_correct :
                                          | Xnan => Xnan
                                          | Xreal r => Xreal (RInt f0 x1 r + y1)
                                          end).
+*)
 
 Parameter add : U -> I.type -> T -> T -> T.
 
