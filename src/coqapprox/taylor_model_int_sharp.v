@@ -30,7 +30,7 @@ Require Import Interval_interval_float_full.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
-Require Import Rstruct Classical Coquelicot.
+Require Import Rstruct Coquelicot.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
