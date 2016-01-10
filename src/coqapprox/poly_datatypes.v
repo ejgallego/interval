@@ -633,11 +633,10 @@ Module PolR <: PolyOps FullR.
 Include SeqPoly FullR.
 
 Module Import Notations.
-Delimit Scope rpoly_scope with P.
-Notation "p .[ x ]" := (PolR.horner tt p x) : rpoly_scope.
-Notation "p ^` ()" := (PolR.deriv tt p) : rpoly_scope.
+(* Delimit Scope rpoly_scope with P. *)
+Notation "p .[ x ]" := (PolR.horner tt p x) : R_scope.
+Notation "p ^` ()" := (PolR.deriv tt p) : R_scope.
 End Notations.
-Local Open Scope rpoly_scope.
 
 Lemma toSeq_horner0 (u : U) (p : T) : horner u p R0 = head R0 (toSeq p).
 Proof.

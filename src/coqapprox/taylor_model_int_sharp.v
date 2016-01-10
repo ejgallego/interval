@@ -1600,7 +1600,7 @@ by rewrite /TLrem I.mul_propagate_l // (IPoly_nai Hx).
 Qed.
 
 Definition Rdelta (n : nat) (x0 x : R) :=
-  (f0 x - (P x0 n).[x - x0]%P)%R.
+  (f0 x - (P x0 n).[x - x0])%R.
 
 (*
 Definition delta_big (n : nat) (xi0 x : ExtendedR) :=
@@ -1623,7 +1623,7 @@ Qed.
 
 (** We now define the derivative of [Rdelta n x0] *)
 Definition Rdelta' (n : nat) (x0 x : R) :=
-  (Dn 1 x - (PolR.deriv tt (P x0 n)).[x - x0]%P)%R.
+  (Dn 1 x - (PolR.deriv tt (P x0 n)).[x - x0])%R.
 
 Lemma derivable_pt_lim_pow_sub (r s : R) (n : nat) :
   derivable_pt_lim (fun x : R => (x - s) ^ n)%Re r (INR n * (r - s) ^ n.-1)%Re.
@@ -1721,7 +1721,7 @@ apply: is_derive_minus.
   apply: Derive_correct.
   apply: (Hder_n 1).
   exact: Hder.
-set d := (_ ^`()).[_]%P.
+set d := (_ ^`()).[_].
 have->: d = scal R1 d by rewrite /scal /= /mult /= Rmult_1_l.
 apply: is_derive_comp; last first.
 rewrite -[R1]Rminus_0_r; apply: is_derive_minus; by auto_derive.
@@ -2386,7 +2386,7 @@ have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
   apply: I.join_correct; right.
   apply: R_sub_correct; first exact: F_Rcontains.
   rewrite Rminus_diag_eq //.
-  suff->: ((P x0 n).[0%R])%P = PolR.nth (P x0 n) 0 by apply: IPoly_nth.
+  suff->: ((P x0 n).[0%R]) = PolR.nth (P x0 n) 0 by apply: IPoly_nth.
   rewrite PolR.hornerE Poly_size big_nat_recl // pow_O Rmult_1_r.
   rewrite big1 ?(Rplus_0_r, Rmult_1_r) //.
   move=> i _.
@@ -2762,7 +2762,7 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
 + move=> x Hx /=.
   case Df : defined.
   rewrite Xreal_sub Xreal_toR //.
-  step_xr (Xmask ((f (Xreal x) - Xreal (pol'.[(x - x0)%Re])%P)%XR) (Xreal x)).
+  step_xr (Xmask ((f (Xreal x) - Xreal (pol'.[(x - x0)%Re]))%XR) (Xreal x)).
   apply: I.mask_correct =>//.
   apply: I.sub_correct; first exact: Hf.
   rewrite /pol' /pol0; case: ifP => H.
@@ -2770,7 +2770,7 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   apply: Xreal_Imid_contains.
   exact: contains_not_empty Hrr.
   rewrite PolR.hornerE !sizes maxnSS maxn0.
-  step_r ((pol0.[(x - x0)%Re])%P)%XR.
+  step_r ((pol0.[(x - x0)%Re]))%XR.
   rewrite PolR.horner_polyC.
   apply: Xreal_Imid_contains.
   exact: contains_not_empty Hrr.
@@ -3668,7 +3668,7 @@ constructor.
     rewrite Derive_mult; try by auto_derive.
     rewrite Derive_id.
     rewrite PolR.Derive_horner.
-    rewrite -{1}(Rmult_1_r (qk^`().[x])%P) -Rmult_plus_distr_l.
+    rewrite -{1}(Rmult_1_r (qk^`().[x])) -Rmult_plus_distr_l.
     rewrite SuccNat2Pos.id_succ.
     rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
     (* Now, some reals' bookkeeping *)
@@ -3833,8 +3833,7 @@ move=> HinX [Hdf Hef H0 Hf] [Hdg Heg _ Hg].
 split=>//=.
   move=> x Hx /andP [Df Dg].
   by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
-  suff->: Xreal 0 = (Xreal 0 + Xreal 0)%XR by apply: I.add_correct.
-  by rewrite /= Rplus_0_l.
+  step_xr (Xreal 0 + Xreal 0); by [apply: I.add_correct|rewrite /= Rplus_0_l].
 move=> x0 Hx0 /=.
 case Dfg0 : andb.
   have /andP [Df0 Dg0] := Dfg0.
@@ -3847,7 +3846,7 @@ case Dfg : andb.
 rewrite PolR.horner_add.
 rewrite Xreal_sub Xreal_toR // ?Xreal_add; last first.
   by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
-set fx := f _; set gx := g _; set pfx := _ (pf.[_])%P; set pgx := _ (pg.[_])%P.
+set fx := f _; set gx := g _; set pfx := _ (pf.[_]); set pgx := _ (pg.[_]).
 have->: (fx + gx - (pfx + pgx) = (fx - pfx) + (gx - pgx))%XR.
   rewrite /fx /gx /pfx /pgx -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
   congr Xreal; ring.
@@ -3905,7 +3904,7 @@ move/(_ x Hx) in H2.
 rewrite Df in H2.
 rewrite PolR.horner_opp.
 set g := Xreal (toR_fun _ _ - - _)%R.
-suff->: g = Xreal (Ropp ((toR_fun f x) - (Q.[(x - x0)%Re])%P)%R) by exact: R_neg_correct.
+suff->: g = Xreal (Ropp ((toR_fun f x) - (Q.[(x - x0)%Re]))%R) by exact: R_neg_correct.
 rewrite /g !(Xreal_sub, Xreal_toR, Xreal_neg) //.
 by rewrite !(Xsub_split, Xneg_involutive, Xneg_Xadd).
 by rewrite Hdef.
@@ -3940,7 +3939,7 @@ case Dfg : andb.
 rewrite PolR.horner_sub.
 rewrite Xreal_sub Xreal_toR // ?(Xreal_add, Xreal_neg); last first.
   by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
-set fx := f _; set gx := g _; set pfx := _ (pf.[_])%P; set pgx := _ (pg.[_])%P.
+set fx := f _; set gx := g _; set pfx := _ (pf.[_]); set pgx := _ (pg.[_]).
 have->: (fx - gx - (pfx + (- pgx)) = (fx - pfx) - (gx - pgx))%XR.
   rewrite /fx /gx /pfx /pgx.
   rewrite -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
@@ -4043,7 +4042,7 @@ exists (PolR.map (Rmult y) q).
   rewrite Df in H2.
   rewrite PolR.horner_mul_mixed.
   set g := Xreal (toR_fun _ _ - _)%R.
-  suff->: g = Xreal (Rmult y (toR_fun f x - (q.[(x - x0)])%P)%R).
+  suff->: g = Xreal (Rmult y (toR_fun f x - (q.[(x - x0)]))%R).
     exact: R_mul_correct =>//.
   rewrite /g !(Xreal_mul, Xreal_sub, Xreal_toR, Xreal_neg) //.
   case: (f) =>[//|r] /=; congr Xreal; ring.
@@ -4324,101 +4323,106 @@ apply:eq_big=> i.
 by do !case/andP=> *; rewrite Hjmi.
 Qed.
 
-Lemma TM_mul_correct_gen (smallX0: interval) (X0 X: I.type) (TMf TMg: rpa) f g df dg :
+Lemma Xreal_inj : injective Xreal.
+Proof. by move=> x y []. Qed.
+
+Lemma TM_mul_correct_gen
+  (smallX0 : interval) (TMf TMg : rpa) f g df dg (X0 X : I.type) n :
   I.subset_ smallX0 (I.convert X0) ->
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty smallX0 ->
-  let n := Pol.size (approx TMf) in
-  n = Pol.size (approx TMg)-> 0 < n ->
   i_validTM smallX0 (I.convert X) TMf f df ->
   i_validTM smallX0 (I.convert X) TMg g dg ->
   i_validTM smallX0 (I.convert X) (TM_mul TMf TMg X0 X n.-1)
   (fun xr => Xmul (f xr) (g xr)) (predI df dg).
 Proof.
-move=> HinX0 HinX /not_empty'E [t Ht] n Heq npos
-        [Hdf Hef H0 Hf] [Hdg Heg _ Hg].
-have Hint : contains (I.convert X0) t by apply: (subset_contains smallX0).
-  admit.
-(*
-case: (Hf t Ht) => [Af [Af1 Af2 Af3]].
-case: (Hg t Ht) => [Ag [Ag1 Ag2 Ag3]].
-split=>//.
-  have H00: (Xreal 0)=(Xreal 0 + Xreal 0) by rewrite /= Rplus_0_l.
-  rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_r _
-      (PolR.horner tt (PolR.tmul_tail tt n.-1 Af Ag) (t - t))); last first.
+move=> HinX0 HinX [t Ht'] [Hdf Hef H0 Hf] [Hdg Heg _ Hg].
+have Ht0 : X0 >: t by apply: (subset_contains smallX0).
+have Ht : X >: t by apply: subset_contains.
+have Hf0 := Hf t Ht'.
+have Hg0 := Hg t Ht'.
+split =>//.
+by move=> x Hx /andP [Dfx Dgx]; move: (Hdf x Hx Dfx) (Hdg x Hx Dgx); tac_def2 f g.
+  case Df0: (df t); case Dg0: (dg t); rewrite Df0 in Hf0; rewrite Dg0 in Hg0.
+    have [qf Hf1 Hf2] := Hf0.
+    have [qg Hg1 Hg2] := Hg0.
+    step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
+    apply: R_add_correct.
+    apply: (mul_0_contains_0_r _
+      (y := (Xreal (PolR.horner tt (PolR.mul_tail tt n.-1 qf qg) (t - t)%R))));
+      last first.
       apply: pow_contains_0 =>//.
-      exact: subset_sub_contains_0 Hint _.
-    set ip := tmul_tail _ _ _.
-    set rp := PolR.tmul_tail _ _ _.
-    rewrite Xsub_split Xadd_Xneg.
-    apply: Bnd.ComputeBound_correct; first split.
-    - by rewrite PolR.tsize_mul_tail tsize_mul_tail Af1 Ag1.
-    - move=> k Hk; apply:Link.link_tmul_tail=>//.
-      by rewrite /ip tsize_mul_tail in Hk.
-    case Heqt: t Ht=> [|r] H.
-      case HX0: (I.convert X0)=> [|l u].
-        - rewrite (@Isub_Inan_propagate_l _ Xnan) //.
-            by rewrite HX0.
-          rewrite HX0 /= in HinX.
-          by case: (I.convert X) HinX.
-      by rewrite Heqt HX0 /= in Hint.
-    apply: (@subset_sub_contains_0 _ (Xreal r)) =>//.
-    by rewrite Heqt in Hint.
-  rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_l _ (PolR.horner tt Ag (t - t))) =>//.
-    apply: Bnd.ComputeBound_correct =>//.
-    apply: I.sub_correct =>//.
-    exact: (subset_contains (I.convert X0)).
-  rewrite H00; apply: I.add_correct.
-    apply: (@mul_0_contains_0_l _ (PolR.horner tt Af (t - t))) =>//.
-    apply: Bnd.ComputeBound_correct =>//.
-    apply: I.sub_correct =>//.
-    exact: (subset_contains (I.convert X0)).
-  exact: (@mul_0_contains_0_l _ (Xreal 0)).
-move=> N x0 Hx0 {Af} {Af1} {Af2} {Af3} {Ag} {Ag1} {Ag2} {Ag3}.
-case: (Hf x0 Hx0) => [pf [Hf1 Hf2 Hf3]].
-case: (Hg x0 Hx0) => [pg [Hg1 Hg2 Hg3]].
-exists (PolR.tmul_trunc tt n.-1 pf pg).
-split; first by rewrite PolR.tsize_mul_trunc /N /= tsize_mul_trunc.
-  by move=> k Hkn; apply: Link.link_tmul_trunc;
-   rewrite /N tsize_mul_trunc in Hkn =>//;
-   rewrite -?Heq -/n prednK.
+      exact: subset_sub_contains_0 Ht0 _.
+    apply: Bnd.ComputeBound_correct.
+    exact: Pol.mul_tail_correct.
+    exact: R_sub_correct.
+    step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
+    apply: R_add_correct.
+    apply: (mul_0_contains_0_l _
+      (y := (Xreal (PolR.horner tt qg (t - t)%R)))) =>//.
+    apply: Bnd.ComputeBound_correct=>//.
+    exact: R_sub_correct.
+    step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
+    apply: R_add_correct.
+    apply: (mul_0_contains_0_l _
+      (y := (Xreal (PolR.horner tt qf (t - t)%R)))) =>//.
+    apply: Bnd.ComputeBound_correct=>//.
+    exact: R_sub_correct.
+  exact: (mul_0_contains_0_l _ (*!*) (y := Xreal 0)).
+rewrite /= /mul_error; rewrite 3?I.add_propagate_r //.
+by rewrite I.mul_propagate_r //; apply/eqNaiP.
+rewrite /= /mul_error; rewrite 3?I.add_propagate_r //.
+by rewrite I.mul_propagate_l //; apply/eqNaiP.
+rewrite /= /mul_error; rewrite 3?I.add_propagate_r //.
+by rewrite I.mul_propagate_l //; apply/eqNaiP.
+move=> x0 Hx0 {Hf0 Hg0} /=.
+have Hf0 := Hf x0 Hx0; have Hg0 := Hg x0 Hx0.
+case D0: andb.
+have /andP [Df0 Dg0] := D0.
+rewrite Df0 in Hf0; rewrite Dg0 in Hg0.
+have [pf Hf1 Hf2] := Hf0.
+have [pg Hg1 Hg2] := Hg0.
+exists (PolR.mul_trunc tt n.-1 pf pg); first exact: Pol.mul_trunc_correct.
 move=> x Hx /=.
-move:(Hg3 x Hx) (Hf3 x Hx)=> {Hf3} {Hg3} Hg3 Hf3.
+case D2 : andb.
+have /andP [Df Dg] := D2.
+move/(_ x Hx) in Hf2; move/(_ x Hx) in Hg2.
+rewrite Df in Hf2; rewrite Dg in Hg2.
 rewrite /mul_error.
-suff->: (Xmul (f x) (g x) -
-  PolR.horner tt (PolR.tmul_trunc tt n.-1 pf pg) (x - x0))
-  = (PolR.horner tt (PolR.tmul_tail tt n.-1 pf pg) (x-x0) * (x-x0)^n.-1.+1 +
-  ((f x - PolR.horner tt pf (x - x0)) * (PolR.horner tt pg (x - x0)) +
-  ((g x - PolR.horner tt pg (x - x0)) * (PolR.horner tt pf (x - x0)) +
-  (f x - PolR.horner tt pf (x - x0)) * (g x - PolR.horner tt pg (x - x0)))))%XR.
-  apply: I.add_correct.
-    apply: I.mul_correct.
-      apply: Bnd.ComputeBound_correct =>//; first split.
-      - by rewrite tsize_mul_tail PolR.tsize_mul_tail Hf1 Hg1.
-      - move=> k Hk; apply: Link.link_tmul_tail => //.
-        by rewrite tsize_mul_tail in Hk.
-      by apply: I.sub_correct =>//; apply: (subset_contains smallX0).
-    apply: I.power_int_correct.
-    by apply: I.sub_correct=> //; apply: (subset_contains smallX0).
-  apply: I.add_correct.
-    apply: I.mul_correct =>//.
+step_r ((PolR.mul_tail tt n.-1 pf pg).[x - x0] * (x - x0)^n.-1.+1 +
+  (((toR_fun f x - pf.[x - x0]) * pg.[x - x0] +
+  ((toR_fun g x - pg.[x - x0]) * pf.[x - x0] +
+  (toR_fun f x - pf.[x - x0]) * (toR_fun g x - pg.[x - x0])))))%R.
+  apply: R_add_correct.
+    apply: R_mul_correct.
+      apply: Bnd.ComputeBound_correct.
+        exact: Pol.mul_tail_correct.
+      apply: R_sub_correct =>//; exact: (subset_contains smallX0).
+      rewrite pow_powerRZ; apply: R_power_int_correct.
+      apply: R_sub_correct=>//; exact: (subset_contains smallX0).
+    apply: R_add_correct.
+    apply: R_mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: I.sub_correct =>//; apply: (subset_contains smallX0).
-  apply: I.add_correct.
-    apply: I.mul_correct =>//.
+    by apply: R_sub_correct =>//; apply: (subset_contains smallX0).
+  apply: R_add_correct.
+    apply: R_mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: I.sub_correct =>//; apply: (subset_contains smallX0).
-  exact: I.mul_correct.
-clear Hf Hf2 Hf3 Hg Hg2 Hg3.
-set sf := PolR.horner tt pf (x - x0).
-set sg := PolR.horner tt pg (x - x0).
+    by apply: R_sub_correct =>//; apply: (subset_contains smallX0).
+  exact: R_mul_correct.
+clear - Hdf Hdg Df Dg Hx.
+set sf := pf.[x - x0]%R.
+set sg := pg.[x - x0]%R.
 (****************)
-case cxx0 : (x - x0)%XR => [|rxx0] /=.
-  rewrite [(_ * Xnan)%XR]Xmul_comm /=.
-  by rewrite horner_in_nan Xsub_split Xadd_comm.
 case cn : n => [|n'] /=.
+  (* apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul).
+  rewrite !Xreal_toR; first last.
+  move: (Hdf x Hx Df); by tac_def1 f.
+  move: (Hdg x Hx Dg); by tac_def1 g.
+  move: (Hdf x Hx Df) (Hdg x Hx Dg); by tac_def2 f g.
+  simpl.
+  *)
+  admit. admit. admit. admit.
+  (*
   rewrite cn in Heq.
   rewrite -/n cn in Hf1.
   rewrite -Heq in Hg1.
@@ -4627,19 +4631,14 @@ Qed.
 
 Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g df dg n :
   not_empty (I.convert X0) ->
-  n = Pol.size (approx TMf) ->
-  n = Pol.size (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f df ->
   i_validTM (I.convert X0) (I.convert X) TMg g dg ->
   i_validTM (I.convert X0) (I.convert X) (TM_mul TMf TMg X0 X n.-1)
   (fun xr => Xmul (f xr) (g xr)) (predI df dg).
 Proof.
-move=> Ht H1 H2 Hpos [Hef H0 Hf] Hg.
-rewrite H1.
+move=> Ht [Hdf Hef H0 Hf] Hg.
 apply: TM_mul_correct_gen => //.
 exact: subset_refl.
-by rewrite -H1 H2.
-by rewrite -H1.
 Qed.
 
 Definition poly_horner_tm n p (Mf : rpa) (X0 X : I.type) : rpa :=
@@ -5352,7 +5351,7 @@ apply: (TM_fun_eq (f := fun xr => Xmul (f xr) (Xinv (g xr)))
   (df := (predI df (dom_comp (defined Xinv) dg g)))) =>//.
   by move=> x; rewrite Xdiv_split.
 rewrite /TM_div.
-apply: TM_mul_correct =>//; first by rewrite size_poly_horner_tm (prednK Hnpos).
+apply: TM_mul_correct =>//.
 apply TM_inv_comp_correct =>//.
 by rewrite -Hn2 (prednK Hnpos).
 Qed.
