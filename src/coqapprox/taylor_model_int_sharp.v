@@ -4191,12 +4191,15 @@ Corollary TM_div_mixed_r_correct_strong M b X0 X f g df :
   i_validTM (I.convert X0) (I.convert X) M f df ->
   is_const g X b ->
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
-  (fun x => Xdiv (f x) (g x)) (predI df (defined g)).
+  (fun x => Xdiv (f x) (g x))
+  (predI df (defined (fun x => Xinv (g x)))).
 Proof.
 move=> tHt Hf [[|y] Hy1 Hy2]; move: (Hf) => [Hdef Hnan Hsubset Hmain].
-split=>//.
-  admit.
-by rewrite (TM_div_mixed_r_nai Hy1 Hf).
+split=>//=.
+  move=> x Hx /andP [Df Dg].
+  by move: (Hdef x Hx Df) Dg; rewrite /Xinv;
+    tac_def2 f g =>//= r r0; case: is_zero_spec.
+  by rewrite (TM_div_mixed_r_nai Hy1 Hf).
 move=> /= x0 Hx0.
 case D20 : andb.
   have /andP [Df0 Dg0] := D20.
@@ -4218,9 +4221,10 @@ case D20 : andb.
   exact/eqNaiP/I.div_propagate_r/contains_Xnan.
 exact/eqNaiP/I.div_propagate_r/contains_Xnan.
 apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR _ (predI df (fun _ : R => y != 0%Re))).
-  admit.
-  by move=> x Hx; rewrite Hy2.
-exact: TM_div_mixed_r_correct.
+- move=> x Hx /=; congr andb; rewrite /defined Hy2 //=.
+  by case: is_zero_spec => /eqP // ->.
+- by move=> x Hx; rewrite Hy2.
+- exact: TM_div_mixed_r_correct.
 Qed.
 
 Definition mul_error prec n (f g : rpa) X0 X :=
