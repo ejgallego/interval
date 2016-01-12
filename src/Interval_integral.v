@@ -312,7 +312,7 @@ Proof.
 move => Hreala Hrealb Hgtab.
 rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
 rewrite /T.toR /proj_val in Hgtab.
-move: Hgtab. About F.real_correct.
+move: Hgtab.
 move: (F.real_correct a).
 rewrite Hreala.
 case Ha1 : (F.toF a) => [||bb pp zz] // _ .
