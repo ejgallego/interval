@@ -52,7 +52,7 @@ Qed.
 
 End revEq.
 
-Parameter prec : I.precision.
+Variable prec : I.precision.
 Definition evalInt := A.BndValuator.eval prec.
 Definition boundsToInt b := map A.interval_from_bp b.
 Definition boundsToR b := map A.real_from_bp b.
@@ -284,7 +284,7 @@ Lemma notInan_convert i :
 case: i => // .
 Qed.
 
-Lemma notInan_inversion_Inv prec i :
+Lemma notInan_inversion_Inv i :
 notInan (I.inv prec i) -> ~ contains (I.convert i) (Xreal 0) .
 Proof.
 move => HnotInan Hcontains0.
@@ -325,7 +325,7 @@ Qed.
 
 
 (* the two following lemmas (and the next two) are close copies of the above, but for any negative power instead of just (-1) *)
-Lemma notInan_inversion_PowNeg prec i p:
+Lemma notInan_inversion_PowNeg i p:
 notInan (I.power_int prec i (Z.neg p)) -> ~ contains (I.convert i) (Xreal 0) .
 Proof.
 move => HnotInan Hcontains0.
@@ -337,7 +337,7 @@ have -> : Xnan = Xpower_int (Xreal 0) (Z.neg p) by rewrite /= is_zero_correct_ze
 by apply: I.power_int_correct.
 Qed.
 
-Lemma notInan_inversion_PowNeg_stronger prec i p :
+Lemma notInan_inversion_PowNeg_stronger i p :
   notInan (I.power_int prec i (Z.neg p)) ->
   (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/
   (forall x, contains (I.convert i) (Xreal x) -> x > 0).
@@ -365,7 +365,7 @@ apply: Hnot0.
 Admitted.
 
 (* maybe this lemma is false if i1 is empty? To check *)
-Lemma notInan_inversion_Div prec i1 i2 :
+Lemma notInan_inversion_Div i1 i2 :
 notInan (I.div prec i1 i2) -> ~ contains (I.convert i2) (Xreal 0) .
 Proof.
 move => HnotInan Hcontains0.
@@ -377,7 +377,7 @@ suff: contains (I.convert (I.div prec i1 i2)) Xnan => [Habs|].
 (* by apply: I.inv_correct. *)
 Abort.
 
-Lemma notInan_inversion_Div_stronger prec i1 i2 :
+Lemma notInan_inversion_Div_stronger i1 i2 :
   notInan (I.div prec i1 i2) ->
   (forall x, contains (I.convert i2) (Xreal x) -> x < 0) \/
   (forall x, contains (I.convert i2) (Xreal x) -> x > 0).
@@ -417,7 +417,7 @@ inversion H1.
 exact: Rle_ge.
 Qed.
 
-Lemma notInan_inversion_Sqrt prec i :
+Lemma notInan_inversion_Sqrt i :
   notInan (I.sqrt prec i) ->
   (forall x, contains (I.convert i) (Xreal x) -> x >= 0).
 Proof.
@@ -433,7 +433,7 @@ suff: contains (I.convert (I.sqrt prec i)) (Xsqrt (Xreal x)).
 by apply: I.sqrt_correct.
 Qed.
 
-Lemma notInan_inversion_Ln prec i :
+Lemma notInan_inversion_Ln i :
   notInan (I.ln prec i) ->
   (forall x, contains (I.convert i) (Xreal x) -> x > 0).
 Proof.
@@ -453,7 +453,7 @@ End notInanProperties.
 
 
 (* copied from Interval_tactic *)
-Lemma contains_eval prec prog bounds n :
+Lemma contains_eval prog bounds n :
   contains
     (I.convert
        (List.nth n
@@ -476,7 +476,7 @@ rewrite IHbounds.
 now case a.
 Qed.
 
-Lemma contains_eval_arg prec prog bounds n i x:
+Lemma contains_eval_arg prog bounds n i x:
   contains (I.convert i) (Xreal x) ->
   contains
     (I.convert
