@@ -25,6 +25,7 @@ Require Import Interval_definitions.
 Require Import Interval_float_sig.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
+Require Import ssreflect.
 
 Inductive interval : Set :=
   | Inan : interval
@@ -82,6 +83,14 @@ Definition le_upper x y :=
 
 Definition le_lower x y :=
   le_upper (Xneg y) (Xneg x).
+
+(* There are probably more instances missing. *)
+
+Lemma le_lower_refl (r : R) : le_lower (Xreal r) (Xreal r).
+Proof. by rewrite /=; apply: Rle_refl. Qed.
+
+Lemma le_upper_refl (r : R) : le_upper (Xreal r) (Xreal r).
+Proof. by rewrite /=; apply: Rle_refl. Qed.
 
 Lemma le_upper_trans :
   forall x y z,
