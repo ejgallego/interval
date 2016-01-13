@@ -216,7 +216,7 @@ Variables (f : R -> R) (iF : I.type -> I.type).
 Let g := toXreal_fun f.
 
 (* g is a restriction of f as an extendedR function. *)
-Let Hfgext := xreal_extension_toXreal_fun f.
+Let Hfgext := toXreal_fun_correct f.
 
 
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).

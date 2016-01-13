@@ -290,7 +290,7 @@ Proof.
 move => HnotInan Hcontains0.
 suff: contains (I.convert (I.inv prec i)) Xnan => [Habs|].
   move: HnotInan.
-  have := (xreal_ssr_compat.contains_Xnan Habs).
+  have := (proj1(xreal_ssr_compat.contains_Xnan (I.convert (I.inv prec i)))) Habs.
   by case: (I.inv prec i).
 have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
 by apply: I.inv_correct.
@@ -331,7 +331,7 @@ Proof.
 move => HnotInan Hcontains0.
 suff: contains (I.convert (I.power_int prec i (Z.neg p))) Xnan => [Habs|].
   move: HnotInan.
-  have := (xreal_ssr_compat.contains_Xnan Habs).
+  have := (proj1(xreal_ssr_compat.contains_Xnan _ )) Habs.
   by case: (I.power_int prec i (Z.neg p)).
 have -> : Xnan = Xpower_int (Xreal 0) (Z.neg p) by rewrite /= is_zero_correct_zero.
 by apply: I.power_int_correct.
@@ -371,7 +371,7 @@ Proof.
 move => HnotInan Hcontains0.
 suff: contains (I.convert (I.div prec i1 i2)) Xnan => [Habs|].
   move: HnotInan.
-  have := (xreal_ssr_compat.contains_Xnan Habs).
+  have := (proj1(xreal_ssr_compat.contains_Xnan _)) Habs.
   by case: (I.div prec i1 i2).
 (* have -> : Xnan = Xdiv (Xreal 0) by rewrite /= is_zero_correct_zero. *)
 (* by apply: I.inv_correct. *)
@@ -428,7 +428,7 @@ suff: contains (I.convert (I.sqrt prec i)) (Xsqrt (Xreal x)).
     move => Hcontsqrt.
     by apply: is_negative_positive.
   move => HcontXnan.
-  have Habs := (xreal_ssr_compat.contains_Xnan HcontXnan).
+  have Habs := (proj1 (xreal_ssr_compat.contains_Xnan _)) HcontXnan.
   by rewrite (notInan_convert _ Habs) in HnotInan.
 by apply: I.sqrt_correct.
 Qed.
@@ -444,7 +444,7 @@ suff: contains (I.convert (I.ln prec i)) (Xln (Xreal x)).
     move => Hcontln.
     by apply: is_positive_positive.
   move => HcontXnan.
-  have Habs := (xreal_ssr_compat.contains_Xnan HcontXnan).
+  have Habs := (proj1 (xreal_ssr_compat.contains_Xnan _)) HcontXnan.
   by rewrite (notInan_convert _ Habs) in HnotInan.
 by apply: I.ln_correct.
 Qed.
