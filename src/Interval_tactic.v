@@ -43,7 +43,8 @@ Inductive interval_tac_parameters :=
   | i_bisect : R -> interval_tac_parameters
   | i_bisect_diff : R -> interval_tac_parameters
   | i_bisect_taylor : R -> nat -> interval_tac_parameters
-  | i_depth : nat -> interval_tac_parameters.
+  | i_depth : nat -> interval_tac_parameters
+  | i_integral_depth : nat -> interval_tac_parameters.
 
 Module Private.
 
@@ -1352,7 +1353,7 @@ Proof.
 exact R0.
 Qed.
 
-Ltac get_bounds l prec :=
+Ltac get_bounds l prec rint_depth :=
   let rec aux l prec lw :=
     match l with
     | nil => constr:(@nil A.bound_proof, @nil R)
@@ -1376,8 +1377,7 @@ Ltac get_bounds l prec :=
             match vf with
             | (?pf, _ :: ?lf) =>
               let lcf := get_trivial_bounds lf prec in
-              (* TODO: set depth as a parameter instead of magic value 3 *)
-              let c := constr:((proj2(integral_correct 3 prec pa lca pb lcb pf lcf))) in
+              let c := constr:(proj2 (integral_correct rint_depth prec pa lca pb lcb pf lcf)) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (Integrability.I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
@@ -1605,13 +1605,13 @@ Qed.
 Definition prec_of_nat prec :=
   match Z_of_nat prec with Zpos p => F.PtoP p | _ => F.PtoP xH end.
 
-Ltac do_interval vars prec depth eval_tac :=
+Ltac do_interval vars prec depth rint_depth eval_tac :=
   (abstract (
     let prec := eval vm_compute in (prec_of_nat prec) in
     xalgorithm vars prec ;
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
-      match get_bounds constants prec with
+      match get_bounds constants prec rint_depth with
       | (?bounds_, ?lw) =>
         let bounds := fresh "bounds" in
         pose (bounds := bounds_) ;
@@ -1647,17 +1647,18 @@ Ltac tuple_to_list params l :=
   end.
 
 Ltac do_interval_parse params :=
-  let rec aux vars prec depth eval_tac params :=
+  let rec aux vars prec depth rint_depth eval_tac params :=
     match params with
-    | nil => do_interval vars prec depth eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth ltac:(do_interval_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
+    | nil => do_interval vars prec depth rint_depth eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth do_interval_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth do_interval_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth ltac:(do_interval_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth eval_tac t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
-  aux (@nil R) 30%nat 15%nat do_interval_eval params.
+  aux (@nil R) 30%nat 15%nat 3%nat do_interval_eval params.
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
@@ -1707,11 +1708,11 @@ Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
     | _ => I.nai
     end).
 
-Ltac do_interval_intro t extend params vars prec depth eval_tac :=
+Ltac do_interval_intro t extend params vars prec depth rint_depth eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
-    match get_bounds constants prec with
+    match get_bounds constants prec rint_depth with
     | (?bounds, ?lw) =>
       warn_whole lw ;
       let v := eval_tac extend bounds formula prec depth in
@@ -1721,17 +1722,18 @@ Ltac do_interval_intro t extend params vars prec depth eval_tac :=
   end.
 
 Ltac do_interval_intro_parse t_ extend params_ :=
-  let rec aux vars prec depth eval_tac params :=
+  let rec aux vars prec depth rint_depth eval_tac params :=
     match params with
-    | nil => do_interval_intro t_ extend params_ vars prec depth eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth do_interval_intro_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth ltac:(do_interval_intro_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d eval_tac t
+    | nil => do_interval_intro t_ extend params_ vars prec depth rint_depth eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth do_interval_intro_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth do_interval_intro_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth ltac:(do_interval_intro_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth eval_tac t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
-  aux (@nil R) 30%nat 5%nat do_interval_intro_eval params_.
+  aux (@nil R) 30%nat 5%nat 3%nat do_interval_intro_eval params_.
 
 End Private.
 
@@ -1820,8 +1822,6 @@ interval_intro (5/7)%R lower with (i_prec 4%nat).
 apply Rle_trans with (2 := H).
 interval.
 Qed.
-
-Print blo2.
 *)
 
 (*
