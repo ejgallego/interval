@@ -14,3 +14,4 @@ Remakefile
 *.aux
 *.v.bak
 .coq-native
+*~
