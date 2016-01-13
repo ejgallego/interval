@@ -1263,6 +1263,7 @@ Ltac do_interval vars prec depth eval_tac :=
         let ibounds := fresh "ibounds" in
         set (ibounds := map A.interval_from_bp bounds) ;
         cbv beta iota zeta delta [map A.interval_from_bp bounds] in ibounds ;
+        clear ;
         (abstract vm_cast_no_check (refl_equal true))
         || warn_whole lw
       end
