@@ -364,7 +364,6 @@ Qed.
 
 Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
-Locate prec.
 
 Lemma all_integrals_correct_prog :
   forall prec prog bounds ia ib a b,
@@ -388,7 +387,7 @@ suff HiFNI : notInan iFab =>  [|].
 rewrite /f.
 move: HiFNI.
 rewrite /iFab -/evalInt => HiFNI.
-apply: (integrableProg _ _ _ _ _ _ (Int.I.join ia ib)) => //.
+apply: (integrableProg prec _ _ _ _ _ (Int.I.join ia ib)) => //.
 move => x Hx.
 case: (Rle_dec a b) => [Hleab | Hltba].
 - apply: (contains_connected _ a b); try apply: I.join_correct.
@@ -695,7 +694,7 @@ suff: notInan ((Int.all_integrals prec iF (Interval_interval_float.Ibnd l0 u0)
     * by apply: contains_eval.
     * rewrite Hib; exact: HnotInan3.
   have Hint2 : ex_RInt f (T.toR u0) (T.toR l1).
-    exact: (integral_float_signed_ex_RInt depth).
+    exact: (integral_float_signed_ex_RInt depth prec).
   apply: (ex_RInt_Chasles _ _ (T.toR u0)) => //.
   by apply: (ex_RInt_Chasles _ _ (T.toR l1)).
 move: Hibndlu.
@@ -932,7 +931,7 @@ Ltac get_trivial_bounds l prec :=
       match x with
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
       | toR ?v =>
-        constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+        constr:(let f := v in let x := toR f in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
       end in
       match aux l prec with
       | ?m => constr:(cons i m)
@@ -1022,12 +1021,10 @@ Ltac get_bounds l prec :=
               let lcf := get_trivial_bounds lf prec in
               (* TODO: set depth as a parameter instead of magic value 3 *)
               let c := constr:((proj2(integral_correct 3 prec pa lca pb lcb pf lcf))) in
-
+              (* work-around for a bug in the pretyper *)
               match type of c with
-                | contains (Integrability.I.convert ?i) (Xreal ?r) => constr:(A.Bproof r i c, @None R)
+                | contains (Integrability.I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
               end
-
-(*constr:(foobproof)*)
             end
           end
         end
@@ -1259,12 +1256,15 @@ Ltac do_interval vars prec depth eval_tac :=
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
       match get_bounds constants prec with
       | (?bounds_, ?lw) =>
-        warn_whole lw ;
         let bounds := fresh "bounds" in
         pose (bounds := bounds_) ;
         change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
         eval_tac bounds check formula prec depth n ;
-        vm_cast_no_check (refl_equal true)
+        let ibounds := fresh "ibounds" in
+        set (ibounds := map A.interval_from_bp bounds) ;
+        cbv beta iota zeta delta [map A.interval_from_bp bounds] in ibounds ;
+        (abstract vm_cast_no_check (refl_equal true))
+        || warn_whole lw
       end
     end)) ||
   fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
@@ -1430,16 +1430,20 @@ Module SFBI2 := SpecificFloat BigIntRadix2.
 Module ITSFBI2 := IntervalTactic SFBI2.
 Export ITSFBI2.
 
-
+(*
 Require Import Interval_generic_ops.
 Module GFSZ2 := GenericFloat Radix2.
 Module ITGFSZ2 := IntervalTactic GFSZ2.
 Export ITGFSZ2.
+*)
 
-(* Lemma blo1 : *)
-(*   0 <= RInt (fun x => x) 0 1 <= 1. *)
-(* Proof. *)
-(* interval. *)
+(*
+Lemma blo0 :
+   1 <= RInt (fun x => exp x) 0 1 <= 2.
+Proof.
+interval.
+Qed.
+*)
 
 (*
 Lemma blo1 :

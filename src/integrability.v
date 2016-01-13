@@ -344,7 +344,7 @@ Lemma notInan_inversion_PowNeg_stronger i p :
 Proof.
 move => HnotInan.
 suff: ~ contains (I.convert i) (Xreal 0); last first.
-  by apply: notInan_inversion_PowNeg.
+  by apply: notInan_inversion_PowNeg HnotInan.
 move => Hnot0.
 set P :=  (X in X \/ _).
 set Q :=  (X in _ \/ X).
@@ -712,8 +712,9 @@ Proof.
 move => Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
-apply: continuousProg => //.
+apply: continuousProg.
 by apply Hcontains.
+by apply HnotInan.
 Qed.
 
 End Preliminary.
