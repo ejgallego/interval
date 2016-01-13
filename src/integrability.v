@@ -712,8 +712,8 @@ Proof.
 move => Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
-apply: continuousProg.
-by apply Hcontains.
+apply: continuousProg; first apply: i.
+by apply: Hcontains.
 by apply HnotInan.
 Qed.
 
