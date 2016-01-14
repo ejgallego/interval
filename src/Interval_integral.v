@@ -281,6 +281,8 @@ Definition diam x :=
 
 Definition div2 f := F.scale2 f (F.ZtoS (-1)).
 
+Let Fle := Int.I.Fle.
+
 Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) :=
   let int := I.bnd a b in
   match depth with
@@ -288,14 +290,14 @@ Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) 
     | S n => let m := I.midpoint int in
              let int1 := I.bnd a m in
              let int2 := I.bnd m b in
+             let halfeps := div2 epsilon in
              let roughEstimate_1 := I.mul prec (iF int1) (I.sub prec (thin m) (thin a)) in
              let roughEstimate_2 := I.mul prec (iF int2) (I.sub prec (thin b) (thin m)) in
-             match (F.cmp (diam roughEstimate_1) epsilon,F.cmp (diam roughEstimate_2) epsilon) with
-               | (Xlt,Xlt) => I.add prec roughEstimate_1 roughEstimate_2
-               | (Xlt,Xgt) => let int2 := integral_float_epsilon n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
-               | (Xgt,Xlt) => let int1 := integral_float_epsilon n a m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
-               | (_,_) =>
-                 let halfeps := div2 epsilon in
+             match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
+               | true,true => I.add prec roughEstimate_1 roughEstimate_2
+               | true,false => let int2 := integral_float_epsilon n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
+               | false,true => let int1 := integral_float_epsilon n a m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+               | false,false =>
                  let i1 := integral_float_epsilon n a m halfeps in
                  let i2 := integral_float_epsilon n m b halfeps in
                  I.add prec i1 i2
@@ -366,7 +368,8 @@ have hm : F.real (I.midpoint (I.bnd a b)).
   by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
 case Hcmp1 : (F.cmp d1 epsilon); case Hcmp2 : (F.cmp d2 epsilon);
 repeat ((try (apply: I.add_correct => // )); try (apply: integral_order_one_correct => // ); try (apply: Hk => // )).
-Qed.
+Admitted.
+
 
 
 Require Import Interval_generic.
