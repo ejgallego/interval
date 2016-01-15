@@ -457,8 +457,7 @@ Definition mul_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let M1 := get_tm u X t1 in
   let M2 := get_tm u X t2 in
   let X0 := Imid X in
-  let n := (tsize t1).-1 in
-  Tm (TM_mul u.1 M1 M2 X0 X n).
+  Tm (TM_mul u.1 M1 M2 X0 X u.2).
 
 Definition mul (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   match t1, t2 with
@@ -576,8 +575,7 @@ Definition div_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let M1 := get_tm u X t1 in
   let M2 := get_tm u X t2 in
   let X0 := Imid X in
-  let n := (tsize t1).-1 in
-  Tm (TM_div u.1 M1 M2 X0 X n).
+  Tm (TM_div u.1 M1 M2 X0 X u.2).
 
 Definition div (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   match t1, t2 with
@@ -798,7 +796,7 @@ Definition fun_gen
     | Const c => Const (fi u.1 c)
     | Var => let X0 := Imid X in Tm (ftm u.1 X0 X u.2)
     | Tm tm => let X0 := Imid X in
-      Tm (TM_comp u.1 (ftm u.1) tm X0 X (tmsize tm).-1)
+      Tm (TM_comp u.1 (ftm u.1) tm X0 X u.2)
   end.
 
 Lemma fun_gen_correct

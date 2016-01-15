@@ -4383,12 +4383,11 @@ rewrite Df0 in Hf0; rewrite Dg0 in Hg0.
 have [pf Hf1 Hf2] := Hf0.
 have [pg Hg1 Hg2] := Hg0.
 exists (PolR.mul_trunc tt n.-1 pf pg); first exact: Pol.mul_trunc_correct.
-move=> x Hx /=.
+move=> x Hx; rewrite [(predI _ _) _]/=.
 case D2 : andb.
 have /andP [Df Dg] := D2.
 move/(_ x Hx) in Hf2; move/(_ x Hx) in Hg2.
 rewrite Df in Hf2; rewrite Dg in Hg2.
-rewrite /mul_error.
 step_r ((PolR.mul_tail tt n.-1 pf pg).[x - x0] * (x - x0)^n.-1.+1 +
   (((toR_fun f x - pf.[x - x0]) * pg.[x - x0] +
   ((toR_fun g x - pg.[x - x0]) * pf.[x - x0] +
@@ -4410,18 +4409,38 @@ step_r ((PolR.mul_tail tt n.-1 pf pg).[x - x0] * (x - x0)^n.-1.+1 +
     by apply: R_sub_correct =>//; apply: (subset_contains smallX0).
   exact: R_mul_correct.
 clear - Hdf Hdg Df Dg Hx.
+have Hdfx := Hdf x Hx Df.
+have Hdgx := Hdg x Hx Dg.
 set sf := pf.[x - x0]%R.
 set sg := pg.[x - x0]%R.
 (****************)
+rewrite !PolR.hornerE PolR.size_mul_trunc PolR.size_mul_tail.
+rewrite (big_endo (fun r => r * (x-x0) ^ n.-1.+1)%R); first last.
+  by rewrite Rmult_0_l.
+  by move=> a b /=; rewrite Rmult_plus_distr_r.
+rewrite (eq_big_nat _ _ (F2 := fun i =>
+  PolR.mul_coeff tt pf pg (i + n.-1.+1) * (x - x0) ^ (i + n.-1.+1))%R);
+  last first.
+  move=> i Hi; rewrite Rmult_assoc; congr Rmult; last by rewrite pow_add.
+  rewrite PolR.nth_mul_tail ifF; first by rewrite addnC.
+  by case/andP: Hi; case: leqP.
+rewrite -(big_addn 0 _ n.-1.+1 predT (fun i =>
+  PolR.mul_coeff tt pf pg i * (x - x0) ^ i)%R).
+set e := ((_ f x - sf) * sg + ((_ g x - sg) * sf + (_ f x - sf) * (_ g x - sg)))%R.
+have->: e = ((toR_fun (fun xr => (f xr * g xr))%XR x) - sf * sg)%R.
+rewrite {}/e.
+apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul) !Xreal_toR //; try ring.
+(* apply: (Rplus_eq_reg_r (toR_fun (fun xr => (f xr * g xr))%XR x)).
 case cn : n => [|n'] /=.
-  (* apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul).
+
+apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul).
   rewrite !Xreal_toR; first last.
   move: (Hdf x Hx Df); by tac_def1 f.
   move: (Hdg x Hx Dg); by tac_def1 g.
   move: (Hdf x Hx Df) (Hdg x Hx Dg); by tac_def2 f g.
   simpl.
   *)
-  admit. admit. admit. admit.
+  admit. admit. admit. admit. admit.
   (*
   rewrite cn in Heq.
   rewrite -/n cn in Hf1.

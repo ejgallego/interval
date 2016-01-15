@@ -93,6 +93,19 @@ Proof. by apply/andP=> [[_n n_]]; have:= leq_ltn_trans n_ _n; rewrite ltnn. Qed.
 Lemma max1n n : maxn 1 n = n.-1.+1.
 Proof. by case: n =>//; case. Qed.
 
+Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
+Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
+
+Lemma addn_pred_leqI a b k i :
+  (a + b).-1 <= k -> i <= k -> a <= i \/ b <= k - i.
+Proof.
+move=> Hk Hi; case: (leqP a i) => Ha; [by left|right].
+apply: leq_addLRI.
+apply: leq_trans _ Hk.
+apply: ltn_leq_pred.
+by rewrite addnC ltn_add2r.
+Qed.
+
 End NatCompl.
 
 (** Missing result(s) about bigops *)

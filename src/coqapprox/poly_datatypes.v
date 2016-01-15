@@ -354,26 +354,24 @@ Definition sub := map2 (C.sub u) C.opp.
 Definition nth := nth C.zero.
 
 (** Advantage of using foldl w.r.t foldr : foldl is tail-recursive *)
-Definition mul_coeff (p q : T) (np k : nat) : C.T :=
+Definition mul_coeff (p q : T) (k : nat) : C.T :=
   foldl (fun x i => C.add u (C.mul u (nth p i) (nth q (k - i))) x) (C.zero)
-        (rev (iota 0 np)).
+        (rev (iota 0 k.+1)).
 
-Lemma mul_coeffE p q np k : mul_coeff p q np k =
-  \big[C.add u/C.zero]_(0 <= i < np) C.mul u (nth p i) (nth q (k - i)).
+Lemma mul_coeffE p q k : mul_coeff p q k =
+  \big[C.add u/C.zero]_(0 <= i < k.+1) C.mul u (nth p i) (nth q (k - i)).
 Proof.
 rewrite BigOp.bigopE /reducebig /mul_coeff foldl_rev.
 by congr foldr; rewrite /index_iota subn0.
 Qed.
 
-Definition mul_trunc n p q := mkseq (mul_coeff p q (size p)) n.+1.
+Definition mul_trunc n p q := mkseq (mul_coeff p q) n.+1.
 
 Definition mul_tail n p q :=
-  let np := size p in
-  mkseq (fun i => mul_coeff p q np (n.+1+i)) ((np + size q).-1 - n.+1).
+  mkseq (fun i => mul_coeff p q (n.+1+i)) ((size p + size q).-1 - n.+1).
 
 Definition mul p q :=
-  let np := size p in
-  mkseq (mul_coeff p q np) (np + size q).-1.
+  mkseq (mul_coeff p q) (size p + size q).-1.
 
 (* Old definitions
 
@@ -460,6 +458,7 @@ Definition lift (n : nat) p := ncons n C.zero p.
 Lemma size_lift n p : size (lift n p) = n + size p.
 Proof (size_ncons n C.zero p).
 
+(** FIXME: replace [foldr] by [map] *)
 Definition mul_mixed (u : U) (a : C.T) (p : T) :=
   @foldr C.T T (fun x acc => (C.mul u a x) :: acc) [::] p.
 
@@ -626,6 +625,24 @@ Proof. done. Qed.
 
 Lemma size_polyX : size polyX = 2.
 Proof. done. Qed.
+
+Lemma nth_mul u p q k :
+  nth (mul u p q) k =
+  if (size p + size q).-1 <= k then C.zero
+  else mul_coeff u p q k.
+Proof. by rewrite /nth /mul_trunc [in LHS]nth_mkseq_dflt. Qed.
+
+Lemma nth_mul_trunc u n p q k :
+  nth (mul_trunc u n p q) k =
+  if n < k then C.zero
+  else mul_coeff u p q k.
+Proof. by rewrite /nth /mul_trunc [in LHS]nth_mkseq_dflt. Qed.
+
+Lemma nth_mul_tail u n p q k :
+  nth (mul_tail u n p q) k =
+  if (size p + size q).-1 - n.+1 <= k then C.zero
+  else mul_coeff u p q (n.+1 + k).
+Proof. by rewrite /nth /mul_tail [in LHS]nth_mkseq_dflt. Qed.
 
 End SeqPoly.
 
@@ -879,6 +896,27 @@ Qed.
 
 *)
 
+Lemma mul_coeff_eq0 p q k :
+  (forall i, i <= k -> nth p i = 0%R \/ nth q (k - i) = 0%R) ->
+  (\big[Rplus/R0]_(0 <= i < k.+1) (nth p i * nth q (k - i)) = 0)%R.
+Proof.
+move=> H.
+rewrite big_mkord big1 // => [[i Hi]] _ /=.
+rewrite ltnS in Hi.
+by case: (H i Hi) =>->; rewrite ?(Rmult_0_l, Rmult_0_r).
+Qed.
+
+(** Restate [nth_mul] with no if-then-else *)
+Lemma nth_mul' u p q k :
+  nth (mul u p q) k =
+  \big[Rplus/0%R]_(0 <= i < k.+1) Rmult (nth p i) (nth q (k - i)).
+Proof.
+rewrite nth_mul mul_coeffE; case: leqP => [H|//].
+rewrite mul_coeff_eq0 //.
+move/addn_pred_leqI in H.
+by move=> i Hi; case: (H i Hi); move/nth_default=>->; intuition.
+Qed.
+
 End PolR.
 
 Module Type PolyIntOps (I : IntervalOps).
@@ -1107,18 +1145,12 @@ Qed.
 
 Arguments bigop_resize [pi p f] _.
 
-Lemma mul_coeff_resize pi qi p q :
-  pi >:: p ->
-  qi >:: q ->
-  forall k : nat, PolR.mul_coeff tt p q (PolR.size p) k = PolR.mul_coeff tt p q (size pi) k.
-Proof. by move=> Hpi Hqi k; rewrite !PolR.mul_coeffE (bigop_resize Hpi). Qed.
-
 Lemma mul_coeff_correct u pi qi p q :
   pi >:: p -> qi >:: q ->
-  forall k : nat, mul_coeff u pi qi (size pi) k >: PolR.mul_coeff tt p q (PolR.size p) k.
+  forall k : nat, mul_coeff u pi qi k >: PolR.mul_coeff tt p q k.
 Proof.
 move=> Hpi Hqi k.
-rewrite mul_coeffE PolR.mul_coeffE (bigop_resize Hpi).
+rewrite mul_coeffE PolR.mul_coeffE.
 apply (@big_ind2 R I.type (fun r i => i >: r)).
 - exact: cont0.
 - move=> *; exact: R_add_correct.
@@ -1143,23 +1175,14 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
 - exact: cont0.
 - exact: mul_coeff_correct.
 - move=> k /andP [Hk _]; rewrite PolR.mul_coeffE.
-  case Ep0 : (seq.size p) => [|n]; first by rewrite big_mkord big_ord0.
-  rewrite Ep0 addSn /= in Hk.
-  rewrite big_mkord big1 //; move => [i Hi _] /=.
-  rewrite ltnS in Hi.
-  suff Hki: (seq.size q) <= k - i by rewrite (PolR.nth_default Hki) Rmult_0_r.
-  apply: leq_addLRI; rewrite addnC; apply: leq_trans _ Hk.
-  by rewrite leq_add2r.
-- move=> k /andP [Hk _]; rewrite (mul_coeff_resize Hp Hq) PolR.mul_coeffE /size.
-  case Epi0 : (seq.size pi) => [|n]; first by rewrite big_mkord big_ord0.
-  rewrite Epi0 addSn /= in Hk.
-  rewrite big_mkord big1 //; move => [i Hi _] /=.
-  rewrite ltnS in Hi.
-  suff Hki: (size qi) <= k - i by rewrite (nth_default_alt Hq Hki) Rmult_0_r.
-  apply: leq_addLRI; rewrite addnC; apply: leq_trans _ Hk.
-  by rewrite leq_add2r.
+  rewrite PolR.mul_coeff_eq0 //.
+  move/addn_pred_leqI in Hk.
+  by move=> i Hi; case: (Hk i Hi); move/PolR.nth_default=>->; intuition.
+- move=> k /andP [Hk _]; rewrite PolR.mul_coeffE /size.
+  rewrite PolR.mul_coeff_eq0 //.
+  move/addn_pred_leqI in Hk.
+  by move=> i Hi; case: (Hk i Hi); move/nth_default_alt=>->; intuition.
 Qed.
-
 
 Lemma mul_trunc_correct u n pi qi p q :
   pi >:: p -> qi >:: q ->
@@ -1182,22 +1205,16 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
 - exact: cont0.
 - move=> k; exact: mul_coeff_correct.
 - move=> k /andP [_k k_]; rewrite PolR.mul_coeffE.
-  case Ep0 : (seq.size p) => [|m]; first by rewrite big_mkord big_ord0.
-  rewrite Ep0 addSn /= in _k.
-  rewrite big_mkord big1 //; move => [i Hi _] /=.
-  rewrite ltnS in Hi.
-  suff Hki: (seq.size q) <= n.+1 + k - i by rewrite (PolR.nth_default Hki) Rmult_0_r.
-  apply: leq_addLRI; rewrite addnC; rewrite leq_subLR in _k.
-  by apply: leq_trans _ _k; rewrite leq_add2r.
-- move=> k /andP [_k k_]; rewrite (mul_coeff_resize Hp Hq) PolR.mul_coeffE /size.
-  case Epi0 : (seq.size pi) => [|m]; first by rewrite big_mkord big_ord0.
-  rewrite Epi0 addSn /= in _k.
-  rewrite big_mkord big1 //; move => [i Hi _] /=.
-  rewrite ltnS in Hi.
-  suff Hki: (size qi) <= n.+1 + k - i.
-    by rewrite (nth_default_alt Hq Hki) Rmult_0_r.
-  apply: leq_addLRI; rewrite addnC; rewrite leq_subLR in _k.
-  by apply: leq_trans _ _k; rewrite leq_add2r.
+  rewrite PolR.mul_coeff_eq0 //.
+  move=> i Hi.
+  rewrite leq_subLR in _k.
+  move/addn_pred_leqI in _k.
+  by case: (_k i Hi); move/PolR.nth_default=>->; intuition.
+- move=> k /andP [Hk _]; rewrite PolR.mul_coeffE /size.
+  rewrite PolR.mul_coeff_eq0 //.
+  rewrite leq_subLR in Hk.
+  move/addn_pred_leqI in Hk.
+  by move=> i Hi; case: (Hk i Hi); move/nth_default_alt=>->; intuition.
 Qed.
 
 Lemma mul_mixed_correct  u ai pi a p :

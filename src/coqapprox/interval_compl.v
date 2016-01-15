@@ -36,9 +36,6 @@ Local Open Scope nat_scope.
 Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
 Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
 
-Lemma ltn_leq_pred m n : m < n -> m <= n.-1.
-Proof. by move=> H; rewrite -ltnS (ltn_predK H). Qed.
-
 Lemma Xneg_as_Xmul (x : ExtendedR) : Xneg x = Xmul x (Xreal (-1)).
 Proof. destruct x as [|x]; trivial; simpl; f_equal; ring. Qed.
 
