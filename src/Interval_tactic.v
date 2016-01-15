@@ -932,7 +932,7 @@ case Horder : (F.cmp u0 l1) HnotInan => HnotInan.
     case.
     move => Hlreal Hureal.
     by have := (Fcmp_not_Xund u0 l1 Hlreal Hureal Horder).
-  by apply: (integral_float_epsilon_real_arguments prec iF depth).
+  by apply: (integral_float_epsilon_real_arguments prec iF depth) HnotInan.
 Qed.
 
 Lemma integral_correct :

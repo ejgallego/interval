@@ -1377,11 +1377,11 @@ Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
 
 Lemma intvl_l l u x0 :
   intvl l u x0 -> intvl l u l.
-Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans. Qed.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
 
 Lemma intvl_u l u x0 :
   intvl l u x0 -> intvl l u u.
-Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans. Qed.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
 
 Lemma intvl_lVu l u x0 x :
   intvl l u x -> intvl l u x0 -> intvl l x0 x \/ intvl x0 u x.
@@ -1465,8 +1465,8 @@ Lemma Rderive_cst_sign (f f' : R -> R) :
   connected P -> Rderive_over f f' -> Rcst_sign f' -> Rmonot f.
 Proof.
 move=> Hco Hder [H|H].
-left; exact: Rderive_pos_imp_incr.
-right; exact: Rderive_neg_imp_decr.
+left; exact: Rderive_pos_imp_incr H.
+right; exact: Rderive_neg_imp_decr H.
 Qed.
 
 End PredArg.
@@ -2086,7 +2086,7 @@ case=>[Hpos|Hneg].
   split.
     apply: (@Rderive_cst_sign _ _ (Rdelta' n x0)) =>//.
     * exact: intvl_connected.
-    * apply: Rderive_delta; last exact: intvl_lx.
+    * apply: Rderive_delta; last exact: intvl_lx Hx0.
       by move=> r Hr; apply/Hdef/intvlP/(intvl_trans Hl Hx0 Hr).
 
     { have [Heven|Hodd] := (Z.Even_or_Odd (Z_of_nat nm1.+1)).
@@ -4099,7 +4099,7 @@ case D0 : andb.
     exact/contains_Xnan.
   exact/eqNaiP/I.mul_propagate_l/contains_Xnan.
 exact/eqNaiP/I.mul_propagate_l/contains_Xnan.
-apply: TM_fun_eq; last exact: TM_mul_mixed_correct.
+apply: TM_fun_eq; last exact: TM_mul_mixed_correct Hy1 Hg.
 move=> x Hx /=.
 suff->: defined f x = true by [].
 by move: (Hy2 x Hx); tac_def1 f.
@@ -4338,7 +4338,7 @@ Lemma TM_mul_correct_gen
 Proof.
 move=> HinX0 HinX [t Ht'] [Hdf Hef H0 Hf] [Hdg Heg _ Hg].
 have Ht0 : X0 >: t by apply: (subset_contains smallX0).
-have Ht : X >: t by apply: subset_contains.
+have Ht : X >: t by apply: subset_contains Ht'.
 have Hf0 := Hf t Ht'.
 have Hg0 := Hg t Ht'.
 split =>//.

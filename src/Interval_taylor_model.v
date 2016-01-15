@@ -749,11 +749,11 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     have [[z Hz]|H] := not_empty_dec (I.convert Y);
     by exists (Xreal y); [| move=> x Hx; rewrite Habs // Hy2].
 - byp Habs Hmain.
-- move=> Hne; have [df Hdf] := Hmain Hne;
-  eexists; apply: (TM_fun_eq (df := df));
+- move=> Hne; have [df Hdf] := Hmain Hne.
+  (* eexists; apply: (TM_fun_eq (df := df));
   move: Hdf.
   Fail byp Habs Hmain.
-  admit. admit. admit. admit. admit. admit. admit. admit. admit. admit.
+  admit. admit. admit. admit. *) admit. admit. admit. admit. admit. admit.
   admit. admit. admit. admit. admit. (*
 - have [[|y] Hy1 Hy2] := Hmain;
     first (by
