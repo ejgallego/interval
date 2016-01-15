@@ -654,7 +654,6 @@ exact: Herr.
 Qed.
 *)
 
-(* COMMENTED-OUT, FOR NOW:
 Section TM_integral.
 
 Local Notation Isub := (I.sub prec).
@@ -680,10 +679,108 @@ and returns a Taylor model for the primitive of f which evaluates to
 Definition TM_integral_poly :=
   Pol.primitive prec (I.zero) (approx Mf).
 
-
 Definition TM_integral_error R :=
-  I.add prec (Imul (Isub X X0) (error Mf)) ((Iadd (Bnd.ComputeBound (*Pol.horner?*) prec R (Isub X0 X0)))
+  Iadd (Imul (Isub X X0) (error Mf)) ((Iadd (Bnd.ComputeBound (*Pol.horner?*) prec R (Isub X0 X0)))
     (Imul (Isub X0 X0) (error Mf))).
+
+Section Extra_RInt.
+
+Local Open Scope R_scope.
+Lemma RInt_translation_add g a b x :
+  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
+Proof.
+have -> : a + x = (1 * a + x) by ring.
+have -> : b + x = (1 * b + x) by ring.
+rewrite -RInt_comp_lin.
+by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
+Qed.
+
+Lemma RInt_translation_sub g x a b :
+  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
+Proof.
+have -> : a - x = a + (-x) by ring.
+have -> : b - x = b + (-x) by ring.
+rewrite -RInt_translation_add.
+apply: RInt_ext => x0 _; by congr (g _).
+Qed.
+
+Lemma ex_RInt_translation_add V g x a b :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
+have -> : 1 * x0 + x = x0 + x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a - x) + x ) = a. by ring.
+have -> : (1 * (b - x) + x ) = b. by ring.
+by [].
+Qed.
+
+Lemma ex_RInt_translation_sub V g a b x :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
+have -> : 1 * x0 - x = x0 - x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a + x) + -x ) = a. by ring.
+have -> : (1 * (b + x) + -x ) = b. by ring.
+by [].
+Qed.
+
+End Extra_RInt.
+
+
+(*the following section is now concerned with computing just one integral *)
+(* from a to b, for the "interval" tactic *)
+Section NumericIntegration.
+
+Variables (a b : R) (ia ib : I.type).
+
+Hypothesis Ha : contains iX0 (Xreal a).
+Hypothesis Hb : contains iX (Xreal b).
+
+Definition polIntegral ia ib := I.sub prec (Pol.horner prec TM_integral_poly ib) (Pol.horner prec TM_integral_poly ia).
+Definition integralError := Imul (Imul (Isub X X0) (error Mf)) (Isub ib ia). (*TODO: actual error*)
+Definition integralEnclosure := Iadd (polIntegral ia ib) integralError.
+
+Lemma integralDifference p : ((RInt (fun x => (f x - PolR.horner tt (PolR.primitive tt 0 p) (x - a))%R ) a b) = (RInt f a b) - (RInt (fun x => PolR.horner tt (PolR.primitive tt 0 p) (x - a))%R ) a b)%R.
+Proof.
+rewrite RInt_minus.
+- by [].
+- by apply: f_int.
+- have {2}-> : (a = a - a + a)%R by ring.
+  have -> : (b = b - a + a)%R by ring.
+  apply: ex_RInt_translation_sub.
+  by apply: Rpol_integrable.
+Qed.
+
+Require Import Interval_integral.
+
+Locate XRInt1_correct.
+
+Lemma integralErrorCorrect p:
+
+  contains iX0 (Xreal a) ->
+  contains
+    (I.convert integralError)
+    (Xreal (RInt (fun x => (f x - PolR.horner tt (PolR.primitive tt 0 p) (x - a))%R ) a b)).
+Proof.
+move => Hcontains.
+
+Admitted.
+
+Lemma integralEnclosureCorrect : contains (I.convert integralEnclosure) (Xreal (RInt f a b)).
+Proof.
+
+
+
+About integralEnclosure.
+Print Pol.Int.T.
+End NumericIntegration.
+
 
 Lemma IsubXX (x0 : R) :
 contains iX0 (Xreal x0) ->
@@ -760,54 +857,6 @@ Qed.
 Definition TM_integral :=
 let R := TM_integral_poly in RPA R (TM_integral_error TM_integral_poly).
 
-Section Extra_RInt.
-
-Local Open Scope R_scope.
-Lemma RInt_translation_add g a b x :
-  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
-Proof.
-have -> : a + x = (1 * a + x) by ring.
-have -> : b + x = (1 * b + x) by ring.
-rewrite -RInt_comp_lin.
-by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
-Qed.
-
-Lemma RInt_translation_sub g x a b :
-  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
-Proof.
-have -> : a - x = a + (-x) by ring.
-have -> : b - x = b + (-x) by ring.
-rewrite -RInt_translation_add.
-apply: RInt_ext => x0 _; by congr (g _).
-Qed.
-
-Lemma ex_RInt_translation_add V g x a b :
-  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
-Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
-have -> : 1 * x0 + x = x0 + x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a - x) + x ) = a. by ring.
-have -> : (1 * (b - x) + x ) = b. by ring.
-by [].
-Qed.
-
-Lemma ex_RInt_translation_sub V g a b x :
-  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
-Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
-have -> : 1 * x0 - x = x0 - x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a + x) + -x ) = a. by ring.
-have -> : (1 * (b + x) + -x ) = b. by ring.
-by [].
-Qed.
-
-End Extra_RInt.
 
 Section IntegralBounding.
 Local Open Scope R_scope.
@@ -1084,7 +1133,7 @@ rewrite  {H3}.
 *)
 Qed.
 End TM_integral.
-*)
+
 
 Definition is_const (f : ExtendedR -> ExtendedR) (X c : I.type) : Prop :=
   exists2 y : ExtendedR, contains (I.convert c) y
@@ -2796,7 +2845,7 @@ Qed.
 
 Lemma size_TM_var X0 : Pol.size (approx (TM_var X0)) = 2.
 Proof.
-rewrite /TM_var Pol.size_set_nth 
+rewrite /TM_var Pol.size_set_nth
 Pol.polyXE Pol.size_lift Pol.oneE Pol.polyCE.
 by rewrite Pol.size_polyCons Pol.size_polyNil.
 Qed.
@@ -3944,7 +3993,7 @@ have->: (fx - gx - (pfx + (- pgx)) = (fx - pfx) - (gx - pgx))%XR.
   rewrite /fx /gx /pfx /pgx.
   rewrite -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
   congr Xreal; ring.
-rewrite /fx /gx /pfx /pgx. 
+rewrite /fx /gx /pfx /pgx.
 rewrite -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
 apply: R_sub_correct.
 by have := Hf2 x Hx; rewrite Df.
@@ -4127,7 +4176,7 @@ Lemma TM_div_mixed_r_correct M b X0 X f (y : R) df :
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
   (fun x => Xdiv (f x) (Xreal y)) (predI df (fun _ => y != 0%R)).
 Proof.
-have [->|Hy0] := Req_dec y R0.  
+have [->|Hy0] := Req_dec y R0.
   exact: TM_div_mixed_r_aux0.
 move=> Hy [Hdef H0 Hss Hmain].
 split=>//.
@@ -4158,7 +4207,7 @@ exists (PolR.map (Rdiv ^~ y) q).
   suff->: sub2 = Xdiv sub1 (Xreal y) by exact: I.div_correct.
   rewrite /sub1 /sub2 !(Xreal_sub, Xreal_toR) //.
   rewrite !(Xsub_split, Xdiv_split) Xmul_Xadd_distr_r; congr Xadd.
-  by rewrite PolR.horner_div_mixed_r Xreal_div // Xdiv_split Xmul_Xneg_distr_l. 
+  by rewrite PolR.horner_div_mixed_r Xreal_div // Xdiv_split Xmul_Xneg_distr_l.
   by rewrite Hdef.
   by move: (Hdef x Hx Df); tac_def1 f =>//=; rewrite zeroF.
 - apply/eqNaiP.
