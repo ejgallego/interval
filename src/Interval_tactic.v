@@ -443,32 +443,32 @@ Lemma integral_float_real_arguments prec iF depth l u:
 Proof.
 move: l u.
 elim Hd : depth => [|d Hdepth] l u HnotInan.
-rewrite /Int.integral_float in HnotInan.
-case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => //.
-- suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
+  rewrite /Int.integral_float in HnotInan.
+  case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => //.
+  - suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
   move: HnotInan; rewrite H1.
   by case: (iF (Int.I.bnd l u)).
   by rewrite /Int.thin Hureal Hlreal.
-- suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
-  move: HnotInan; rewrite H1.
-  by case: (iF (Int.I.bnd l u)).
-  by rewrite /Int.thin Hureal Hlreal.
-- suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
-  move: HnotInan; rewrite H1.
-  by case: (iF (Int.I.bnd l u)).
-  by rewrite /Int.thin Hureal Hlreal.
+  - suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
+      move: HnotInan; rewrite H1.
+      by case: (iF (Int.I.bnd l u)).
+    by rewrite /Int.thin Hureal Hlreal.
+  - suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
+    move: HnotInan; rewrite H1.
+    by case: (iF (Int.I.bnd l u)).
+    by rewrite /Int.thin Hureal Hlreal.
 move: HnotInan.
 have -> : Int.integral_float prec iF (S d) l u = Int.I.add prec
                   (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u)))
                   (Int.integral_float prec iF d (Int.I.midpoint (Int.I.bnd l u)) u) by [].
 move => HnotInan.
 have := (Hdepth l (Int.I.midpoint (Int.I.bnd l u))). case.
-move:  HnotInan.
-by case: (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u))).
+  move:  HnotInan.
+  by case: (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u))).
 move => Hlreal _.
 have := (Hdepth (Int.I.midpoint (Int.I.bnd l u)) u). case.
-move:  HnotInan.
-by case: (Int.integral_float prec iF d (Int.I.midpoint (Int.I.bnd l u)) u); try by case: (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u))).
+  move:  HnotInan.
+  by case: (Int.integral_float prec iF d (Int.I.midpoint (Int.I.bnd l u)) u); try by case: (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u))).
 move => _.
 move => Hureal.
 done.
@@ -549,28 +549,98 @@ end.
 (*                 (integral_float_epsilon n (Int.I.midpoint (Int.I.bnd a b)) b *)
 (*                    (Int.div2 epsilon0)) *)
 
-Lemma integral_float_epsilon_real_arguments prec iF depth l u epsilon :
-  notInan (Int.integral_float_epsilon prec iF depth l u epsilon) -> (F.real l) /\ (F.real u).
+Section IntervalMissing.
+
+Lemma ImulcancelRight prec dummy : Int.I.mul prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
 Proof.
-move: l u.
-elim Hd : depth => [|d Hdepth] l u HnotInan.
-- rewrite /Int.integral_float_epsilon in HnotInan.
-  case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // .
-  + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
-      move: HnotInan; rewrite H1.
-      by case: (iF (Int.I.bnd l u)).
-    by rewrite /Int.thin Hureal Hlreal.
-  + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
-      move: HnotInan; rewrite H1.
-      by case: (iF (Int.I.bnd l u)).
-    by rewrite /Int.thin Hureal Hlreal.
-  + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan.
-    move: HnotInan; rewrite H1.
-    by case: (iF (Int.I.bnd l u)).
-  by rewrite /Int.thin Hureal Hlreal.
-- move: HnotInan.
-  rewrite /Int.integral_float_epsilon -/Int.integral_float_epsilon.
-  
+by case: dummy.
+Qed.
+
+Lemma ImulcancelLeft prec dummy : Int.I.mul prec Int.I.nai dummy = Interval_interval_float.Inan.
+Proof.
+by case: dummy.
+Qed.
+
+Lemma IsubcancelRight prec dummy : Int.I.sub prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
+Proof.
+by case: dummy.
+Qed.
+
+Lemma IsubcancelLeft prec dummy : Int.I.sub prec Int.I.nai dummy = Interval_interval_float.Inan.
+Proof.
+by case: dummy.
+Qed.
+
+Lemma IaddcancelRight prec dummy : Int.I.add prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
+Proof.
+by case: dummy.
+Qed.
+
+Lemma IaddcancelLeft prec dummy : Int.I.add prec Int.I.nai dummy = Interval_interval_float.Inan.
+Proof.
+by case: dummy.
+Qed.
+
+End IntervalMissing.
+
+(* remark: this lemma should be deducible from computation alone rather than from the test in Int.integral_float_epsilon' *)
+Lemma integral_float_epsilon_real_arguments prec iF depth l u epsilon :
+  notInan (Int.integral_float_epsilon' prec iF depth l u epsilon) -> (F.real l) /\ (F.real u).
+Proof.
+rewrite /Int.integral_float_epsilon'.
+by case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // .
+Qed.
+
+
+
+(* move: l u. *)
+(* elim Hd : depth epsilon => [|d Hdepth] epsilon l u  HnotInan. *)
+(* - rewrite /Int.integral_float_epsilon in HnotInan. *)
+(*   case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // . *)
+(*   + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan. *)
+(*       move: HnotInan; rewrite H1. *)
+(*       by case: (iF (Int.I.bnd l u)). *)
+(*     by rewrite /Int.thin Hureal Hlreal. *)
+(*   + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan. *)
+(*       move: HnotInan; rewrite H1. *)
+(*       by case: (iF (Int.I.bnd l u)). *)
+(*     by rewrite /Int.thin Hureal Hlreal. *)
+(*   + suff H1 : Int.I.sub prec (Int.thin u) (Int.thin l) = Interval_interval_float.Inan. *)
+(*     move: HnotInan; rewrite H1. *)
+(*     by case: (iF (Int.I.bnd l u)). *)
+(*   by rewrite /Int.thin Hureal Hlreal. *)
+(* - move: HnotInan. *)
+(*   pose n := nosimpl (S d). *)
+(*   rewrite -/n. *)
+(*   rewrite Int.integral_float_epsilon_Sn.  *)
+(*   set b1 := (X in (if X then _ else _)). *)
+(*   set b2 := Int.Int.I.Fle *)
+(*             (Int.diam *)
+(*                (Int.I.mul prec *)
+(*                   (iF (Int.I.bnd (Int.I.midpoint (Int.I.bnd l u)) u)) *)
+(*                   (Int.I.sub prec (Int.thin u) *)
+(*                      (Int.thin (Int.I.midpoint (Int.I.bnd l u)))))) *)
+(*             (Int.div2 epsilon). *)
+(* case Hlreal: (F.real l) => [|]; case Hureal: (F.real u); case Hb1 : b1; case Hb2 : b2 => // ; *)
+(* rewrite /Int.thin ?Hlreal ?Hureal; case: ( F.real (Int.I.midpoint (Int.I.bnd l u))) => // ;  (repeat rewrite ?ImulcancelRight ?IaddcancelRight ?IsubcancelRight ?ImulcancelLeft ?IaddcancelLeft ?IsubcancelLeft //). *)
+(* set l1 := (X in (Int.integral_float_epsilon _ _ _ X _)). *)
+(* set u1 := (X in (Int.integral_float_epsilon _ _ _ _ X)). *)
+(* set epsilonCur := (X in (Int.integral_float_epsilon _ _ _ _ _ X)). *)
+(* move => HnotInan. *)
+
+(* have : notInan (Int.integral_float_epsilon prec iF d l1 u1 epsilonCur). *)
+(* move: HnotInan. *)
+(* by case: ((Int.integral_float_epsilon prec iF d l1 u1 epsilonCur)); first by rewrite IaddcancelRight. *)
+(* move => HintNotInan. *)
+(* have := (Hdepth epsilonCur l1 u1 HintNotInan). *)
+(* move:  *)
+
+(* rewrite [(Int.I.sub prec Int.I.nai _)]/=. *)
+(* set useless := (X in Int.I.add prec X _). *)
+(* case: useless => // . *)
+(* Search _ (Int.I.mul _ _ Interval_interval_float.Inan). *)
+(* case: ( F.real (Int.I.midpoint (Int.I.bnd l u))) => // . *)
+
   (* have -> : Int.integral_float prec iF (S d) l u =  *)
   (*           Int.I.add prec *)
   (*                     (Int.integral_float prec iF d l (Int.I.midpoint (Int.I.bnd l u))) *)
@@ -588,7 +658,6 @@ elim Hd : depth => [|d Hdepth] l u HnotInan.
 (* move => _. *)
 (* move => Hureal. *)
 (* done. *)
-Admitted.
 
 Lemma Fcmp_aux1_not_Xund b y : Fcmp_aux1 b y = Xund -> False.
 Proof.
@@ -623,17 +692,68 @@ case Hl : (F.toF l) Hlreal => [|| x y z]-> => // .
   by have := (Fcmp_aux2_not_Xund y z b c).
 Qed.
 
-Lemma integral_float_ex_RInt
-      prec (depth : nat) prog bounds u0 l1 :
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
-  let i := Int.integral_float_signed prec iF depth u0 l1
-  in
-  notInan (Int.integral_float prec iF depth u0 l1) ->
+Lemma Fcmp_geP u0 l1 :   
+  F.real u0 -> F.real l1 ->
   match (F.cmp u0 l1) with
     | Xeq => True
     | Xlt => True
-    | _ => False end ->
+    | _ => False end -> (T.toR u0) <= (T.toR l1).
+Proof.
+  move => /Int.F_realP Hrealu0 /Int.F_realP Hreall1.
+  rewrite F.cmp_correct Fcmp_correct /Xcmp.
+  rewrite /Int.I.convert_bound in Hrealu0.
+  rewrite /Int.I.convert_bound in Hreall1.
+  rewrite Hreall1.
+  rewrite Hrealu0.
+  case Hcomp : (Rcompare (T.toR u0) (T.toR l1)) => // .
+  have := (Rcompare_Eq_inv _ _ Hcomp) => -> _.
+    exact: Rle_refl.
+  have := (Rcompare_Lt_inv _ _ Hcomp).
+    by move => H1 _; apply: Rlt_le.
+Qed.
+
+Lemma Fle_Rle u0 l1 :
+  F.real u0 -> 
+  F.real l1 ->
+  (Int.Int.I.Fle u0 l1)-> 
+  (T.toR u0) <= (T.toR l1).
+Proof.
+move => /Int.F_realP Hrealu0 /Int.F_realP Hreall1. 
+move: (Int.Int.I.Fle_correct u0 l1).
+have -> : Int.Int.I.I.convert_bound u0 = Int.I.convert_bound u0 by []. (* ?? *)
+have -> : Int.Int.I.I.convert_bound l1 = Int.I.convert_bound l1 by [].
+by rewrite Hreall1 Hrealu0.
+Qed.
+
+Lemma aux (u0 l1 : F.type) x :
+  F.real u0 -> F.real l1 ->
+  Int.Int.I.Fle u0 l1 ->
+  Rmin (T.toR u0) (T.toR l1) <= x <= Rmax (T.toR u0) (T.toR l1) ->
+  contains (I.convert (Interval_interval_float.Ibnd u0 l1)) (Xreal x).
+Proof.
+move => Fr_u0 Fr_l1; move/Int.F_realP: (Fr_u0) => Hrealu0.
+move/Int.F_realP: (Fr_l1) => Hreall1  Horder Hx.
+rewrite /Int.I.convert_bound in Hrealu0.
+rewrite /Int.I.convert_bound in Hreall1.
+have Hleu0l1 : (T.toR u0) <= (T.toR l1) by apply: Fle_Rle.
+  have Hcontu0 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR u0)).
+    rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
+    by split; first exact: Rle_refl.
+have Hcontl1 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR l1)).
+  rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
+  by split; last exact: Rle_refl.
+apply: (contains_connected _ (T.toR u0) (T.toR l1)) => // .
+rewrite Rmin_left in Hx => // .
+by rewrite Rmax_right in Hx => //.
+Qed.
+
+Lemma ex_RInt_base_case prec prog bounds u0 l1 :
+  F.real u0 ->
+  F.real l1 ->
+  Int.Int.I.Fle u0 l1 ->
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
+  notInan (Int.base_case iF prec u0 l1) -> 
   ex_RInt
     (fun x =>
        List.nth
@@ -644,7 +764,41 @@ Lemma integral_float_ex_RInt
     (T.toR u0)
     (T.toR l1).
 Proof.
-elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
+move => Hrealu0 Hreall1 Hleu0l1 f iF HnotInan.
+apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
+- move => x; apply: aux => // .
+- move: HnotInan; set j := nth _ _ _.
+  rewrite /Int.base_case /boundsToInt.
+  rewrite -[iF (Int.I.bnd u0 l1)]/(j).
+  by case: j.
+Qed.
+
+
+Lemma integral_float_ex_RInt
+      prec (depth : nat) prog bounds u0 l1 :
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
+  let i := Int.integral_float_signed prec iF depth u0 l1
+  in
+  notInan (Int.integral_float prec iF depth u0 l1) ->
+  Int.Int.I.Fle u0 l1 ->
+  ex_RInt
+    (fun x =>
+       List.nth
+         0
+         (eval_real
+            prog
+            (x::boundsToR bounds)) R0)
+    (T.toR u0)
+    (T.toR l1).
+Proof.
+move => f iF i HnotInan Hleu0l1.
+have [Hrealu0 Hreall1] : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF _).
+move: f iF i HnotInan Hleu0l1.
+elim: depth u0 l1 Hreall1 Hrealu0 => [|d HId] u0 l1 Hreall1 Hrealu0 f iF i HnotInan Horder.
+- apply: ex_RInt_base_case => // . rewrite /Int.integral_float in HnotInan.
+  rewrite /Int.base_case.
+  exact: HnotInan.
 - apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
   +   move => x Hx.
       have Hrealu0l1 : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF 0).
@@ -724,13 +878,14 @@ elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
       by have := (Int.ReqToFcmp m l1 Hrealm Hreall1 Heq) => -> .
 Qed.
 
+
 Lemma integral_float_epsilon_ex_RInt
       prec (depth : nat) prog bounds u0 l1 epsilon :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
   let i := Int.integral_float_epsilon_signed prec iF depth u0 l1 epsilon
   in
-  notInan (Int.integral_float_epsilon prec iF depth u0 l1 epsilon) ->
+  notInan (Int.integral_float_epsilon' prec iF depth u0 l1 epsilon) ->
   match (F.cmp u0 l1) with
     | Xeq => True
     | Xlt => True
@@ -745,43 +900,19 @@ Lemma integral_float_epsilon_ex_RInt
     (T.toR u0)
     (T.toR l1).
 Proof.
-elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
+elim: depth epsilon u0 l1 => [|d HId] epsilon u0 l1 f iF i HnotInan Horder.
+  have [Hrealu0 Hreall1] : F.real u0 /\ F.real l1 by apply: (integral_float_epsilon_real_arguments prec iF 0 u0 l1 epsilon).
 - apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
-  +   move => x Hx.
-      have Hrealu0l1 : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF 0).
-      move: Hrealu0l1 => [].
-      move/Int.F_realP => Hrealu0.
-      move/Int.F_realP => Hreall1.
-      rewrite /Int.I.convert_bound in Hrealu0.
-      rewrite /Int.I.convert_bound in Hreall1.
-      have Hleu0l1 : (T.toR u0) <= (T.toR l1).
-      move: Horder.
-      rewrite F.cmp_correct Fcmp_correct /Xcmp.
-      rewrite Hrealu0.
-      rewrite Hreall1.
-      case Hcomp : (Rcompare (T.toR u0) (T.toR l1)) => // .
-      have := (Rcompare_Eq_inv _ _ Hcomp) => -> _.
-      exact: Rle_refl.
-      have := (Rcompare_Lt_inv _ _ Hcomp).
-        by move => H1 _; apply: Rlt_le.
-
-      have Hcontu0 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR u0)).
-        rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
-        by split; first exact: Rle_refl.
-      have Hcontl1 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR l1)).
-        rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
-        by split; last exact: Rle_refl.
-     apply: (contains_connected _ (T.toR u0) (T.toR l1)) => // .
-     rewrite Rmin_left in Hx => // .
-       by rewrite Rmax_right in Hx => //.
+  +   by move => x; apply: aux.
   +   move: HnotInan; set j := nth _ _ _.
-      rewrite /Int.integral_float_epsilon -[iF (Int.I.bnd u0 l1)]/(j).
+      rewrite /Int.integral_float_epsilon'; case: (F.real u0); case: (F.real l1) => //= ; rewrite -[iF (Int.I.bnd u0 l1)]/(j).
       by case: j.
-- pose m := I.midpoint (Int.I.bnd u0 l1).
-  set intf := Int.integral_float_epsilon prec iF.
+-  pose m := I.midpoint (Int.I.bnd u0 l1).
+  (* set intf := Int.integral_float_epsilon' prec iF. *)
   (* have aux : intf (S d) u0 l1 epsilon = Int.I.add prec (intf d u0 m epsilon) (intf d m l1 epsilon). by []. *)
     (* some preleminary stuff *)
-  have Hrealu0l1 : F.real u0 /\ F.real l1 by apply: (integral_float_epsilon_real_arguments prec iF (S d) u0 l1 epsilon).
+  have [/Int.F_realP Hrealu0 /Int.F_realP Hreall1] : F.real u0 /\ F.real l1.
+by apply: (integral_float_epsilon_real_arguments prec iF (S d) u0 l1 epsilon).
   move: Hrealu0l1 => [].
   move/Int.F_realP => Hrealu0 /Int.F_realP Hreall1.
   rewrite /Int.I.convert_bound in Hrealu0.
@@ -807,10 +938,58 @@ elim: depth u0 l1 => [|d HId] u0 l1 f iF i HnotInan Horder.
       move: (Int.contains_convert_bnd_l u0 l1 Hrealu0 Hreall1 Hleu0l1).
       by move/Int.F_realP :Hrealu0 => -> .
     by [].
+  (* suff: forall x : R, *)
+  (*  Rmin (T.toR u0) (T.toR m) <= x <= Rmax (T.toR u0) (T.toR m) -> *)
+  (*  contains (I.convert (Interval_interval_float.Ibnd u0 m)) (Xreal x). *)
   apply: (ex_RInt_Chasles _ _ (T.toR m)).
+  
+  + have := HnotInan => HnotInan2.
+    move: HnotInan. rewrite -/iF.
+    rewrite /Int.integral_float_epsilon' Hrealu0 Hreall1. (* Hrealm. *)
+    rewrite Int.integral_float_epsilon_Sn.
+    set b1 := (X in (if X then _ else _)).
+    set b2 := (X in (if X then (Int.I.add prec _ _) else _)).
+    rewrite -[(Int.I.midpoint (Int.I.bnd u0 l1))]/m.
+    case Hb1 : b1; case Hb2 : b2 => HnotInan.
+    apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 m)).
+    * admit. (* move => x. About aux . apply: (aux 0 u0 m prec prog bounds epsilon). rewrite -/iF. rewrite /Int.integral_float_epsilon' ?Hrealu0 ?Hreall1 Hrealm. *)
+    * (* set target := (X in notInan X). *)
+      move: HnotInan. rewrite /iF /evalInt /boundsToInt. 
+      by case: (nth 0
+        (A.BndValuator.eval prec prog
+           (Interval_interval_float.Ibnd u0 m
+            :: map A.interval_from_bp bounds)) I.nai).
+    apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 m)).
+    * admit. (* move => x. About aux . apply: (aux 0 u0 m prec prog bounds epsilon). rewrite -/iF. rewrite /Int.integral_float_epsilon' ?Hrealu0 ?Hreall1 Hrealm. *)
+    * (* set target := (X in notInan X). *)
+      move: HnotInan. rewrite /iF /evalInt /boundsToInt. 
+      by case: (nth 0
+        (A.BndValuator.eval prec prog
+           (Interval_interval_float.Ibnd u0 m
+            :: map A.interval_from_bp bounds)) I.nai).
+      move: HnotInan.
+      set bb1 := (X in (if X then _ else _)).
+      (* set bb2 := (X in (if X then (Int.I.add prec _ _) else _)). *)
+      case Hbb1 : bb1.
+      move => HnotInan.
+      apply: HId => // .
+      move: HnotInan.
+      rewrite /Int.integral_float_epsilon' Hrealm Hrealu0.
+        by case: (nth 0
+        (A.BndValuator.eval prec prog
+           (Interval_interval_float.Ibnd u0 m
+            :: map A.interval_from_bp bounds)) I.nai).
+
+    
+
   + apply: HId.
-    * admit.
-      (* by move: HnotInan; rewrite -/intf aux; case: (intf d u0 m epsilon). *)
+    * move: HnotInan. rewrite -/iF.
+      rewrite /Int.integral_float_epsilon' Hrealu0 Hreall1 Hrealm.
+      rewrite Int.integral_float_epsilon_Sn.
+      set b1 := (X in (if X then _ else _)).
+      set b2 := (X in (if X then (Int.I.add prec _ _) else _)).
+      case Hb1 : b1; case Hb2 : b2.
+(* by move: HnotInan; rewrite -/intf aux; case: (intf d u0 m epsilon). *)
     * case: Hl0mu1; move => Hle.
       have := (Rle_lt_or_eq_dec _ _ Hle).
       case => [Hlt|Heq].
