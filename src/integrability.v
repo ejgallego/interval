@@ -694,7 +694,7 @@ case: (List.nth _ _ _) => //.
 case: (List.nth _ _ _) => //.
 Qed.
 
-Lemma integrableProg prog bounds m a b i:
+Lemma integrableProg prog bounds (m : nat) a b i:
   (forall x, Rmin a b <= x <= Rmax a b ->  contains (I.convert i) (Xreal x)) ->
   (notInan (List.nth m
           (evalInt prog (i::boundsToInt bounds))
