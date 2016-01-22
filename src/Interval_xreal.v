@@ -115,6 +115,19 @@ Definition Xcmp x y :=
   | _, _ => Xund
   end.
 
+Lemma Xcmp_rev x y:
+  Xcmp y x = match Xcmp x y with
+    | Xeq => Xeq
+    | Xlt => Xgt
+    | Xgt => Xlt
+    | Xund => Xund end.
+Proof.
+case x; case y; try trivial.
+intros rx ry.
+unfold Xcmp.
+now rewrite Rcompare_sym; case: (Rcompare ry rx).
+Qed.
+
 Definition extension f fx := forall x,
   match fx x, x with
   | Xnan, _ => True
