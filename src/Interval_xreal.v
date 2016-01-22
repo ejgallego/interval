@@ -47,6 +47,46 @@ intros x.
 exact (Rlt_bool_spec x 0).
 Qed.
 
+Section is_pos_is_neg_missing.
+
+Local Open Scope R_scope.
+
+Lemma is_positive_positive x :
+  (is_positive x = true) -> x > 0.
+move => Hpos.
+have H1 :=(is_positive_spec x).
+rewrite Hpos in H1.
+by inversion H1.
+Qed.
+
+Lemma is_positive_negative x :
+  (is_positive x = false) -> x <= 0.
+move => Hnpos.
+have H1 :=(is_positive_spec x).
+rewrite Hnpos in H1.
+by inversion H1.
+Qed.
+
+Lemma is_negative_negative x :
+  (is_negative x = true) -> x < 0.
+move => Hneg.
+have H1 :=(is_negative_spec x).
+rewrite Hneg in H1.
+by inversion H1.
+Qed.
+
+Lemma is_negative_positive x :
+  (is_negative x = false) -> x >= 0.
+move => Hneg.
+have H1 :=(is_negative_spec x).
+rewrite Hneg in H1.
+inversion H1.
+exact: Rle_ge.
+Qed.
+
+End is_pos_is_neg_missing.
+
+
 (*
  * Extended reals
  *)
