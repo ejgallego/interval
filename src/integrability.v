@@ -1,7 +1,6 @@
 Require Import List.
 Require Import ZArith.
-Require Import Coquelicot.
-
+Require Import Coquelicot coquelicot_compl.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -13,169 +12,19 @@ Require Import Interval_interval_float_full.
 Require Import Interval_bisect.
 
 Require Import ssreflect ssrnat.
+Require Import seq_patch.
 
-Module Integrability (F : FloatOps with Definition even_radix := true).
+Section Prelude.
 
-Module I := FloatIntervalFull F.
-Module A := IntervalAlgos I.
+Variable Ftype : Type.
 
-Section Integrability.
-
-Definition notXnan (xR : ExtendedR) : Prop :=
-  match xR with
-    | Xnan => false
-    | Xreal _ => true end = true.
-
-Section revEq.
-Require Import seq.
-
-Lemma revEq : forall A l, @List.rev A l = rev l.
-Proof.
-move => A.
-elim => [|a l HI] //.
-rewrite /= rev_cons.
-by rewrite -cats1 HI.
-Qed.
-
-Lemma nthEq A n (l : seq A) def : List.nth n l def = nth def l n.
-move: l.
-elim Hn : n => [|n0 HIn] l.
-  by case: l.
-case: l HIn => [ | a0 l] HIn // .
-by rewrite /= -HIn.
-Qed.
-
-Lemma mapEq A B (l : seq A) (f : A -> B) : List.map f l = map f l.
-Proof.
-elim: l => [|a0 l HIl] => //= .
-Qed.
-
-End revEq.
-
-Variable prec : I.precision.
-Definition evalInt := A.BndValuator.eval prec.
-Definition boundsToInt b := map A.interval_from_bp b.
-Definition boundsToR b := map A.real_from_bp b.
-
-Definition notInan (fi : Interval_interval_float.f_interval F.type) :=
+Definition notInan (fi : Interval_interval_float.f_interval Ftype) :=
   match fi with
     | Interval_interval_float.Inan => false
     | _ => true end = true.
 
-Section MissingContinuity.
-Axiom Pi : R. (* until I find it *)
 
-Lemma continuous_Rinv x :
-  x <> 0 ->
-  continuous (fun x => / x) x.
-Proof.
-move => Hxneq0.
-apply continuity_pt_filterlim. (* strange: apply works but not apply: *)
-apply: continuity_pt_inv => // .
-apply continuity_pt_filterlim.
-apply: continuous_id.
-Qed.
-
-Lemma continuous_Rinv_comp (f : R -> R) x:
-  continuous f x ->
-  f x <> 0 ->
-  continuous (fun x => / (f x)) x.
-Proof.
-move => Hcont Hfxneq0.
-apply: continuous_comp => //.
-by apply: continuous_Rinv.
-Qed.
-
-Lemma continuous_cos x : continuous cos x.
-Proof.
-apply continuity_pt_filterlim.
-by apply: continuity_cos => // .
-Qed.
-
-Lemma continuous_cos_comp (f : R -> R) x:
-  continuous f x ->
-  continuous (fun x => cos (f x)) x.
-Proof.
-move => Hcont.
-apply: continuous_comp => //.
-by apply: continuous_cos.
-Qed.
-
-Lemma continuous_sin x : continuous sin x.
-Proof.
-apply continuity_pt_filterlim.
-by apply: continuity_sin => // .
-Qed.
-
-Lemma continuous_sin_comp (f : R -> R) x:
-  continuous f x ->
-  continuous (fun x => sin (f x)) x.
-Proof.
-move => Hcont.
-apply: continuous_comp => //.
-by apply: continuous_sin.
-Qed.
-
-Lemma continuous_atan x : continuous atan x.
-Proof.
-admit. (* how do I prove this? *)
-Qed.
-
-Lemma continuous_atan_comp (f : R -> R) x:
-  continuous f x ->
-  continuous (fun x => atan (f x)) x.
-Proof.
-move => Hcont.
-apply: continuous_comp => //.
-by apply: continuous_atan.
-Qed.
-
-Lemma continuous_exp x : continuous exp x.
-Proof.
-admit. (* couldn't find it *)
-Qed.
-
-Lemma continuous_exp_comp (f : R -> R) x:
-  continuous f x ->
-  continuous (fun x => exp (f x)) x.
-Proof.
-move => Hcont.
-apply: continuous_comp => //.
-by apply: continuous_exp.
-Qed.
-
-(* 0 <= x is an unnecessary hypothesis thanks to sqrt(-x) = 0 for x >= 0 *)
-(* still I don't know how to explain this to Coquelicot *)
-Lemma continuous_sqrt x : (0 <= x) -> continuous sqrt x.
-Proof.
-move => Hx.
-apply continuity_pt_filterlim.
-by apply: continuity_pt_sqrt.
-Qed.
-
-Lemma continuous_sqrt_comp (f : R -> R) x:
-  continuous f x ->
-  0 <= f x ->
-  continuous (fun x => sqrt (f x)) x.
-Proof.
-move => Hcont Hfxpos.
-apply: continuous_comp => // .
-by apply: continuous_sqrt.
-Qed.
-
-Lemma continuous_ln x : (0 < x) -> continuous ln x.
-Proof.
-move => Hxgt0.
-Admitted.
-
-Lemma continuous_Rabs_comp f (x : R) :
-  continuous f x -> continuous (fun x0 => Rabs (f x0)) x.
-Proof.
-move => Hcontfx.
-apply: continuous_comp => // .
-apply: continuous_Rabs.
-Qed.
-
+Section InversionUsualFunctions.
 
 Lemma Xnan_inversion_Inv f (x : R) :
  notXnan (Xinv (Xreal (f x))) ->
@@ -247,19 +96,23 @@ case: unop HbnotXnan.
 - move => n HnotXnan. admit.
 Qed.
 
-End MissingContinuity.
+End InversionUsualFunctions.
 
-Section MissingIntegrability.
+End Prelude.
 
-Lemma ex_RInt_Rabs f a b : ex_RInt f a b -> ex_RInt (fun x => Rabs (f x)) a b.
-Admitted.
 
-Lemma ex_RInt_Rmult f g a b : ex_RInt f a b ->
-                              ex_RInt g a b ->
-                              ex_RInt (fun x => f x * g x) a b.
-Admitted.
+Module Integrability (F : FloatOps with Definition even_radix := true).
 
-End MissingIntegrability.
+Module I := FloatIntervalFull F.
+Module A := IntervalAlgos I.
+
+Section Integrability.
+
+Variable prec : I.precision.
+Definition evalInt := A.BndValuator.eval prec. (* to abstract to any evaluation *)
+Definition boundsToInt b := map A.interval_from_bp b.
+Definition boundsToR b := map A.real_from_bp b.
+Definition notInan := notInan F.type.
 
 Section Preliminary.
 Require Import seq.
@@ -276,6 +129,7 @@ Proof.
 rewrite  /A.BndValuator.eval rev_formula revEq rev_rcons /= .
 by rewrite rev_formula revEq.
 Qed.
+
 
 Section notInanProperties.
 
@@ -295,33 +149,6 @@ suff: contains (I.convert (I.inv prec i)) Xnan => [Habs|].
 have -> : Xnan = Xinv (Xreal 0) by rewrite /= is_zero_correct_zero.
 by apply: I.inv_correct.
 Qed.
-
-(* Lemma notInan_inversion_Inv_stronger prec i : *)
-(*   notInan (I.inv prec i) -> *)
-(*   (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/ *)
-(*   (forall x, contains (I.convert i) (Xreal x) -> x > 0). *)
-(* Proof. *)
-(* move => HnotInan. *)
-(* suff: ~ contains (I.convert i) (Xreal 0); last first. *)
-(*   by apply: notInan_inversion_Inv. *)
-(* move => Hnot0. *)
-(* set P :=  (X in X \/ _). *)
-(* set Q :=  (X in _ \/ X). *)
-(* suff: ~ (~ P /\ ~ Q). *)
-(* move => H_andnot. *)
-(* apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *) *)
-(* move => H1. *)
-(* apply: H_andnot. *)
-(* split. *)
-(* + move => HP. *)
-(*   apply: H1. *)
-(*   by left. *)
-(* + move => HQ. *)
-(*   apply: H1. *)
-(*   by right. *)
-(* move => Habs. *)
-(* apply: Hnot0. *)
-(* Admitted. (* maybe reason on the middle of the interval? *) *)
 
 
 (* the two following lemmas (and the next two) are close copies of the above, but for any negative power instead of just (-1) *)
@@ -384,38 +211,6 @@ Lemma notInan_inversion_Div_stronger i1 i2 :
 Proof.
 Abort.
 
-Lemma is_positive_positive x :
-  (is_positive x = true) -> x > 0.
-move => Hpos.
-have H1 :=(is_positive_spec x).
-rewrite Hpos in H1.
-by inversion H1.
-Qed.
-
-Lemma is_positive_negative x :
-  (is_positive x = false) -> x <= 0.
-move => Hnpos.
-have H1 :=(is_positive_spec x).
-rewrite Hnpos in H1.
-by inversion H1.
-Qed.
-
-Lemma is_negative_negative x :
-  (is_negative x = true) -> x < 0.
-move => Hneg.
-have H1 :=(is_negative_spec x).
-rewrite Hneg in H1.
-by inversion H1.
-Qed.
-
-Lemma is_negative_positive x :
-  (is_negative x = false) -> x >= 0.
-move => Hneg.
-have H1 :=(is_negative_spec x).
-rewrite Hneg in H1.
-inversion H1.
-exact: Rle_ge.
-Qed.
 
 Lemma notInan_inversion_Sqrt i :
   notInan (I.sqrt prec i) ->
@@ -694,7 +489,7 @@ case: (List.nth _ _ _) => //.
 case: (List.nth _ _ _) => //.
 Qed.
 
-Lemma integrableProg prog bounds (m : nat) a b i:
+Lemma integrableProg prog bounds m a b i:
   (forall x, Rmin a b <= x <= Rmax a b ->  contains (I.convert i) (Xreal x)) ->
   (notInan (List.nth m
           (evalInt prog (i::boundsToInt bounds))
@@ -717,8 +512,6 @@ by apply: Hcontains.
 Qed.
 
 End Preliminary.
-
-
 
 End Integrability.
 End Integrability.

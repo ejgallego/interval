@@ -5,96 +5,28 @@ Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
+Require Import Interval_interval_float_full.
 Require Import ssreflect ssrfun ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_transcend.
 Require Import Interval_missing.
 Require Import integrability.
+Require Import Coquelicot coquelicot_compl.
+Require Import Interval_generic.
 Require Import Interval.Interval_generic_proof.
 (* Require Import Interval_generic_proof Interval_generic Interval_xreal Fcore_Raux. *)
 
-Module IntegralTactic (F : FloatOps with Definition even_radix := true).
+Require Import interval_compl.
+Require Import poly_datatypes.
+Require Import taylor_poly.
+Require Import poly_bound.
+Require Import Interval_taylor_model.
+Require Import taylor_model_int_sharp.
 
-Module I := FloatInterval F.
+Module ExtraFloats (F : FloatOps with Definition even_radix := true).
+Module I := FloatIntervalFull F.
 Module T := TranscendentalFloatFast F.
-Module Int := Integrability F.
 
-Section IntervalIntegral.
-
-Section ExtraCoquelicot. (* to be moved eventually *)
-Section Integrability.
-
-Variables (V : CompleteNormedModule R_AbsRing) (g : R -> V) (a b c d : R).
-
-Lemma ex_RInt_Chasles_sub :
- a <= b -> b <= c -> c <= d -> ex_RInt g a d -> ex_RInt g b c.
-Proof.
-move=> leab lebc lecd hiad; apply: (ex_RInt_Chasles_1 _ _ _ d) => //.
-by apply: (ex_RInt_Chasles_2 _ a) => //; split=> //; apply: (Rle_trans _ c).
-Qed.
-
-End Integrability.
-
-
-(* Below : a couple of helper lemmas about maj/min of integrals *)
-(* We should probably also add the more general case of ra <= rb *)
-Section IntegralEstimation.
-
-Variables (f : R -> R) (ra rb : R).
-
-Hypothesis ltab : ra < rb.
-
-Hypothesis fint : ex_RInt f ra rb.
-
-Lemma RInt_le_r (u : R) :
- (forall x : R, ra < x < rb -> f x <= u) -> RInt f ra rb / (rb - ra) <= u.
-Proof.
-move=> hfu; apply/Rle_div_l;first by apply: Rgt_minus.
-have -> : u * (rb - ra) = RInt (fun _ => u) ra rb.
-  by rewrite RInt_const Rmult_comm.
-apply: RInt_le => //; first exact: Rlt_le.
-exact: ex_RInt_const.
-Qed.
-
-Lemma RInt_le_l (l : R) :
-  (forall x : R, ra < x < rb -> l <= f x) -> l <= RInt f ra rb / (rb - ra).
-Proof.
-move=> hfl; apply/Rle_div_r; first by apply: Rgt_minus.
-have -> : l * (rb - ra) = RInt (fun _ => l) ra rb.
-  by rewrite RInt_const Rmult_comm.
-apply: RInt_le => //; first exact: Rlt_le.
-exact: ex_RInt_const.
-Qed.
-
-End IntegralEstimation.
-End ExtraCoquelicot.
-
-
-
-Section XRInt.
-
-Variables (f : R -> R) (ra rb : R).
-
-Hypothesis ltab : ra < rb.
-Hypothesis fint : ex_RInt f ra rb.
-
-Lemma XRInt1_correct (i : interval) :
-  (forall x, ra < x < rb -> contains i (Xreal (f x))) ->
-  contains i (Xreal ((RInt f ra rb) / (rb - ra))).
-Proof.
-move=> hif.
-have sbapos : rb - ra > 0 by apply: Rgt_minus.
-case: i hif => [|[|?] [|?]] //= hif; split => //.
-- by apply: RInt_le_r => // x /hif [].
-- by apply: RInt_le_l => // x /hif [].
-- by apply: RInt_le_l => // x /hif [].
-- by apply: RInt_le_r => // x /hif [].
-Qed.
-
-End XRInt.
-
-
-Section ExtraFloats.
 Lemma F_realP (fl : F.type) :
  reflect (I.convert_bound fl = Xreal (T.toR fl)) (F.real fl).
 Proof.
@@ -182,7 +114,6 @@ move: le_xa_xm.
 by rewrite isr_xm /xa (F_realP _ hra) /le_lower /=; exact: Ropp_le_cancel.
 Qed.
 
-
 Definition thin (f : F.type) : I.type :=
   if F.real f then I.bnd f f else I.nai.
 
@@ -205,6 +136,203 @@ Proof.
 Qed.
 
 End ExtraFloats.
+
+
+Module IntegralTactic (F : FloatOps with Definition even_radix := true).
+
+Module I := FloatInterval F.
+Module T := TranscendentalFloatFast F.
+Module Int := Integrability F.
+Module EF := ExtraFloats F.
+Import EF.
+
+
+Section IntervalIntegral.
+
+Section ExtraCoquelicot. (* to be moved eventually *)
+Section Integrability.
+
+Variables (V : CompleteNormedModule R_AbsRing) (g : R -> V) (a b c d : R).
+
+Lemma ex_RInt_Chasles_sub :
+ a <= b -> b <= c -> c <= d -> ex_RInt g a d -> ex_RInt g b c.
+Proof.
+move=> leab lebc lecd hiad; apply: (ex_RInt_Chasles_1 _ _ _ d) => //.
+by apply: (ex_RInt_Chasles_2 _ a) => //; split=> //; apply: (Rle_trans _ c).
+Qed.
+
+End Integrability.
+
+
+(* Below : a couple of helper lemmas about maj/min of integrals *)
+(* We should probably also add the more general case of ra <= rb *)
+Section IntegralEstimation.
+
+Variables (f : R -> R) (ra rb : R).
+
+Hypothesis ltab : ra < rb.
+
+Hypothesis fint : ex_RInt f ra rb.
+
+Lemma RInt_le_r (u : R) :
+ (forall x : R, ra < x < rb -> f x <= u) -> RInt f ra rb / (rb - ra) <= u.
+Proof.
+move=> hfu; apply/Rle_div_l;first by apply: Rgt_minus.
+have -> : u * (rb - ra) = RInt (fun _ => u) ra rb.
+  by rewrite RInt_const Rmult_comm.
+apply: RInt_le => //; first exact: Rlt_le.
+exact: ex_RInt_const.
+Qed.
+
+Lemma RInt_le_l (l : R) :
+  (forall x : R, ra < x < rb -> l <= f x) -> l <= RInt f ra rb / (rb - ra).
+Proof.
+move=> hfl; apply/Rle_div_r; first by apply: Rgt_minus.
+have -> : l * (rb - ra) = RInt (fun _ => l) ra rb.
+  by rewrite RInt_const Rmult_comm.
+apply: RInt_le => //; first exact: Rlt_le.
+exact: ex_RInt_const.
+Qed.
+
+End IntegralEstimation.
+End ExtraCoquelicot.
+
+
+
+Section XRInt.
+
+Variables (f : R -> R) (ra rb : R).
+
+Hypothesis ltab : ra < rb.
+Hypothesis fint : ex_RInt f ra rb.
+
+Lemma XRInt1_correct (i : interval) :
+  (forall x, ra < x < rb -> contains i (Xreal (f x))) ->
+  contains i (Xreal ((RInt f ra rb) / (rb - ra))).
+Proof.
+move=> hif.
+have sbapos : rb - ra > 0 by apply: Rgt_minus.
+case: i hif => [|[|?] [|?]] //= hif; split => //.
+- by apply: RInt_le_r => // x /hif [].
+- by apply: RInt_le_l => // x /hif [].
+- by apply: RInt_le_l => // x /hif [].
+- by apply: RInt_le_r => // x /hif [].
+Qed.
+
+End XRInt.
+
+
+(* Section ExtraFloats. *)
+(* Lemma F_realP (fl : F.type) : *)
+(*  reflect (I.convert_bound fl = Xreal (T.toR fl)) (F.real fl). *)
+(* Proof. *)
+(* have := (F.real_correct fl); rewrite /I.convert_bound /T.toR. *)
+(* by case: (F.toF fl)=> [||y z t] ->; constructor. *)
+(* Qed. *)
+
+(* Definition notFnan (f : F.type) := *)
+(*   match F.toF f with *)
+(*     | Interval_generic.Fnan  => false *)
+(*     | _ => true *)
+(*   end = true. *)
+
+(* Lemma contains_convert_bnd_l1 (a b : F.type) :  (F.real a) -> *)
+(*   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound a). *)
+(* Proof. *)
+(* move/F_realP => hra  hleab; rewrite hra; apply: le_contains. *)
+(*   by rewrite hra; apply: le_lower_refl. *)
+(* case Hb : (F.real b). *)
+(* by move/F_realP : Hb ->. *)
+(* move: (F.real_correct b); case H: (F.toF b); rewrite Hb //. *)
+(* move => _. *)
+(* have HXnan : I.convert_bound b = Xnan by rewrite /I.convert_bound H. *)
+(* by rewrite HXnan. *)
+(* Qed. *)
+
+(* Lemma contains_convert_bnd_l (a b : F.type) :  (F.real a) -> (F.real b) -> *)
+(*   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound a). *)
+(* Proof. *)
+(* move/F_realP => hra /F_realP hrb hleab; rewrite hra; apply: le_contains. *)
+(*   by rewrite hra; apply: le_lower_refl. *)
+(* by rewrite hrb. *)
+(* Qed. *)
+
+(* Lemma contains_convert_bnd_r1 (a b : F.type) :  (F.real b) -> *)
+(*   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound b). *)
+(* Proof. *)
+(* move/F_realP =>  hrb hleab; rewrite hrb; apply: le_contains. *)
+(* case Ha : (F.real a). *)
+(* move/F_realP : Ha ->. *)
+(*   rewrite /le_lower /=; exact: Ropp_le_contravar. *)
+(* move: (F.real_correct a); case H : (F.toF a); rewrite Ha // . *)
+(* move => _. *)
+(* have -> : I.convert_bound a = Xnan by rewrite /I.convert_bound H. *)
+(* done. *)
+(* rewrite hrb; exact: le_upper_refl. *)
+(* Qed. *)
+
+
+(* Lemma contains_convert_bnd_r (a b : F.type) :  (F.real a) -> (F.real b) -> *)
+(*   (T.toR a) <= (T.toR b) -> contains (I.convert (I.bnd a b)) (I.convert_bound b). *)
+(* Proof. *)
+(* move/F_realP => hra /F_realP hrb hleab; rewrite hrb; apply: le_contains. *)
+(*   rewrite hra /le_lower /=; exact: Ropp_le_contravar. *)
+(* rewrite hrb; exact: le_upper_refl. *)
+(* Qed. *)
+
+(* Lemma contains_convert_bnd (a b : F.type) r :  (F.real a) -> (F.real b) -> *)
+(*   (T.toR a) <= r <= (T.toR b) -> contains (I.convert (I.bnd a b)) (Xreal r). *)
+(* Proof. *)
+(* move/F_realP => hra /F_realP hrb hleab; apply: le_contains. *)
+(*   by rewrite hra /le_lower /=; apply: Ropp_le_contravar; case: hleab. *)
+(* by rewrite hrb /le_lower /=; case: hleab. *)
+(* Qed. *)
+
+(* (* Remember : T.toR = fun x : F.type => proj_val (FtoX (F.toF x)) *) *)
+(* (* The statement of I.midpoint_correct is really clumsy *) *)
+(* (* contains_le is also difficult to use... *) *)
+(* (* I.midpoint_correct should be stated using T.toR *) *)
+(* (* le_lower should either be a notation over le_upper or a new def *) *)
+(* (* so that it simplifies to <= or else provide suitable lemmas *) *)
+(* Lemma midpoint_bnd_in (a b : F.type) : *)
+(*   F.real a -> F.real b -> T.toR a <= T.toR b-> *)
+(*   T.toR a <= T.toR (I.midpoint (I.bnd a b)) <= T.toR b. *)
+(* Proof. *)
+(* move => hra hrb hleab; set iab := I.bnd a b; set m := I.midpoint iab. *)
+(* pose xa := I.convert_bound a; pose xb := I.convert_bound b. *)
+(* have non_empty_iab : exists x : ExtendedR, contains (I.convert iab) x. *)
+(*   by exists xa; apply: contains_convert_bnd_l. *)
+(* have [isr_xm xm_in_iab {non_empty_iab}] := I.midpoint_correct iab non_empty_iab. *)
+(* rewrite -/(T.toR m) in isr_xm. (* I.midpoint_correct is ill stated *) *)
+(* have [le_xa_xm le_xm_xb {xm_in_iab}] := contains_le xa xb _ xm_in_iab. *)
+(* split; last by move: le_xm_xb; rewrite isr_xm /xb (F_realP _ hrb). *)
+(* move: le_xa_xm. *)
+(* by rewrite isr_xm /xa (F_realP _ hra) /le_lower /=; exact: Ropp_le_cancel. *)
+(* Qed. *)
+
+
+(* Definition thin (f : F.type) : I.type := *)
+(*   if F.real f then I.bnd f f else I.nai. *)
+
+(* Lemma thin_correct (fl : F.type) : *)
+(*  contains (I.convert (thin fl)) (I.convert_bound fl). *)
+(* Proof. *)
+(* rewrite /thin I.real_correct. *)
+(* case ex: (I.convert_bound fl) => [|r] //=. *)
+(* rewrite ex; split; exact: Rle_refl. *)
+(* Qed. *)
+
+(* Lemma thin_correct_toR (fl : F.type) : *)
+(*   contains (I.convert (thin fl)) (Xreal (T.toR fl)). *)
+(* Proof. *)
+(*   case Hrealfl : (F.real fl);move: Hrealfl; move/F_realP => Hrealfl. *)
+(*   * rewrite -Hrealfl. *)
+(*       by apply: (thin_correct fl). *)
+(*   * move/F_realP: Hrealfl; rewrite /thin. *)
+(*       by rewrite -Bool.if_negb; move ->. (* probably not ideal *) *)
+(* Qed. *)
+
+(* End ExtraFloats. *)
 
 
 
@@ -322,7 +450,7 @@ Lemma integral_float_epsilon_Sn n a b epsilon :
   let halfeps := div2 epsilon in
   let roughEstimate_1 := base_case prec a m in
   let roughEstimate_2 := base_case prec m b in
-  integral_float_epsilon (S n) a b epsilon =  
+  integral_float_epsilon (S n) a b epsilon =
   match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
     | true,true => I.add prec roughEstimate_1 roughEstimate_2
     | true,false => let int2 := integral_float_epsilon n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
@@ -403,7 +531,7 @@ repeat ((try (apply: I.add_correct => // )); try (apply: integral_order_one_corr
 Qed.
 
 
-Require Import Interval_generic.
+
 
 (* This proof seems much too complicated *)
 Lemma RgtToFcmp a b :
@@ -465,7 +593,6 @@ case Ha1 : (F.toF a) => [||bb pp zz] // _ .
   rewrite Rcompare_Eq.
 Qed.
 
-Locate Fcmp_correct.
 Lemma Fcmp_geP u0 l1 :
   F.real u0 -> F.real l1 ->
   match (F.cmp u0 l1) with
