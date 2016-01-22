@@ -95,6 +95,12 @@ Inductive ExtendedR : Set :=
   | Xnan : ExtendedR
   | Xreal : R -> ExtendedR.
 
+(* useful to discriminate over an ExtendedR *)
+Definition notXnan (xR : ExtendedR) : Prop :=
+  match xR with
+    | Xnan => false
+    | Xreal _ => true end = true.
+
 Inductive Xcomparison : Set :=
   Xeq | Xlt | Xgt | Xund.
 
