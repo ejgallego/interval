@@ -153,3 +153,42 @@ Proof.
 move => Heps.
 (* interval with (i_integral_depth 10, i_integral_prec 1000). *)
 Admitted.
+
+Lemma bench11_1 epsilon :
+1/8 <= epsilon -> 
+2 / 3 - epsilon <= RInt (fun x => sqrt(x)) 0 1.
+(* integral = 1 / 3 ( 1 - cos(1000)) *)
+Proof.
+move => Heps.
+interval.
+Qed.
+
+Lemma bench11_2 epsilon :
+1/16 <= epsilon -> 
+RInt (fun x => sqrt(x)) 0 1 <= 2 / 3 + epsilon.
+(* integral = 1 / 3 ( 1 - cos(1000)) *)
+Proof.
+move => Heps.
+interval.
+Qed.
+
+(* actual integral : RInt (fun x => max (sin x) (cos x)) 0 1 *)
+(* = sin PI / 4 + cos PI / 4 - cos 1 *)
+Lemma bench12_1 epsilon :
+1/16 <= epsilon ->
+sqrt(2) - cos(1) - epsilon <= RInt (fun x => cos x) 0 (PI / 4) + RInt (fun x => sin x) (PI / 4) 1.
+(* sum of integrals = sqrt(2) - cos(1) *)
+Proof.
+move => Heps.
+interval.
+Qed.
+
+Lemma bench12_2 epsilon :
+1/16 <= epsilon ->
+RInt (fun x => cos x) 0 (PI / 4) + RInt (fun x => sin x) (PI / 4) 1 <= 
+sqrt(2) - cos(1) + epsilon.
+Proof.
+move => Heps.
+interval.
+Qed.
+
