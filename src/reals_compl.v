@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import ssreflect.
+Require Import Ssreflect.ssreflect.
 Require Import Psatz .
 
 Section MinMax.

@@ -1026,8 +1026,8 @@ contains iX0 (Xreal x0) ->
 i_validTM (I.convert X0) iX Mf xF dom ->
 i_validTM (I.convert X0) iX TM_integral (toXreal_fun (RInt f x0)) dom.
 Proof.
-move => Hx0X0 [] ErrMf0 HX0X HPol /=; split => //.
-  by apply: (TM_integral_error_0 Hx0X0) => //.
+move => Hx0X0 [ErrMf0 HX0X HPol] /= ; split => //.
+  by apply: (@TM_integral_error_0 _ dom Hx0X0).
 admit. (* FIXME LATER by Thomas or Erik
 move=> /= x1 HX0x1 {ErrMf0}.
 case: (HPol (x0) Hx0X0) => [|p Hcontains H3].

@@ -581,7 +581,7 @@ Definition Xmul_propagate := extension_propagate_2 _ _ Xmul_correct.
 Definition Xdiv_propagate := extension_propagate_2 _ _ Xdiv_correct.
 
 Section ExtensionOfFunctionsToXreal.
-Require Import ssreflect.
+Require Import Ssreflect.ssreflect.
 
 Variable (f : R -> R).
 

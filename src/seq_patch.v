@@ -1,5 +1,5 @@
-Require Import seq.
-Require Import ssreflect ssrnat.
+Require Import Ssreflect.seq.
+Require Import Ssreflect.ssreflect Ssreflect.ssrnat.
 
 Section revEq.
 

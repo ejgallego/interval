@@ -1,7 +1,7 @@
 Require Import Reals.
 Require Import Coquelicot.
 
-Require Import ssreflect.
+Require Import Ssreflect.ssreflect.
 
 Section MissingContinuity.
 

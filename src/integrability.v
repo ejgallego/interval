@@ -11,7 +11,7 @@ Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_bisect.
 
-Require Import ssreflect ssrnat.
+Require Import Ssreflect.ssreflect Ssreflect.ssrnat.
 Require Import seq_patch.
 
 Section Prelude.
@@ -115,7 +115,7 @@ Definition boundsToR b := map A.real_from_bp b.
 Definition notInan := notInan F.type.
 
 Section Preliminary.
-Require Import seq.
+Require Import Ssreflect.seq.
 
 Definition interval_operations := (A.BndValuator.operations prec).
 

@@ -383,7 +383,7 @@ apply Rabs_le.
 now split.
 Qed.
 
-Require Import ssreflect ssrfun ssrbool.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
 
 Lemma all_integrals_correct_prog :
@@ -760,9 +760,9 @@ Lemma integral_float_ex_RInt
     (T.toR l1).
 Proof.
 move => f iF i HnotInan Hleu0l1.
-have [Hrealu0 Hreall1] : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF _).
+have [Hrealu0 Hreall1] : F.real u0 /\ F.real l1 by apply: (integral_float_real_arguments prec iF) HnotInan.
 elim: depth u0 l1 Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 Hreall1 Hrealu0 i HnotInan Horder.
-- by apply: ex_RInt_base_case.
+- by apply: ex_RInt_base_case HnotInan.
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
   set intf := Int.integral_float prec iF.
@@ -815,7 +815,7 @@ move: HnotInan.
 rewrite /Int.integral_float_epsilon'.
 case Hreall1 : (F.real l1); case Hrealu0 : (F.real u0) => // HnotInan.
 elim: depth u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Horder.
-- by apply: ex_RInt_base_case.
+- by apply: ex_RInt_base_case HnotInan.
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
   have Hrealm : (F.real m).
@@ -838,7 +838,7 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 e
     set b2 := (X in (if X then (I.add prec _ _) else _)).
     case Hb1 : b1.
     * case Hb2 : b2; move => HnotInan;
-      apply: ex_RInt_base_case => // ;
+      apply: (ex_RInt_base_case prec) => // ;
         try apply: Int.Rle_Fle => // ; move: HnotInan;
       by case:(Int.base_case iF prec u0 m).
     * set b3 :=  (X in (if X then _ else _)).
@@ -860,7 +860,7 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 e
     case Hb1 : b1.
     * case Hb2 : b2.
       + move => HnotInan;
-      apply: ex_RInt_base_case => // .
+      apply: (ex_RInt_base_case prec) => // .
         by apply: Int.Rle_Fle. 
       move: HnotInan.
       by case:(Int.base_case iF prec m l1); case:(Int.base_case iF prec u0 m).
@@ -871,7 +871,7 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 e
         by apply: Int.Rle_Fle.
     * set b3 :=  (X in (if X then _ else _)).
       case Hb3 : b3.
-      - move => HnotInan; apply: ex_RInt_base_case => // .
+      - move => HnotInan; apply: (ex_RInt_base_case prec) => // .
           by apply: Int.Rle_Fle. rewrite -/iF.
            move: HnotInan; case: (Int.base_case iF prec m l1) => // .
              by rewrite /= IaddcancelRight.
@@ -955,11 +955,11 @@ move => f iF i.
 rewrite /Int.integral_float_epsilon_signed.
 move => HnotInan.
 case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
-- apply: (integral_float_epsilon_ex_RInt prec depth) => // .
+- apply: (integral_float_epsilon_ex_RInt prec depth _ _ _ _ epsilon) => // .
 - suff HnotInan2 : notInan (Int.integral_float_epsilon' prec iF depth l1 u0 epsilon).
   have [Hreall1 Hrealu0] := (integral_float_epsilon_real_arguments prec iF depth l1 u0 epsilon HnotInan2).
   apply: ex_RInt_swap.
-  apply: (integral_float_epsilon_ex_RInt prec depth) => // .
+  apply: (integral_float_epsilon_ex_RInt prec depth _ _ _ _ epsilon) => // .
   by apply: Int.Fle_rev. (* need a lemma bout Fle *)
 - move: HnotInan.
   by case: (Int.integral_float_epsilon' prec iF depth l1 u0).
