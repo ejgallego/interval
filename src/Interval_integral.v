@@ -163,10 +163,10 @@ Proof.
 move=> hif.
 have sbapos : rb - ra > 0 by apply: Rgt_minus.
 case: i hif => [|[|?] [|?]] //= hif; split => //.
-- by apply: RInt_le_r => // x /hif [].
-- by apply: RInt_le_l => // x /hif [].
-- by apply: RInt_le_l => // x /hif [].
-- by apply: RInt_le_r => // x /hif [].
+- by apply: RInt_le_r_strict => // x /hif [].
+- by apply: RInt_le_l_strict => // x /hif [].
+- by apply: RInt_le_l_strict => // x /hif [].
+- by apply: RInt_le_r_strict => // x /hif [].
 Qed.
 
 End XRInt.
