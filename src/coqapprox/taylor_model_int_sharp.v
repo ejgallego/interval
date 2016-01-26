@@ -55,6 +55,9 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope nat_scope.
 
+(** Rigorous Polynomial Approximation structure *)
+Record rpa {pol int : Type} : Type := RPA { approx : pol ; error : int }.
+
 Module TaylorModel (I : IntervalOps) (Pol : PolyIntOps I) (Bnd : PolyBound I Pol).
 Import Pol.Notations.
 Import PolR.Notations.
@@ -103,8 +106,7 @@ Ltac step_i i :=
 
 (* Erik: Some lemmas could be generalized from [I.type] to [interval]. *)
 
-(** Rigorous Polynomial Approximation structure *)
-Record rpa : Type := RPA { approx : Pol.T; error : I.type }.
+Notation rpa := (@rpa Pol.T I.type).
 
 Section TaylorModel.
 (** The presence of this section variable does not hinder any
