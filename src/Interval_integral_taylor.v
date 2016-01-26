@@ -41,6 +41,8 @@ Import EF.
 
 Module TM := TM I.
 
+Section DepthZeroPol.
+
 (* A fixed precision *)
 Variable prec : F.precision.
 
@@ -53,8 +55,6 @@ Let g := toXreal_fun f.
 Let Hfgext := toXreal_fun_correct f.
 
 (* Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)). *)
-
-Section DepthZeroPol.
 
 Variable Mf : TM.TMI.rpa.
 Variable X X0 : I.type.
@@ -85,17 +85,18 @@ Hypothesis Hcontx0 : contains iX0 (Xreal x0).
 Hypothesis Hconta : contains iX (Xreal (T.toR a)).
 Hypothesis Hcontb : contains iX (Xreal (T.toR b)).
 
-Variable Iprec : I.precision.
+Definition taylor_integral :=
+  TM.TMI.integralEnclosure prec X0 Mf ia ib.
 
-
-(* Lemma integral_depth_zero_pol_correct : *)
-(*   contains *)
-(*     (I.convert (TM.integralEnclosure Iprec X0 Mf ia ib)) *)
-(*     (Xreal (RInt f (T.toR a) (T.toR b))). *)
-(* Proof. *)
-(* apply: (TM.IntegralByPol Iprec _ _ _ _ _ _ _ validMf) => // . *)
-(* admit. *)
-(* Qed. *)
+Lemma taylor_integral_correct :
+  contains
+    (I.convert taylor_integral)
+    (Xreal (RInt f (T.toR a) (T.toR b))).
+Proof.
+(*move: (@TM.TMI.integralEnclosure_correct prec ia ib Hcontx0 Hconta Hcontb).*)
+(*apply: (TM.TMI.IntegralByPol Iprec _ _ _ _ _ _ _ validMf) => // .*)
+admit.
+Qed.
 
 End DepthZeroPol.
 
@@ -107,19 +108,21 @@ End Depth_Sk_Pol.
 
 End IntegralTacticTaylor.
 
+
 Require Import Interval_bigint_carrier.
 Require Import Interval_specific_ops.
 Module SFBI2 := SpecificFloat BigIntRadix2.
 Module IT := IntegralTacticTaylor SFBI2.
 Require Import BigZ.
 
-Eval vm_compute in (
-  let prec := 20%bigZ in
-  let a := SFBI2.fromZ 0 in
-  let b := SFBI2.fromZ 1 in
-  let X := IT.I.bnd a b in
-  let x0 := IT.I.midpoint X in
-  let X0 := IT.EF.thin x0 in
-  let var := IT.TM.TMI.TM_var X0 in
-  let f := IT.TM.TMI.TM_exp prec X0 X 10 in
-  IT.TM.TMI.integralEnclosure prec X0 f (IT.EF.thin a) (IT.EF.thin b)).
+(* Eval vm_compute in ( *)
+(*   let prec := 20%bigZ in *)
+(*   let a := SFBI2.fromZ 0 in *)
+(*   let b := SFBI2.fromZ 10 in *)
+(*   let X := IT.I.bnd a b in *)
+(*   let x0 := IT.I.midpoint X in *)
+(*   let X0 := IT.EF.thin x0 in *)
+(*   let var := IT.TM.TMI.TM_var X0 in *)
+(*   let f := IT.TM.TMI.TM_sin prec X0 X 10 in *)
+(*   f). *)
+  (* IT.TM.TMI.integralEnclosure prec X0 f (IT.EF.thin a) (IT.EF.thin b) *)).

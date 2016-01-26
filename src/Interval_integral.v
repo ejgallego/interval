@@ -199,11 +199,14 @@ Hypothesis  Hleab : T.toR a <= T.toR b.
 Hypothesis ha : F.real a.
 Hypothesis hb : F.real b.
 
-Lemma integral_order_one_correct :
+Definition naive_integral := I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)).
+
+Lemma naive_integral_correct :
   contains
-    (I.convert ((I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)))))
+    (I.convert (naive_integral))
     (Xreal (RInt f (T.toR a) (T.toR b))).
 Proof.
+rewrite /naive_integral.
 case elu: (iF (I.bnd a b)) => // [l u].
 set ra := T.toR a; set rb := T.toR b; fold ra rb in Hintegrable, ha, hb, Hleab.
 set Iab := RInt _ _ _.
@@ -227,20 +230,20 @@ Qed.
 End OrderOne.
 
 
-Record integralEstimator :=
-  intEst {
-      estimator : F.precision -> F.type -> F.type -> I.type;
-      integralEstimatorCorrect :
-        forall a b prec,
+(* Record integralEstimator := *)
+(*   intEst { *)
+      (* estimator : F.precision -> F.type -> F.type -> I.type; (* TODO: get rid of precision here *) *)
+ Definition integralEstimatorCorrect (estimator : F.type -> F.type -> I.type) :=
+        forall a b,
           ex_RInt f (T.toR a) (T.toR b) ->
           T.toR a <= T.toR b ->
           F.real a ->
           F.real b ->
-          contains (I.convert (estimator prec a b)) (Xreal (RInt f (T.toR a) (T.toR b)));
-      onlyRealArguments :
-        forall a b prec,
-          Int.notInan (estimator prec a b) -> (F.real a) /\ (F.real b)
-    }.
+          contains (I.convert (estimator a b)) (Xreal (RInt f (T.toR a) (T.toR b)))(* ; *)
+      (* onlyRealArguments : *)
+      (*   forall a b prec, *)
+      (*     Int.notInan (estimator prec a b) -> (F.real a) /\ (F.real b) *)
+    .
 
 (*Definition naiveEstimator := intEst naiveFun naiveFunCorrect naiveFunOnlyRealArguments.
 *)
@@ -252,16 +255,16 @@ Let Fle := Int.I.Fle.
 
 Section Functions.
 
-Variable est : F.precision -> F.type -> F.type -> I.type.
+Variable est : F.type -> F.type -> I.type.
 
-Definition base_case prec a b :=
-  est prec a b.
+(* Definition base_case a b := *)
+(*   est a b. *)
   (* I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)). *)
 
 Fixpoint integral_float (depth : nat) (a b : F.type) :=
   let int := I.bnd a b in
   match depth with
-    | O => base_case prec a b
+    | O => est a b
     | S n => let m := I.midpoint int in
              let i1 := integral_float n a m in
              let i2 := integral_float n m b in
@@ -280,13 +283,13 @@ Definition div2 f := F.scale2 f (F.ZtoS (-1)).
 Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) :=
   let int := I.bnd a b in
   match depth with
-    | O => base_case prec a b
+    | O => est a b
     | S n => let m := I.midpoint int in
              let int1 := I.bnd a m in
              let int2 := I.bnd m b in
              let halfeps := div2 epsilon in
-             let roughEstimate_1 := base_case prec a m in
-             let roughEstimate_2 := base_case prec m b in
+             let roughEstimate_1 := est a m in
+             let roughEstimate_2 := est m b in
              match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
                | true,true => I.add prec roughEstimate_1 roughEstimate_2
                | true,false => let int2 := integral_float_epsilon n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
@@ -310,8 +313,8 @@ Lemma integral_float_epsilon_Sn n a b epsilon :
   let int1 := I.bnd a m in
   let int2 := I.bnd m b in
   let halfeps := div2 epsilon in
-  let roughEstimate_1 := base_case prec a m in
-  let roughEstimate_2 := base_case prec m b in
+  let roughEstimate_1 := est a m in
+  let roughEstimate_2 := est m b in
   integral_float_epsilon (S n) a b epsilon =
   match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
     | true,true => I.add prec roughEstimate_1 roughEstimate_2
@@ -377,9 +380,11 @@ End Functions.
 
 Section Proofs.
 
-Variable iE: integralEstimator.
+Variable estimator : F.type -> F.type -> I.type.
 
-Let integral_float := integral_float (estimator iE).
+Hypothesis Hcorrect : integralEstimatorCorrect estimator.
+
+Let integral_float := integral_float (estimator).
 
 Lemma integral_float_correct (depth : nat) (a b : F.type) :
   ex_RInt f (T.toR a) (T.toR b) ->
@@ -388,7 +393,7 @@ Lemma integral_float_correct (depth : nat) (a b : F.type) :
   contains (I.convert (integral_float depth a b)) (Xreal (RInt f (T.toR a) (T.toR b))).
 Proof.
 elim: depth a b => [ | k Hk] a b Hintegrable Hleab ha hb.
-  by apply: integralEstimatorCorrect => //.
+  by apply: Hcorrect => //.
 set midpoint := I.midpoint (I.bnd a b).
 have hIl : ex_RInt f (T.toR a) (T.toR midpoint).
   by apply:  (ex_RInt_Chasles_1 _ _ _ (T.toR b)) => //; apply: midpoint_bnd_in.
@@ -406,7 +411,7 @@ suff hm : F.real (I.midpoint (I.bnd a b)) by apply: I.add_correct; apply: Hk.
   exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
 Qed.
 
-Let integral_float_epsilon' := integral_float_epsilon' (estimator iE).
+Let integral_float_epsilon' := integral_float_epsilon' (estimator).
 
 Lemma integral_float_epsilon_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (T.toR a) (T.toR b) ->
@@ -415,7 +420,7 @@ Lemma integral_float_epsilon_correct (depth : nat) (a b : F.type) epsilon :
 Proof.
 case Hareal : (F.real a); case Hbreal: (F.real b); rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // .
 elim: depth a b Hareal Hbreal epsilon => [ | k Hk] a b Hareal Hbreal epsilon Hintegrable Hleab.
-  by apply: integralEstimatorCorrect => //.
+  by apply: Hcorrect => //.
 set midpoint := I.midpoint (I.bnd a b).
 have hIl : ex_RInt f (T.toR a) (T.toR midpoint).
   by apply:  (ex_RInt_Chasles_1 _ _ _ (T.toR b)) => //; apply: midpoint_bnd_in.
@@ -434,7 +439,7 @@ have hm : F.real (I.midpoint (I.bnd a b)).
     exists x : ExtendedR, contains (I.convert (I.bnd a b)) x by move/F_realP.
   by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
 case Hcmp1 : (Fle d1 (div2 epsilon)); case Hcmp2 : (Fle d2 (div2 epsilon));
-repeat ((try (apply: I.add_correct => // )); try (apply: integralEstimatorCorrect => // ); try (apply: Hk => // )).
+repeat ((try (apply: I.add_correct => // )); try (apply: Hcorrect => // ); try (apply: Hk => // )).
 Qed.
 
 
@@ -616,7 +621,7 @@ rewrite Habs in Hgt.
 elim (Rlt_irrefl _ Hgt).
 Qed.
 
-Let integral_float_signed := integral_float_signed (estimator iE).
+Let integral_float_signed := integral_float_signed (estimator).
 
 Lemma integral_float_signed_correct_neg (depth : nat) (a b : F.type) :
   ex_RInt f (T.toR a) (T.toR b) ->
@@ -645,7 +650,7 @@ case: dummy => // .
 by move => b p z; case: b.
 Qed.
 
-Let integral_float_epsilon_signed := integral_float_epsilon_signed (estimator iE).
+Let integral_float_epsilon_signed := integral_float_epsilon_signed (estimator).
 
 Lemma integral_float_signed_epsilon_correct_neg (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (T.toR a) (T.toR b) ->
@@ -771,7 +776,7 @@ move: (F.real_correct a).
   by case: (F.toF a).
 Qed.
 
-Let integral_intBounds := integral_intBounds (estimator iE).
+Let integral_intBounds := integral_intBounds (estimator).
 
 Lemma integral_correct (depth : nat) (a b : R) (ia ib : I.type):
   contains (I.convert ia) (Xreal a) ->
@@ -842,7 +847,7 @@ have -> : Xreal (RInt f a b) =
      now apply Rle_trans with (1 := Haua).
 Qed.
 
-Let integral_intBounds_epsilon := integral_intBounds_epsilon (estimator iE).
+Let integral_intBounds_epsilon := integral_intBounds_epsilon (estimator).
 
 Lemma integral_epsilon_correct (depth : nat) (a b : R) (ia ib : I.type) epsilon :
   contains (I.convert ia) (Xreal a) ->
@@ -919,20 +924,20 @@ End IntervalIntegral.
 
 
 
-Section InstantiationEstimator.
+(* Section InstantiationEstimator. *)
 
-Variable prec : F.precision.
+(* Variable prec : F.precision. *)
 
-Variables (f : R -> R) (iF : I.type -> I.type).
+(* Variables (f : R -> R) (iF : I.type -> I.type). *)
 
-(* This is a std monadic operation. Does it exist somewhere in the libs? *)
-Let g := toXreal_fun f.
+(* (* This is a std monadic operation. Does it exist somewhere in the libs? *) *)
+(* Let g := toXreal_fun f. *)
 
-(* g is a restriction of f as an extendedR function. *)
-Let Hfgext := toXreal_fun_correct f.
+(* (* g is a restriction of f as an extendedR function. *) *)
+(* Let Hfgext := toXreal_fun_correct f. *)
 
 
-Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
+(* Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)). *)
 
 (* Variables (a b : F.type). *)
 
@@ -947,35 +952,47 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 (* Hypothesis hb : F.real b. *)
 
 
-Definition naiveFun prec a b := I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)).
 
-Lemma naiveFunCorrect (* prec *) :
-forall (a b : F.type) (prec : F.precision),
-  ex_RInt f (T.toR a) (T.toR b) ->
-  T.toR a <= T.toR b ->
-  F.real a ->
-  F.real b ->
-  contains (I.convert (naiveFun prec a b))
-    (Xreal (RInt f (T.toR a) (T.toR b))).
-Proof.
-move => Hfint Hreala Hrealb.
-by apply: integral_order_one_correct.
-Qed.
+(* Lemma ex_RInt_base_case_naive u0 l1 : *)
+(*   F.real u0 -> *)
+(*   F.real l1 -> *)
+(*   I.Fle u0 l1 -> *)
+(*   (notInan F.type (base_case naiveFun prec u0 l1)) -> *)
+(*   ex_RInt *)
+(*     f *)
+(*     (T.toR u0) *)
+(*     (T.toR l1). *)
+(* Proof. *)
+(* move => Hrealu0 Hreall1 Hleu0l1 HnotInan. *)
 
-Lemma naiveFunOnlyRealArguments l u prec1 :
-  Int.notInan (naiveFun prec1 l u) -> (F.real l) /\ (F.real u).
-Proof.
-rewrite /naiveFun.
-case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => //;
-rewrite /thin Hureal Hlreal /=;
-by case: (iF (I.bnd l u)).
-Qed.
 
-Definition naiveEstimator := intEst f naiveFun naiveFunCorrect naiveFunOnlyRealArguments.
+(* Lemma naiveFunCorrect (* prec *) : *)
+(* forall (a b : F.type) (prec : F.precision), *)
+(*   ex_RInt f (T.toR a) (T.toR b) -> *)
+(*   T.toR a <= T.toR b -> *)
+(*   F.real a -> *)
+(*   F.real b -> *)
+(*   contains (I.convert (naiveFun prec a b)) *)
+(*     (Xreal (RInt f (T.toR a) (T.toR b))). *)
+(* Proof. *)
+(* move => Hfint Hreala Hrealb. *)
+(* by apply: integral_order_one_correct. *)
+(* Qed. *)
 
-End InstantiationEstimator.
+(* Lemma naiveFunOnlyRealArguments l u prec1 : *)
+(*   Int.notInan (naiveFun prec1 l u) -> (F.real l) /\ (F.real u). *)
+(* Proof. *)
+(* rewrite /naiveFun. *)
+(* case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => //; *)
+(* rewrite /thin Hureal Hlreal /=; *)
+(* by case: (iF (I.bnd l u)). *)
+(* Qed. *)
 
-Print naiveEstimator.
+(* Definition naiveEstimator := intEst f naiveFun naiveFunCorrect naiveFunOnlyRealArguments. *)
+
+
+
+(* End InstantiationEstimator. *)
 
 End IntegralTactic.
 
