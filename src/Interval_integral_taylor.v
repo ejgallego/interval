@@ -125,4 +125,4 @@ Require Import BigZ.
 (*   let var := IT.TM.TMI.TM_var X0 in *)
 (*   let f := IT.TM.TMI.TM_sin prec X0 X 10 in *)
 (*   f). *)
-  (* IT.TM.TMI.integralEnclosure prec X0 f (IT.EF.thin a) (IT.EF.thin b) *)).
+  (* IT.TM.TMI.integralEnclosure prec X0 f (IT.EF.thin a) (IT.EF.thin b) *)
