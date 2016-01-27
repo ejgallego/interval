@@ -24,17 +24,17 @@ Time interval with (i_integral_depth 1).
 Qed.
 
 Lemma bench2_2 delta :
-1 / 32 <= delta ->
+1 / (1024*1024) <= delta ->
   exp(1)*exp(1)*exp(1) - (1 + delta) <=
   RInt (fun x => exp x) 0 3.
 (* integral = e^3 - 1 *)
 Proof.
 move => Hdelta.
-Time interval with (i_integral_depth 0).
+Time interval with (i_integral_depth 10).
 Qed.
 
 Lemma bench3_1 delta :
-1/16 <= delta ->
+1/1024 <= delta ->
 1 / 4 - delta <= RInt (fun x => x * ln(1 + x)) 0 1.
 (* integral = 1 / 4 *)
 Proof.
@@ -43,7 +43,7 @@ Time interval.
 Qed.
 
 Lemma bench3_2 delta :
-1/8 <= delta <= 1 ->
+1/1024 <= delta <= 1 ->
 RInt (fun x => x * ln(1 + x)) 0 1 <= 1 / 4 + delta.
 (* integral = 1 / 4 *)
 Proof.
@@ -97,21 +97,21 @@ interval with (i_integral_depth 0).
 Qed.
 
 Lemma bench7_1 delta :
-1/(1024)<= delta ->
+1/(1024*1024)<= delta ->
 RInt (fun x => 1 / (1 + x*x)) 0 1 <= PI / 4 + delta.
 (* integral = Pi / 4 *)
 Proof.
 move => Heps.
-Time interval with (i_integral_depth 1).
+Time interval with (i_integral_depth 5).
 Qed.
 
 Lemma bench7_2 delta :
-1/256 <= delta ->
+1/1024 <= delta ->
 PI / 4 - delta <= RInt (fun x => 1 / (1 + x*x)) 0 1.
 (* integral = Pi / 4 *)
 Proof.
 move => Heps.
-interval with (i_integral_depth 0).
+interval with (i_integral_depth 10). (* thanks to epsilons this is now reasonable *)
 Qed.
 
 (*
@@ -127,12 +127,12 @@ Qed.
 *)
 
 Lemma bench8_2 delta :
-1/32 <= delta <= 1 ->
+1/1024 <= delta ->
 1 / 10 ^(5) * atan(1 / 10^(5)) - delta <= RInt (fun x => 1 / (1 + 10^10 * x*x)) 0 1.
 (* integral = Pi / 4 *)
 Proof.
 move => Heps.
-(* interval. *) admit. (* can't talk about atan *)
+interval.
 Qed.
 
 Lemma bench9 : True.
@@ -159,7 +159,7 @@ move => Heps.
 (* interval with (i_integral_depth 10, i_integral_prec 1000). *)
 Admitted.
 
-(*
+
 Lemma bench11_1 delta :
 1/8 <= delta ->
 2 / 3 - delta <= RInt (fun x => sqrt(x)) 0 1.
@@ -167,6 +167,7 @@ Proof.
 move => Heps.
 interval.
 Qed.
+
 
 Lemma bench11_2 delta :
 1/16 <= delta ->
@@ -176,12 +177,11 @@ Proof.
 move => Heps.
 interval.
 Qed.
-*)
 
 (* actual integral : RInt (fun x => max (sin x) (cos x)) 0 1 *)
 (* = sin PI / 4 + cos PI / 4 - cos 1 *)
 Lemma bench12_1 delta :
-1/256 <= delta ->
+1/1024 <= delta ->
 sqrt(2) - cos(1) - delta <= RInt (fun x => cos x) 0 (PI / 4) + RInt (fun x => sin x) (PI / 4) 1.
 (* sum of integrals = sqrt(2) - cos(1) *)
 Proof.
@@ -190,7 +190,7 @@ interval with (i_integral_depth 0).
 Qed.
 
 Lemma bench12_2 delta :
-1/256 <= delta ->
+1/1024 <= delta ->
 RInt (fun x => cos x) 0 (PI / 4) + RInt (fun x => sin x) (PI / 4) 1 <=
 sqrt(2) - cos(1) + delta.
 Proof.
@@ -200,7 +200,7 @@ Qed.
 
 (* benchmark from Yves Bertot : can't be done for now *)
 Lemma Bertot_1 (k : R) : (* k is an integer but it should not be pertinent *)
-k = 1 ->
+k = 100 -> (* seems to work for any k!! *)
 Rabs (RInt (fun x => sin(1 / x)) (1/((k+1)*PI)) (1/(k*PI))) <= 1/((k + 1)*PI) * Rabs (RInt sin 0 PI).
 Proof.
 move => Hk.
@@ -235,7 +235,7 @@ assert (forall x, 0 <= x <= 1/256 -> True).
 intros x Hx.
 interval_intro (x * exp (-x^2/2)).
 exact I.
-interval with (i_integral_depth 6).
+interval with (i_integral_depth 15, i_prec 40, i_integral_prec 10).
 Qed.
 
 
