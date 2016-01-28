@@ -56,9 +56,19 @@ apply: continuous_comp => //.
 by apply: continuous_sin.
 Qed.
 
+Lemma continuous_tan x : cos x <> 0 -> continuous tan x.
+Proof.
+move => Hcos.
+rewrite /tan.
+apply: continuous_mult; first by apply: continuous_sin.
+by apply: continuous_Rinv_comp; first by apply: continuous_cos.
+Qed.
+
 Lemma continuous_atan x : continuous atan x.
 Proof.
-admit. (* how do I prove this? *)
+apply: ex_derive_continuous.
+apply: ex_derive_Reals_1.
+exact: derivable_pt_atan.
 Qed.
 
 Lemma continuous_atan_comp (f : R -> R) x:
@@ -72,7 +82,10 @@ Qed.
 
 Lemma continuous_exp x : continuous exp x.
 Proof.
-admit. (* couldn't find it *)
+Search _ exp.
+apply: ex_derive_continuous.
+apply: ex_derive_Reals_1.
+exact: derivable_pt_exp.
 Qed.
 
 Lemma continuous_exp_comp (f : R -> R) x:
@@ -122,7 +135,8 @@ Section MissingIntegrability.
 
 Lemma ex_RInt_Rabs f a b : ex_RInt f a b -> ex_RInt (fun x => Rabs (f x)) a b.
 move => Hintfx.
-Admitted.
+by apply: ex_RInt_norm.
+Qed.
 
 End MissingIntegrability.
 
@@ -157,8 +171,11 @@ move=> hfu; apply/Rle_div_l;first by apply: Rgt_minus.
 have -> : u * (rb - ra) = RInt (fun _ => u) ra rb.
   by rewrite RInt_const Rmult_comm.
 apply: RInt_le => //; first exact: Rlt_le.
-exact: ex_RInt_const.
-admit. (* FIXME easy *)
+  exact: ex_RInt_const.
+move => x Hx; apply: hfu.
+split.
+- exact: (Rlt_le _ _ (proj1 Hx)).
+- exact: (Rlt_le _ _ (proj2 Hx)).
 Qed.
 
 Lemma RInt_le_l (l : R) : 
@@ -169,7 +186,10 @@ have -> : l * (rb - ra) = RInt (fun _ => l) ra rb.
   by rewrite RInt_const Rmult_comm.
 apply: RInt_le => //; first exact: Rlt_le.
 exact: ex_RInt_const.
-admit. (* FIXME easy *)
+move => x Hx; apply: hfl.
+split.
+- exact: (Rlt_le _ _ (proj1 Hx)).
+- exact: (Rlt_le _ _ (proj2 Hx)).
 Qed.
 
 Lemma RInt_le_r_strict (u : R) :
