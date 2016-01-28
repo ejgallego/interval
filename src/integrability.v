@@ -89,10 +89,24 @@ case: unop HbnotXnan.
   by apply: Xnan_inversion_sqrt; rewrite -Hb -Hbnan.
 - move => _. by apply: continuous_cos_comp.
 - move => _. by apply: continuous_sin_comp.
-- move => HnotXnan. admit.
+- move => HnotXnan.
+  apply: continuous_comp => // .
+  apply: continuous_tan.
+    rewrite Hbnan /= /Xtan /Xdiv Hb /Xcos in HnotXnan.
+    move => Habs. move: HnotXnan.
+    rewrite Habs. rewrite is_zero_correct_zero.
+    by case: (Xsin _).
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
-- move => HnotXnan. (* apply: Xnan_inversion_ln.*) admit.
+- move => HnotXnan.
+    apply: continuous_comp => // .
+    apply: continuous_ln.
+    rewrite Hb in Hbnan.
+    rewrite Hbnan /= in HnotXnan.
+    move: HnotXnan.
+    case Hpos : (is_positive (a x)) => HnotXnan.
+    by apply: (is_positive_positive _ Hpos).
+    by move: HnotXnan.
 - move => n HnotXnan. admit.
 Qed.
 
@@ -164,52 +178,52 @@ have -> : Xnan = Xpower_int (Xreal 0) (Z.neg p) by rewrite /= is_zero_correct_ze
 by apply: I.power_int_correct.
 Qed.
 
-Lemma notInan_inversion_PowNeg_stronger i p :
-  notInan (I.power_int prec i (Z.neg p)) ->
-  (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/
-  (forall x, contains (I.convert i) (Xreal x) -> x > 0).
-Proof.
-move => HnotInan.
-suff: ~ contains (I.convert i) (Xreal 0); last first.
-  by apply: notInan_inversion_PowNeg HnotInan.
-move => Hnot0.
-set P :=  (X in X \/ _).
-set Q :=  (X in _ \/ X).
-suff: ~ (~ P /\ ~ Q).
-move => H_andnot.
-apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *)
-move => H1.
-apply: H_andnot.
-split.
-+ move => HP.
-  apply: H1.
-  by left.
-+ move => HQ.
-  apply: H1.
-  by right.
-move => Habs.
-apply: Hnot0.
-Admitted.
+(* Lemma notInan_inversion_PowNeg_stronger i p : *)
+(*   notInan (I.power_int prec i (Z.neg p)) -> *)
+(*   (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/ *)
+(*   (forall x, contains (I.convert i) (Xreal x) -> x > 0). *)
+(* Proof. *)
+(* move => HnotInan. *)
+(* suff: ~ contains (I.convert i) (Xreal 0); last first. *)
+(*   by apply: notInan_inversion_PowNeg HnotInan. *)
+(* move => Hnot0. *)
+(* set P :=  (X in X \/ _). *)
+(* set Q :=  (X in _ \/ X). *)
+(* suff: ~ (~ P /\ ~ Q). *)
+(* move => H_andnot. *)
+(* apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *) *)
+(* move => H1. *)
+(* apply: H_andnot. *)
+(* split. *)
+(* + move => HP. *)
+(*   apply: H1. *)
+(*   by left. *)
+(* + move => HQ. *)
+(*   apply: H1. *)
+(*   by right. *)
+(* move => Habs. *)
+(* apply: Hnot0. *)
+(* Admitted. *)
 
-(* maybe this lemma is false if i1 is empty? To check *)
-Lemma notInan_inversion_Div i1 i2 :
-notInan (I.div prec i1 i2) -> ~ contains (I.convert i2) (Xreal 0) .
-Proof.
-move => HnotInan Hcontains0.
-suff: contains (I.convert (I.div prec i1 i2)) Xnan => [Habs|].
-  move: HnotInan.
-  have := (proj1(xreal_ssr_compat.contains_Xnan _)) Habs.
-  by case: (I.div prec i1 i2).
-(* have -> : Xnan = Xdiv (Xreal 0) by rewrite /= is_zero_correct_zero. *)
-(* by apply: I.inv_correct. *)
-Abort.
+(* (* maybe this lemma is false if i1 is empty? To check *) *)
+(* Lemma notInan_inversion_Div i1 i2 : *)
+(* notInan (I.div prec i1 i2) -> ~ contains (I.convert i2) (Xreal 0) . *)
+(* Proof. *)
+(* move => HnotInan Hcontains0. *)
+(* suff: contains (I.convert (I.div prec i1 i2)) Xnan => [Habs|]. *)
+(*   move: HnotInan. *)
+(*   have := (proj1(xreal_ssr_compat.contains_Xnan _)) Habs. *)
+(*   by case: (I.div prec i1 i2). *)
+(* (* have -> : Xnan = Xdiv (Xreal 0) by rewrite /= is_zero_correct_zero. *) *)
+(* (* by apply: I.inv_correct. *) *)
+(* Abort. *)
 
-Lemma notInan_inversion_Div_stronger i1 i2 :
-  notInan (I.div prec i1 i2) ->
-  (forall x, contains (I.convert i2) (Xreal x) -> x < 0) \/
-  (forall x, contains (I.convert i2) (Xreal x) -> x > 0).
-Proof.
-Abort.
+(* Lemma notInan_inversion_Div_stronger i1 i2 : *)
+(*   notInan (I.div prec i1 i2) -> *)
+(*   (forall x, contains (I.convert i2) (Xreal x) -> x < 0) \/ *)
+(*   (forall x, contains (I.convert i2) (Xreal x) -> x > 0). *)
+(* Proof. *)
+(* Abort. *)
 
 
 Lemma notInan_inversion_Sqrt i :
