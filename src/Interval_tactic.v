@@ -421,7 +421,6 @@ Lemma all_integrals_correct_prog :
   forall ia ib a b,
    contains (I.convert ia) (Xreal a) ->
    contains (I.convert ib) (Xreal b) ->
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
 notInan (Int.all_integrals prec
                     (fun xi : I.type =>
                      nth 0
@@ -431,7 +430,7 @@ notInan (Int.all_integrals prec
                     ib) ->
 ex_RInt f a b.
 Proof.
-move  => (* prec prog bounds *) ia1 ib1 a1 b1 Hconta1 Hcontb1.
+move  => ia1 ib1 a1 b1 Hconta1 Hcontb1.
 rewrite /Int.all_integrals.
 set iFab := (X in Int.EF.I.mul _ X _).
 move => HnotInan.
@@ -469,34 +468,6 @@ rewrite /Xcmp.
 by rewrite Rcompare_sym; case: (Rcompare ry rx).
 Qed.
 
-Print Int.integral_float.
-Let integral_float := Int.integral_float prec estimator.
-
-(* Lemma integral_float_real_arguments depth l u: *)
-(*   notInan (integral_float depth l u) -> (F.real l) /\ (F.real u). *)
-(* Proof. *)
-(* move: l u. *)
-(* elim Hd : depth => [|d Hdepth] l u HnotInan. *)
-(*   rewrite /integral_float /Int.integral_float in HnotInan. *)
-(* Admitted *)
-(*   by apply: (Int.onlyRealArguments f iE l u prec HnotInan). *)
-(* move: HnotInan. *)
-(* have -> : integral_float (S d) l u = I.add prec *)
-(*                   (integral_float d l (I.midpoint (I.bnd l u))) *)
-(*                   (integral_float d (I.midpoint (I.bnd l u)) u) by []. *)
-(* move => HnotInan. *)
-(* have := (Hdepth l (I.midpoint (I.bnd l u))). case. *)
-(*   move:  HnotInan. *)
-(*   by case: (integral_float d l (I.midpoint (I.bnd l u))). *)
-(* move => Hlreal _. *)
-(* have := (Hdepth (I.midpoint (I.bnd l u)) u). case. *)
-(*   move:  HnotInan. *)
-(*   by case: (integral_float d (I.midpoint (I.bnd l u)) u); try by case: (integral_float d l (I.midpoint (I.bnd l u))). *)
-(* move => _. *)
-(* move => Hureal. *)
-(* done. *)
-(* Qed. *)
-
 Section IntervalMissing.
 
 Lemma ImulcancelRight dummy : Int.EF.I.mul prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
@@ -531,7 +502,6 @@ Qed.
 
 End IntervalMissing.
 
-(* remark: this lemma should be deducible from computation alone rather than from the test in integral_float_epsilon' *)
 Let integral_float_epsilon' :=
   Int.integral_float_epsilon' prec estimator.
 
@@ -602,8 +572,6 @@ Definition ex_RInt_base_case :=
   F.real u0 ->
   F.real l1 ->
   I.Fle u0 l1 ->
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in *)
   notInan (estimator u0 l1) ->
   ex_RInt
     (fun x =>
@@ -616,102 +584,11 @@ Definition ex_RInt_base_case :=
     (T.toR l1).
 
 
-(* Proof. *)
-(* move => Hrealu0 Hreall1 Hleu0l1 HnotInan. *)
-(* apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)). *)
-(* - move => x; apply: aux => // . *)
-(* - move: HnotInan; rewrite /base_case /Int.base_case. set j := nth _ _ _. *)
-(*   rewrite /Int.base_case /boundsToInt. *)
-(*   rewrite -[iF (I.bnd u0 l1)]/(j). *)
-(*   by case: j. *)
-(* Qed. *)
-
-
-(* Lemma ex_RInt_base_case u0 l1 : *)
-(*   F.real u0 -> *)
-(*   F.real l1 -> *)
-(*   I.Fle u0 l1 -> *)
-(*   (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *) *)
-(*   (* let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in *) *)
-(*   notInan (estimator u0 l1) -> *)
-(*   ex_RInt *)
-(*     (fun x => *)
-(*        List.nth *)
-(*          0 *)
-(*          (eval_real *)
-(*             prog *)
-(*             (x::boundsToR bounds)) R0) *)
-(*     (T.toR u0) *)
-(*     (T.toR l1). *)
-(* Proof. *)
-(* move => Hrealu0 Hreall1 Hleu0l1 HnotInan. *)
-(* apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)). *)
-(* - move => x; apply: aux => // . *)
-(* - move: HnotInan; rewrite /estimator /Int.estimator. set j := nth _ _ _. *)
-(*   rewrite /Int.estimator /boundsToInt. *)
-(*   rewrite -[iF (I.bnd u0 l1)]/(j). *)
-(*   by case: j. *)
-(* Qed. *)
-
-Let integral_float_signed := Int.integral_float_signed prec estimator.
-
-Lemma integral_float_ex_RInt
-      (depth : nat) u0 l1 :
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in *)
-  ex_RInt_base_case ->
-  let i := integral_float_signed depth u0 l1
-  in
-  notInan (integral_float depth u0 l1) ->
-  I.Fle u0 l1 ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
-Proof.
-move => ex_RInt_base_case (* f iF *) i HnotInan Hleu0l1.
-have [Hrealu0 Hreall1] : F.real u0 /\ F.real l1.
-  admit. (* by apply: (integral_float_real_arguments) HnotInan.*)
-elim: depth u0 l1 Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1  Hreall1 Hrealu0 i HnotInan Horder.
-- by apply: ex_RInt_base_case HnotInan.
-- pose m := I.midpoint (I.bnd u0 l1).
-  have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
-  set intf := integral_float.
-  have aux : intf (S d) u0 l1 = I.add prec (intf d u0 m) (intf d m l1) by [].
-  have Hrealm : (F.real m).
-    suff: I.convert_bound m = Xreal (T.toR m).
-      by move/Int.EF.F_realP.
-    have := (I.midpoint_correct ((I.bnd u0 l1))).
-      case.
-      exists (Xreal (T.toR u0)).
-      move: (Int.EF.contains_convert_bnd_l u0 l1 Hrealu0 Hreall1 Hleu0ml1).
-      by move/Int.EF.F_realP :Hrealu0 => -> .
-    by [].
-  (* first we establish a useful inequality on u0, m and l1 *)
-  have := (Int.EF.midpoint_bnd_in u0 l1 Hrealu0 Hreall1 Hleu0ml1).
-  rewrite -[Int.EF.I.midpoint _]/m.
-  move => [Hleu0m Hleml1].
-  apply: (ex_RInt_Chasles _ _ (T.toR m)).
-  + apply: HId => // .
-    * by move: HnotInan; rewrite -/intf aux; case: (intf d u0 m).
-      by apply: Int.Rle_Fle.
-  + apply: HId => // .
-    * move: HnotInan; rewrite -/intf aux; case: (intf d m l1) => //.
-      by case: (intf d u0 m).
-    * by apply: Int.Rle_Fle.
-Qed.
 
 Let integral_float_epsilon_signed := Int.integral_float_epsilon_signed prec estimator.
 
 Lemma integral_float_epsilon_ex_RInt
       (depth : nat) u0 l1 epsilon :
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in *)
   let i := integral_float_epsilon_signed depth u0 l1 epsilon
   in
   ex_RInt_base_case ->
@@ -727,7 +604,7 @@ Lemma integral_float_epsilon_ex_RInt
     (T.toR u0)
     (T.toR l1).
 Proof.
-move => (* f iF *) i ex_RInt_base_case HnotInan Hleu0l1.
+move => i ex_RInt_base_case HnotInan Hleu0l1.
 move: HnotInan.
 rewrite /integral_float_epsilon' /Int.integral_float_epsilon'.
 case Hreall1 : (F.real l1); case Hrealu0 : (F.real u0) => // HnotInan.
@@ -799,60 +676,9 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 i HnotInan Hleu0l1 => [|d HId] u0 l1 e
         by apply: Int.Rle_Fle.
 Qed.
 
-Lemma integral_float_signed_ex_RInt
-      (depth : nat) (* prec prog bounds *) u0 l1 :
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := *)
-  (*     (fun xi => *)
-  (*        nth 0 *)
-  (*            (A.BndValuator.eval *)
-  (*                           prec *)
-  (*                           prog *)
-  (*                           (xi::map A.interval_from_bp bounds)) *)
-  (*            I.nai) in *)
-  ex_RInt_base_case ->
-  let i := Int.integral_float_signed
-             prec
-             estimator
-             depth u0 l1
-  in
-  notInan i ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
-Proof.
-move => (* f iF *) i.
-rewrite /Int.integral_float_signed.
-move => HnotInan.
-case Horder : (Int.Int.I.Fle u0 l1) HnotInan => HnotInan.
-- by apply: (integral_float_ex_RInt).
-- suff HnotInan2 : notInan (Int.integral_float prec estimator depth l1 u0).
-
-  (* have [Hreall1 Hrealu0] := (integral_float_real_arguments depth l1 u0 HnotInan2). *)
-  apply: ex_RInt_swap.
-  apply: (integral_float_ex_RInt) => // .
-  apply: Int.Fle_rev; admit. (* need a lemma bout Fle *)
-- move: HnotInan.
-  by case: (Int.integral_float prec estimator depth l1 u0).
-Qed.
 
 Lemma integral_float_epsilon_signed_ex_RInt
-      (depth : nat) (* prec prog bounds *) u0 l1 epsilon :
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := *)
-  (*     (fun xi => *)
-  (*        nth 0 *)
-  (*            (A.BndValuator.eval *)
-  (*                           prec *)
-  (*                           prog *)
-  (*                           (xi::map A.interval_from_bp bounds)) *)
-  (*            I.nai) in *)
+      (depth : nat) u0 l1 epsilon :
   let i := Int.integral_float_epsilon_signed
              prec
              estimator
@@ -870,7 +696,7 @@ Lemma integral_float_epsilon_signed_ex_RInt
     (T.toR u0)
     (T.toR l1).
 Proof.
-move => (* f iF  *) ex_RInt_base_case i.
+move => ex_RInt_base_case i.
 rewrite /Int.integral_float_epsilon_signed.
 move => HnotInan.
 case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
@@ -881,68 +707,6 @@ case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
   apply: (integral_float_epsilon_ex_RInt) => //; first by apply: Int.Fle_rev.
 - move: HnotInan.
   by case: (Int.integral_float_epsilon' prec estimator depth l1 u0).
-Qed.
-
-Lemma integral_correct :
-  forall (depth : nat)  (* prec proga boundsa progb boundsb prog bounds *),
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
-  (* let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in *)
-  let i := Int.integral_intBounds
-             prec
-             iF
-             estimator
-             depth ia ib
-  in
-  ex_RInt_base_case ->
-  (notInan i ->
-   ex_RInt f a b) /\
-  contains (I.convert i) (Xreal (RInt f a b)).
-Proof.
-move => depth  (* prec proga boundsa progb boundsb prog bounds f *) (* a b ia ib  *)(* iF *) i ex_RInt_base_case.
-case Hibndlu : i =>[|l u]; first by [].
-rewrite -Hibndlu.
-suff fInt : ex_RInt f a b.
-  split => //;  apply: Int.integral_correct => // .
-  - by move => xi x; apply: contains_eval_arg.
-  - exact: Hconta.
-  - exact: Hcontb.
-rewrite {}/i in Hibndlu.
-case Hia : ia Hibndlu => [|l0 u0] Hibndlu;
-case Hib : ib Hibndlu => [|l1 u1] => //.
-rewrite /Int.integral_intBounds /=.
-set res := Int.EF.I.add _ _ _.
-suff res_ok :
-   F.cmp u0 l1 = Xeq \/ F.cmp u0 l1 = Xlt ->
-   res = Interval_interval_float.Ibnd l u -> ex_RInt f a b.
-    by move: res_ok; case Horder: (F.cmp u0 l1) => //; apply; [left | right].
-move=> Horder; rewrite {}/res => Hibndlu.
-suff: notInan ((Int.all_integrals prec iF (Interval_interval_float.Ibnd l0 u0)
-           (Int.EF.thin u0))) /\
-        notInan ((Int.integral_float_signed prec estimator depth u0 l1)) /\
-        notInan ((Int.all_integrals prec iF (Int.EF.thin l1)
-        (Interval_interval_float.Ibnd l1 u1))).
-  case => HnotInan1.
-  case => HnotInan2 HnotInan3.
-  have Hint1 : ex_RInt f a (T.toR u0).
-  apply: (all_integrals_correct_prog ia (Int.EF.thin u0) a (T.toR u0)) => // .
-    * exact: Hconta.
-    * by apply: Int.EF.thin_correct_toR.
-    * rewrite Hia; exact: HnotInan1.
-  have Hint3 : ex_RInt f (T.toR l1) b.
-    apply: (all_integrals_correct_prog (Int.EF.thin l1) ib).
-    * by apply: Int.EF.thin_correct_toR.
-    * by apply: contains_eval.
-    * rewrite Hib; exact: HnotInan3.
-  have Hint2 : ex_RInt f (T.toR u0) (T.toR l1).
-    exact: (integral_float_signed_ex_RInt depth _).
-  apply: (ex_RInt_Chasles _ _ (T.toR u0)) => //.
-  by apply: (ex_RInt_Chasles _ _ (T.toR l1)).
-move: Hibndlu.
-case: (Int.all_integrals prec iF (Interval_interval_float.Ibnd l0 u0)
-      (Int.EF.thin u0)) => // l2 u2 .
-case: (Int.integral_float_signed prec estimator depth u0 l1) => // l3 u3.
-by case: (Int.all_integrals prec iF (Int.EF.thin l1)
-        (Interval_interval_float.Ibnd l1 u1)).
 Qed.
 
 Lemma integral_epsilon_correct :
@@ -968,7 +732,7 @@ suff fInt : ex_RInt f a b.
 rewrite {}/i in Hibndlu.
 case Hia : ia Hibndlu => [|l0 u0] Hibndlu;
 case Hib : ib Hibndlu => [|l1 u1] => //.
-rewrite /Int.integral_intBounds /=.
+rewrite /Int.integral_intBounds_epsilon /=.
 set res := Int.EF.I.add _ _ _.
 suff res_ok :
    F.cmp u0 l1 = Xeq \/ F.cmp u0 l1 = Xlt ->
@@ -1003,8 +767,6 @@ case: (Int.integral_float_epsilon_signed prec estimator depth u0 l1) => // l3 u3
 by case: (Int.all_integrals prec iF (Int.EF.thin l1)
         (Interval_interval_float.Ibnd l1 u1)).
 Qed.
-
-
 
 End IntegralProg.
 
@@ -1053,25 +815,19 @@ Lemma ex_RInt_base_case_naive' prec prog bounds :
 ex_RInt_base_case prog bounds (Int.naive_integral prec iF).
 Proof.
 move => f iF.
-move => u0 l1 Hu0real Hl1real Hleu0l1 HnotInan.
+move => u0 l1 Hleu0l1 HnotInan.
 by apply: ex_RInt_base_case_naive.
 Qed.
 
 Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
-  forall prec deg (* proga boundsa progb boundsb *) prog bounds,
-  (* let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in *)
+  forall prec deg prog bounds,
   let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
     (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
         map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  (* let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in *)
-  (* let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in *)
-  (* let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in *)
-  (* let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in *)
   let estimator := fun fa fb =>
     let xi := I.bnd fa fb in
-    let x0 := I.midpoint xi in
-    Int'.taylor_integral_naive_intersection prec iF (iF' xi) (Int.EF.thin x0) fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
+    Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
 ex_RInt_base_case prog bounds estimator.
 Proof.
 move => prec deg prog bounds iF' iF estimator.
@@ -1092,28 +848,6 @@ Qed.
 End naive_ex_RInt_base_case.
 
 Section Correction_lemmas_integral_for_tactic.
-
-Lemma naive_integral_correct :
-  forall prec depth proga boundsa progb boundsb prog bounds,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-  let estimator := Int.naive_integral prec iF in
-  let i := Int.integral_intBounds prec iF estimator depth ia ib in
-  (notInan i ->
-   ex_RInt f a b) /\
-  contains (I.convert i) (Xreal (RInt f a b)).
-Proof.
-move => prec depth proga boundsa progb boundsb prog bounds f iF a b ia ib estimator i.
-apply: integral_correct.
-apply: Int.naive_integral_correct.
-apply: contains_eval_arg.
-apply: ex_RInt_base_case_naive'.
-Qed.
-
 
 Lemma naive_integral_epsilon_correct :
   forall prec depth proga boundsa progb boundsb prog bounds epsilon,
@@ -1136,69 +870,6 @@ apply: contains_eval_arg.
 apply: ex_RInt_base_case_naive'.
 Qed.
 
-
-Lemma taylor_integral_correct :
-  forall prec deg depth proga boundsa progb boundsb prog bounds,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
-    (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
-        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-  let estimator := fun fa fb =>
-    let xi := I.bnd fa fb in
-    let x0 := I.midpoint xi in
-    Int'.taylor_integral prec (iF' xi) (Int.EF.thin x0) (Int.EF.thin fa) (Int.EF.thin fb) in
-  let i := Int.integral_intBounds prec iF estimator depth ia ib in
-  (notInan i ->
-   ex_RInt f a b) /\
-  contains (I.convert i) (Xreal (RInt f a b)).
-Proof.
-move => prec deg depth proga boundsa progb boundsb prog bounds f iF' iF a b ia ib estimator i.
-apply: integral_correct.
-move => fa fb Hint Hle Hra Hrb.
-apply: Int'.taylor_integral_correct.
-admit.
-(*apply: ex_RInt_base_case_naive'.*)
-Qed.
-
-Lemma taylor_integral_epsilon_correct :
-  forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
-    (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
-        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-  let estimator := fun fa fb =>
-    let xi := I.bnd fa fb in
-    let x0 := I.midpoint xi in
-    Int'.taylor_integral prec (iF' xi) (Int.EF.thin x0) (Int.EF.thin fa) (Int.EF.thin fb) in
-  let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
-  (notInan i ->
-   ex_RInt f a b) /\
-  contains (I.convert i) (Xreal (RInt f a b)).
-Proof.
-move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF' iF a b ia ib estimator i.
-apply: integral_epsilon_correct.
-move => fa fb Hint Hle Hra Hrb.
-apply: Int'.taylor_integral_correct.
-admit.
-(*apply: ex_RInt_base_case_naive'.*)
-Qed.
-
-(* Print Int'.taylor_integral. *)
-(* Print Int'.taylor_integral_subtle. *)
-
-(* Print Int.integral_intBounds_epsilon. *)
-(* Print Int'.taylor_integral_naive_intersection. *)
-
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
@@ -1212,8 +883,7 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
   let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
   let estimator := fun fa fb =>
     let xi := I.bnd fa fb in
-    let x0 := I.midpoint xi in
-    Int'.taylor_integral_naive_intersection prec iF (iF' xi) (Int.EF.thin x0) fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
+    Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
   let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
   (notInan i ->
    ex_RInt f a b) /\
@@ -1539,7 +1209,6 @@ Ltac get_RInt_bounds prec rint_depth rint_prec x :=
           let lcf := get_trivial_bounds lf prec in
           let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
           (* let c := constr:(proj2 (naive_integral_epsilon_correct prec rint_depth pa lca pb lcb pf lcf epsilon)) in *)
-          (* let c := constr:(proj2 (naive_integral_correct prec rint_depth pa lca pb lcb pf lcf)) in *)
           (* let c := constr:(proj2 (taylor_integral_correct prec 10%nat rint_depth pa lca pb lcb pf lcf)) in *)
           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec 10%nat rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
