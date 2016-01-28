@@ -4427,9 +4427,20 @@ rewrite (eq_big_nat _ _ (F2 := fun i =>
 rewrite -(big_addn 0 _ n.-1.+1 predT (fun i =>
   PolR.mul_coeff tt pf pg i * (x - x0) ^ i)%R).
 set e := ((_ f x - sf) * sg + ((_ g x - sg) * sf + (_ f x - sf) * (_ g x - sg)))%R.
+rewrite Rplus_comm.
 have->: e = ((toR_fun (fun xr => (f xr * g xr))%XR x) - sf * sg)%R.
-rewrite {}/e.
-apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul) !Xreal_toR //; try ring.
+(* begin flip-flop *)
+apply/Xreal_inj.
+rewrite ![in RHS](Xreal_sub, Xreal_mul, Xreal_toR);
+  last by move: Hdfx Hdgx; tac_def2 f g.
+rewrite -![in RHS](Xreal_sub, Xreal_mul, Xreal_toR) // /e.
+congr Xreal; ring.
+(* end flip-flop *)
+rewrite Rplus_assoc; congr Rplus.
+rewrite {}/e {}/sf {}/sg.
+rewrite !PolR.hornerE.
+rewrite big_addn.
+
 (* apply: (Rplus_eq_reg_r (toR_fun (fun xr => (f xr * g xr))%XR x)).
 case cn : n => [|n'] /=.
 
@@ -4440,7 +4451,8 @@ apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul).
   move: (Hdf x Hx Df) (Hdg x Hx Dg); by tac_def2 f g.
   simpl.
   *)
-  admit. admit. admit. admit. admit.
+
+  admit. admit. admit.
   (*
   rewrite cn in Heq.
   rewrite -/n cn in Hf1.
