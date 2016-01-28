@@ -56,7 +56,8 @@ Let Hfgext := toXreal_fun_correct f.
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
 
 Variable Mf : TM.TMI.rpa.
-Variable X X0 : I.type.
+Variables X : I.type.
+Definition X0 := thin (I.midpoint X).
 Variable dom : R -> bool.
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
