@@ -82,7 +82,6 @@ Qed.
 
 Lemma continuous_exp x : continuous exp x.
 Proof.
-Search _ exp.
 apply: ex_derive_continuous.
 apply: ex_derive_Reals_1.
 exact: derivable_pt_exp.
