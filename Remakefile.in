@@ -7,6 +7,7 @@ FILES = \
 	Interval_generic_proof.v \
 	Interval_generic.v \
 	Interval_integral.v \
+	Interval_integral_taylor.v \
 	Interval_interval.v \
 	Interval_interval_float.v \
 	Interval_interval_float_full.v \
@@ -19,7 +20,9 @@ FILES = \
 	Interval_transcend.v \
 	Interval_univariate.v \
 	Interval_xreal.v \
-	Interval_xreal_derive.v
+	Interval_xreal_derive.v \
+        seq_patch.v \
+        reals_compl.v
 
 CAFILES = \
 	basic_rec.v \

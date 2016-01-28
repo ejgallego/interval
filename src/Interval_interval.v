@@ -25,7 +25,7 @@ Require Import Interval_definitions.
 Require Import Interval_float_sig.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
-Require Import ssreflect.
+Require Import Ssreflect.ssreflect.
 
 Inductive interval : Set :=
   | Inan : interval
