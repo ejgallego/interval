@@ -246,7 +246,7 @@ Variable est : F.type -> F.type -> I.type.
 Definition diam x :=
   match x with
     | Inan => F.nan
-    | Ibnd a b => F.sub_exact b a
+    | Ibnd a b => F.sub Interval_definitions.rnd_UP prec b a
   end.
 
 Definition div2 f := F.scale2 f (F.ZtoS (-1)).
@@ -274,7 +274,13 @@ Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) 
 
 Definition integral_float_epsilon' (depth : nat) (a b : F.type) (epsilon : F.type) :=
   match F.real a, F.real b with
-    | true,true => integral_float_epsilon depth a b epsilon
+    | true,true => 
+      let roughEst := est a b in
+      if I.bounded roughEst then
+        let epsilon := F.mul Interval_definitions.rnd_UP prec epsilon (I.upper (I.abs roughEst)) in
+        integral_float_epsilon depth a b epsilon
+      else
+        integral_float_epsilon depth a b epsilon
     | _,_ => Interval_interval_float.Inan
   end.
 
@@ -336,12 +342,13 @@ Hypothesis Hcorrect : integralEstimatorCorrect estimator.
 Let integral_float_epsilon' := integral_float_epsilon' (estimator).
 
 Lemma integral_float_epsilon_correct (depth : nat) (a b : F.type) epsilon :
+  F.real a -> F.real b ->
   ex_RInt f (T.toR a) (T.toR b) ->
   T.toR a <= T.toR b ->
-  contains (I.convert (integral_float_epsilon' depth a b epsilon)) (Xreal (RInt f (T.toR a) (T.toR b))).
+  contains (I.convert (integral_float_epsilon estimator depth a b epsilon)) (Xreal (RInt f (T.toR a) (T.toR b))).
 Proof.
-case Hareal : (F.real a); case Hbreal: (F.real b); rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // .
-elim: depth a b Hareal Hbreal epsilon => [ | k Hk] a b Hareal Hbreal epsilon Hintegrable Hleab.
+move => Hareal Hbreal.
+elim: depth a b epsilon Hareal Hbreal => [ | k Hk] a b epsilon Hareal Hbreal Hintegrable Hleab.
   by apply: Hcorrect => //.
 set midpoint := I.midpoint (I.bnd a b).
 have hIl : ex_RInt f (T.toR a) (T.toR midpoint).
@@ -352,8 +359,9 @@ have -> : RInt f (T.toR a) (T.toR b) =
   RInt f (T.toR a) (T.toR midpoint) + RInt f (T.toR midpoint) (T.toR b).
   by rewrite RInt_Chasles.
 set I1 := RInt _ _ _; set I2 := RInt _ _ _.
-rewrite /integral_float_epsilon -/integral_float_epsilon -[Xreal (_ + _)]/(Xadd (Xreal I1) (Xreal I2)).
 have [in1 in2] := midpoint_bnd_in a b Hareal Hbreal Hleab.
+rewrite integral_float_epsilon_Sn.
+rewrite (* /integral_float_epsilon -/integral_float_epsilon. *) -[Xreal (_ + _)]/(Xadd (Xreal I1) (Xreal I2)).
 set d1 := diam _.
 set d2 := diam _.
 have hm : F.real (I.midpoint (I.bnd a b)).
@@ -362,6 +370,15 @@ have hm : F.real (I.midpoint (I.bnd a b)).
   by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
 case Hcmp1 : (Fle d1 (div2 epsilon)); case Hcmp2 : (Fle d2 (div2 epsilon));
 repeat ((try (apply: I.add_correct => // )); try (apply: Hcorrect => // ); try (apply: Hk => // )).
+Qed.
+
+Lemma integral_float_epsilon'_correct (depth : nat) (a b : F.type) epsilon :
+  ex_RInt f (T.toR a) (T.toR b) ->
+  T.toR a <= T.toR b ->
+  contains (I.convert (integral_float_epsilon' depth a b epsilon)) (Xreal (RInt f (T.toR a) (T.toR b))).
+Proof.
+case Hareal : (F.real a); case Hbreal: (F.real b); rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // .
+  by case: I.bounded; apply: integral_float_epsilon_correct.
 Qed.
 
 
@@ -542,53 +559,24 @@ Qed.
 
 Let integral_float_epsilon_signed := integral_float_epsilon_signed (estimator).
 
-Lemma integral_float_signed_epsilon_correct_neg (depth : nat) (a b : F.type) epsilon :
-  ex_RInt f (T.toR a) (T.toR b) ->
-  T.toR a > T.toR b ->
-  contains (I.convert (integral_float_epsilon_signed depth a b epsilon))
-           (Xreal (RInt f (T.toR a) (T.toR b))).
-Proof.
-case Hareal : (F.real a); case Hbreal: (F.real b); rewrite /integral_float_epsilon_signed /IntervalIntegral.integral_float_epsilon_signed /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // .
-- move => Hfint Hgeab.
-  rewrite /integral_float_epsilon_signed.
-  have -> : Fle a b = false by apply Fle_Rlt_Inv.
-  rewrite -RInt_swap.
-  set it := (RInt _ _ _).
-  have -> : Xreal (- it) = Xneg (Xreal it) by [].
-  set It := integral_float_epsilon _ _ _ _ _.
-  suff: contains (I.convert It) (Xreal it).
-    by apply: I.neg_correct.
-  have -> :  It = integral_float_epsilon' depth b a epsilon by rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' Hareal Hbreal.
-  apply: integral_float_epsilon_correct => // .
-    by apply: ex_RInt_swap.
-  by apply: Rlt_le.
-- rewrite /Fle /Int.I.Fle F.cmp_correct /integral_float_epsilon'.
-  move: (F.real_correct a); rewrite Hareal; case: (F.toF a) => // ;
-move: (F.real_correct b); rewrite Hbreal; case: (F.toF b) => // _ dummy dummy1 dummy2 _.
-  by rewrite FcmpCancelRight.
-- rewrite /Fle /Int.I.Fle F.cmp_correct /integral_float_epsilon'.
-  by move: (F.real_correct a); rewrite Hareal; case: (F.toF a) => // ;
-move: (F.real_correct b); rewrite Hbreal; case: (F.toF b) => // _ dummy dummy1 dummy2 _.
-- rewrite /Fle /Int.I.Fle F.cmp_correct /integral_float_epsilon'.
-  by move: (F.real_correct a); rewrite Hareal; case: (F.toF a) => // ;
-move: (F.real_correct b); rewrite Hbreal; case: (F.toF b) => // _ dummy dummy1 dummy2 _.
-Qed.
-
 Lemma integral_float_epsilon_signed_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (T.toR a) (T.toR b) ->
   (F.real a) -> (F.real b) ->
   contains (I.convert (integral_float_epsilon_signed depth a b epsilon)) (Xreal (RInt f (T.toR a) (T.toR b))).
 Proof.
+rewrite /integral_float_epsilon_signed /IntervalIntegral.integral_float_epsilon_signed.
 case (Rle_dec (T.toR a) (T.toR b)) => Hab Hintf Hreala Hrealb.
-- rewrite /integral_float_epsilon_signed /IntervalIntegral.integral_float_epsilon_signed.
- case (Rle_lt_or_eq_dec (T.toR a) (T.toR b)) => // [Hlt|Hle].
-    + have -> : Fle a b = true. by apply: Rle_Fle.
-      exact: integral_float_epsilon_correct.
-    + have -> : Fle a b = true by apply: Req_Fle.
-      exact: integral_float_epsilon_correct.
-by apply: integral_float_signed_epsilon_correct_neg => //; apply: Rnot_le_lt.
+- have -> : Fle a b = true by apply: Rle_Fle.
+  exact: integral_float_epsilon'_correct.
+- have -> : Fle a b = false. 
+    apply: Fle_Rlt_Inv => // .
+    by apply Rnot_le_gt.
+rewrite -RInt_swap Xreal_neg.
+apply: I.neg_correct.
+apply: integral_float_epsilon'_correct.
++ exact: ex_RInt_swap.
++ apply: Rlt_le; exact: Rnot_le_gt.
 Qed.
-
 
 Lemma all_integrals_correct_leq (ia ib: I.type) (a b : R) :
   (a <= b) ->
