@@ -11,7 +11,7 @@ Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_bisect.
 
-Require Import Ssreflect.ssreflect Ssreflect.ssrnat.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrnat.
 Require Import seq_patch.
 
 Section Prelude.
@@ -107,7 +107,26 @@ case: unop HbnotXnan.
     case Hpos : (is_positive (a x)) => HnotXnan.
     by apply: (is_positive_positive _ Hpos).
     by move: HnotXnan.
-- move => n HnotXnan. admit.
+- move => n HnotXnan.
+  rewrite /= /powerRZ.
+  case: n HnotXnan => [|n|n] => HnotXnan.
+  + exact: continuous_const.
+  + apply: (continuous_comp a (fun x => pow x _)) => // .
+    apply: ex_derive_continuous.
+    apply: ex_derive_pow.
+    exact: ex_derive_id.
+  + have Hanot0 : a x <> 0.
+    move => Habs. move: HnotXnan.
+    rewrite /= /Xpower_int. rewrite Hb in Hbnan. rewrite Hbnan. case: ifP => // .
+    rewrite Habs.
+    by rewrite is_zero_correct_zero.
+    apply: continuous_comp.
+    apply: (continuous_comp a (fun x => pow x _)) => // .
+    apply: ex_derive_continuous.
+    apply: ex_derive_pow.
+    exact: ex_derive_id.
+    apply: continuous_Rinv.
+    exact: pow_nonzero.
 Qed.
 
 End InversionUsualFunctions.
@@ -177,54 +196,6 @@ suff: contains (I.convert (I.power_int prec i (Z.neg p))) Xnan => [Habs|].
 have -> : Xnan = Xpower_int (Xreal 0) (Z.neg p) by rewrite /= is_zero_correct_zero.
 by apply: I.power_int_correct.
 Qed.
-
-(* Lemma notInan_inversion_PowNeg_stronger i p : *)
-(*   notInan (I.power_int prec i (Z.neg p)) -> *)
-(*   (forall x, contains (I.convert i) (Xreal x) -> x < 0) \/ *)
-(*   (forall x, contains (I.convert i) (Xreal x) -> x > 0). *)
-(* Proof. *)
-(* move => HnotInan. *)
-(* suff: ~ contains (I.convert i) (Xreal 0); last first. *)
-(*   by apply: notInan_inversion_PowNeg HnotInan. *)
-(* move => Hnot0. *)
-(* set P :=  (X in X \/ _). *)
-(* set Q :=  (X in _ \/ X). *)
-(* suff: ~ (~ P /\ ~ Q). *)
-(* move => H_andnot. *)
-(* apply: Classical_Prop.NNPP. (* can we do without classical reasoning ? *) *)
-(* move => H1. *)
-(* apply: H_andnot. *)
-(* split. *)
-(* + move => HP. *)
-(*   apply: H1. *)
-(*   by left. *)
-(* + move => HQ. *)
-(*   apply: H1. *)
-(*   by right. *)
-(* move => Habs. *)
-(* apply: Hnot0. *)
-(* Admitted. *)
-
-(* (* maybe this lemma is false if i1 is empty? To check *) *)
-(* Lemma notInan_inversion_Div i1 i2 : *)
-(* notInan (I.div prec i1 i2) -> ~ contains (I.convert i2) (Xreal 0) . *)
-(* Proof. *)
-(* move => HnotInan Hcontains0. *)
-(* suff: contains (I.convert (I.div prec i1 i2)) Xnan => [Habs|]. *)
-(*   move: HnotInan. *)
-(*   have := (proj1(xreal_ssr_compat.contains_Xnan _)) Habs. *)
-(*   by case: (I.div prec i1 i2). *)
-(* (* have -> : Xnan = Xdiv (Xreal 0) by rewrite /= is_zero_correct_zero. *) *)
-(* (* by apply: I.inv_correct. *) *)
-(* Abort. *)
-
-(* Lemma notInan_inversion_Div_stronger i1 i2 : *)
-(*   notInan (I.div prec i1 i2) -> *)
-(*   (forall x, contains (I.convert i2) (Xreal x) -> x < 0) \/ *)
-(*   (forall x, contains (I.convert i2) (Xreal x) -> x > 0). *)
-(* Proof. *)
-(* Abort. *)
-
 
 Lemma notInan_inversion_Sqrt i :
   notInan (I.sqrt prec i) ->
