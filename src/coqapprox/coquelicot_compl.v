@@ -118,7 +118,11 @@ Qed.
 Lemma continuous_ln x : (0 < x) -> continuous ln x.
 Proof.
 move => Hxgt0.
-Admitted.
+apply: ex_derive_continuous.
+exists (/x).
+apply is_derive_Reals.
+exact: derivable_pt_lim_ln.
+Qed.
 
 Lemma continuous_Rabs_comp f (x : R) :
   continuous f x -> continuous (fun x0 => Rabs (f x0)) x.
