@@ -118,7 +118,8 @@ have -> : X = 0 + X by rewrite Rplus_0_l.
 rewrite Derive_plus; [ |by apply: ex_derive_const |].
 - congr (_ + _); first by apply: Derive_const.
 rewrite derive_big.
-apply: eq_bigr => i _.
+rewrite [LHS]big_nat_cond /X [RHS]big_nat_cond.
+apply: eq_bigr => i; rewrite andbT => Hi. 
 rewrite Derive_mult.
 have -> :
   Derive (fun _ : Rdefinitions.R => nth (primitive tt c p) i.+1) x = 0.
@@ -130,7 +131,6 @@ rewrite primitive_correct => //.
 rewrite Derive_pow ?Derive_id  -?pred_Sn. field.
 apply: not_0_INR => // .
 exact: ex_derive_id.
-admit. (* possibly unwanted side-condition to primitive_correct *)
 apply: ex_derive_const.
 apply: (ex_derive_ext (fun x => x ^ (i.+1))).
   by move => t; rewrite -Interval_missing.pow_powerRZ.
