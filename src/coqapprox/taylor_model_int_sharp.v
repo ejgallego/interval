@@ -252,6 +252,18 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     (eqNai (error M))].
 
 (*
+Definition i_validRPA (X0 X : interval (* not I.type *) )
+  (M : rpa) (xf : ExtendedR -> ExtendedR) :=
+  [/\ not (eqNai (error M)) -> forall x : R, contains X (Xreal x) -> defined xf x,
+    contains (I.convert (error M)) (Xreal 0),
+    I.subset_ X0 X &
+    forall x0, contains X0 (Xreal x0) ->
+    exists Q, approx M >:: Q /\
+    forall x, contains X (Xreal x) ->
+       error M >: proj_val (xf (Xreal x)) - (PolR.horner tt Q (x - x0))%R].
+*)
+
+(*
 Definition i_validTM2 (X0 X : interval (* not I.type *) )
   (M : rpa) (xf : ExtendedR -> ExtendedR (* C^infty or Xnan *)) :=
   let f := toR_fun xf in
@@ -903,6 +915,68 @@ Qed.
 
 Local Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
+Lemma primitive_contains P q :
+P >:: q ->
+Pol.primitive prec I.zero P >:: PolR.primitive tt 0 q.
+Proof.
+move => Hpq.
+move => n.
+case : (ltnP (Pol.size P) n) => HP ;
+  case: (ltnP (PolR.size q) n) => Hq.
+rewrite PolR.nth_default.
+rewrite Pol.nth_default.
+exact: cont0.
+by rewrite Pol.size_primitive.
+by rewrite PolR.psize_primitive.
+case: n HP Hq => [|n] // HP Hq.
+rewrite Pol.nth_default.
+rewrite PolR.nth_primitive //.
+move: (Hpq n).
+rewrite Pol.nth_default //.
+rewrite /PolR.int_coeff.
+rewrite I.zero_correct.
+move => [H1 H2].
+rewrite (Rle_antisym _ _ H2 H1).
+rewrite /Rdiv Rmult_0_l.
+by split ; apply Rle_refl.
+by rewrite Pol.size_primitive.
+rewrite Pol.primitive_correct //.
+rewrite PolR.nth_default.
+case: n HP Hq => [_ _|n HP Hq].
+exact: cont0.
+move: (Hpq n).
+rewrite PolR.nth_default //.
+move => H.
+replace (Xreal 0) with (Xdiv (Xreal 0) (Xreal (Z2R (Z.of_nat n.+1)))).
+apply: I.div_correct => //.
+exact: I.fromZ_correct.
+rewrite /Xdiv.
+case: is_zero_spec.
+move => H'.
+exfalso.
+move: H'.
+exact: (Z2R_neq _ 0).
+move => _.
+apply: f_equal.
+exact: Rmult_0_l.
+by rewrite PolR.size_primitive.
+rewrite Pol.primitive_correct //.
+rewrite PolR.primitive_correct //.
+case: n HP Hq => [|n] HP Hq.
+exact: cont0.
+replace (Xreal (PolR.nth q n / INR n.+1)) with (Xdiv (Xreal (PolR.nth q n)) (Xreal (Z2R (Z.of_nat n.+1)))).
+apply: I.div_correct => //.
+exact: I.fromZ_correct.
+rewrite /Xdiv.
+case: is_zero_spec.
+move => H'.
+exfalso.
+move: H'.
+exact: (Z2R_neq _ 0).
+move => _.
+by rewrite INR_Z2R.
+Qed.
+
 Lemma integralEnclosure_correct :
   i_validTM iX0 iX Mf xF dom ->
   contains (I.convert integralEnclosure) (XRInt f a b).
@@ -918,10 +992,13 @@ rewrite Xreal_add; apply:I.add_correct.
   by rewrite RInt_translation_sub Rpol_integral_0.
   rewrite Xreal_sub; apply: I.sub_correct.
   + apply: Pol.horner_correct.
-      by admit. (* this should be proved somewhere *)
+    rewrite /TM_integral_poly.
+    exact: primitive_contains.
     rewrite Xreal_sub.
     by apply: I.sub_correct => // .
-  + admit.
+  + apply: Pol.horner_correct.
+    exact: primitive_contains.
+    exact: (I.sub_correct _ _ _ (Xreal a) (Xreal x0)).
     rewrite /integralError.
     apply: contains_RInt_full => // .
 - apply: ex_RInt_plus.
