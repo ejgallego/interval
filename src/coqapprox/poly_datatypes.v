@@ -664,7 +664,6 @@ elim: p=> [| a q HI] ; first by [].
 by rewrite /= HI; case: u HI; rewrite Rmult_0_r Rplus_0_l.
 Qed.
 
-
 Lemma mul_coeff_eq0 p q k :
   (forall i, i <= k -> nth p i = 0%R \/ nth q (k - i) = 0%R) ->
   (\big[Rplus/R0]_(0 <= i < k.+1) (nth p i * nth q (k - i)) = 0)%R.
@@ -860,75 +859,82 @@ exact: leq_maxl.
 by rewrite size_sub.
 Qed.
 
+Lemma horner0 p x : (forall n, nth p n = 0%R) -> p.[x] = 0%R.
+Proof. by move=> Hp; rewrite hornerE big1 // =>[i _]; rewrite Hp Rmult_0_l. Qed.
+
+Lemma horner_size0 p x : size p = 0 -> p.[x] = 0%R.
+Proof. by move=> Hp; rewrite horner0 // => n; rewrite nth_default // Hp. Qed.
+
+Lemma mul_coeff0l p q : size p = 0 -> forall n, mul_coeff tt p q n = 0%R.
+Proof.
+move=> Hp n; rewrite mul_coeffE.
+rewrite big_mkord big1 // => [i Hi].
+rewrite (@nth_default p); by [rewrite Rmult_0_l|rewrite Hp].
+Qed.
+
+Lemma mul_coeff0r p q : size q = 0 -> forall n, mul_coeff tt p q n = 0%R.
+Proof.
+move=> Hq n; rewrite mul_coeffE.
+rewrite big_mkord big1 // => [i Hi].
+rewrite (@nth_default q); by [rewrite Rmult_0_r|rewrite Hq].
+Qed.
+
+Lemma horner_mul0l p q x : size p = 0 -> horner tt (mul tt p q) x = 0%R.
+Proof.
+move=> Hp; apply/horner0 => n; rewrite nth_mul; case: ifP => [//|_].
+exact: mul_coeff0l.
+Qed.
+
+Lemma horner_mul0r p q x : size q = 0 -> horner tt (mul tt p q) x = 0%R.
+Proof.
+move=> Hp; apply/horner0 => n; rewrite nth_mul; case: ifP => [//|_].
+exact: mul_coeff0r.
+Qed.
+
+Lemma horner_coef0 p : p.[0%R] = nth p 0.
+Proof. by elim: p => [//|c p IHp] /=; rewrite Rmult_0_r Rplus_0_l. Qed.
+
+Lemma nth_mulCl c p q i :
+  nth (mul tt (c :: p) q) i.+1 =
+  (c * nth q i.+1 + nth (mul tt p q) i)%R.
+Proof. by rewrite !nth_mul' big_nat_recl. Qed.
+
+Lemma horner_mulCl c p q x :
+  ((mul tt (c :: p) q).[x] = (mul tt p q).[x] * x + c * q.[x])%R.
+Proof.
+rewrite (@hornerE_wide (size p + size q).+1);
+  last by rewrite size_mul leq_pred.
+have HF : forall i, predT i -> (nth (mul tt (c :: p) q) i.+1 * x ^ i.+1 =
+  (c * nth q i.+1) * x ^ i.+1 + nth (mul tt p q) i * x ^ i.+1)%R.
+  by move=> i; rewrite nth_mulCl Rmult_plus_distr_r.
+rewrite big_nat_recl // (eq_bigr _ HF).
+rewrite nth_mul' big_nat1 subn0 [nth _ 0]/= pow_O Rmult_1_r.
+rewrite (@hornerE_wide (size p + size q));
+  last by rewrite size_mul leq_pred.
+set q0 := nth q 0.
+rewrite (big_endo (fun y => y * x)%R);
+  last 1 [by red=> *; rewrite Rmult_plus_distr_r|by rewrite Rmult_0_l].
+rewrite (@hornerE_wide (size p + size q).+1);
+  last by rewrite leqW // leq_addl.
+rewrite big_nat_recl // pow_O Rmult_1_r; fold q0.
+rewrite Rmult_plus_distr_l.
+rewrite (big_endo (fun y => c * y)%R);
+  last 1 [by red=> *; rewrite Rmult_plus_distr_l|by rewrite Rmult_0_r].
+rewrite [RHS]Rplus_comm !Rplus_assoc; congr Rplus.
+rewrite -big_split; apply: eq_bigr => i _.
+simpl; ring.
+Qed.
+
 Lemma horner_mul p q x :
   horner tt (mul tt p q) x = (horner tt p x * horner tt q x)%R.
 Proof.
-rewrite !hornerE size_mul !big_mkord big_distrlr /=.
-set m := size p; set n := size q.
-case Em: @m => [|m'].
-  rewrite big_ord0 big1 // => [[i Hi]] _ /=.
-  rewrite add0n in Hi.
-  suff->: nth (mul tt p q) i = R0 by rewrite Rmult_0_l.
-  admit. (* easy *)
-case En: @n => [|n'].
-  admit. (* easy *)
-have H : forall (i : 'I_m) (j : 'I_n), i + j < (m + n).-1.
-  move=> [i Hi] [j Hj] /=; have h := leq_add Hi Hj; rewrite !addSn !addnS in h.
-  exact: ltn_leq_pred.
-have H1 : forall (i : 'I_m) (j : 'I_n), i < (m + n).-1.
-  move=> [i Hi] [j Hj] /=.
-  apply: leq_trans Hi _.
-  apply: ltn_leq_pred.
-  by rewrite Em En -addSnnS leq_addr.
-pose h := fun (p : 'I_m * 'I_n) => (Ordinal (H p.1 p.2), Ordinal (H1 p.1 p.2)).
-have Hmin1 : forall n (i : 'I_(m + n).-1), minn i m.-1 < m.
-  move=> N [i Hi] /=; rewrite gtn_min; apply/orP.
-  case: N Hi => [|N] Hi; [left|by right; rewrite Em].
-  by apply: ltn_trans Hi _; rewrite addn0 Em.
-have Hmin2 : forall n (i : 'I_(m + n).-1), i - minn i m.-1 < n.
-  move=> N [i Hi] /=; rewrite Em /=.
-  rewrite Em addSn /= in Hi.
-  rewrite -subSn; last by rewrite ?(minnE, geq_min, leqnn).
-  rewrite leq_subLR.
-  case: (leqP i m'); [move/minn_idPl->; admit| admit]. (* todo *)
-have Hsub : forall n (i j : 'I_n), i - j < n.
-  by move=> k [i Hi] [j Hj] /=; apply: leq_trans (ltn_sub2r _ _) (leq_subr _ _).
-(* have Hjmi i j : (i + j - i)%N = j by rewrite -{2}(addn0 i) subnDl subn0. *)
-pose h' := fun (p : 'I_(m + n).-1 * 'I_(m + n).-1) =>
-  (Ordinal (Hmin1 _ p.2), Ordinal (Hmin2 _ (Ordinal (Hsub _ p.1 p.2)))).
-have hh': forall i, predT x -> h' (h i) = i.
-  move=> [[i Hi] [j Hj]] _; apply/ pair_eqP; rewrite /h /h' /=.
-  apply/andP; split; apply/eqP; apply:ord_inj; admit. (* todo *)
-rewrite -Em -En.
-rewrite pair_big /=.
-rewrite (reindex_onto h' h)/=; last first.
-  move=>[[ i Hi] [j Hj]]=>/= _.
-  admit. (*
-  case/andP; case/andP => Hji Hjn Himj.
-  apply/pair_eqP; rewrite /h /h' /=.
-  have minjn k : k < n + 1 -> minn k n = k.
-    by move=> Hjm; apply/minn_idPl; rewrite -ltnS -(addn1 n).
-  by apply/andP;split;
-   apply/eqP; apply:ord_inj=> /=; rewrite !minjn ?subnKC.
-*)
-admit. (*
-apply: eq_big=> i.
-  rewrite hh' eqxx /= andbT.
-  case: i => [[i Hi] [j Hj]] /=.
-  rewrite addn1 Hi andbT /= Hjmi Hj.
-  by rewrite -addnS -{1}(addn0 i) ltn_add2l.
-by do !case/andP=> *; rewrite Hjmi.
-*)
+elim: p => [|c p IHp].
+- rewrite horner0 /= ?Rmult_0_l //.
+  move=> n; rewrite nth_mul; case: ifP =>// H.
+  by rewrite mul_coeff0l.
+rewrite horner_mulCl IHp /= Rmult_plus_distr_r.
+by rewrite !Rmult_assoc (Rmult_comm _ x) -!Rmult_assoc.
 Qed.
-(*
-have h: forall (i: 'I_k.+1), k -i < k.+1 by move=>i;rewrite ltnS leq_subr.
-rewrite (reindex (fun (i: 'I_k.+1) => Ordinal (h i))).
-  by apply:eq_bigr=> i _; rewrite subKn // -ltnS.
-apply:onW_bij; apply: injF_bij=> [] [n Hn] [m Hm].
-move/val_eqP => /= Hnm; apply/val_eqP => /=;move:Hnm.
-rewrite -(eqn_add2r (n + m)) addnA subnK // (addnC n m).
-by rewrite addnA subnK // eqn_add2l eq_sym.
-*)
 
 Lemma horner_lift n p x :
   horner tt (lift n p) x = (horner tt p x * x ^ n)%R.
