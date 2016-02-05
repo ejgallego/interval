@@ -1033,15 +1033,18 @@ pose err := TLrem prec IP X0 X n.
 (* have XDn_0_Xnan : Dn 0 Xnan = Xnan by rewrite XDn_0. *)
 split=>//=.
 
-  admit. (* FIXME *)
+(* Nai *)
+move=> x Hx Nx; rewrite /TLrem; apply/eqNaiP.
+rewrite I.mul_propagate_l //.
+exact: IPoly_nai.
 
-  (* |- 0 \in err *)
-  set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
-  apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
-    apply: IPoly_nth =>//.
-    exact: subset_contains (I.convert X0) _ _ _ _ =>//.
-  apply: pow_contains_0 =>//.
-  exact: subset_sub_contains_0 Ht _.
+(* |- 0 \in err *)
+set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
+apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
+  apply: IPoly_nth =>//.
+  exact: subset_contains (I.convert X0) _ _ _ _ =>//.
+apply: pow_contains_0 =>//.
+exact: subset_sub_contains_0 Ht _.
 
 have [Hder|Hnder] := (ex_der (I.convert X)).
 move=> x0 Hx0.
@@ -2082,7 +2085,8 @@ Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
 Proof.
 move=> Hsubset [t Ht] Hc.
 split=>//=.
-  admit. (* TODO *)
+  move=> x Hx Nx; apply/eqNaiP; rewrite I.mask_propagate_r //.
+  case: c Hc Nx; by [move/contains_Xnan|].
   case Eci: (I.convert ci) => [|rci].
     by rewrite I.mask_propagate_r.
   case Ec: c Hc => [|rc] Hc.
@@ -2110,18 +2114,8 @@ Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : ExtendedR -> ExtendedR) :
   i_validTM (I.convert X0) (I.convert X) (TM_cst ci) f.
 Proof.
 move=> Hsubset Hne [c H1 H2].
-case: c H1 H2 => [|c] H1 H2.
-split=>//.
-  admit. (* TODO *)
-  by rewrite I.mask_propagate_r; last apply/contains_Xnan.
-  move=> x0 Hx0 /=.
-  move/contains_Xnan in H1.
-  (* rewrite ifF; first by apply/eqNaiP; rewrite I.mask_propagate_r.
-  rewrite /defined H2 //.
-  exact: subset_contains Hsubset _ _. *)
-  admit.
 apply: TM_fun_eq; last apply: TM_cst_correct Hsubset Hne H1.
-  by move=> x Hx; rewrite /defined /= H2.
+move=> x Hx /=; by rewrite H2.
 Qed.
 
 Lemma size_TM_cst c : Pol.size (approx (TM_cst c)) <= 1.
@@ -2205,9 +2199,11 @@ set r := proj_val (f (Xreal x0')).
 have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
 split=>//.
-
-admit. (* TODO *)
-
+  move=> x Hx Nx; apply/eqNaiP; rewrite /TM_any /=.
+  rewrite I.mask_propagate_l // I.sub_propagate_l //.
+  apply/contains_Xnan.
+  have->: Xnan = f (Xreal x) by move: Nx; tac_def1 f.
+  exact: Hf.
 have Hr' := contains_not_empty _ _ Hr.
   have Hmid := not_empty_Imid Hr'.
   have [v Hv] := Hmid.
@@ -2229,7 +2225,6 @@ have Hr' := contains_not_empty _ _ Hr.
     eapply subset_sub_contains_0; first by eexact Hv.
     exact: Imid_subset.
   by rewrite H1.
-
 move=> x0 Hx0.
 set pol0 := PolR.polyC (proj_val (I.convert_bound (I.midpoint Y))).
 set pol' := if n == 0 then pol0 else PolR.set_nth pol0 n 0%R.
@@ -2245,8 +2240,13 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   exact: contains_not_empty Hrr.
   exact: cont0.
 + move=> x Hx /=.
+  case Efx: (f (Xreal x)) => [|fx].
+    rewrite I.mask_propagate_l // I.sub_propagate_l //.
+    apply/contains_Xnan.
+    rewrite -Efx; exact: Hf.
+  have Dx : defined f x by rewrite /defined; rewrite Efx.
   rewrite Xreal_sub Xreal_toR //.
-  step_xr (Xmask ((f (Xreal x) - Xreal (pol'.[(x - x0)%Re]))%XR) (Xreal x)).
+  step_xr (Xmask ((f (Xreal x) - Xreal (pol'.[(x - x0)%Re]))%XR) (Xreal x))=>//.
   apply: I.mask_correct =>//.
   apply: I.sub_correct; first exact: Hf.
   rewrite /pol' /pol0; case: ifP => H.
@@ -2264,21 +2264,6 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   rewrite PolR.polyCE !(PolR.nth_polyCons, PolR.nth_set_nth).
   case: i => [//|i]; first by rewrite eq_sym H.
   by rewrite PolR.nth_polyNil if_same.
-  done.
-
-(*
-apply/eqNaiP; rewrite I.mask_propagate_l // I.sub_propagate_l //.
-apply/contains_Xnan.
-move/definedPf in Df.
-by rewrite -Df; apply: Hf.
-
-apply/eqNaiP; rewrite I.mask_propagate_l // I.sub_propagate_l //.
-apply/contains_Xnan.
-move/definedPf in Df0.
-rewrite -Df0; apply: Hf.
-exact: subset_contains _ _ Hsubset _ Hx0.
-*)
-admit (* FIXME *).
 Qed.
 
 Lemma size_TM_var X0 : Pol.size (approx (TM_var X0)) = 2.
