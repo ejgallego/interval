@@ -908,9 +908,11 @@ Qed.
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
-    (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
-        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
+  let iF'' := fun xi =>
+    nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
+      map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)
+) A.TaylorValuator.TM.dummy in
+  let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iF'' xi) in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
   let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
@@ -924,15 +926,25 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
    ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
-move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF' iF a b ia ib estimator i.
+move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF'' iF' iF a b ia ib estimator i.
 apply: integral_epsilon_correct.
 move => fa fb Hint Hle Hra Hrb.
-apply: (Int'.taylor_integral_naive_intersection_correct prec f _ _ _ _ fa fb) => // .
+apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   move => x xi Hxi.
   by apply (contains_eval_arg prec prog bounds 0).
-by apply: ex_RInt_base_case_taylor_integral_naive_intersection.
+apply: Int'.TM.TMI.TM_fun_eq.
+2: apply A.TaylorValuator.TM.get_tm_correct.
+2: apply: A.TaylorValuator.eval_correct_aux.
+admit.
+admit.
+rewrite -(Int.EF.F_realP _ Hra).
+exact: Int.EF.thin_correct.
+rewrite -(Int.EF.F_realP _ Hrb).
+exact: Int.EF.thin_correct.
+admit.
+admit.
+exact: ex_RInt_base_case_taylor_integral_naive_intersection.
 Qed.
-
 
 End Correction_lemmas_integral_for_tactic.
 

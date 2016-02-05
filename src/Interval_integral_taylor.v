@@ -57,13 +57,11 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 
 Variable Mf : TM.TMI.rpa.
 Variables X : I.type.
-Definition X0 := thin (I.midpoint X).
+Definition X0 := I.bnd (I.midpoint X) (I.midpoint X).
 Variable dom : R -> bool.
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
 
-Hypothesis Hsubset : subset (I.convert X0) (I.convert X).
-Hypothesis Hdomx: forall x, contains iX (Xreal x) -> dom x.
 Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf g.
 
 Variables (a b : F.type).
@@ -80,10 +78,11 @@ Hypothesis hb : F.real b.
 
 Variables ia ib : I.type.
 
-Variable x0 : R.
-Hypothesis Hcontx0 : contains iX0 (Xreal x0).
-Hypothesis Hconta : contains iX (Xreal (T.toR a)).
-Hypothesis Hcontb : contains iX (Xreal (T.toR b)).
+Definition x0 := T.toR (I.midpoint X).
+Hypothesis Hconta : contains (I.convert ia) (Xreal (T.toR a)).
+Hypothesis Hcontb : contains (I.convert ib) (Xreal (T.toR b)).
+Hypothesis Hcontxa : contains iX (Xreal (T.toR a)).
+Hypothesis Hcontxb : contains iX (Xreal (T.toR b)).
 
 Section Functions.
 
@@ -130,9 +129,11 @@ Lemma taylor_integral_correct :
     (Xreal (RInt f (T.toR a) (T.toR b))).
 Proof.
 rewrite /taylor_integral.
-(* move: (@TM.TMI.integralEnclosure_correct prec ia ib (toXreal_fun f) Mf). *)
-(*apply: (TM.TMI.IntegralByPol Iprec _ _ _ _ _ _ _ validMf) => // .*)
-admit.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (toXreal_fun f) Mf x0) => //.
+rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
+split ; apply Rle_refl.
+eexists.
+exact: Hcontxa.
 Qed.
 
 Lemma taylor_integral_subtle_correct :
