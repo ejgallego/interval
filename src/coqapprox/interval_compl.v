@@ -1115,83 +1115,6 @@ case Cl: l Hc Hrx Hry =>[|rl];
 by apply: (Rle_trans _ ry).
 Qed.
 
-Lemma Isub_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.sub prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.sub_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs : (I.convert (I.sub prec X Y))=> [//|l u] /(_ I).
-Qed.
-
-Lemma Isub_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.sub prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.sub_correct prec Y X y Xnan): Hy.
-rewrite Hnan (_ : y - Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.sub prec Y X)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Imul_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.mul prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.mul_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs : (I.convert (I.mul prec X Y)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Imul_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.mul prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.mul_correct prec Y X y Xnan): Hy.
-rewrite Hnan(_ : y*Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.mul prec Y X)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Idiv_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.div prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.div_correct prec Y X y Xnan): Hy.
-rewrite Hnan (_ : y / Xnan = Xnan)%XR; last by case: y.
-by case Cs : (I.convert (I.div prec Y X)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Ipow_Inan_propagate (X : I.type) (n : Z) :
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.power_int prec X n) = Interval_interval.Inan.
-Proof.
-move=> Hnan.
-move: (I.power_int_correct prec n X Xnan); rewrite Hnan.
-by case Cs : (I.convert (I.power_int prec X n)) => [//|l u]/(_ I).
-Qed.
-
-Lemma Iadd_Inan_propagate_l y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.add prec X Y) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan; move/(I.add_correct prec X Y Xnan y _): Hy; rewrite Hnan.
-by case Cs: (I.convert (I.add prec X Y)) => [//|l u] /(_ I).
-Qed.
-
-Lemma Iadd_Inan_propagate_r y Y X :
-  contains (I.convert Y) y ->
-  I.convert X = Interval_interval.Inan ->
-  I.convert (I.add prec Y X) = Interval_interval.Inan.
-Proof.
-move=> Hy Hnan.
-move: (I.add_correct prec Y X y Xnan Hy).
-rewrite Hnan (_ : y+Xnan = Xnan)%XR; last by case: y Hy.
-by case: (I.convert (I.add prec Y X)) => [//|l u] /(_ I).
-Qed.
-
 Lemma Iadd_zero_subset_l (a b : I.type) :
   (exists t, contains (I.convert a) t) ->
   contains (I.convert b) (Xreal 0) ->
@@ -1220,12 +1143,12 @@ Lemma Iadd_Isub_aux b a B D :
 Proof.
 move=> Hb Hd.
 case cb : b Hb=> [|rb].
-  move=> Hb; rewrite (Iadd_Inan_propagate_l _ (y := (a-b)%XR)) => //=.
+  move=> Hb; rewrite I.add_propagate_l => //=.
   by case: (I.convert B) Hb.
 rewrite -cb => Hb; rewrite (_ : a = b + (a - b))%XR.
   by apply: I.add_correct.
 rewrite cb; case: a Hd => //= r _.
-by f_equal; ring.
+by congr Xreal; ring.
 Qed.
 
 End PrecArgument.

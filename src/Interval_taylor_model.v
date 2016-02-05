@@ -262,7 +262,7 @@ have [qx Hcont Hdelta] := Hmain.
 move: x Hx =>[|x Hx].
   move/contains_Xnan => H0.
   rewrite Hnan.
-  rewrite (Iadd_Inan_propagate_l _ Hzero) //.
+  rewrite I.add_propagate_l //. (* does not depend on Hzero anymore *)
   apply: Bnd.ComputeBound_propagate.
   by rewrite I.sub_propagate_l.
 move/(_ x) in Hdelta.
