@@ -932,7 +932,7 @@ move => fa fb Hint Hle Hra Hrb.
 apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   move => x xi Hxi.
   by apply (contains_eval_arg prec prog bounds 0).
-apply: Int'.TM.TMI.TM_fun_eq.
+eapply Int'.TM.TMI.TM_fun_eq.
 2: apply A.TaylorValuator.TM.get_tm_correct.
 2: apply: A.TaylorValuator.eval_correct_aux.
 admit.
