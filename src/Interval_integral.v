@@ -16,11 +16,6 @@ Require Import Interval_generic.
 Require Import Interval.Interval_generic_proof.
 
 Require Import interval_compl.
-Require Import poly_datatypes.
-Require Import taylor_poly.
-Require Import poly_bound.
-Require Import Interval_taylor_model.
-Require Import taylor_model_int_sharp.
 
 Module ExtraFloats (F : FloatOps with Definition even_radix := true).
 Module I := FloatIntervalFull F.
