@@ -734,11 +734,12 @@ move => ex_RInt_base_case i.
 rewrite /Int.integral_float_epsilon_signed.
 move => HnotInan.
 case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
-- by apply: (integral_float_epsilon'_ex_RInt) => // .
+- exact: integral_float_epsilon'_ex_RInt HnotInan _.
 - suff HnotInan2 : notInan (Int.integral_float_epsilon' prec estimator depth l1 u0 epsilon).
   have [Hreall1 Hrealu0] := (integral_float_epsilon_real_arguments depth l1 u0 epsilon HnotInan2).
   apply: ex_RInt_swap.
-  apply: (integral_float_epsilon'_ex_RInt) => //; first by apply: Int.Fle_rev.
+  apply: integral_float_epsilon'_ex_RInt HnotInan2 _ => //.
+  exact: Int.Fle_rev.
 - move: HnotInan.
   by case: (Int.integral_float_epsilon' prec estimator depth l1 u0).
 Qed.
@@ -868,7 +869,7 @@ move => prec deg prog bounds iF' iF estimator.
 move => u0 l1 Hu0real Hl1real Hleu0l1.
 rewrite /estimator /Int'.taylor_integral_naive_intersection.
 move => HnotInan.
-apply: (ex_RInt_base_case_naive) => // .
+apply: (ex_RInt_base_case_naive _ _ prec) => // .
 move: HnotInan.
 rewrite /iF. replace Int'.IntTac.naive_integral with Int.naive_integral .
 by case: (Int.naive_integral prec
