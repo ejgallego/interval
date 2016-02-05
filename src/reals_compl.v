@@ -1,6 +1,13 @@
 Require Import Reals.
+Require Import Psatz.
 Require Import Ssreflect.ssreflect.
-Require Import Psatz .
+Require Import Interval_missing.
+
+Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
+Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
+
+Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%R.
+Proof. by move=>H; elim: (Rtotal_order r1 r2) => [|[|]]; [left|done|right]. Qed.
 
 Section MinMax.
 Lemma Rmin_refl x1 : Rmin x1 x1 = x1. (* !!! *)

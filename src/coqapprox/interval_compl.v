@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith Reals Psatz.
 Require Import Coquelicot.
-Require Import Interval_missing.
+Require Import reals_compl Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_interval Interval_xreal_derive.
 Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
@@ -33,8 +33,21 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope nat_scope.
 
-Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
-Proof. by rewrite INR_IZR_INZ -Z2R_IZR. Qed.
+(****************************************************************************)
+(** Additional support results on extended reals and/or interval arithmetic *)
+(****************************************************************************)
+
+Lemma Xsub_Xreal_l x y :
+  Xsub x y <> Xnan -> x = Xreal (proj_val x).
+Proof. by case: x. Qed.
+
+Lemma Xsub_Xreal_r x y :
+  Xsub x y <> Xnan -> y = Xreal (proj_val y).
+Proof. by case: x; case: y. Qed.
+
+Lemma Xsub_Xnan_r x :
+  Xsub x Xnan = Xnan.
+Proof. by case: x. Qed.
 
 Lemma Xneg_as_Xmul (x : ExtendedR) : Xneg x = Xmul x (Xreal (-1)).
 Proof. destruct x as [|x]; trivial; simpl; f_equal; ring. Qed.
@@ -214,7 +227,30 @@ by do 2!case: Rle_bool_spec =>//;
   move/Rlt_not_le; (by intuition) || move=> H; move/Rlt_not_le; by intuition.
 Qed.
 
+Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
+  contains xi x -> contains xi (Xreal (proj_val x)).
+Proof. by case: x =>//; case: xi. Qed.
+
+(*******************************************************************************)
+(** For convenience, define a predicate [not_empty'] equivalent to [not_empty] *)
+(*******************************************************************************)
+
+Definition not_empty' (xi : interval) := exists v : ExtendedR, contains xi v.
+
+Lemma not_emptyE xi : not_empty' xi -> not_empty xi.
+Proof.
+case: xi =>[|l u] [v Hv]; first by exists R0.
+case: v Hv =>[//|r] Hr.
+by exists r.
+Qed.
+
+Lemma not_empty'E xi : not_empty xi -> not_empty' xi.
+case=>[r Hr]; by exists (Xreal r).
+Qed.
+
+(***************************************************************)
 (** Some Reals-based specs to ease the CoqApprox formalization *)
+(***************************************************************)
 
 Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).
 Proof. done. Qed.
@@ -272,7 +308,295 @@ Proof. done. Qed.
 Lemma Xreal_ln x : (0 < x)%R -> Xreal (ln x) = Xln (Xreal x).
 Proof. by move=> H; rewrite /Xln positiveT. Qed.
 
+(* Check (contains_subset, subset_contains). *)
+
+Lemma contains_Xgt (a b : ExtendedR) :
+  not_empty (IIbnd a b) ->
+  Xcmp a b <> Xgt.
+Proof.
+move=> [x Hx].
+case E : (Xcmp a b) =>//.
+move=> _.
+rewrite /contains in Hx.
+case: a b E Hx => [//|ra [//|rb /=]].
+by case: Rcompare_spec =>//; psatzl R.
+Qed.
+
+Lemma Xund_imp (a b : ExtendedR) :
+  Xcmp a b = Xund -> a = Xnan \/ b = Xnan.
+Proof.
+case: a =>[|a]; first by left.
+case: b =>[|b]; first by right.
+by rewrite /=; case: Rcompare_spec.
+Qed.
+
+Lemma Xund_contra (a b : ExtendedR) :
+  a <> Xnan -> b <> Xnan -> Xcmp a b <> Xund.
+Proof.
+move=> Ha Hb K.
+by case: (Xund_imp K).
+Qed.
+
+Lemma Xeq_imp (a b : ExtendedR) :
+  Xcmp a b = Xeq -> a = b.
+Proof.
+rewrite /Xcmp.
+case: a =>[|r]; case: b =>[|s] //.
+by case: Rcompare_spec =>//->.
+Qed.
+
+Lemma proj_fun_id (v x : R) : proj_fun v (@id ExtendedR) x = x.
+Proof. done. Qed.
+
+Lemma notIInan_IIbnd : forall (X : interval),
+  X <> IInan -> exists a : ExtendedR, exists b : ExtendedR, X = IIbnd a b.
+Proof. by case =>[//|a b]; exists a; exists b. Qed.
+
+(** * Some support lemmas about ExtendedR, I.bound_type, or I.type *)
+
+Lemma le_upper_or (x y : ExtendedR) : le_upper x y \/ le_upper y x.
+Proof.
+case: x; case: y; [left|right|left|idtac]=>//.
+by move=> r s; rewrite /le_lower /=; psatzl R.
+Qed.
+
+Lemma le_lower_or (x y : ExtendedR) : le_lower x y \/ le_lower y x.
+Proof. by rewrite /le_lower; apply: le_upper_or. Qed.
+
+Lemma contains_lower_le_upper (X : interval) x :
+  contains X x ->
+  match (Xlower X), (Xupper X) with
+  | Xreal r, Xreal s => (r <= s)%Re
+  | _, _ => True
+  end.
+Proof.
+case: X =>[//|l u]; case: l=>[//|l]; case: u=>[//|u] /=.
+by case: x; intuition psatzl R.
+Qed.
+
+Lemma contains_IIbnd_Xreal (a b x : ExtendedR) :
+  contains (IIbnd a b) x ->
+  x = Xreal (proj_val x).
+Proof. by case: x. Qed.
+
+(**************************************************************)
+(** Some support results relating inequalities and [contains] *)
+(**************************************************************)
+
+Definition intvl a b x := (a <= x <= b)%R.
+
+Lemma intvl_connected a b : connected (intvl a b).
+Proof.
+move=> x y Hx Hy z Hz; split.
+- exact: Rle_trans (proj1 Hx) (proj1 Hz).
+- exact: Rle_trans (proj2 Hz) (proj2 Hy).
+Qed.
+
+Lemma intvlE a b x : intvl a b x = contains (IIbnd (Xreal a) (Xreal b)) (Xreal x).
+Proof. done. Qed.
+
+Lemma intvl_trans x y a b z :
+  intvl a b x -> intvl a b y -> intvl x y z -> intvl a b z.
+Proof. by move=> H1 H2 H3; apply: (@intvl_connected a b _ _ H1 H2 _ H3). Qed.
+
+Lemma contains_intvl_trans : forall x y X z,
+  contains X (Xreal x) ->
+  contains X (Xreal y) ->
+  intvl x y z ->
+  contains X (Xreal z).
+Proof.
+clear; move=> x y X z.
+rewrite /contains.
+case: X => [//|l u].
+case: l => [|l]; case: u => [|u]; move=> [H1 H2] [H3 H4] [H5 H6]; split=>//.
+exact: Rle_trans H6 H4.
+exact: Rle_trans H1 H5.
+exact: Rle_trans H1 H5.
+exact: Rle_trans H6 H4.
+Qed.
+
+Lemma intvl_lx l u x0 :
+  intvl l u x0 -> intvl l x0 x0.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
+
+Lemma intvl_xu l u x0 :
+  intvl l u x0 -> intvl x0 u x0.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
+
+Lemma intvl_l l u x0 :
+  intvl l u x0 -> intvl l u l.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
+
+Lemma intvl_u l u x0 :
+  intvl l u x0 -> intvl l u u.
+Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
+
+Lemma intvl_lVu l u x0 x :
+  intvl l u x -> intvl l u x0 -> intvl l x0 x \/ intvl x0 u x.
+Proof.
+move=> [H1 H2] [H3 H4].
+have [Hle|Hlt] := Rle_lt_dec x x0.
+by left.
+by move/Rlt_le in Hlt; right.
+Qed.
+
+(********************************************)
+(** Some support results about monotonicity *)
+(********************************************)
+
+Section PredArg.
+Variable P : R -> Prop.
+
+Definition Rincr (f : R -> R) :=
+  forall x y : R,
+  P x -> P y ->
+  (x <= y -> f x <= f y)%R.
+
+Definition Rdecr (f : R -> R) :=
+  forall x y : R,
+  P x -> P y ->
+  (x <= y -> f y <= f x)%R.
+
+Definition Rmonot (f : R -> R) :=
+  Rincr f \/ Rdecr f.
+
+Definition Rpos_over (g : R -> R) :=
+  forall x : R, (P x -> 0 <= g x)%R.
+
+Definition Rneg_over (g : R -> R) :=
+  forall x : R, (P x -> g x <= 0)%R.
+
+Definition Rcst_sign (g : R -> R) :=
+  Rpos_over g \/ Rneg_over g.
+
+Lemma eq_Rcst_sign (f g : R -> R) :
+  f =1 g -> Rcst_sign f -> Rcst_sign g.
+Proof.
+move=> H; rewrite /Rcst_sign /Rpos_over /Rneg_over.
+by case=> Hf; [left|right] => x Hx; rewrite -H; apply: Hf.
+Qed.
+
+Lemma eq'_Rcst_sign (f g : R -> R) :
+  (forall x, P x -> f x = g x) ->
+  Rcst_sign f -> Rcst_sign g.
+Proof.
+move=> H; rewrite /Rcst_sign /Rpos_over /Rneg_over.
+by case=> Hf; [left|right] => x Hx; rewrite -H //; apply: Hf.
+Qed.
+
+Definition Rderive_over (f f' : R -> R) :=
+  forall x : R, P x -> is_derive f x (f' x).
+
+Lemma Rderive_pos_imp_incr (f f' : R -> R) :
+  connected P -> Rderive_over f f' -> Rpos_over f' -> Rincr f.
+Proof.
+rewrite /Rpos_over /Rincr.
+move=> Hco Hder H0 x y Hx Hy Hxy; rewrite //=.
+eapply (derivable_pos_imp_increasing f f' P) =>//.
+move=> r Hr.
+move/(_ _ Hr) in Hder.
+move/(_ _ Hr) in H0.
+split; last by auto with real.
+exact/is_derive_Reals.
+Qed.
+
+Lemma Rderive_neg_imp_decr (f f' : R -> R) :
+  connected P -> Rderive_over f f' -> Rneg_over f' -> Rdecr f.
+Proof.
+rewrite /Rneg_over /Rdecr.
+move=> Hco Hder H0 x y Hx Hy Hxy; rewrite //=.
+eapply (derivable_neg_imp_decreasing f f' P) =>//.
+move=> r Hr.
+move/(_ _ Hr) in Hder.
+move/(_ _ Hr) in H0.
+split; last by auto with real.
+exact/is_derive_Reals.
+Qed.
+
+Lemma Rderive_cst_sign (f f' : R -> R) :
+  connected P -> Rderive_over f f' -> Rcst_sign f' -> Rmonot f.
+Proof.
+move=> Hco Hder [H|H].
+left; exact: Rderive_pos_imp_incr H.
+right; exact: Rderive_neg_imp_decr H.
+Qed.
+
+End PredArg.
+
+(********************************************************************)
+(** Instantiation of [taylor_thm.Cor_Taylor_Lagrange] for intervals *)
+(********************************************************************)
+
+Section NDerive.
+Variable xf : ExtendedR -> ExtendedR.
+Let f := toR_fun xf.
+Let Dn := Derive_n f.
+Variable X : interval.
+Variable n : nat.
+Let dom r := contains X (Xreal r).
+Let Hdom : connected dom. Proof (contains_connected _).
+Let def r := defined xf r.
+Hypothesis Hdef : forall r, dom r -> def r.
+Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
+
+Theorem ITaylor_Lagrange x0 x :
+  dom x0 ->
+  dom x ->
+  exists xi : R,
+  dom xi /\
+  (f x - \big[Rplus/0%R]_(0 <= i < n.+1)
+          (Dn i x0 / INR (fact i) * (x - x0)^i))%R =
+  (Dn n.+1 xi / INR (fact n.+1) * (x - x0) ^ n.+1)%R /\
+  (x <= xi <= x0 \/ x0 <= xi <= x)%R.
+Proof.
+move=> Hx0 Hx.
+case (Req_dec x0 x)=> [->|Hneq].
+  exists x; split =>//=; split; last by auto with real.
+  rewrite (Rminus_diag_eq x) // Rmult_0_l Rmult_0_r.
+  rewrite big_nat_recl // pow_O big1 /Dn /=; try field.
+  by move=> i _; rewrite Rmult_0_l Rmult_0_r.
+have Hlim x1 x2 : (x1 < x2)%Re -> dom x1 -> dom x2 ->
+  forall (k : nat) (r1 : R), (k <= n)%coq_nat ->
+  (fun r2 : R => x1 <= r2 <= x2)%Re r1 ->
+  derivable_pt_lim (Dn k) r1 (Dn (S k) r1).
+  move=> Hx12 Hdom1 Hdom2 k y Hk Hy.
+  have Hdy: (dom y) by move: Hdom; rewrite /connected; move/(_ x1 x2); apply.
+  by apply/is_derive_Reals/Derive_correct; apply: (Hder k.+1 Hdy).
+destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
+    by case: Hneq.
+  have H0 : (x <= x0 <= x0)%Re by auto with real.
+  have H : (x <= x <= x0)%Re by auto with real.
+  case: (Cor_Taylor_Lagrange x x0 n (fun n r => (Dn n r))
+    (Hlim _ _ (Rgt_lt _ _ H3) Hx Hx0) x0 x H0 H) => [c [Hc Hc1]].
+  exists c.
+  have Hdc : dom c.
+    move: Hdom; rewrite /connected; move/(_ x x0); apply=>//.
+    by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+  split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
+  rewrite sum_f_to_big in Hc.
+  exact: Hc.
+have H0 : (x0 <= x0 <= x)%Re by auto with real.
+have H : (x0 <= x <= x)%Re by auto with real.
+case: (Cor_Taylor_Lagrange x0 x n (fun n r => Dn n r)
+  (Hlim _ _ (Rgt_lt _ _ H1) Hx0 Hx) x0 x H0 H) => [c [Hc Hc1]].
+exists c.
+have Hdc : dom c.
+  move: Hdom; rewrite /connected; move/(_ x0 x); apply=>//.
+  by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
+rewrite sum_f_to_big in Hc.
+exact: Hc.
+Qed.
+
+End NDerive.
+
+(******************************************************************************)
+(** The sequel of the file is parameterized by an implementation of intervals *)
+(******************************************************************************)
+
 Module IntervalAux (I : IntervalOps).
+
+Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
 
 Definition eqNai X := match I.convert X with
                       | IInan => true
@@ -281,6 +605,266 @@ Definition eqNai X := match I.convert X with
 
 Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
 Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
+
+Lemma bounded_singleton_contains_lower_upper (X : I.type) :
+  I.bounded X = true ->
+  contains (I.convert (Ibnd2 (I.lower X))) (I.convert_bound (I.lower X)) /\
+  contains (I.convert (Ibnd2 (I.upper X))) (I.convert_bound (I.upper X)).
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+have [H1a H1b] := I.lower_bounded_correct X H1.
+have [H2a H2b] := I.upper_bounded_correct X H2.
+by rewrite !I.bnd_correct /contains H1a H2a; psatzl R.
+Qed.
+
+(** The following predicate will be used by [Ztech]. *)
+Definition isNNegOrNPos (X : I.type) : bool :=
+  if I.sign_large X is Xund then false else true.
+
+Lemma isNNegOrNPos_false (X : I.type) :
+  I.convert X = IInan -> isNNegOrNPos X = false.
+Proof.
+move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
+by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
+Qed.
+
+Lemma bounded_IInan (X : I.type) :
+  I.bounded X = true -> I.convert X <> IInan.
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+have [] := I.lower_bounded_correct X H1.
+by rewrite /I.bounded_prop; case I.convert.
+Qed.
+
+Lemma bounded_IIbnd (X : I.type) :
+  I.bounded X = true -> I.convert X =
+  IIbnd (I.convert_bound (I.lower X)) (I.convert_bound (I.upper X)).
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+have [] := I.lower_bounded_correct X H1.
+by rewrite /I.bounded_prop; case I.convert.
+Qed.
+
+Lemma bounded_Ilower (X : I.type) :
+  I.bounded X = true -> I.convert_bound (I.lower X) =
+  Xreal (proj_val (I.convert_bound (I.lower X))).
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+have [] := I.lower_bounded_correct X H1.
+by rewrite /I.bounded_prop; case I.convert.
+Qed.
+
+Lemma bounded_Iupper (X : I.type) :
+  I.bounded X = true -> I.convert_bound (I.upper X) =
+  Xreal (proj_val (I.convert_bound (I.upper X))).
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+have [] := I.upper_bounded_correct X H2.
+by rewrite /I.bounded_prop; case I.convert.
+Qed.
+
+(* Weaken the hyp in lemmas below ? *)
+Lemma bounded_lower_Xnan (X : I.type) :
+  I.bounded X = true -> I.convert_bound (I.lower X) <> Xnan.
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+by have [-> _] := I.lower_bounded_correct X H1.
+Qed.
+
+Lemma bounded_upper_Xnan (X : I.type) :
+  I.bounded X = true -> I.convert_bound (I.upper X) <> Xnan.
+Proof.
+move=> HX.
+have [H1 H2] := I.bounded_correct X HX.
+by have [-> _] := I.upper_bounded_correct X H2.
+Qed.
+
+Lemma bounded_contains_lower (x : ExtendedR) (X : I.type) :
+  I.bounded X = true -> contains (I.convert X) x ->
+  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.lower X)))).
+Proof.
+move=> HX Hx.
+have [H1 H2] := I.bounded_correct X HX.
+have [H3 H4] := I.lower_bounded_correct X H1.
+move: H4 Hx; rewrite /I.bounded_prop =>->.
+rewrite -H3 /contains H3.
+by case Er : x =>[//|r]; case Es: (I.convert_bound (I.upper X))=>[|s]; lra.
+Qed.
+
+(* Erik: May also prove lower/upper-related lemmas involving subset *)
+
+Lemma bounded_contains_upper (X : I.type) (x : ExtendedR) :
+  I.bounded X = true -> contains (I.convert X) x ->
+  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.upper X)))).
+Proof.
+move=> HX Hx.
+have [H1 H2] := I.bounded_correct X HX.
+have [H3 H4] := I.upper_bounded_correct X H2.
+move: H4 Hx; rewrite /I.bounded_prop =>->.
+rewrite -H3 /contains H3.
+by case Er : x =>[//|r]; case Es : (I.convert_bound (I.lower X)) =>[|s]; lra.
+Qed.
+
+Lemma intvlP X :
+  I.bounded X = true ->
+  forall x,
+  (contains (I.convert X) (Xreal x) <->
+   intvl (proj_val (I.convert_bound (I.lower X)))
+         (proj_val (I.convert_bound (I.upper X))) x).
+Proof.
+move=> HX x.
+split.
+- rewrite bounded_IIbnd // => H.
+  by rewrite bounded_Ilower // bounded_Iupper in H.
+- move=> H; rewrite bounded_IIbnd //.
+  by rewrite bounded_Ilower // bounded_Iupper.
+Qed.
+
+Lemma Ilower_bnd (l u : I.bound_type) :
+  I.convert_bound (I.lower (I.bnd l u)) = I.convert_bound l.
+Proof. by rewrite I.lower_correct I.bnd_correct. Qed.
+
+Lemma Iupper_bnd (l u : I.bound_type) :
+  I.convert_bound (I.upper (I.bnd l u)) = I.convert_bound u.
+Proof. by rewrite I.upper_correct I.bnd_correct. Qed.
+
+Lemma Iupper_Xreal (X : I.type) (r : R) :
+  I.convert_bound (I.upper X) = Xreal r -> I.convert X <> IInan.
+Proof. by rewrite I.upper_correct; case: (I.convert X). Qed.
+
+Lemma Ilower_Xreal (X : I.type) (r : R) :
+  I.convert_bound (I.lower X) = Xreal r -> I.convert X <> IInan.
+Proof. by rewrite I.lower_correct; case: (I.convert X). Qed.
+
+Lemma upper_le (X : I.type) (x : ExtendedR (*sic*)) :
+  contains (I.convert X) x -> le_upper x (I.convert_bound (I.upper X)).
+Proof.
+rewrite /le_upper; case E : I.convert_bound => [//|r] H.
+have E' := Iupper_Xreal E.
+case: x H => [|r'] H.
+  by apply: E'; apply -> contains_Xnan.
+case E2: (I.convert X) E' =>[//|l u] _.
+rewrite E2 in H.
+rewrite I.upper_correct E2 /= in E.
+by move: H; rewrite /contains; case=> _; rewrite E.
+Qed.
+
+Lemma lower_le (X : I.type) (x : ExtendedR (*sic*)) :
+  contains (I.convert X) x -> le_lower (I.convert_bound (I.lower X)) x.
+Proof.
+rewrite /le_lower; case E : I.convert_bound => [//|r] H.
+have E' := Ilower_Xreal E.
+case: x H => [|r'] H.
+  by apply: E'; apply -> contains_Xnan.
+case E2: (I.convert X) E' =>[//|l u] _.
+rewrite E2 in H.
+rewrite I.lower_correct E2 /= in E.
+move: H; rewrite /contains; case=> H _; rewrite E in H.
+by simpl; psatzl R.
+Qed.
+
+Lemma contains_lower_or_upper_Xreal (X : I.type) (xi0 : ExtendedR) (r : R) :
+  contains (I.convert X) (Xreal r) -> contains (I.convert X) xi0 ->
+  contains (IIbnd (I.convert_bound (I.lower X)) xi0) (Xreal r) \/
+  contains (IIbnd xi0 (I.convert_bound (I.upper X))) (Xreal r).
+Proof.
+set x := Xreal r => Hx Hxi0.
+have HL0 := lower_le Hx.
+have HU0 := upper_le Hx.
+have [HL|HL] := le_lower_or x xi0; have [HU|HU] := le_upper_or x xi0.
+- by left; apply: le_contains.
+- rewrite /le_lower in HL.
+  rewrite /le_upper /= in HU HL.
+  case E : xi0 Hxi0 HU HL =>[//|s /=].
+  move=> Hs rs1 rs2.
+  case L: (I.convert_bound (I.lower X)) => [|l];
+    case U: (I.convert_bound (I.upper X)) => [|u];
+    have H := contains_lower_le_upper Hx;
+    intuition.
+  by rewrite -I.lower_correct -I.upper_correct L U in H; psatzl R.
+- by left; apply: le_contains.
+by right; apply: le_contains.
+Qed.
+
+Lemma contains_lower_or_upper (X : I.type) (xi0 : ExtendedR) (x : ExtendedR) :
+  I.convert X <> IInan ->
+  contains (I.convert X) x -> contains (I.convert X) xi0 ->
+  contains (IIbnd (I.convert_bound (I.lower X)) xi0) x \/
+  contains (IIbnd xi0 (I.convert_bound (I.upper X))) x.
+Proof.
+move=> HX Hx Hxi0.
+case: x Hx; first by move/contains_Xnan.
+move=> r Hr; exact: contains_lower_or_upper_Xreal.
+Qed.
+
+(*******************************************************)
+(** Support results about [I.midpoint] and [not_empty] *)
+(*******************************************************)
+
+Definition Imid i : I.type := I.bnd (I.midpoint i) (I.midpoint i).
+
+Lemma not_empty_Imid (X : I.type) :
+  not_empty (I.convert X) -> not_empty (I.convert (Imid X)).
+Proof.
+case=>[v Hv].
+rewrite /Imid I.bnd_correct.
+apply: not_emptyE.
+exists (I.convert_bound (I.midpoint X)).
+red.
+have e : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
+have [-> _] := I.midpoint_correct X e.
+by auto with real.
+Qed.
+
+Lemma Imid_subset (X : I.type) :
+  not_empty (I.convert X) ->
+  I.subset_ (I.convert (Imid X)) (I.convert X).
+Proof.
+case=>[v Hv].
+rewrite /Imid I.bnd_correct.
+have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
+have [-> Hreal] := I.midpoint_correct X HX.
+case E: I.convert =>[//|l u].
+split.
+- have := lower_le Hreal.
+  have->: l = Xlower (I.convert X) by rewrite E.
+  by rewrite I.lower_correct.
+- have := upper_le Hreal.
+  have->: u = Xupper (I.convert X) by rewrite E.
+  by rewrite I.upper_correct.
+Qed.
+
+Lemma Imid_contains (X : I.type) :
+  not_empty (I.convert X) ->
+  contains (I.convert (Imid X)) (I.convert_bound (I.midpoint X)).
+Proof.
+move=>[v Hv].
+rewrite /Imid I.bnd_correct.
+have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
+have [-> Hreal] := I.midpoint_correct X HX.
+by red; auto with real.
+Qed.
+
+Lemma Xreal_Imid_contains (X : I.type) :
+  not_empty (I.convert X) ->
+  contains (I.convert (Imid X)) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
+Proof.
+move=>[v Hv].
+rewrite /Imid I.bnd_correct.
+have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
+have [-> Hreal] := I.midpoint_correct X HX.
+by red; auto with real.
+Qed.
+
+(******************************************************************************)
+(** Correctness predicates dealing with reals only, weaker than [I.extension] *)
+(******************************************************************************)
 
 Definition R_extension f fi :=
   forall (b : I.type) (x : R),
@@ -646,108 +1230,3 @@ Qed.
 
 End PrecArgument.
 End IntervalAux.
-
-Section NDerive.
-Variable xf : ExtendedR -> ExtendedR.
-Let f := toR_fun xf.
-Let Dn := Derive_n f.
-Variable X : interval.
-Variable n : nat.
-Let dom r := contains X (Xreal r).
-Let Hdom : connected dom. Proof (contains_connected _).
-Let def r := defined xf r.
-Hypothesis Hdef : forall r, dom r -> def r.
-Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
-
-Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%Re.
-Proof. by move=> H; elim: (Rtotal_order r1 r2)=>[a|[b|c]];[left|done|right]. Qed.
-
-(*
-Lemma Xderive_propagate (f f' : ExtendedR -> ExtendedR) x :
-  Xderive f f' -> f x = Xnan -> f' x = Xnan.
-Proof.
-rewrite /Xderive /Xderive_pt.
-move/(_ x); case: x => [|r]; first by case: (f' Xnan).
-by move=> H Hnan; move: H; rewrite Hnan; case: (f' (Xreal r)).
-Qed.
-
-Lemma Xderive_propagate' (f f' : ExtendedR -> ExtendedR) :
-  Xderive f f' -> f' Xnan = Xnan.
-Proof. by rewrite /Xderive /Xderive_pt; move/(_ Xnan); case: (f' Xnan). Qed.
-*)
-
-Lemma Xsub_Xreal_l x y :
-  Xsub x y <> Xnan -> x = Xreal (proj_val x).
-Proof. by case: x. Qed.
-
-Lemma Xsub_Xreal_r x y :
-  Xsub x y <> Xnan -> y = Xreal (proj_val y).
-Proof. by case: x; case: y. Qed.
-
-Lemma Xsub_Xnan_r x :
-  Xsub x Xnan = Xnan.
-Proof. by case: x. Qed.
-
-Theorem ITaylor_Lagrange x0 x :
-  dom x0 ->
-  dom x ->
-  exists xi : R,
-  dom xi /\
-  (f x - \big[Rplus/0%R]_(0 <= i < n.+1)
-          (Dn i x0 / INR (fact i) * (x - x0)^i))%R =
-  (Dn n.+1 xi / INR (fact n.+1) * (x - x0) ^ n.+1)%R /\
-  (x <= xi <= x0 \/ x0 <= xi <= x)%R.
-Proof.
-move=> Hx0 Hx.
-(*
-case: x0 Hx0.
-  case: X =>[|//] HX.
-  exists R0; split=>//; split.
-    rewrite !Xsub_Xnan_r Xmul_comm.
-    by rewrite big_ord_recr /= Xmul_comm Xadd_comm Xsub_Xnan_r.
-  case: x Hx => [|x]; first by left.
-  by case: (Rcompare_spec x R0)=> /=; auto with real.
-case: x Hx.
-  case:X =>// HX.
-  exists R0; split =>//; rewrite XD0_Xnan; split; first by rewrite Xmul_comm.
-  by case: (Rcompare_spec r R0)=> /=; auto with real.
-*)
-case (Req_dec x0 x)=> [->|Hneq].
-  exists x; split =>//=; split; last by auto with real.
-  rewrite (Rminus_diag_eq x) // Rmult_0_l Rmult_0_r.
-  rewrite big_nat_recl // pow_O big1 /Dn /=; try field.
-  by move=> i _; rewrite Rmult_0_l Rmult_0_r.
-have Hlim x1 x2 : (x1 < x2)%Re -> dom x1 -> dom x2 ->
-  forall (k : nat) (r1 : R), (k <= n)%coq_nat ->
-  (fun r2 : R => x1 <= r2 <= x2)%Re r1 ->
-  derivable_pt_lim (Dn k) r1 (Dn (S k) r1).
-  move=> Hx12 Hdom1 Hdom2 k y Hk Hy.
-  have Hdy: (dom y) by move: Hdom; rewrite /connected; move/(_ x1 x2); apply.
-  by apply/is_derive_Reals/Derive_correct; apply: (Hder k.+1 Hdy).
-destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
-    by case: Hneq.
-  have H0 : (x <= x0 <= x0)%Re by auto with real.
-  have H : (x <= x <= x0)%Re by auto with real.
-  case: (Cor_Taylor_Lagrange x x0 n (fun n r => (Dn n r))
-    (Hlim _ _ (Rgt_lt _ _ H3) Hx Hx0) x0 x H0 H) => [c [Hc Hc1]].
-  exists c.
-  have Hdc : dom c.
-    move: Hdom; rewrite /connected; move/(_ x x0); apply=>//.
-    by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
-  split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
-  rewrite sum_f_to_big in Hc.
-  exact: Hc.
-have H0 : (x0 <= x0 <= x)%Re by auto with real.
-have H : (x0 <= x <= x)%Re by auto with real.
-case: (Cor_Taylor_Lagrange x0 x n (fun n r => Dn n r)
-  (Hlim _ _ (Rgt_lt _ _ H1) Hx0 Hx) x0 x H0 H) => [c [Hc Hc1]].
-exists c.
-have Hdc : dom c.
-  move: Hdom; rewrite /connected; move/(_ x0 x); apply=>//.
-  by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
-split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
-rewrite sum_f_to_big in Hc.
-exact: Hc.
-Qed.
-
-End NDerive.
