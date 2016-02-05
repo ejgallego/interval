@@ -816,25 +816,19 @@ Section NumericIntegration.
 
 Local Open Scope R_scope.
 
-Variables (x0 a b : R) (ia ib : I.type) (dom : R -> bool).
+Variables (x0 a b : R) (ia ib : I.type).
 
 Hypothesis Hx0 : contains iX0 (Xreal x0).
 Hypothesis Ha : contains iX (Xreal a).
 Hypothesis Hb : contains iX (Xreal b).
 Hypothesis Hia : contains (I.convert ia) (Xreal a).
 Hypothesis Hib : contains (I.convert ib) (Xreal b).
-Hypothesis Hdom : forall x, contains iX (Xreal x) -> dom x.
 Hypothesis Hsubset: Interval_interval.subset iX0 iX.
 Hypothesis f_int_numeric : ex_RInt f a b.
 
 
 Hint Resolve Hia.
 Hint Resolve Hib.
-
-Lemma Hdoma : dom a.
-Proof.
-by apply: Hdom.
-Qed.
 
 Definition polIntegral := Isub (Pol.horner prec TM_integral_poly (Isub ib X0)) (Pol.horner prec TM_integral_poly (Isub ia X0)).
 Definition integralError := (Imul (Isub ib ia) (error Mf)).
@@ -957,8 +951,9 @@ rewrite Xreal_add; apply:I.add_correct.
     apply: ex_RInt_translation_sub => // .
     by apply: Rpol_integrable.
   + move => x Hx.
-    have Hdomx : (dom x); first apply: Hdom. admit.
-    have := (Herror x).
+    apply: Herror.
+    have Ha' := Ha.
+    have Hb' := Hb.
     admit. (* FIXME *)
 Qed.
 
