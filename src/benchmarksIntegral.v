@@ -198,7 +198,14 @@ move => Heps.
 interval with (i_integral_depth 0).
 Qed.
 
+Lemma bench13 : True.
+Proof.
+interval_intro (RInt (fun t => exp (-t^2)) 0 1) with (i_integral_depth 1).
+exact I.
+Qed.
+
 (* benchmark from Yves Bertot : can't be done for now *)
+(* Rabs (intégrale de 1/((k+1)*PI) à 1/(k*PI) de (fun x =>sin(1/x))) <=  1/(k*PI) * Rabs (intégrale de 0 à PI de sin) *)
 Lemma Bertot_1 (k : R) : (* k is an integer but it should not be pertinent *)
 k = 100 -> (* seems to work for any k!! *)
 Rabs (RInt (fun x => sin(1 / x)) (1/((k+1)*PI)) (1/(k*PI))) <= 1/((k + 1)*PI) * Rabs (RInt sin 0 PI).
@@ -229,19 +236,12 @@ Admitted.
 
 Lemma Helfgott (* delta *) :
 (* 1/32 <= delta -> *)
-Rabs (RInt (fun x => x^2 * exp (- x^2 / 2) * ln(x)) (1 /256) 1) <= 93426 / 10^6 (* + delta *).
+Rabs (RInt (fun x => x^2 * exp (- x^2 / 2) * ln(x)) (1 / 32) 1) <= 93426 / 10^6 (* + delta *).
 Proof.
-assert (forall x, 0 <= x <= 1/256 -> True).
+assert (forall x, 0 <= x <= 1/32 -> True).
 intros x Hx.
 interval_intro (x * exp (-x^2/2)).
 exact I.
 interval with (i_integral_depth 15, i_prec 40, i_integral_prec 10).
-Qed.
-
-
-admit.
-(* Time interval with (i_integral_depth 15, i_integral_prec 100, i_prec 50). *) (* works in 163 seconds *)
 (* Maple says 0.09342500233 *)
-Admitted.
-
-(* Rabs (intégrale de 1/((k+1)*PI) à 1/(k*PI) de (fun x =>sin(1/x))) <=  1/(k*PI) * Rabs (intégrale de 0 à PI de sin) *)
+Qed.
