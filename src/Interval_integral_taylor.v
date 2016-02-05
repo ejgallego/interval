@@ -64,7 +64,7 @@ Definition iX0 := I.convert X0.
 
 Hypothesis Hsubset : subset (I.convert X0) (I.convert X).
 Hypothesis Hdomx: forall x, contains iX (Xreal x) -> dom x.
-Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf g dom.
+Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf g.
 
 Variables (a b : F.type).
 
