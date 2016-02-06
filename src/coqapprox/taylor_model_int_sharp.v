@@ -678,9 +678,12 @@ rewrite Xreal_add; apply:I.add_correct.
     by apply: Rpol_integrable.
   + move => x Hx.
     apply: Herror.
-    have Ha' := Ha.
-    have Hb' := Hb.
-    admit. (* FIXME *)
+    have [Hab|Hba] := Rle_dec a b.
+      apply: contains_intvl_trans Ha Hb _; red.
+      by rewrite Rmin_leq // Rmax_leq in Hx.
+    move/Rnot_le_lt in Hba.
+    apply: contains_intvl_trans Hb Ha _; red.
+    by rewrite Rmin_swap Rmax_swap Rmin_lt // Rmax_lt in Hx.
 Qed.
 
 End NumericIntegration.
