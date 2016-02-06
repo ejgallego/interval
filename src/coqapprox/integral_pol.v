@@ -127,10 +127,11 @@ have -> :
 ring_simplify.
 rewrite (Derive_ext _ (fun x => x ^ (i.+1))); last first.
  by move => t; rewrite -Interval_missing.pow_powerRZ.
-rewrite primitive_correct => //.
-rewrite Derive_pow ?Derive_id  -?pred_Sn. field.
+rewrite nth_primitive ifF /int_coeff => //.
+rewrite Derive_pow ?Derive_id -?pred_Sn. field.
 apply: not_0_INR => // .
 exact: ex_derive_id.
+by apply/negbTE; rewrite -leqNgt; case/andP: Hi.
 apply: ex_derive_const.
 apply: (ex_derive_ext (fun x => x ^ (i.+1))).
   by move => t; rewrite -Interval_missing.pow_powerRZ.

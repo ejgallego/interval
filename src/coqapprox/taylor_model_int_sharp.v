@@ -583,67 +583,14 @@ Qed.
 
 Local Notation XRInt := (fun f a b => Xreal (RInt f a b)).
 
+(*
+With the new archi, this result is now given by Pol.primitive_correct:
+
 Lemma primitive_contains P q :
 P >:: q ->
 Pol.primitive prec I.zero P >:: PolR.primitive tt 0 q.
-Proof.
-move => Hpq.
-move => n.
-case : (ltnP (Pol.size P) n) => HP ;
-  case: (ltnP (PolR.size q) n) => Hq.
-rewrite PolR.nth_default.
-rewrite Pol.nth_default.
-exact: cont0.
-by rewrite Pol.size_primitive.
-by rewrite PolR.psize_primitive.
-case: n HP Hq => [|n] // HP Hq.
-rewrite Pol.nth_default.
-rewrite PolR.nth_primitive //.
-move: (Hpq n).
-rewrite Pol.nth_default //.
-rewrite /PolR.int_coeff.
-rewrite I.zero_correct.
-move => [H1 H2].
-rewrite (Rle_antisym _ _ H2 H1).
-rewrite /Rdiv Rmult_0_l.
-by split ; apply Rle_refl.
-by rewrite Pol.size_primitive.
-rewrite Pol.primitive_correct //.
-rewrite PolR.nth_default.
-case: n HP Hq => [_ _|n HP Hq].
-exact: cont0.
-move: (Hpq n).
-rewrite PolR.nth_default //.
-move => H.
-replace (Xreal 0) with (Xdiv (Xreal 0) (Xreal (Z2R (Z.of_nat n.+1)))).
-apply: I.div_correct => //.
-exact: I.fromZ_correct.
-rewrite /Xdiv.
-case: is_zero_spec.
-move => H'.
-exfalso.
-move: H'.
-exact: (Z2R_neq _ 0).
-move => _.
-apply: f_equal.
-exact: Rmult_0_l.
-by rewrite PolR.size_primitive.
-rewrite Pol.primitive_correct //.
-rewrite PolR.primitive_correct //.
-case: n HP Hq => [|n] HP Hq.
-exact: cont0.
-replace (Xreal (PolR.nth q n / INR n.+1)) with (Xdiv (Xreal (PolR.nth q n)) (Xreal (Z2R (Z.of_nat n.+1)))).
-apply: I.div_correct => //.
-exact: I.fromZ_correct.
-rewrite /Xdiv.
-case: is_zero_spec.
-move => H'.
-exfalso.
-move: H'.
-exact: (Z2R_neq _ 0).
-move => _.
-by rewrite INR_Z2R.
-Qed.
+Proof. by move=> ?; apply: Pol.primitive_correct =>//; apply: cont0. Qed.
+*)
 
 Lemma integralEnclosure_correct :
   i_validTM iX0 iX Mf xF ->
@@ -661,11 +608,11 @@ rewrite Xreal_add; apply:I.add_correct.
   rewrite Xreal_sub; apply: I.sub_correct.
   + apply: Pol.horner_correct.
     rewrite /TM_integral_poly.
-    exact: primitive_contains.
+    apply: Pol.primitive_correct =>//; exact: cont0.
     rewrite Xreal_sub.
     by apply: I.sub_correct => // .
   + apply: Pol.horner_correct.
-    exact: primitive_contains.
+    apply: Pol.primitive_correct =>//; exact: cont0.
     exact: (I.sub_correct _ _ _ (Xreal a) (Xreal x0)).
     rewrite /integralError.
     apply: contains_RInt_full => // .
@@ -700,30 +647,11 @@ by apply: I.sub_correct.
 Qed.
 
 Lemma contains_interval_float_integral (p : PolR.T) :
-PolR.size p = Pol.size (approx Mf) ->
-(forall k : nat,
-(k < Pol.size (approx Mf))%N ->
-contains (I.convert (Pol.nth (approx Mf) k)) (Xreal (PolR.nth p k))) ->
-forall k : nat,
-(k < Pol.size TM_integral_poly)%N ->
-contains (I.convert (Pol.nth TM_integral_poly k))
-(Xreal (PolR.nth (PolR.primitive tt 0%R p) k)).
+  approx Mf >:: p ->
+  TM_integral_poly >:: (PolR.primitive tt 0%R p).
 Proof.
-move => Hsizep Hcontains k /=.
-rewrite Pol.size_primitive (* addn1 *) => HkN.
-rewrite Pol.primitive_correct // PolR.primitive_correct ?Hsizep //.
-case: k HkN => [H0N | k HSkN].
-+ by rewrite I.zero_correct; red; auto with real (* lemma to do *).
-+ have -> : Xreal (PolR.nth p k / INR k.+1) =
-           Xdiv (Xreal (PolR.nth p k)) (Xreal (INR k.+1)).
-   rewrite /= zeroF; first by [].
-   case: k HSkN.
-     * by move => _; apply: R1_neq_R0.
-     * move => n _.
-        apply: tech_Rplus; first by exact: pos_INR.
-        by exact: Rlt_0_1.
-   apply: I.div_correct; first by apply: Hcontains.
-by rewrite INR_IZR_INZ -Z2R_IZR (*!!! *); apply: I.fromZ_correct.
+move=> Hp; rewrite /TM_integral_poly.
+by apply: Pol.primitive_correct; first exact: cont0.
 Qed.
 
 Lemma TM_integral_error_0 (x0 : R) :
@@ -731,40 +659,25 @@ Lemma TM_integral_error_0 (x0 : R) :
   i_validTM (I.convert X0) iX Mf xF ->
   contains (I.convert (TM_integral_error TM_integral_poly)) (Xreal 0).
 Proof.
-move => Hx0X0 [] ErrMf0 HX0X HPol /=.
-admit. (* FIXME LATER by Thomas or Erik
+move => Hx0X0 [Hnai ErrMf0 HX0X HPol].
 case: (HPol (x0) Hx0X0) => [p Hcontains _].
-have -> : Xreal 0 = Xadd (Xreal 0) (Xadd (Xreal 0) (Xreal 0)).
-by rewrite /= 2!Rplus_0_l.
+have->: Xreal 0 = Xadd (Xreal 0) (Xadd (Xreal 0) (Xreal 0)).
+  by rewrite /= 2!Rplus_0_l.
 apply: I.add_correct; last apply: I.add_correct.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
-have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
-by apply: I.sub_correct => //; apply: (subset_contains (I.convert X0) _).
+  have->: Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
+  by apply: I.sub_correct => //; apply: (subset_contains (I.convert X0) _).
 - apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
-move=> k.
-+ rewrite /TM_integral_poly Pol.primitive_correct //. (* I.zero_correct /= . *)
-  admit. (* archi to revise *)
-  admit. (* size *)
-(** rewrite /TM_integral_poly Pol.size_primitive PolR.size_primitive.
-by congr (_.+1); exact: Hsizep.*)
-(* * by apply: contains_interval_float_integral. *)
-* by apply: (IsubXX Hx0X0).
-suff->: 0%R = PolR.nth (PolR.primitive tt 0%Re p) 0.
-  apply: contains_interval_float_integral.
-  admit. (* size *)
-  by move=> k Hsize.
-  admit. (* size *)
-  by rewrite PolR.primitive_correct.
+    apply: Pol.primitive_correct =>//; exact: cont0.
+  exact: (IsubXX Hx0X0).
+  have->: 0%R = PolR.nth (PolR.primitive tt 0%Re p) 0 by [].
+  exact: contains_interval_float_integral.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
-have -> : Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
-by apply: I.sub_correct.
-*)
+  exact: R_sub_correct.
 Qed.
 
 Definition TM_integral :=
 let R := TM_integral_poly in RPA R (TM_integral_error TM_integral_poly).
-
-
 
 (* Definition Xint (f : ExtendedR -> ExtendedR) x0 x1 :=
   let f := toXreal_fun f in
@@ -775,22 +688,13 @@ contains iX0 (Xreal x0) ->
 i_validTM (I.convert X0) iX Mf xF ->
 i_validTM (I.convert X0) iX TM_integral (toXreal_fun (RInt f x0)).
 Proof.
-move => Hx0X0 [ErrMf0 HX0X HPol] /= ; split => //.
+move => Hx0X0 [Hnai ErrMf0 HX0X HPol] /= ; split => //.
   by apply: (@TM_integral_error_0 _ Hx0X0).
-admit. (* FIXME LATER by Thomas or Erik
 move=> /= x1 HX0x1 {ErrMf0}.
-case: (HPol (x0) Hx0X0) => [|p Hcontains H3].
-admit. (* missing hyp *)
-case: (HPol (x1) HX0x1) => [|p1 Hcontains1 H31 {HPol}].
-admit. (* missing hyp *)
+case: (HPol (x0) Hx0X0) => [p Hcontains H3].
+case: (HPol (x1) HX0x1) => [p1 Hcontains1 H31 {HPol}].
 exists (PolR.primitive tt 0 p1).
-(* split.
-- by rewrite PolR.psize_primitive Hsizep1 /= psize_primitive. *)
-- move=> k; apply: (contains_interval_float_integral).
-  admit. (* size *)
-  move=> k' _.
-  apply: Hcontains1.
-  admit. (* size *)
+- by apply: Pol.primitive_correct; first exact: cont0.
 - move => x hxX.
   rewrite toR_toXreal.
   have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
@@ -805,9 +709,12 @@ exists (PolR.primitive tt 0 p1).
             PolR.horner tt (PolR.primitive tt 0 p1) (x1 - x1).
       * have -> : x1 - x1 = 0 by ring.
         set t0 := (X in (_ = _ - X)).
-        have -> : t0 = 0; last by rewrite Rminus_0_r.
-        (* rewrite /t0 PolR.horner_seq -nth0 PolR.pnth_toSeq.
-         by rewrite PolR.primitive_correct. *) admit. (* OK with concrete PolR *)
+        have->: t0 = 0; last by rewrite Rminus_0_r.
+        rewrite /t0 PolR.hornerE PolR.size_primitive big1 // => i _.
+        rewrite PolR.nth_primitive.
+        case: ifP; first by rewrite Rmult_0_l.
+        rewrite /PolR.int_coeff; case: i; first by rewrite Rmult_0_l.
+        by move=> *; rewrite /= Rmult_0_l Rmult_0_r.
     by rewrite Rpol_integral_0.
 rewrite {Hcontains1}.
 set rem := (X in X + _ - _).
@@ -830,21 +737,9 @@ rewrite Xreal_add {rem}.
 apply: I.add_correct; last first;  first apply: I.add_correct.
 - rewrite RInt_translation_sub Rpol_integral_0.
   have -> : x0 - x0 = 0 by ring.
-  rewrite PolR.toSeq_horner0. rewrite -nth0 -PolR.nth_toSeq PolR.primitive_correct // Rminus_0_r.
+  rewrite PolR.toSeq_horner0. rewrite -nth0 -PolR.nth_toSeq PolR.nth_primitive // Rminus_0_r.
   apply: Bnd.ComputeBound_correct; last by rewrite Xreal_sub; exact: I.sub_correct.
-  (* + by rewrite psize_primitive PolR.psize_primitive Hsizep. *)
-  + move => i. rewrite Pol.primitive_correct ?PolR.primitive_correct.
-      * case: i; first by move => *; exact: cont0.
-        move => n .
-        rewrite Xreal_div; last first.
-          case: n ; first by move => *; apply: R1_neq_R0.
-          by move => n; apply: not_0_INR.
-        apply: I.div_correct.
-          by apply: Hcontains ; rewrite psize_primitive in Hn.
-      * by rewrite INR_IZR_INZ -Z2R_IZR; apply: I.fromZ_correct.
-      (* * by rewrite size_primitive -Hsizep in Hi. *)
-      (* by rewrite psize_primitive in Hi. *)
-        admit. admit. (* size. *)
+  by apply: Pol.primitive_correct; first exact: cont0.
   + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
       by apply: f_int => //; apply: (subset_contains iX0) => // .
       apply: contains_RInt_full => // .
@@ -856,8 +751,7 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
       apply: (@contains_trans iX (Xreal (Rmin x0 x1)) (Xreal (Rmax x0 x1))) => // .
         by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
         by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
-      move/(_ x2 hx2) in H3.
-      by rewrite x_Def in H3.
+      by move/(_ x2 hx2) in H3.
 rewrite  {H3}.
 - apply: contains_RInt_full => // .
   + apply: ex_RInt_minus.
@@ -868,10 +762,9 @@ rewrite  {H3}.
       apply: (@contains_trans iX (Xreal (Rmin x1 x)) (Xreal (Rmax x1 x))) => // .
       by rewrite /Rmin;case (Rle_dec x1 x) =>_ //;apply: (subset_contains iX0).
       by rewrite /Rmax;case (Rle_dec x1 x) => _ //;apply: (subset_contains iX0).
-      move/(_ x2 hx2) in H31.
-      by rewrite x_Def in H31.
-*)
+      by move/(_ x2 hx2) in H31.
 Qed.
+
 End TM_integral.
 
 Definition is_const (f : ExtendedR -> ExtendedR) (X c : I.type) : Prop :=
@@ -906,7 +799,6 @@ case: X =>[//|l u]; rewrite /contains.
 by case: x =>[|x]; case: l =>[|l]; case: u =>[|u]; case: a =>[|a]; case: b =>[|b]//;
   psatzl R.
 Qed.
-
 
 Lemma Rdiv_pos_compat (x y : R) :
   (0 <= x -> 0 < y -> 0 <= x / y)%Re.

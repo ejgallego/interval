@@ -184,12 +184,6 @@ Parameter poly_ind : forall (f : T -> Type),
   (forall a p, f p -> f (polyCons a p)) ->
   forall p, f p.
 
-Parameter primitive_correct : forall u p c k, k < (size p).+1 ->
-                                              nth (primitive u c p) k =
-                                              match k with
-                                                | 0 => c
-                                                | S m => C.div u (nth p m) (C.from_nat k) end.
-
 Parameter size_primitive : forall u c p, size (primitive u c p) = (size p).+1.
 
 Parameter size_lift : forall n p, size (lift n p) = n + size p.
@@ -575,31 +569,6 @@ Definition int_coeff_shift (p : T) (k : nat) := C.div u
 
 Definition primitive (c : C.T) (p : T) :=
  (c::(mkseq (int_coeff_shift p) (size p))) : T.
-
-Lemma psize_primitive (c : C.T) (p : T):
-size (primitive c p) = (size p).+1.
-Proof.
-by rewrite /size /= size_mkseq /size.
-Qed.
-
-Lemma nth_primitive (p : T) (c : C.T) (k : nat) : (k < (size p).+1) -> nth (primitive c p) k = int_coeff p c k.
-Proof.
-move => Hk.
-case : k Hk => [ _ | m Hm] //=.
-have HSiota : m < seq.size (iota 0 (size p)) by rewrite size_iota.
-rewrite /nth /toSeq /primitive /= .
-by rewrite (nth_map 0) // nth_iota /=; first rewrite add0n.
-Qed.
-
-Lemma primitive_correct : forall (p : T) c k, k < (size p).+1 ->
-                                              nth (primitive c p) k =
-                                              match k with
-                                                | 0 => c
-                                                | S m => C.div u (nth p m) (C.from_nat k) end.
-Proof.
-move => k c p Hkp.
-by apply: nth_primitive.
-Qed.
 
 Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
@@ -997,6 +966,20 @@ Qed.
 
 *)
 
+Lemma nth_primitive (p : T) (c : R) (k : nat) :
+  nth (primitive tt c p) k = if size p < k then 0%R
+                        else int_coeff tt p c k.
+Proof.
+case: ifP => Hk.
+  by rewrite nth_default // size_primitive.
+case : k Hk => [ _ | m Hm] //=.
+have HSiota : m < seq.size (iota 0 (size p)).
+  by rewrite size_iota; rewrite ltnNge in Hm; move/negbFE in Hm.
+rewrite /nth /toSeq /primitive /= .
+rewrite (nth_map 0) // nth_iota; first by rewrite add0n.
+by rewrite ltnNge in Hm; move/negbFE in Hm.
+Qed.
+
 End PolR.
 
 Module Type PolyIntOps (I : IntervalOps).
@@ -1057,6 +1040,11 @@ Parameter div_mixed_r_correct :
 Parameter horner_propagate : forall u pi, I.propagate (horner u pi).
 Parameter deriv_correct :
   forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
+Parameter primitive_correct :
+  forall u ci c pi p,
+  ci >: c ->
+  pi >:: p ->
+  primitive u ci pi >:: PolR.primitive tt c p.
 Parameter lift_correct : forall n pi p, pi >:: p -> lift n pi >:: PolR.lift n p.
 Parameter tail_correct : forall n pi p, pi >:: p -> tail n pi >:: PolR.tail n p.
 Parameter set_nth_correct :
@@ -1449,6 +1437,24 @@ case=> [|k] /=; first exact: cont0.
 case: k => [|k] /=; first by change R1 with (INR 1); apply: I.fromZ_correct.
 rewrite /nth /PolR.nth !nth_nil.
 exact: cont0.
+Qed.
+
+Lemma primitive_correct u ci c pi p :
+  ci >: c ->
+  pi >:: p ->
+  primitive u ci pi >:: PolR.primitive tt c p.
+Proof.
+move=> Hc Hp; rewrite /primitive /PolR.primitive /nth /PolR.nth.
+apply: polyCons_correct =>//.
+apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
+- exact: cont0.
+- move=> k; rewrite /int_coeff_shift /PolR.int_coeff_shift.
+  apply: R_div_correct =>//.
+  exact: R_from_nat_correct.
+- move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.
+  by rewrite [seq.nth _ _ _](PolR.nth_default _k) /Rdiv Rmult_0_l.
+- move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.
+  by rewrite [seq.nth _ _ _](nth_default_alt Hp _k) /Rdiv Rmult_0_l.
 Qed.
 
 End SeqPolyInt.
