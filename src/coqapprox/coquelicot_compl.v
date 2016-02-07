@@ -1,7 +1,7 @@
-Require Import Reals.
+Require Import Reals Psatz.
 Require Import Coquelicot.
-
-Require Import Ssreflect.ssreflect.
+Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
+Require Import Rstruct reals_compl reals_tac.
 
 Section MissingContinuity.
 
@@ -216,3 +216,188 @@ exact: ex_RInt_const.
 Qed.
 
 End IntegralEstimation.
+
+(********************************************************************)
+(** The following support results deal with "iterated derivatives". *)
+(********************************************************************)
+
+Section Derive_n_elem_functions.
+
+Lemma Derive_nS f n :
+  Derive_n f n.+1 = Derive_n (Derive f) n.
+Proof.
+elim: n => [//|n IHn].
+by rewrite -[in LHS]addn1 /= -addnE addn1 IHn. (* SSReflect trick *)
+Qed.
+
+Lemma ex_derive_nSS f n :
+  ex_derive_n f n.+2 = ex_derive_n (Derive f) n.+1.
+Proof.
+case: n => [//|n].
+by rewrite /ex_derive_n Derive_nS.
+Qed.
+
+Lemma is_derive_nSS f n l :
+  is_derive_n f n.+2 l = is_derive_n (Derive f) n.+1 l.
+Proof.
+case: n => [//|n].
+by rewrite /is_derive_n Derive_nS.
+Qed.
+
+(*
+(* First attempt regarding automation: *)
+
+Ltac start_derive_n n x :=
+  let IHn := fresh "IHn" in
+  let Hx := fresh "Hx" in
+  case: n x;
+  [try done|elim=> [/=|n IHn] x;
+           [try (move=> Hx); auto_derive; try done|idtac]].
+*)
+
+Lemma is_derive_ext_alt f g x (f' : R -> R) (P : R -> Prop) :
+  P x ->
+  open P ->
+  (forall t : R, P t -> f t = g t) ->
+  (forall t : R, P t -> is_derive f t (f' t)) ->
+  is_derive g x (f' x).
+Proof.
+move=> Hx HP Hfg Hf.
+apply: (is_derive_ext_loc f); last exact: Hf.
+exact: (@locally_open _ P _ HP Hfg).
+Qed.
+
+(** The following two tactics allows one to easily start proving goals
+    that have the form [forall n x, is_derive_n f n x (D n x)]
+    or the form [forall n x, P x -> is_derive_n f n x (D n x)]
+
+    Then, we obtain 3 (resp. 4) subgoals that can be proved by relying
+    on the [auto_derive] Coquelicot tactic.
+
+    See [is_derive_n_exp] or [is_derive_n_inv_pow] for usage examples.
+*)
+
+Ltac help_is_derive_n_whole :=
+  match goal with
+  [ |- forall n x, is_derive_n ?f n x (@?D n x) ] =>
+  let n := fresh "n" in
+  let x := fresh "x" in
+  let IHn := fresh "IHn" in
+  case;
+  [(*1: f is defined*) try done
+  |elim=> [/=|n IHn] x;
+  [(*2: f is derivable*) (*OPTIONAL: (try auto_derive); try done *)
+  |apply: (@is_derive_ext _ _ (D n.+1) (Derive_n f n.+1) x _);
+  [let t := fresh "t" in
+   by move=> t; rewrite (is_derive_n_unique _ _ _ _ (IHn t))
+  |(*3: the invariant holds*)]]]
+  end.
+
+Ltac help_is_derive_n :=
+  match goal with
+  [ |- forall n x, @?P x -> is_derive_n ?f n x (@?D n x) ] =>
+  let n := fresh "n" in
+  let x := fresh "x" in
+  let IHn := fresh "IHn" in
+  let Hx := fresh "Hx" in
+  case;
+  [(*1: f is defined*) try done
+  |elim=> [/=|n IHn] x;
+  [(*2: f is derivable*) (*OPTIONAL: move=> Hx; auto_derive; try done *)
+  |move=> Hx;
+   apply: (@is_derive_ext_alt (D n.+1) (Derive_n f n.+1) x (D n.+2) P Hx);
+   clear x Hx;
+  [(*3: P is open*)
+  |let t := fresh "t" in
+   let Ht := fresh "Ht" in
+   by move=> t Ht; rewrite (is_derive_n_unique _ _ _ _ (IHn t Ht))
+  |(*4: the invariant holds*)]]]
+  end.
+
+Lemma is_derive_n_exp : forall n x, is_derive_n exp n x (exp x).
+Proof.
+help_is_derive_n_whole.
+- by auto_derive; last by rewrite Rmult_1_l.
+- by auto_derive; last by rewrite Rmult_1_l.
+Qed.
+
+(* TODO: Compléter à partir des anciennes preuves de derive_compl.v
+   PUIS RENOMMER LES LEMMES EN [is_derive_n_*]
+*)
+
+Lemma ex_derive_n_pow :
+  forall m, (0 < m)%N -> forall n x,
+  ex_derive_n (pow ^~ n) n x.
+Proof.
+Admitted.
+
+Lemma is_derive_n_inv_pow :
+  forall m, (0 < m)%N -> forall n x, x <> 0 ->
+  is_derive_n (fun x => / x ^ m)%R n x
+  (\big[Rmult/1%R]_(i < n) - INR (m + i) / x ^ (m + n))%R.
+Proof.
+move=> m Hm; help_is_derive_n.
+- move=> x Hx; rewrite big1 /= ?addn0; first by field; apply: pow_nonzero.
+  by case.
+- move=> Hx; auto_derive; first by apply: pow_nonzero.
+  rewrite big_ord_recl big_ord0 /= addn0 addn1 /= Rmult_1_l Rmult_1_r.
+  apply: Rdiv_eq_reg.
+  rewrite -(prednK Hm); simpl; ring.
+  apply: Rmult_neq0; exact: pow_nonzero.
+  by apply: Rmult_neq0; try apply: pow_nonzero.
+- exact: open_neq.
+- move=> t Ht; auto_derive; first exact: pow_nonzero.
+  rewrite [in RHS]big_ord_recr /= /Rdiv; rewrite Rmult_assoc; congr Rmult.
+  rewrite Rmult_1_l; apply: Rdiv_eq_reg; first last.
+  exact: pow_nonzero.
+  apply: Rmult_neq0; exact: pow_nonzero.
+  rewrite !addnS /=; ring.
+Qed.
+
+Lemma ex_derive_n_inv :
+  forall n x, x <> 0 -> ex_derive_n Rinv n x.
+Proof.
+Admitted.
+
+
+Lemma ex_derive_n_ln :
+  forall n x, 0 < x -> ex_derive_n ln n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_power :
+  forall a n x, 0 < x -> ex_derive_n (Rpower ^~ a) n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_sqrt :
+  forall n x, 0 < x -> ex_derive_n sqrt n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_invsqrt :
+  forall n x, 0 < x -> ex_derive_n (fun x => / sqrt x) n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_sin :
+  forall n x, ex_derive_n sin n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_cos :
+  forall n x, ex_derive_n sin n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_atan :
+  forall n x, ex_derive_n atan n x.
+Proof.
+Admitted.
+
+Lemma ex_derive_n_tan :
+  forall n x, cos x <> 0 -> ex_derive_n tan n x.
+Proof.
+Admitted.
+
+End Derive_n_elem_functions.
