@@ -295,7 +295,7 @@ Definition power_int := --> powerRZ.
 Definition exp := --> exp.
 Definition ln := --> ln.
 Definition from_nat := INR.
-Definition fromZ := IZR.
+Definition fromZ := Z2R.
 Definition inv := --> Rinv.
 Definition cos := --> cos.
 Definition sin := --> sin.
@@ -615,6 +615,18 @@ Lemma nth_mul_tail u n p q k :
   if (size p + size q).-1 - n.+1 <= k then C.zero
   else mul_coeff u p q (n.+1 + k).
 Proof. by rewrite /nth /mul_tail [in LHS]nth_mkseq_dflt. Qed.
+
+Lemma nth_dotmuldiv u a b p k :
+  nth (dotmuldiv u a b p) k =
+  if [|| size p <= k, seq.size a <= k | seq.size b <= k] then C.zero
+  else C.mul u (C.div u (C.fromZ (seq.nth 0%Z a k)) (C.fromZ (seq.nth 0%Z b k))) (nth p k).
+Proof.
+elim: p a b k => [|c p IHp] a b k; case: a; case: b =>//=; rewrite /nth ?nth_nil //.
+by rewrite orbT.
+by rewrite orbT.
+by move=> *; rewrite leq0n !orbT.
+by move=> a0 a b0 b; case: k => [|k] //=; rewrite [LHS]IHp ltnS; case: ifP.
+Qed.
 
 End SeqPoly.
 
@@ -1019,6 +1031,11 @@ Parameter map_correct :
   (forall xi x, xi >: x -> fi xi >: f x) ->
   pi >:: p ->
   map fi pi >:: PolR.map f p.
+Parameter dotmuldiv_correct :
+  forall u a b pi p,
+  seq.size a = seq.size b ->
+  pi >:: p ->
+  dotmuldiv u a b pi >:: PolR.dotmuldiv tt a b p.
 Parameter add_correct :
   forall u pi qi p q, pi >:: p -> qi >:: q -> add u pi qi >:: PolR.add tt p q.
 Parameter sub_correct :
@@ -1087,6 +1104,19 @@ Parameter grec1_propagate :
   (forall qi m, eqNai (Gi qi m)) ->
   seq_eqNai si ->
   forall n, poly_eqNai (grec1 Fi Gi ai si n).
+
+Parameter dotmuldiv_propagate :
+  forall u a b p,
+  seq.size a = size p ->
+  seq.size b = size p ->
+  poly_eqNai p ->
+  poly_eqNai (dotmuldiv u a b p).
+
+Parameter rec1_propagate :
+  forall (Fi : I.type -> nat -> I.type) ai,
+  (forall qi m, eqNai qi -> eqNai (Fi qi m)) ->
+  eqNai ai ->
+  forall n, poly_eqNai (rec1 Fi ai n).
 End PolyIntOps.
 
 (** Note that the implementation(s) of the previous signature will
@@ -1169,15 +1199,40 @@ apply (@map2_correct R I.type) =>//.
 - by move=> *; apply: R_add_correct.
 Qed.
 
-(*
-Lemma add_propagate_l u pi qi :
-  poly_eqNai pi -> poly_eqNai (add u pi qi).
+Lemma nth_default_alt pi p :
+  pi >:: p ->
+  forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
 Proof.
-move=> H k Hk.
-rewrite size_add in Hk.
-have := H k.
-Abort.
-*)
+move=> Hpi n Hn.
+case: (leqP (PolR.size p) (size pi)) => Hsz.
+  rewrite PolR.nth_default //; exact: leq_trans Hsz Hn.
+by move/(_ n): Hpi; rewrite nth_default //; move/only0=>->.
+Qed.
+
+Lemma dotmuldiv_correct u a b pi p :
+  seq.size a = seq.size b ->
+  pi >:: p ->
+  dotmuldiv u a b pi >:: PolR.dotmuldiv tt a b p.
+Proof.
+move=> Hs Hp.
+move=> k; rewrite nth_dotmuldiv PolR.nth_dotmuldiv.
+do ![case: ifP] => /or3P A /or3P B.
+- exact: cont0.
+- case B.
+  by move/nth_default_alt =>->; rewrite ?Rmult_0_r; try exact: cont0.
+  by move/or3P in A; move=> K; rewrite K orbT in A.
+  by move/or3P in A; move=> K; rewrite K !orbT in A.
+- case A=> K.
+  apply (@mul_0_contains_0_r u (Xreal (Rdiv (Z2R (seq.nth 0%Z a k)) (Z2R (seq.nth 0%Z b k))))).
+  by apply: R_div_correct; apply: I.fromZ_correct.
+  have->: 0%R = PolR.nth p k.
+  by move/PolR.nth_default: K.
+  exact: Hp.
+  by move/or3P in B; rewrite K !orbT in B.
+  by move/or3P in B; rewrite K !orbT in B.
+- apply: R_mul_correct =>//.
+  apply: R_div_correct =>//; exact: I.fromZ_correct.
+Qed.
 
 Lemma sub_correct u pi qi p q :
   pi >:: p -> qi >:: q -> sub u pi qi >:: PolR.sub tt p q.
@@ -1223,16 +1278,6 @@ apply (@big_ind2 R I.type (fun r i => i >: r)).
 - exact: cont0.
 - move=> *; exact: R_add_correct.
 - move=> *; exact: R_mul_correct.
-Qed.
-
-Lemma nth_default_alt pi p :
-  pi >:: p ->
-  forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
-Proof.
-move=> Hpi n Hn.
-case: (leqP (PolR.size p) (size pi)) => Hsz.
-  rewrite PolR.nth_default //; exact: leq_trans Hsz Hn.
-by move/(_ n): Hpi; rewrite nth_default //; move/only0=>->.
 Qed.
 
 Lemma mul_correct u pi qi p q :
@@ -1403,25 +1448,6 @@ move=> HF HG Ha Hs Hsize.
 by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
 Qed.
 
-(* Check all_nthP *)
-Lemma grec1_propagate A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si :
-  (forall qi m, eqNai (Gi qi m)) ->
-  seq_eqNai si ->
-  forall n, poly_eqNai (grec1 Fi Gi ai si n).
-Proof.
-move=> HG Hs n k Hk.
-rewrite /grec1 /size size_grec1up ltnS in Hk.
-rewrite /grec1 /nth nth_grec1up.
-rewrite ltnNge Hk /=.
-case: ltnP => H2.
-- exact: Hs.
-- exact: HG.
-Qed.
-
-(* TODO size_correct *)
-(* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
-(* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
-
 Lemma polyC_correct ci c : ci >: c -> polyC ci >:: PolR.polyC c.
 Proof.
 move=> Hc [//|k].
@@ -1455,6 +1481,60 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
   by rewrite [seq.nth _ _ _](PolR.nth_default _k) /Rdiv Rmult_0_l.
 - move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.
   by rewrite [seq.nth _ _ _](nth_default_alt Hp _k) /Rdiv Rmult_0_l.
+Qed.
+
+
+(* Check all_nthP *)
+Lemma grec1_propagate A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si :
+  (forall qi m, eqNai (Gi qi m)) ->
+  seq_eqNai si ->
+  forall n, poly_eqNai (grec1 Fi Gi ai si n).
+Proof.
+move=> HG Hs n k Hk.
+rewrite /grec1 /size size_grec1up ltnS in Hk.
+rewrite /grec1 /nth nth_grec1up.
+rewrite ltnNge Hk /=.
+case: ltnP => H2.
+- exact: Hs.
+- exact: HG.
+Qed.
+
+Arguments nth_rec1up_indep [T F a0 d1 d2 m1 m2 n] _ _.
+Lemma rec1_propagate
+  (Fi : I.type -> nat -> I.type) ai :
+  (forall qi m, eqNai qi -> eqNai (Fi qi m)) ->
+  eqNai ai ->
+  forall n, poly_eqNai (rec1 Fi ai n).
+Proof.
+move=> HF Ha n k Hk.
+rewrite /size size_rec1up ltnS in Hk.
+rewrite /nth /rec1.
+(* TODO/Erik: to tidy...*)
+rewrite (nth_rec1up_indep (d2 := I.zero) (m2 := k)) //.
+rewrite nth_rec1up_last.
+rewrite last_rec1up head_loop1 //.
+elim: k Hk => [//|k IHk] Hk /=.
+apply: HF.
+apply: IHk.
+exact: ltnW.
+Qed.
+
+(* TODO size_correct *)
+(* TODO recN_correct : forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T. *)
+(* TODO lastN_correct : C.T -> forall N : nat, T -> C.T ^ N. *)
+
+Lemma dotmuldiv_propagate u a b p :
+  seq.size a = size p ->
+  seq.size b = size p ->
+  poly_eqNai p ->
+  poly_eqNai (dotmuldiv u a b p).
+Proof.
+move=> Ha Hb Hp; red => k Hk.
+rewrite (@size_dotmuldiv (size p)) // in Hk.
+rewrite nth_dotmuldiv Ha Hb !orbb ifF.
+  apply/eqNaiP; rewrite I.mul_propagate_r //.
+  apply/eqNaiP; exact: Hp.
+by rewrite leqNgt Hk.
 Qed.
 
 End SeqPolyInt.
