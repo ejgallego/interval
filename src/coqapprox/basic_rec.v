@@ -219,6 +219,16 @@ rewrite !size_loop1 /= !addn1 !subSS.
 exact: nth_rec1down_indep.
 Qed.
 
+Theorem nth_rec1up n k :
+  nth d (rec1up n) k =
+  if n < k then d
+  else iteri k (fun i c => F c (i + 1)) a0.
+Proof.
+case: (ltnP n k) => H; first by rewrite nth_default // size_rec1up.
+rewrite (@nth_rec1up_indep d d n k k) //.
+by rewrite nth_rec1up_last last_rec1up head_loop1.
+Qed.
+
 (** For the base case *)
 
 Lemma rec1down_co0 n: nth d (rec1down n) n = a0.
