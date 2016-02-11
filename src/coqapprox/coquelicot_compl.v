@@ -436,12 +436,25 @@ Qed.
 Lemma ex_derive_n_sqrt :
   forall n x, 0 < x -> ex_derive_n sqrt n x.
 Proof.
-Admitted.
+intros n x Hx.
+apply ex_derive_n_ext_loc with (fun x => Rpower x (/2)).
+apply: locally_open x Hx.
+apply open_gt.
+exact Rpower_sqrt.
+now apply ex_derive_n_power.
+Qed.
 
 Lemma ex_derive_n_invsqrt :
   forall n x, 0 < x -> ex_derive_n (fun x => / sqrt x) n x.
 Proof.
-Admitted.
+intros n x Hx.
+apply ex_derive_n_ext_loc with (fun x => Rpower x (-/2)).
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+by rewrite Rpower_Ropp Rpower_sqrt.
+now apply ex_derive_n_power.
+Qed.
 
 Lemma ex_derive_n_sin :
   forall n (x : R), ex_derive_n sin n x.
