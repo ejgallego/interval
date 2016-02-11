@@ -244,6 +244,16 @@ case: n => [//|n].
 by rewrite /is_derive_n Derive_nS.
 Qed.
 
+Lemma ex_derive_n_is_derive_n :
+  forall f n x l, is_derive_n f n x l -> ex_derive_n f n x.
+Proof.
+intros f [|n] x l.
+easy.
+rewrite /is_derive_n /ex_derive_n => H.
+eexists.
+apply H.
+Qed.
+
 (*
 (* First attempt regarding automation: *)
 
@@ -357,8 +367,13 @@ Qed.
 Lemma ex_derive_n_inv :
   forall n x, x <> 0 -> ex_derive_n Rinv n x.
 Proof.
-Admitted.
-
+intros n x Hx.
+eapply ex_derive_n_is_derive_n.
+apply is_derive_n_ext with (f := fun t => /(t^1)).
+intros t.
+by rewrite /= Rmult_1_r.
+by apply is_derive_n_inv_pow.
+Qed.
 
 Lemma ex_derive_n_ln :
   forall n x, 0 < x -> ex_derive_n ln n x.
@@ -409,12 +424,8 @@ apply H.
 exists ((-1)^ n./2 * cos x).
 apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_sin.
-move: (H n./2 x).
-rewrite add0n /ex_derive_n /is_derive_n.
-case (n./2 + n./2)%N => //.
-intros m H'.
-eexists.
-apply H'.
+eapply ex_derive_n_is_derive_n.
+apply (H n./2).
 Qed.
 
 Lemma ex_derive_n_cos :
@@ -447,12 +458,8 @@ apply H.
 exists ((-1)^ n./2 * -sin x).
 apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
-move: (H n./2 x).
-rewrite add0n /ex_derive_n /is_derive_n.
-case (n./2 + n./2)%N => //.
-intros m H'.
-eexists.
-apply H'.
+eapply ex_derive_n_is_derive_n.
+apply (H n./2).
 Qed.
 
 Lemma ex_derive_n_atan :
