@@ -401,7 +401,37 @@ Qed.
 Lemma ex_derive_n_power :
   forall a n x, 0 < x -> ex_derive_n (Rpower ^~ a) n x.
 Proof.
-Admitted.
+assert (forall n a, exists c, forall x, 0 < x -> is_derive_n (Rpower^~ a) n x (c * Rpower x (a - INR n))).
+induction n.
+exists R1.
+intros x _.
+by rewrite /= Rmult_1_l Rminus_0_r.
+intros a.
+destruct (IHn (a - 1)) as [c H].
+exists (c * a).
+intros x Hx.
+apply is_derive_Sn.
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+eexists.
+now apply is_derive_Reals, derivable_pt_lim_power.
+apply is_derive_n_ext_loc with (fun x => a * Rpower x (a - 1)).
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+apply sym_eq, is_derive_unique.
+now apply is_derive_Reals, derivable_pt_lim_power.
+replace (c * a * Rpower x (a - INR n.+1)) with (a * (c * Rpower x (a - INR n.+1))) by ring.
+apply is_derive_n_scal_l.
+rewrite S_INR.
+replace (a - (INR n + 1)) with (a - 1 - INR n) by ring.
+now apply H.
+intros a n x Hx.
+destruct (H n a) as [c H'].
+eapply ex_derive_n_is_derive_n.
+now apply H'.
+Qed.
 
 Lemma ex_derive_n_sqrt :
   forall n x, 0 < x -> ex_derive_n sqrt n x.
