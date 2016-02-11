@@ -2746,54 +2746,24 @@ Lemma TM_sin_correct X0 X n :
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) Xsin.
 Proof.
 move=> Hsubset Hex.
-admit.
-(*
-apply TM_rec2_correct' with
-  (XDn := nth_Xsin)
-  (XF1 := Xcos)
-  (F_rec := fun _ => Rec.sin_rec prec)
-  (XF_rec := fun _ => TX.Rec.sin_rec tt)
-=>//.
-+ by move=> x; apply: nth_Xderive_pt_sin.
-+ by move=> x X1 HX1; apply: I.sin_correct.
-+ by move=> x X1 HX1; apply: I.cos_correct.
-+ move=>*; rewrite /Rec.sin_rec /TX.Rec.sin_rec.
-  apply: I.div_correct.
-  apply: I.neg_correct; first done.
-  apply: I.mul_correct.
-    rewrite /tnat.
-    rewrite INR_IZR_INZ.
-    rewrite -Z2R_IZR.
-    by apply: I.fromZ_correct.
-  rewrite /tnat.
-  rewrite INR_IZR_INZ.
-  rewrite -Z2R_IZR.
-  by apply: I.fromZ_correct.
-move=> r k; rewrite /TX.Rec.sin_rec.
-rewrite succnK.
-suff->: nth_Xsin k.+2 r = (- nth_Xsin k r)%XR.
-  case cn : (nth_Xsin k r) => [|sk] //.
-  xtotal.
-  + by elim (not_0_INR _ (fact_neq_0 k)).
-  + elim (Rmult_integral _ _ Y0) => H0.
-      have H1 : INR k.+2 <> 0%Re.
-        by apply: Rgt_not_eq; apply: lt_0_INR; omega.
-     by elim H1.
-  + have H1 : INR k.+1 <> 0%Re.
-      by apply: Rgt_not_eq; apply: lt_0_INR; omega.
-  + by elim H1.
-  + by elim (not_0_INR _ (fact_neq_0 k.+2)).
-  f_equal.
-  rewrite /Rdiv.
-  field_simplify=>//.
-    f_equal.
-    rewrite -2!mult_INR; f_equal.
-    rewrite 2!fact_simpl.
-    by rewrite -(mult_assoc (fact k)) (mult_assoc (k.+2)) mult_comm.
-  by elim (RIneq.Rmult_neq_0_reg _ _ Y0) => H1 H2.
-rewrite /=; case cn : (nth_Xsin k r) => [|ns] //=.
-f_equal; ring.
-*)
+apply i_validTM_Ztech with (TR.T_sin tt); last 2 first =>//.
+exact: I.sin_correct.
+constructor.
+- by move=> x m; rewrite /TR.T_sin PolR.size_rec2.
+- move=> x m k Hx Hk; rewrite /TR.T_sin toR_toXreal.
+  admit. (* TODO *)
+constructor.
+- by move=> x m k; rewrite /TR.T_sin Pol.size_rec2 PolR.size_rec2.
+- by move=> Y x m Hx; apply: Pol.rec2_correct; first move=> ai bi a b l Ha Hb;
+  repeat first [apply: R_div_correct|
+                apply: R_neg_correct|
+                apply: R_mul_correct|
+                apply: R_from_nat_correct|
+                apply: R_sin_correct|
+                apply: R_cos_correct].
+- move=> Y x Hx Dx m k Hk; rewrite /T_sin.
+  admit. (* TODO *)
+- move=> *; exact: ex_derive_n_sin.
 Qed.
 
 Lemma size_TM_sin X0 X (n : nat) : Pol.size (approx (TM_sin X0 X n)) = n.+1.
@@ -2805,55 +2775,24 @@ Lemma TM_cos_correct X0 X n :
   i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) Xcos.
 Proof.
 move=> Hsubset Hex.
-admit.
-(*
-apply TM_rec2_correct' with
-  (XDn := nth_Xcos)
-  (XF1 := fun x => Xneg (Xsin x))
-  (F1 := fun x => topp (tsin prec x))
-  (F_rec := fun _ => Rec.cos_rec prec)
-  (XF_rec := fun _ => TX.Rec.cos_rec tt)
-=>//.
-+ by move=> x; apply: nth_Xderive_pt_cos.
-+ by move=> x X1 HX1; apply: I.cos_correct.
-+ by move=> x X1 HX1; apply: I.neg_correct; apply: I.sin_correct.
-+ move=>*; rewrite /Rec.cos_rec /TX.Rec.cos_rec.
-  apply: I.div_correct.
-    exact: I.neg_correct.
-  apply: I.mul_correct.
-    rewrite /tnat.
-    rewrite INR_IZR_INZ.
-    rewrite -Z2R_IZR.
-    exact: I.fromZ_correct.
-  rewrite /tnat.
-  rewrite INR_IZR_INZ.
-  rewrite -Z2R_IZR.
-  exact: I.fromZ_correct.
-move=> r k; rewrite /TX.Rec.cos_rec.
-rewrite succnK.
-suff->: nth_Xcos k.+2 r = (- nth_Xcos k r)%XR.
-  case cn : (nth_Xcos k r) => [|sk] //.
-  xtotal.
-  + by elim (not_0_INR _ (fact_neq_0 k)).
-  + elim (Rmult_integral _ _ Y0) => H0.
-      have H1 : INR k.+2 <> 0%Re.
-        by apply: Rgt_not_eq; apply: lt_0_INR; omega.
-      by elim H1.
-    have H1 : INR k.+1 <> 0%Re.
-      by apply: Rgt_not_eq; apply: lt_0_INR; omega.
-    by elim H1.
-  + by elim (not_0_INR _ (fact_neq_0 k.+2)).
-  f_equal.
-  rewrite /Rdiv.
-  field_simplify=> //.
-    f_equal.
-    rewrite -2!mult_INR; f_equal.
-    rewrite 2!fact_simpl.
-    by rewrite -(mult_assoc (fact k)) (mult_assoc (k.+2)) mult_comm.
-  by elim (RIneq.Rmult_neq_0_reg _ _ Y0) => H1 H2.
-rewrite /=; case cn : (nth_Xcos k r) => [|ns] //=.
-f_equal; ring.
-*)
+apply i_validTM_Ztech with (TR.T_cos tt); last 2 first =>//.
+exact: I.cos_correct.
+constructor.
+- by move=> x m; rewrite /TR.T_cos PolR.size_rec2.
+- move=> x m k Hx Hk; rewrite /TR.T_cos toR_toXreal.
+  admit. (* TODO *)
+constructor.
+- by move=> x m k; rewrite /TR.T_cos Pol.size_rec2 PolR.size_rec2.
+- by move=> Y x m Hx; apply: Pol.rec2_correct; first move=> ai bi a b l Ha Hb;
+  repeat first [apply: R_div_correct|
+                apply: R_neg_correct|
+                apply: R_mul_correct|
+                apply: R_from_nat_correct|
+                apply: R_sin_correct|
+                apply: R_cos_correct].
+- move=> Y x Hx Dx m k Hk; rewrite /T_sin.
+  admit. (* TODO *)
+- move=> *; exact: ex_derive_n_cos.
 Qed.
 
 Lemma size_TM_cos X0 X (n : nat) : Pol.size (approx (TM_cos X0 X n)) = n.+1.
