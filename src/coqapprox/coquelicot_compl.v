@@ -335,12 +335,6 @@ Qed.
    PUIS RENOMMER LES LEMMES EN [is_derive_n_*]
 *)
 
-Lemma ex_derive_n_pow :
-  forall m, (0 < m)%N -> forall n x,
-  ex_derive_n (pow ^~ n) n x.
-Proof.
-Admitted.
-
 Lemma is_derive_n_inv_pow :
   forall m, (0 < m)%N -> forall n x, x <> 0 ->
   is_derive_n (fun x => / x ^ m)%R n x
