@@ -378,7 +378,25 @@ Qed.
 Lemma ex_derive_n_ln :
   forall n x, 0 < x -> ex_derive_n ln n x.
 Proof.
-Admitted.
+intros [|n] x Hx.
+exact I.
+eapply ex_derive_n_is_derive_n.
+apply is_derive_Sn.
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+eexists.
+now apply is_derive_Reals, derivable_pt_lim_ln.
+apply is_derive_n_ext_loc with Rinv.
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+apply sym_eq, is_derive_unique.
+now apply is_derive_Reals, derivable_pt_lim_ln.
+apply Derive_n_correct.
+apply ex_derive_n_inv.
+now apply Rgt_not_eq.
+Qed.
 
 Lemma ex_derive_n_power :
   forall a n x, 0 < x -> ex_derive_n (Rpower ^~ a) n x.
