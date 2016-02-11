@@ -381,17 +381,82 @@ Proof.
 Admitted.
 
 Lemma ex_derive_n_sin :
-  forall n x, ex_derive_n sin n x.
+  forall n (x : R), ex_derive_n sin n x.
 Proof.
-Admitted.
+assert (forall n x, is_derive_n sin (n + n) x ((-1)^n * sin x)).
+induction n ; intros x.
+by rewrite /= Rmult_1_l.
+rewrite -addSnnS 2!addSn /=.
+apply is_derive_ext with (f := fun x => (-1)^n * cos x).
+move => /= {x} x.
+apply sym_eq, is_derive_unique.
+eapply is_derive_ext.
+move => /= {x} x.
+apply sym_eq, is_derive_n_unique.
+apply IHn.
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_sin.
+replace (-1 * (-1)^n * sin x) with ((-1)^n * -sin x) by ring.
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_cos.
+intros n x.
+rewrite -(odd_double_half n) -addnn.
+case (odd n) => /=.
+eapply ex_derive_ext.
+move => /= {x} x.
+apply sym_eq, is_derive_n_unique.
+apply H.
+exists ((-1)^ n./2 * cos x).
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_sin.
+move: (H n./2 x).
+rewrite add0n /ex_derive_n /is_derive_n.
+case (n./2 + n./2)%N => //.
+intros m H'.
+eexists.
+apply H'.
+Qed.
 
 Lemma ex_derive_n_cos :
-  forall n x, ex_derive_n sin n x.
+  forall n (x : R), ex_derive_n cos n x.
 Proof.
-Admitted.
+assert (forall n x, is_derive_n cos (n + n) x ((-1)^n * cos x)).
+induction n ; intros x.
+by rewrite /= Rmult_1_l.
+rewrite -addSnnS 2!addSn /=.
+apply is_derive_ext with (f := fun x => (-1)^n * -sin x).
+move => /= {x} x.
+apply sym_eq, is_derive_unique.
+eapply is_derive_ext.
+move => /= {x} x.
+apply sym_eq, is_derive_n_unique.
+apply IHn.
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_cos.
+replace (-1 * (-1)^n * cos x) with ((-1)^n * -cos x) by ring.
+apply is_derive_scal.
+apply: is_derive_opp.
+apply is_derive_Reals, derivable_pt_lim_sin.
+intros n x.
+rewrite -(odd_double_half n) -addnn.
+case (odd n) => /=.
+eapply ex_derive_ext.
+move => /= {x} x.
+apply sym_eq, is_derive_n_unique.
+apply H.
+exists ((-1)^ n./2 * -sin x).
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_cos.
+move: (H n./2 x).
+rewrite add0n /ex_derive_n /is_derive_n.
+case (n./2 + n./2)%N => //.
+intros m H'.
+eexists.
+apply H'.
+Qed.
 
 Lemma ex_derive_n_atan :
-  forall n x, ex_derive_n atan n x.
+  forall n (x : R), ex_derive_n atan n x.
 Proof.
 Admitted.
 
