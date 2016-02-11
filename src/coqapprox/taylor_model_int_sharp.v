@@ -915,7 +915,7 @@ split=>//=.
 (* Nai *)
 move=> x Hx Nx; rewrite /TLrem; apply/eqNaiP.
 rewrite I.mul_propagate_l //.
-exact: IPoly_nai.
+exact: (IPoly_nai Hx Nx).
 
 (* |- 0 \in err *)
 set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
@@ -2219,7 +2219,8 @@ constructor.
   + rewrite /pow_aux_rec /TR.pow_aux_rec; move=> _ _ m _.
     case: ifP => H.
     exact: R_power_int_correct.
-    apply: R_mask_correct =>//; exact: cont0.
+    apply: R_mask_correct Hx0.
+    exact: cont0.
   + exact: R_power_int_correct.
   move=> X x Hx Dx n k Hk.
   rewrite /T_power_int.
