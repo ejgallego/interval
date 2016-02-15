@@ -450,10 +450,9 @@ by rewrite Rpower_Ropp Rpower_sqrt.
 now apply ex_derive_n_power.
 Qed.
 
-Lemma ex_derive_n_sin :
-  forall n (x : R), ex_derive_n sin n x.
+Lemma is_derive_2n_sin :
+  forall n x, is_derive_n sin (n + n) x ((-1)^n * sin x).
 Proof.
-assert (forall n x, is_derive_n sin (n + n) x ((-1)^n * sin x)).
 induction n ; intros x.
 by rewrite /= Rmult_1_l.
 rewrite -addSnnS 2!addSn /=.
@@ -469,24 +468,27 @@ apply is_derive_Reals, derivable_pt_lim_sin.
 replace (-1 * (-1)^n * sin x) with ((-1)^n * -sin x) by ring.
 apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
-intros n x.
-rewrite -(odd_double_half n) -addnn.
-case (odd n) => /=.
-eapply ex_derive_ext.
-move => /= {x} x.
-apply sym_eq, is_derive_n_unique.
-apply H.
-exists ((-1)^ n./2 * cos x).
-apply is_derive_scal.
-apply is_derive_Reals, derivable_pt_lim_sin.
-eapply ex_derive_n_is_derive_n.
-apply (H n./2).
 Qed.
 
-Lemma ex_derive_n_cos :
-  forall n (x : R), ex_derive_n cos n x.
+Lemma is_derive_n_sin :
+  forall n (x : R),
+    is_derive_n sin n x (if odd n then (-1)^n./2 * cos x
+                         else ((-1)^n./2 * sin x)).
 Proof.
-assert (forall n x, is_derive_n cos (n + n) x ((-1)^n * cos x)).
+move=> n x; rewrite -{1}(odd_double_half n); case: odd => /=.
+2: rewrite -addnn; exact: is_derive_2n_sin.
+set n' := n./2.
+eapply is_derive_ext.
+move => /= {x} x.
+apply sym_eq, is_derive_n_unique.
+rewrite -addnn; apply: is_derive_2n_sin.
+apply is_derive_scal.
+apply is_derive_Reals, derivable_pt_lim_sin.
+Qed.
+
+Lemma is_derive_2n_cos :
+  forall n x, is_derive_n cos (n + n) x ((-1)^n * cos x).
+Proof.
 induction n ; intros x.
 by rewrite /= Rmult_1_l.
 rewrite -addSnnS 2!addSn /=.
@@ -503,18 +505,22 @@ replace (-1 * (-1)^n * cos x) with ((-1)^n * -cos x) by ring.
 apply is_derive_scal.
 apply: is_derive_opp.
 apply is_derive_Reals, derivable_pt_lim_sin.
-intros n x.
-rewrite -(odd_double_half n) -addnn.
-case (odd n) => /=.
-eapply ex_derive_ext.
+Qed.
+
+Lemma is_derive_n_cos :
+  forall n (x : R),
+    is_derive_n cos n x (if odd n then (-1)^(n./2) * - sin x
+                         else ((-1)^(n./2) * cos x)).
+Proof.
+move=> n x; rewrite -{1}(odd_double_half n); case: odd => /=.
+2: rewrite -addnn; exact: is_derive_2n_cos.
+set n' := n./2.
+eapply is_derive_ext.
 move => /= {x} x.
 apply sym_eq, is_derive_n_unique.
-apply H.
-exists ((-1)^ n./2 * -sin x).
+rewrite -addnn; apply: is_derive_2n_cos.
 apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
-eapply ex_derive_n_is_derive_n.
-apply (H n./2).
 Qed.
 
 Lemma ex_derive_n_atan :
