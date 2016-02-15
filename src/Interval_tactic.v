@@ -932,17 +932,54 @@ move => fa fb Hint Hle Hra Hrb.
 apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   move => x xi Hxi.
   by apply (contains_eval_arg prec prog bounds 0).
-eapply Int'.TM.TMI.TM_fun_eq.
-2: apply A.TaylorValuator.TM.get_tm_correct.
-2: apply: A.TaylorValuator.eval_correct_aux.
-admit.
-admit.
+rewrite /f.
+have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (iF' (I.bnd fa fb))
+    (fun x => nth 0 (eval_ext prog (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan)).
+  apply A.TaylorValuator.TM.get_tm_correct.
+  apply: A.TaylorValuator.eval_correct_aux.
+  exists (Int.EF.T.toR fa).
+  split.
+  move /Int.EF.F_realP : Hra.
+  rewrite -[Int.EF.I.convert_bound]/I.convert_bound => ->.
+  apply Rle_refl.
+  move /Int.EF.F_realP : Hrb.
+  by rewrite -[Int.EF.I.convert_bound]/I.convert_bound => ->.
+rewrite /Int'.TM.TMI.i_validTM /Int'.TM.TMI.Aux.eqNai.
+case: (Int'.EF.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
+  by case.
+move => l u [H1 H2 H3 H4].
+split => //.
+move => x0 Hx0.
+case: (H4 x0 Hx0) => {H4} [Q H4 H4'].
+exists Q => //.
+move => x Hx.
+move: (H1 x Hx) (H4' x Hx) => {H1 H4'}.
+rewrite /Xmask /toXreal_fun /interval_compl.toR_fun
+  /Interval_xreal_derive.proj_fun /interval_compl.defined.
+set bx := A.Bproof x (I.bnd fa fb) Hx.
+rewrite -[_::map _ _]/(map _ (bx::_)).
+rewrite -[_::map _ _]/(map A.real_from_bp (bx::_)).
+case E: (nth 0 _ Xnan) => H.
+  by move: (H eq_refl).
+rewrite -[Xreal (_ - _)]/(Xsub (Xreal _) (Xreal _)).
+rewrite -E.
+rewrite (_ : map [eta A.xreal_from_bp] (bx :: bounds) = (map Xreal (map A.real_from_bp (bx :: bounds)))).
+exact: (xreal_to_real (fun x => contains _ (Xsub x (Xreal _))) (fun x => contains _ (Xreal (x - _)))).
+rewrite map_map.
+apply map_ext.
+by case.
 rewrite -(Int.EF.F_realP _ Hra).
 exact: Int.EF.thin_correct.
 rewrite -(Int.EF.F_realP _ Hrb).
 exact: Int.EF.thin_correct.
-admit.
-admit.
+split.
+  move /Int'.EF.F_realP : Hra => ->.
+  apply Rle_refl.
+  by move /Int'.EF.F_realP : Hrb => ->.
+split.
+  by move /Int'.EF.F_realP : Hra => ->.
+  move /Int'.EF.F_realP : Hrb => ->.
+  apply Rle_refl.
 exact: ex_RInt_base_case_taylor_integral_naive_intersection.
 Qed.
 
