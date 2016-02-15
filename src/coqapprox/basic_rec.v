@@ -1081,6 +1081,9 @@ rewrite fact_simpl.
 zify; ring.
 Qed.
 
+Lemma size_fact_seq n : size (fact_seq n) = n.+1.
+Proof. by rewrite size_rec1up. Qed.
+
 Definition falling_rec (p : Z) (a : Z) (n : nat) : Z :=
   (a * (p - (Z.of_nat n) + 1))%Z.
 Definition falling_seq (p : Z) := rec1up (falling_rec p) 1%Z.
@@ -1104,6 +1107,9 @@ rewrite big_nat_recr //=.
 congr Z.mul.
 zify; ring.
 Qed.
+
+Lemma size_falling_seq p n : size (falling_seq p n) = n.+1.
+Proof. by rewrite size_rec1up. Qed.
 
 End RecZ.
 

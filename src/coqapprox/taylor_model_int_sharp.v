@@ -2228,10 +2228,10 @@ constructor.
   apply: Pol.dotmuldiv_propagate; last 1 first.
   rewrite (@Pol.size_dotmuldiv n.+1) //.
   by rewrite Pol.size_rec1.
-  by rewrite size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
-  by rewrite size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
-  by rewrite Pol.size_rec1 size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
-  by rewrite Pol.size_rec1 size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
+  by rewrite size_falling_seq.
+  by rewrite size_fact_seq.
+  by rewrite Pol.size_rec1 size_falling_seq.
+  by rewrite Pol.size_rec1 size_fact_seq.
   apply: Pol.rec1_propagate.
   move=> y m _.
   rewrite /pow_aux_rec ifT.
@@ -2257,7 +2257,7 @@ constructor.
 - move=> x n k Hder Hk.
   rewrite /TR.T_power_int PolR.nth_dotmuldiv ifF; last first.
     rewrite PolR.size_rec1.
-    rewrite !size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
+    rewrite size_falling_seq size_fact_seq.
     by rewrite !orbb ltnNge Hk.
   elim: k Hk => [|k IHk] Hk.
   simpl Derive_n; simpl INR; rewrite Rdiv_1.
