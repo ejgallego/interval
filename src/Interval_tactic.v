@@ -46,7 +46,8 @@ Inductive interval_tac_parameters :=
   | i_bisect_taylor : R -> nat -> interval_tac_parameters
   | i_depth : nat -> interval_tac_parameters
   | i_integral_depth : nat -> interval_tac_parameters
-  | i_integral_prec : nat -> interval_tac_parameters.
+  | i_integral_prec : nat -> interval_tac_parameters
+  | i_integral_deg : nat -> interval_tac_parameters. (* degree of taylor models at leaves of integration dichotomy  *)
 
 Module Private.
 
@@ -1277,7 +1278,7 @@ Proof.
 exact R0.
 Qed.
 
-Ltac get_RInt_bounds prec rint_depth rint_prec x :=
+Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
   match x with
   | RInt ?f ?a ?b =>
     let f := eval cbv beta in (f reify_var) in
@@ -1296,7 +1297,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec x :=
           let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
           (* let c := constr:(proj2 (naive_integral_epsilon_correct prec rint_depth pa lca pb lcb pf lcf epsilon)) in *)
           (* let c := constr:(proj2 (taylor_integral_correct prec 10%nat rint_depth pa lca pb lcb pf lcf)) in *)
-          let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec 10%nat rint_depth pa lca pb lcb pf lcf epsilon)) in
+          let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
           match type of c with
           | contains (Integrability.I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
@@ -1306,7 +1307,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec x :=
     end
   end.
 
-Ltac get_bounds l prec rint_depth rint_prec :=
+Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
   let rec aux l prec lw :=
     match l with
     | nil => constr:(@nil A.bound_proof, @nil R)
@@ -1316,7 +1317,7 @@ Ltac get_bounds l prec rint_depth rint_prec :=
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
       | toR ?v =>
         constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
-      | _ => get_RInt_bounds prec rint_depth rint_prec x
+      | _ => get_RInt_bounds prec rint_depth rint_prec rint_deg x
       | _ =>
         match goal with
         | _ =>
@@ -1537,13 +1538,13 @@ Qed.
 Definition prec_of_nat prec :=
   match Z_of_nat prec with Zpos p => F.PtoP p | _ => F.PtoP xH end.
 
-Ltac do_interval vars prec depth rint_depth rint_prec eval_tac :=
+Ltac do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac :=
   (abstract (
     let prec := eval vm_compute in (prec_of_nat prec) in
     xalgorithm vars prec ;
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
-      match get_bounds constants prec rint_depth rint_prec with
+      match get_bounds constants prec rint_depth rint_prec rint_deg with
       | (?bounds_, ?lw) =>
         let bounds := fresh "bounds" in
         pose (bounds := bounds_) ;
@@ -1579,19 +1580,20 @@ Ltac tuple_to_list params l :=
   end.
 
 Ltac do_interval_parse params :=
-  let rec aux vars prec depth rint_depth rint_prec eval_tac params :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg eval_tac params :=
     match params with
-    | nil => do_interval vars prec depth rint_depth rint_prec eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec do_interval_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec do_interval_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec ltac:(do_interval_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec eval_tac t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec eval_tac t
-    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec eval_tac t
+    | nil => do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg ltac:(do_interval_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg eval_tac t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
+    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
-  aux (@nil R) 30%nat 15%nat 3%nat 10%nat do_interval_eval params.
+  aux (@nil R) 30%nat 15%nat 3%nat 10%nat 10%nat do_interval_eval params.
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
@@ -1641,11 +1643,11 @@ Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
     | _ => I.nai
     end).
 
-Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec eval_tac :=
+Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
-    match get_bounds constants prec rint_depth rint_prec with
+    match get_bounds constants prec rint_depth rint_prec rint_deg with
     | (?bounds, ?lw) =>
       warn_whole lw ;
       let v := eval_tac extend bounds formula prec depth in
@@ -1655,19 +1657,20 @@ Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec eval
   end.
 
 Ltac do_interval_intro_parse t_ extend params_ :=
-  let rec aux vars prec depth rint_depth rint_prec eval_tac params :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg eval_tac params :=
     match params with
-    | nil => do_interval_intro t_ extend params_ vars prec depth rint_depth rint_prec eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec do_interval_intro_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec do_interval_intro_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec ltac:(do_interval_intro_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec eval_tac t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec eval_tac t
+    | nil => do_interval_intro t_ extend params_ vars prec depth rint_depth rint_prec rint_deg eval_tac
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg eval_tac t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_intro_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_intro_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg ltac:(do_interval_intro_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg eval_tac t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
     | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p eval_tac t
+    | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in
-  aux (@nil R) 30%nat 5%nat 3%nat 10%nat do_interval_intro_eval params_.
+  aux (@nil R) 30%nat 5%nat 3%nat 10%nat 10%nat do_interval_intro_eval params_.
 
 End Private.
 
