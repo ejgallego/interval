@@ -707,7 +707,9 @@ move => ex_RInt_base_case HnotInan Hleu0l1.
 have [Hrealu0 Hreall1] := (Fle_true_real u0 l1 Hleu0l1).
 move: HnotInan.
 rewrite Hrealu0 Hreall1.
-case: Int.EF.I.bounded => HnotInan ;
+case: depth => [|depth].
+exact: ex_RInt_base_case.
+case: Int.EF.I.bounded ; case: Int.Int.I.Fle => HnotInan;
   exact: integral_float_epsilon_ex_RInt HnotInan _.
 Qed.
 
