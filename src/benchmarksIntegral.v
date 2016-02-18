@@ -1,8 +1,8 @@
 Require Import Reals Coquelicot.
 Require Import Interval_tactic.
 
-Lemma bench1 : (* remark : it would be nice to have ... = 3 as a goal*)
- 3 <=  RInt (fun x => 1 + 0 * x) 0 3 <= 3.
+Lemma bench1 :
+  3 <= RInt (fun x => 1) 0 3 <= 3.
 Proof.
 Time interval.
 Qed.

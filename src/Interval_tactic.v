@@ -1157,8 +1157,11 @@ Ltac generate_machine l :=
 
 Ltac extract_algorithm t l :=
   match reify t l with
+  | (Econst ?n, ?lc) =>
+    constr:(cons (Forward n) nil, lc)
   | (?t, ?lc) =>
-    let lm := generate_machine ltac:(get_non_constants t) in
+    let lnc := get_non_constants t in
+    let lm := generate_machine lnc in
     constr:(lm, lc)
   end.
 

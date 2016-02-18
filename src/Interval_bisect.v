@@ -35,6 +35,7 @@ Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
 
 Inductive term : Set :=
+  | Forward : nat -> term
   | Unary : unary_op -> nat -> term
   | Binary : binary_op -> nat -> nat -> term.
 
@@ -51,6 +52,7 @@ Unset Implicit Arguments.
 Definition eval_generic_body {A} def (ops : operations A) values op :=
   let nth n := nth n values def in
   match op with
+  | Forward u => nth u
   | Unary o u => unary ops o (nth u)
   | Binary o u v => binary ops o (nth u) (nth v)
   end :: values.
@@ -62,6 +64,7 @@ Lemma rev_formula :
   forall A formula terms def (ops : operations A),
   eval_generic def ops formula terms =
   fold_right (fun y x => eval_generic_body def ops x y) terms (rev formula).
+Proof.
 intros.
 pattern formula at 1 ; rewrite <- rev_involutive.
 unfold eval_generic, eval_generic_body.
@@ -79,22 +82,15 @@ Theorem eval_inductive_prop :
  (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
   forall prog,
   forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
+Proof.
 intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
 do 2 rewrite rev_formula.
 induction (rev prog).
 exact Hinp.
 intros [|n].
-simpl.
-case a.
-intros o n.
-apply Hun.
-apply IHl.
-intros o n1 n2.
-apply Hbin.
-apply IHl.
-apply IHl.
-simpl.
-apply IHl.
+2: apply IHl.
+destruct a as [n|o n|o n1 n2] ;
+  [ idtac | apply Hun | apply Hbin ] ; apply IHl.
 Qed.
 
 Definition ext_operations :=
@@ -146,17 +142,9 @@ generalize n. clear n.
 induction (rev prog).
 exact Hinp.
 intros [|n].
-simpl.
-case a.
-intros o n.
-refine (Hun _ _ _ _).
-apply IHl.
-intros o n1 n2.
-refine (Hbin _ _ _ _ _ _ _).
-apply IHl.
-apply IHl.
-simpl.
-apply IHl.
+2: apply IHl.
+destruct a as [n|o n|o n1 n2] ;
+  [ idtac | apply Hun | apply Hbin ] ; apply IHl.
 Qed.
 
 Definition real_operations :=
@@ -1534,7 +1522,8 @@ induction (rev prog) as [|t l].
 - intros [|n].
   2: apply IHl.
   simpl.
-  destruct t as [uo n1|bo n1 n2].
+  destruct t as [|uo n1|bo n1 n2].
+  + apply IHl.
   + generalize (IHl n1).
     destruct uo.
     apply TM.opp_correct.
@@ -1566,41 +1555,7 @@ Proof.
 intros prec deg prog bounds n yi xi x Hx.
 pose (f x := nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
 pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
-(* 1 subgoals, subgoal 1 (ID 4301) *)
-(*    *)
-(*   prec : I.precision *)
-(*   deg : nat *)
-(*   prog : list term *)
-(*   bounds : list bound_proof *)
-(*   n : nat *)
-(*   yi : I.type *)
-(*   xi : I.type *)
-(*   x : ExtendedR *)
-(*   Hx : contains (I.convert xi) x *)
-(*   f := fun x0 : ExtendedR => *)
-(*        nth n *)
-(*          (eval_ext prog (x0 :: map (fun b : bound_proof => Xmask (xreal_from_bp b) x0) bounds)) *)
-(*          Xnan : ExtendedR -> ExtendedR *)
-(*   ft := nth n *)
-(*           (eval prec deg yi prog *)
-(*              (TM.var :: map (fun b : bound_proof => TM.const (interval_from_bp b)) bounds)) *)
-(*           TM.dummy : TM.T *)
-(*   ============================ *)
-(*    contains *)
-(*      (I.convert *)
-(*         (TM.eval (prec, deg) *)
-(*            (nth n *)
-(*               (eval prec deg yi prog *)
-(*                  (TM.var :: map (fun b : bound_proof => TM.const (interval_from_bp b)) bounds)) *)
-(*               TM.dummy) yi xi)) *)
-(*      (nth n (eval_ext prog (x :: map (fun b : bound_proof => Xmask (xreal_from_bp b) x) bounds)) *)
-(*         Xnan) *)
-(*  *)
-(*  *)
-(* (dependent evars:) *)
-
 apply (@TM.eval_correct (prec,deg) yi ft f) with (2 := Hx).
-
 now apply eval_correct_aux.
 Qed.
 
