@@ -5,7 +5,6 @@ Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_transcend.
@@ -18,7 +17,7 @@ Require Import Interval.Interval_generic_proof.
 Require Import interval_compl.
 
 Module ExtraFloats (F : FloatOps with Definition even_radix := true).
-Module I := FloatIntervalFull F.
+Module I := FloatInterval F.
 Module T := TranscendentalFloatFast F.
 
 Lemma F_realP (fl : F.type) :

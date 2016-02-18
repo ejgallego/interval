@@ -957,7 +957,7 @@ have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (i
   move /Int.EF.F_realP : Hrb.
   by rewrite -[Int.EF.I.convert_bound]/I.convert_bound => ->.
 rewrite /Int'.TM.TMI.i_validTM /Int'.TM.TMI.Aux.eqNai.
-case: (Int'.EF.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
+case: (Int'.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
   by case.
 move => l u [H1 H2 H3 H4].
 split => //.
@@ -985,11 +985,15 @@ exact: Int.EF.thin_correct.
 rewrite -(Int.EF.F_realP _ Hrb).
 exact: Int.EF.thin_correct.
 split.
+  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   move /Int'.EF.F_realP : Hra => ->.
   apply Rle_refl.
+  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   by move /Int'.EF.F_realP : Hrb => ->.
 split.
+  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   by move /Int'.EF.F_realP : Hra => ->.
+  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   move /Int'.EF.F_realP : Hrb => ->.
   apply Rle_refl.
 exact: ex_RInt_base_case_taylor_integral_naive_intersection.

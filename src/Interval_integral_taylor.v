@@ -28,17 +28,11 @@ Hypothesis fint : ex_RInt f ra rb.
 
 Module IntegralTacticTaylor (F : FloatOps with Definition even_radix := true).
 
-Module I := FloatInterval F.
-Module T := TranscendentalFloatFast F.
-Module Int := Integrability F.
-Module IntTac := IntegralTactic F.
 Module EF := ExtraFloats F.
 Import EF.
-(* Export EF. *)
-
-(* Module IntervalIntegralPol (* (II : IntervalOps) *) (Pol : PolyIntOps I) (Bnd : PolyBound I Pol). *)
-
-
+Module I := FloatIntervalFull F.
+Module Int := Integrability F.
+Module IntTac := IntegralTactic F.
 
 Module TM := TM I.
 
@@ -84,14 +78,8 @@ Hypothesis Hcontb : contains (I.convert ib) (Xreal (T.toR b)).
 Hypothesis Hcontxa : contains iX (Xreal (T.toR a)).
 Hypothesis Hcontxb : contains iX (Xreal (T.toR b)).
 
-Section Functions.
-
 Definition taylor_integral :=
   TM.TMI.integralEnclosure prec X0 Mf ia ib.
-
-Definition deg := 10%nat. (* magic value, shouldn't be needed but for some reason it appears in the arguments of TaylorEvaluator in integrability *)
-
-(* Let iF1 := TM.TMI.ComputeBound prec Mf X0. *)
 
 Definition taylor_integral_subtle :=
   match taylor_integral with
@@ -109,19 +97,6 @@ Definition taylor_integral_naive_intersection :=
                 | x => I.meet x temp
               end
   end.
-
-(* Print TM.TMI.polIntegral. *)
-
-(* SearchAbout TM.TMI.rpa. *)
-(* Search _ TM.TMI.ComputeBound. *)
-(* Print IntTac.naive_integral. *)
-(* Print Int.TaylorEvaluator. *)
-
-End Functions.
-
-Section CorrectionLemmas.
-
-End CorrectionLemmas.
 
 Lemma taylor_integral_correct :
   contains
@@ -166,29 +141,4 @@ Qed.
 
 End DepthZeroPol.
 
-Section Depth_Sk_Pol.
-
-(* Variable getRpa : I.type -> TM.TMI.rpa. (* general parameter for any depth, including zero -> GO UP*) *)
-
-End Depth_Sk_Pol.
-
 End IntegralTacticTaylor.
-
-
-(* Require Import Interval_bigint_carrier. *)
-(* Require Import Interval_specific_ops. *)
-(* Module SFBI2 := SpecificFloat BigIntRadix2. *)
-(* Module IT := IntegralTacticTaylor SFBI2. *)
-(* Require Import BigZ. *)
-
-(* Eval vm_compute in ( *)
-(*   let prec := 20%bigZ in *)
-(*   let a := SFBI2.fromZ 0 in *)
-(*   let b := SFBI2.fromZ 10 in *)
-(*   let X := IT.I.bnd a b in *)
-(*   let x0 := IT.I.midpoint X in *)
-(*   let X0 := IT.EF.thin x0 in *)
-(*   let var := IT.TM.TMI.TM_var X0 in *)
-(*   let f := IT.TM.TMI.TM_sin prec X0 X 10 in *)
-(*   f). *)
-  (* IT.TM.TMI.integralEnclosure prec X0 f (IT.EF.thin a) (IT.EF.thin b) *)
