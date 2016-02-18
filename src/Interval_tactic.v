@@ -710,8 +710,17 @@ move: HnotInan.
 rewrite Hrealu0 Hreall1.
 case: depth => [|depth].
 exact: ex_RInt_base_case.
-case: Int.EF.I.bounded ; case: Int.Int.I.Fle => HnotInan;
-  exact: integral_float_epsilon_ex_RInt HnotInan _.
+case: Int.Int.I.Fle.
+- exact: ex_RInt_base_case.
+- set epsilon1 := (if Int.EF.I.bounded (estimator u0 l1)
+          then
+           F.mul rnd_UP prec epsilon
+             (Int.EF.I.upper (Int.EF.I.abs (estimator u0 l1)))
+          else epsilon).
+  set arg1 := (X in if true && true then X else _).
+  set depth1 := S depth.
+  move => HnotInan.
+  exact: integral_float_epsilon_ex_RInt.
 Qed.
 
 Lemma integral_float_epsilon_signed_ex_RInt

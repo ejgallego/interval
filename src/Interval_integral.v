@@ -267,21 +267,20 @@ Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) 
              end
   end.
 
-Definition integral_float_epsilon' (depth : nat) (a b : F.type) (epsilon : F.type) :=
-  match F.real a, F.real b with
-    | true,true =>
-      match depth with
-        | 0 => est a b
-        | depth =>
-          let roughEst := est a b in
-          if I.bounded roughEst && Fle epsilon (diam roughEst) then
-            let epsilon := F.mul Interval_definitions.rnd_UP prec epsilon (I.upper (I.abs roughEst)) in
-            integral_float_epsilon depth a b epsilon
-          else
-            integral_float_epsilon depth a b epsilon
-      end
-    | _,_ => Interval_interval_float.Inan
-  end.
+Definition integral_float_epsilon'
+    (depth : nat) (a b : F.type) (epsilon : F.type) :=
+  if F.real a && F.real b then
+    let roughEst := est a b in
+    if depth is O then roughEst
+    else
+      let epsilon :=
+        if I.bounded roughEst then
+          F.mul Interval_definitions.rnd_UP prec epsilon
+            (I.upper (I.abs roughEst))
+        else epsilon in
+      if Fle (diam roughEst) epsilon then roughEst
+      else integral_float_epsilon depth a b epsilon
+  else I.nai.
 
 Lemma integral_float_epsilon_Sn n a b epsilon :
   let int := I.bnd a b in
@@ -379,8 +378,12 @@ Proof.
 (* case: depth => [|depth]. *)
 (*   - rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon'. *)
 (*     move => Hfint Hab. apply:Hcorrect. *)
-case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [|depth];  rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // ; try (by apply: Hcorrect => //).
-  by case: I.bounded; case: Fle; apply: integral_float_epsilon_correct.
+case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [|depth] => // ;rewrite /integral_float_epsilon' /IntervalIntegral.integral_float_epsilon' ?Hareal ?Hbreal // .
+- by rewrite /=; apply: Hcorrect.
+- case: I.bounded; case: Fle; first by apply: Hcorrect.
+  + by apply: integral_float_epsilon_correct.
+  + by apply: Hcorrect.
+  + by apply: integral_float_epsilon_correct.
 Qed.
 
 
