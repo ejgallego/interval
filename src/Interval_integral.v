@@ -573,7 +573,7 @@ rewrite /integral_float_epsilon_signed /IntervalIntegral.integral_float_epsilon_
 case (Rle_dec (T.toR a) (T.toR b)) => Hab Hintf Hreala Hrealb.
 - have -> : Fle a b = true by apply: Rle_Fle.
   exact: integral_float_epsilon'_correct.
-- have -> : Fle a b = false. 
+- have -> : Fle a b = false.
     apply: Fle_Rlt_Inv => // .
     by apply Rnot_le_gt.
 rewrite -RInt_swap Xreal_neg.
