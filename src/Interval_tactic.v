@@ -720,7 +720,7 @@ case: Int.Int.I.Fle.
   set arg1 := (X in if true && true then X else _).
   set depth1 := S depth.
   move => HnotInan.
-  exact: integral_float_epsilon_ex_RInt.
+  exact: integral_float_epsilon_ex_RInt HnotInan _.
 Qed.
 
 Lemma integral_float_epsilon_signed_ex_RInt
@@ -1675,7 +1675,7 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg ltac:(do_interval_intro_bisect_taylor d) t
     | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg eval_tac t
     | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
-    | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p eval_tac t
+    | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p rint_deg eval_tac t
     | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p eval_tac t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
     end in

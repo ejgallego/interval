@@ -1,11 +1,5 @@
+Require Import Reals Coquelicot.
 Require Import Interval_tactic.
-Require Import Interval_bigint_carrier.
-Require Import Interval_specific_ops.
-Module SFBI2 := SpecificFloat BigIntRadix2.
-Module ITSFBI2 := IntervalTactic SFBI2.
-Export ITSFBI2.
-
-Require Import Coquelicot Reals.
 
 Lemma bench1 : (* remark : it would be nice to have ... = 3 as a goal*)
  3 <=  RInt (fun x => 1 + 0 * x) 0 3 <= 3.
@@ -20,7 +14,7 @@ RInt (fun x => exp x) 0 3 <= exp(1)*exp(1)*exp(1) - 1 + delta.
 (* integral = e^3 - 1 *)
 Proof.
 move => Hdelta.
-Time interval with (i_integral_depth 1).
+Time interval with (i_integral_depth 1, i_integral_prec 20).
 Qed.
 
 Lemma bench2_2 delta :
@@ -30,7 +24,7 @@ Lemma bench2_2 delta :
 (* integral = e^3 - 1 *)
 Proof.
 move => Hdelta.
-Time interval with (i_integral_depth 10).
+Time interval with (i_integral_depth 1, i_integral_prec 20).
 Qed.
 
 Lemma bench3_1 delta :
@@ -73,6 +67,7 @@ Qed.
 *)
 
 Lemma bench5 : True.
+Proof.
 interval_intro (RInt (fun x => sin(sin x)) 0 1). (* TODO : hardcode result and launch interval *)
 by [].
 Qed.
