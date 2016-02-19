@@ -367,64 +367,37 @@ case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [
   + by apply: integral_float_epsilon_correct.
 Qed.
 
-
-(* This proof seems much too complicated *)
-Lemma RgtToFcmp a b :
-  F.real a -> F.real b -> toR a > toR b -> F.cmp a b = Xgt.
+Lemma real_correct' :
+  forall a, F.real a -> FtoX (F.toF a) = Xreal (toR a).
 Proof.
-move => Hreala Hrealb Hgtab.
+intros a Ha.
+generalize (F.real_correct a).
+rewrite Ha /toR.
+now destruct F.toF.
+Qed.
+
+Lemma RgtToFcmp a b :
+  F.real a -> F.real b -> toR b < toR a -> F.cmp a b = Xgt.
+Proof.
+move => Ha Hb Hlt.
 rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
-rewrite /toR /proj_val in Hgtab.
-move: Hgtab.
-move: (F.real_correct a).
-rewrite Hreala.
-case Ha1 : (F.toF a) => [||bb pp zz] // _ .
-- move: (F.real_correct b).
-  rewrite Hrealb.
-  case Hb1 : (F.toF b)=> [||bb1 pp1 zz1] //= _; first by move/Rgt_irrefl.
-  + by move => ?; rewrite Rcompare_Gt.
-- rewrite /FtoX /Xcmp.
-  move: (F.real_correct b).
-  rewrite Hrealb.
-  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _ ;
-  rewrite /FtoX;move => Hgt; by rewrite Rcompare_Gt.
+by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Gt.
 Qed.
 
 Lemma RltToFcmp a b :
   F.real a -> F.real b -> toR a < toR b -> F.cmp a b = Xlt.
 Proof.
-move => Hreala Hrealb Hgtba.
-suff: F.cmp b a = Xgt.
-rewrite !F.cmp_correct !Interval_generic_proof.Fcmp_correct.
-case: (FtoX (F.toF b)); case: (FtoX (F.toF a)) => // r1 r2.
-rewrite /Xcmp.
-rewrite Rcompare_sym.
-by case: (Rcompare r1 r2).
-apply: RgtToFcmp => //.
+move => Ha Hb Hlt.
+rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Lt.
 Qed.
 
-(* again, way too complicated *)
 Lemma ReqToFcmp a b :
   F.real a -> F.real b -> toR a = toR b -> F.cmp a b = Xeq.
 Proof.
-move => Hreala Hrealb Hgtab.
+move => Ha Hb Heq.
 rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
-rewrite /toR /proj_val in Hgtab.
-move: Hgtab.
-move: (F.real_correct a).
-rewrite Hreala.
-case Ha1 : (F.toF a) => [||bb pp zz] // _ .
-- move: (F.real_correct b).
-  rewrite Hrealb.
-  case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _.
-  + by rewrite /FtoX /= Rcompare_Eq.
-  + rewrite /FtoX /Xcmp.
-    by move => Heq; rewrite Rcompare_Eq.
-- rewrite /FtoX /Xcmp.
-  move: (F.real_correct b).
-  rewrite Hrealb.
-  by case Hb1 : (F.toF b) => [||bb1 pp1 zz1] // _  => Heq;
-  rewrite Rcompare_Eq.
+by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Eq.
 Qed.
 
 Lemma Fcmp_geP u0 l1 :
