@@ -8,7 +8,6 @@ Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
-Require Import Interval_transcend.
 Require Import Interval_missing.
 Require Import integrability.
 Require Import Coquelicot coquelicot_compl.
@@ -61,10 +60,10 @@ Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf g.
 Variables (a b : F.type).
 
 (* f is integrable on [a, b]*)
-Hypothesis Hintegrable : ex_RInt f (T.toR a) (T.toR b).
+Hypothesis Hintegrable : ex_RInt f (toR a) (toR b).
 
 (* a <= b *)
-Hypothesis  Hleab : T.toR a <= T.toR b.
+Hypothesis  Hleab : toR a <= toR b.
 
 (* a and b are no Nan. This cannot be deduced from Hleab *)
 Hypothesis ha : F.real a.
@@ -72,11 +71,11 @@ Hypothesis hb : F.real b.
 
 Variables ia ib : I.type.
 
-Definition x0 := T.toR (I.midpoint X).
-Hypothesis Hconta : contains (I.convert ia) (Xreal (T.toR a)).
-Hypothesis Hcontb : contains (I.convert ib) (Xreal (T.toR b)).
-Hypothesis Hcontxa : contains iX (Xreal (T.toR a)).
-Hypothesis Hcontxb : contains iX (Xreal (T.toR b)).
+Definition x0 := toR (I.midpoint X).
+Hypothesis Hconta : contains (I.convert ia) (Xreal (toR a)).
+Hypothesis Hcontb : contains (I.convert ib) (Xreal (toR b)).
+Hypothesis Hcontxa : contains iX (Xreal (toR a)).
+Hypothesis Hcontxb : contains iX (Xreal (toR b)).
 
 Definition taylor_integral :=
   TM.TMI.integralEnclosure prec X0 Mf ia ib.
@@ -101,7 +100,7 @@ Definition taylor_integral_naive_intersection :=
 Lemma taylor_integral_correct :
   contains
     (I.convert taylor_integral)
-    (Xreal (RInt f (T.toR a) (T.toR b))).
+    (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral.
 apply: (@TM.TMI.integralEnclosure_correct prec X0 X (toXreal_fun f) Mf x0) => //.
@@ -114,7 +113,7 @@ Qed.
 Lemma taylor_integral_subtle_correct :
   contains
     (I.convert taylor_integral_subtle)
-    (Xreal (RInt f (T.toR a) (T.toR b))).
+    (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral_subtle.
 case Htaylor_int : taylor_integral => [|l u].
@@ -126,7 +125,7 @@ Qed.
 Lemma taylor_integral_naive_intersection_correct :
   contains
     (I.convert taylor_integral_naive_intersection)
-    (Xreal (RInt f (T.toR a) (T.toR b))).
+    (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral_naive_intersection.
 set tmp := (IntTac.naive_integral _ _ _ _).
