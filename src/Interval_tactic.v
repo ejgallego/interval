@@ -469,40 +469,6 @@ rewrite /Xcmp.
 by rewrite Rcompare_sym; case: (Rcompare ry rx).
 Qed.
 
-Section IntervalMissing.
-
-Lemma ImulcancelRight dummy : Int.EF.I.mul prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-Lemma ImulcancelLeft dummy : Int.EF.I.mul prec I.nai dummy = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-Lemma IsubcancelRight dummy : Int.EF.I.sub prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-Lemma IsubcancelLeft dummy : Int.EF.I.sub prec I.nai dummy = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-Lemma IaddcancelRight dummy : Int.EF.I.add prec dummy Interval_interval_float.Inan = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-Lemma IaddcancelLeft dummy : Int.EF.I.add prec I.nai dummy = Interval_interval_float.Inan.
-Proof.
-by case: dummy.
-Qed.
-
-End IntervalMissing.
-
 Let integral_float_epsilon' :=
   Int.integral_float_epsilon' prec estimator.
 
@@ -620,7 +586,7 @@ move => ex_RInt_base_case HnotInan Hleu0l1.
 rewrite /integral_float_epsilon in HnotInan (* /Int.integral_float_epsilon *).
 have [Hrealu0 Hreall1] := (Fle_true_real u0 l1 Hleu0l1).
 elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 epsilon Hreall1 Hrealu0 HnotInan Horder.
-- by apply: ex_RInt_base_case => // .
+- by apply: ex_RInt_base_case => //.
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
   have Hrealm : (F.real m).
@@ -646,47 +612,47 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 eps
       apply: (ex_RInt_base_case) => // ;
         try apply: Int.Rle_Fle => // ; move: HnotInan;
       by case:(estimator u0 m).
-    * set b3 :=  (X in (if X then _ else _)).
+    * set b3 := (X in (if X then _ else _)).
       case Hb3 : b3.
       - set epsilon' := (F.sub_exact _ _); move => HnotInan.
-        apply: (HId u0 m epsilon' _ _ _) => // .
-          move: HnotInan.
-          by case: (Int.integral_float_epsilon prec estimator d u0 m epsilon').
-        by apply: Int.Rle_Fle.
+        apply: (HId u0 m epsilon') => //.
+        move: HnotInan.
+        by case: Int.integral_float_epsilon.
+        exact: Int.Rle_Fle.
       - set epsilon' := (Int.div2 _); move => HnotInan.
-        apply: (HId u0 m epsilon' _ _ _) => // .
-          move: HnotInan.
-          by case: (Int.integral_float_epsilon prec estimator d u0 m epsilon').
-        by apply: Int.Rle_Fle.
+        apply: (HId u0 m epsilon') => //.
+        move: HnotInan.
+        by case: Int.integral_float_epsilon.
+        exact: Int.Rle_Fle.
   + move: HnotInan.
     rewrite Int.integral_float_epsilon_Sn -[Int.EF.I.midpoint _]/m.
     set b1 := (X in (if X then _ else _)).
     set b2 := (X in (if X then (I.add prec _ _) else _)).
     case Hb1 : b1.
     * case Hb2 : b2.
-      + move => HnotInan;
-      apply: (ex_RInt_base_case) => // .
-        by apply: Int.Rle_Fle.
+      + move => HnotInan.
+        apply: ex_RInt_base_case => //.
+        exact: Int.Rle_Fle.
       move: HnotInan.
       by  case:(estimator m l1); case:( estimator u0 m).
       + set epsilon' := (F.sub_exact _ _); move => HnotInan.
-        apply: (HId m l1 epsilon' _ _ _) => // .
-          move: HnotInan.
-          by case: (Int.integral_float_epsilon prec estimator d m l1 epsilon') => // ; rewrite /= IaddcancelRight.
-        by apply: Int.Rle_Fle.
-    * set b3 :=  (X in (if X then _ else _)).
+        apply: (HId m l1 epsilon') => //.
+        move: HnotInan.
+        by case: Int.integral_float_epsilon => // ; case: estimator.
+        exact: Int.Rle_Fle.
+    * set b3 := (X in (if X then _ else _)).
       case Hb3 : b3.
-      - move => HnotInan; apply: (ex_RInt_base_case) => // .
-          by apply: Int.Rle_Fle. rewrite -/iF.
-           move: HnotInan; case: (estimator m l1) => //.
-             by rewrite /= IaddcancelRight.
-             set epsilon' := (Int.div2 _); move => HnotInan.
-        apply: (HId m l1 epsilon' _ _ _) => // .
-          move: HnotInan.
-          by case: (Int.integral_float_epsilon prec estimator d m l1 epsilon'); rewrite /= ?IaddcancelRight.
-        by apply: Int.Rle_Fle.
+      - move => HnotInan; apply: ex_RInt_base_case => //.
+        exact: Int.Rle_Fle.
+        rewrite -/iF.
+        move: HnotInan; case: (estimator m l1) => //.
+        by case: Int.integral_float_epsilon.
+      - set epsilon' := (Int.div2 _); move => HnotInan.
+        apply: (HId m l1 epsilon') => //.
+        move: HnotInan.
+        by case: Int.integral_float_epsilon => // ; case: Int.integral_float_epsilon.
+        exact: Int.Rle_Fle.
 Qed.
-
 
 Lemma integral_float_epsilon'_ex_RInt
       (depth : nat) u0 l1 epsilon :
@@ -712,14 +678,7 @@ case: depth => [|depth].
 exact: ex_RInt_base_case.
 case: Int.Int.I.Fle.
 - exact: ex_RInt_base_case.
-- set epsilon1 := (if Int.EF.I.bounded (estimator u0 l1)
-          then
-           F.mul rnd_UP prec epsilon
-             (Int.EF.I.upper (Int.EF.I.abs (estimator u0 l1)))
-          else epsilon).
-  set arg1 := (X in if true && true then X else _).
-  set depth1 := S depth.
-  move => HnotInan.
+- move => HnotInan.
   exact: integral_float_epsilon_ex_RInt HnotInan _.
 Qed.
 
@@ -753,7 +712,7 @@ case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
   apply: integral_float_epsilon'_ex_RInt HnotInan2 _ => //.
   exact: Int.Fle_rev.
 - move: HnotInan.
-  by case: (Int.integral_float_epsilon' prec estimator depth l1 u0).
+  by case: Int.integral_float_epsilon'.
 Qed.
 
 Lemma integral_epsilon_correct :

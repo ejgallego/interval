@@ -30,7 +30,6 @@ Module IntegralTacticTaylor (F : FloatOps with Definition even_radix := true).
 Module EF := ExtraFloats F.
 Import EF.
 Module I := FloatIntervalFull F.
-Module Int := Integrability F.
 Module IntTac := IntegralTactic F.
 
 Module TM := TM I.
