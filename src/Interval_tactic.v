@@ -626,10 +626,10 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 eps
   have Hrealm : (F.real m).
     suff: I.convert_bound m = Xreal (T.toR m).
       by move/Int.EF.F_realP.
-    have := (I.midpoint_correct ((I.bnd u0 l1))).
+    have := (I.midpoint_correct (I.bnd u0 l1)).
       case.
       exists (Xreal (T.toR u0)).
-      move: (Int.EF.contains_convert_bnd_l u0 l1 Hrealu0 Hreall1 Hleu0ml1).
+      move: (Int.EF.contains_convert_bnd_l u0 l1 Hrealu0 Hleu0ml1).
       by move/Int.EF.F_realP :Hrealu0 => -> .
     by [].
   (* first we establish a useful inequality on u0, m and l1 *)

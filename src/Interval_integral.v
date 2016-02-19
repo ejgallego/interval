@@ -33,7 +33,7 @@ Definition notFnan (f : F.type) :=
     | _ => true
   end = true.
 
-Lemma contains_convert_bnd_l1 (a b : F.type) : F.real a ->
+Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound a).
 Proof.
 move/F_realP => hra  hleab; rewrite hra; apply: le_contains.
@@ -46,15 +46,7 @@ have HXnan : I.convert_bound b = Xnan by rewrite /I.convert_bound H.
 by rewrite HXnan.
 Qed.
 
-Lemma contains_convert_bnd_l (a b : F.type) : F.real a -> F.real b ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound a).
-Proof.
-move/F_realP => hra /F_realP hrb hleab; rewrite hra; apply: le_contains.
-  by rewrite hra; apply: le_lower_refl.
-by rewrite hrb.
-Qed.
-
-Lemma contains_convert_bnd_r1 (a b : F.type) : F.real b ->
+Lemma contains_convert_bnd_r (a b : F.type) : F.real b ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound b).
 Proof.
 move/F_realP =>  hrb hleab; rewrite hrb; apply: le_contains.
@@ -65,15 +57,6 @@ move: (F.real_correct a); case H : (F.toF a); rewrite Ha // .
 move => _.
 have -> : I.convert_bound a = Xnan by rewrite /I.convert_bound H.
 done.
-rewrite hrb; exact: le_upper_refl.
-Qed.
-
-
-Lemma contains_convert_bnd_r (a b : F.type) :  F.real a -> F.real b ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound b).
-Proof.
-move/F_realP => hra /F_realP hrb hleab; rewrite hrb; apply: le_contains.
-  rewrite hra /le_lower /=; exact: Ropp_le_contravar.
 rewrite hrb; exact: le_upper_refl.
 Qed.
 
