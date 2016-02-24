@@ -230,7 +230,8 @@ Definition div2 f := F.scale2 f (F.ZtoS (-1)).
 Fixpoint integral_float_epsilon (depth : nat) (a b : F.type) (epsilon : F.type) :=
   let int := I.bnd a b in
   match depth with
-    | O => est a b
+    | O => let m := I.midpoint int in
+           I.add prec (est a m) (est m b)
     | S n => let m := I.midpoint int in
              let int1 := I.bnd a m in
              let int2 := I.bnd m b in
@@ -260,7 +261,7 @@ Definition integral_float_epsilon'
             (I.upper (I.abs roughEst))
         else epsilon in
       if Fle (diam roughEst) epsilon then roughEst
-      else integral_float_epsilon depth a b epsilon
+      else integral_float_epsilon (depth-1) a b epsilon
   else I.nai.
 
 Lemma integral_float_epsilon_Sn n a b epsilon :
@@ -328,8 +329,22 @@ Lemma integral_float_epsilon_correct (depth : nat) (a b : F.type) epsilon :
 Proof.
 move => Hareal Hbreal.
 elim: depth a b epsilon Hareal Hbreal => [ | k Hk] a b epsilon Hareal Hbreal Hintegrable Hleab.
-  by apply: Hcorrect => //.
-set midpoint := I.midpoint (I.bnd a b).
+- set midpoint := I.midpoint (I.bnd a b).
+  have hIl : ex_RInt f (toR a) (toR midpoint).
+    by apply:  (ex_RInt_Chasles_1 _ _ _ (toR b)) => //; apply: midpoint_bnd_in.
+  have hIr : ex_RInt f (toR midpoint) (toR b).
+    by apply:  (ex_RInt_Chasles_2 f (toR a))=> //; apply: midpoint_bnd_in.
+  have -> : RInt f (toR a) (toR b) =
+            RInt f (toR a) (toR midpoint) + RInt f (toR midpoint) (toR b).
+    by rewrite RInt_Chasles.
+  set I1 := RInt _ _ _; set I2 := RInt _ _ _.
+  have [in1 in2] := midpoint_bnd_in a b Hareal Hbreal Hleab.
+  have hm : F.real (I.midpoint (I.bnd a b)).
+  suff /I.midpoint_correct []:
+    exists x : ExtendedR, contains (I.convert (I.bnd a b)) x by move/F_realP.
+    by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
+ by rewrite Xreal_add; apply: I.add_correct; apply: Hcorrect => // .
+- set midpoint := I.midpoint (I.bnd a b).
 have hIl : ex_RInt f (toR a) (toR midpoint).
   by apply:  (ex_RInt_Chasles_1 _ _ _ (toR b)) => //; apply: midpoint_bnd_in.
 have hIr : ex_RInt f (toR midpoint) (toR b).
