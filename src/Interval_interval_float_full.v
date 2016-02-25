@@ -100,6 +100,7 @@ Qed.
 Definition cos prec xi :=
   match I.abs xi with
   | Ibnd xl xu =>
+    if Fle xu xl then T.cos_fast prec xl else
     let pi4 := T.pi4 prec in
     if Fle xu (F.scale2 (I.lower pi4) (F.ZtoS 2%Z)) then
       I.bnd (I.lower (T.cos_fast prec xu)) (I.upper (T.cos_fast prec xl))
@@ -131,6 +132,19 @@ replace (Rtrigo_def.cos x) with (Rtrigo_def.cos (Rabs x)).
 clear Hx.
 assert (Hcxl := T.cos_fast_correct prec xl).
 assert (Hcxu := T.cos_fast_correct prec xu).
+case_eq (Fle xu xl).
+  intros Hl.
+  apply Fle_correct in Hl.
+  simpl in Ha.
+  unfold I.convert_bound in Ha, Hl.
+  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  replace (Rabs x) with xlr.
+  exact Hcxl.
+  apply Rle_antisym.
+  apply Ha.
+  now apply Rle_trans with (2 := Hl).
+intros _.
 case_eq (Fle xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2))).
   intros Hu.
   apply Fle_correct in Hu.
@@ -300,6 +314,7 @@ Qed.
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
+    if Fle xu xl then T.sin_fast prec xl else
     let pi4 := T.pi4 prec in
     let s1 := F.ZtoS 1%Z in
     let pi2 := F.scale2 (I.lower pi4) s1 in
@@ -321,6 +336,18 @@ intros prec [|xl xu] [|x] Hx ; try easy.
 generalize Hx.
 intros [Hxl Hxu].
 simpl.
+case_eq (Fle xu xl).
+  intros Hl.
+  apply Fle_correct in Hl.
+  assert (Hsxl := T.sin_fast_correct prec xl).
+  unfold I.convert_bound in Hxl, Hxu, Hl.
+  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  replace x with xlr.
+  exact Hsxl.
+  apply Rle_antisym with (1 := Hxl).
+  now apply Rle_trans with (2 := Hl).
+intros _.
 set (pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1)).
 case_eq (Fle (F.neg pi2) xl).
   intros Hpl.
@@ -425,6 +452,7 @@ Qed.
 Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
+    if Fle xu xl then T.tan_fast prec xl else
     let pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1%Z) in
     match Flt (F.neg pi2) xl, Flt xu pi2 with
     | true, true =>
@@ -439,6 +467,19 @@ Lemma tan_correct :
 Proof.
 intros prec [|xl xu] [|x] Hx ; try easy.
 unfold tan.
+case_eq (Fle xu xl).
+  intros Hl.
+  apply Fle_correct in Hl.
+  assert (Htxl := T.tan_fast_correct prec xl).
+  unfold I.convert, I.convert_bound in Hx, Hl.
+  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  replace x with xlr.
+  exact Htxl.
+  apply Rle_antisym with (1 := proj1 Hx).
+  apply Rle_trans with (2 := Hl).
+  apply Hx.
+intros _.
 case_eq (Flt (F.neg (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1))) xl) ; try easy.
 intros Hlt1.
 apply Flt_correct in Hlt1.
