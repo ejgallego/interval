@@ -2815,7 +2815,31 @@ exact: I.cos_correct.
 constructor.
 - by move=> x m; rewrite /TR.T_cos PolR.size_rec2.
 - move=> x m k Hx Hk; rewrite /TR.T_cos toR_toXreal.
-  admit. (* TODO *)
+  rewrite toR_toXreal in Hx.
+  rewrite /PolR.nth /PolR.rec2; clear - Hk Hx.
+  { move: k Hk; apply: nat_ind2.
+    - by move=> _; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 0)) //= Rdiv_1.
+    - move=> Hm; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 1)) //=.
+      (* typical script: *)
+      by rewrite Rdiv_1; symmetry; apply: is_derive_unique; auto_derive; auto with real.
+    - move=> k Hk0 Hk1 Hm.
+      rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k.+2)) // nth_rec2upSS'.
+      rewrite /TR.cos_rec in Hk0 Hk1 *.
+      set F := (fun (a _ : FullR.T) (n : nat) => - a / (INR n * INR n.-1)) in Hk0 Hk1 *.
+      have Hkm : k <= m by do 2![apply: ltnW].
+      move/(_ Hkm) in Hk0.
+      rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k)) // in Hk0.
+      rewrite Hk0 !Derive_nS; clear.
+      rewrite [in RHS](Derive_n_ext _ (fun x => - cos x)); last first.
+        move=> t; change (Derive (Derive cos) t) with (Derive_n cos 2 t).
+        rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_cos _ _)) /= Rmult_1_r.
+        by rewrite Ropp_mult_distr_l_reverse Rmult_1_l.
+      rewrite Derive_n_opp.
+      field_simplify;
+        try (try repeat split; exact: INR_fact_neq_0 || exact: not_0_INR).
+      congr Rdiv; rewrite 2!fact_simpl !mult_INR.
+      by rewrite !Rmult_assoc Rmult_comm Rmult_assoc.
+  }
 constructor.
 - by move=> x m k; rewrite /TR.T_cos Pol.size_rec2 PolR.size_rec2.
 - by move=> Y x m Hx; apply: Pol.rec2_correct; first move=> ai bi a b l Ha Hb;
@@ -2825,8 +2849,7 @@ constructor.
                 apply: R_from_nat_correct|
                 apply: R_sin_correct|
                 apply: R_cos_correct].
-- move=> Y x Hx Dx m k Hk; rewrite /T_sin.
-  admit. (* TODO *)
+- done.
 - move=> *; apply/ex_derive_n_is_derive_n/is_derive_n_cos.
 Qed.
 
