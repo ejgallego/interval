@@ -2782,7 +2782,10 @@ constructor.
         rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_sin _ _)) /= Rmult_1_r.
         by rewrite Ropp_mult_distr_l_reverse Rmult_1_l.
       rewrite Derive_n_opp.
-      admit. (* easy *)
+      field_simplify;
+        try (try repeat split; exact: INR_fact_neq_0 || exact: not_0_INR).
+      congr Rdiv; rewrite 2!fact_simpl !mult_INR.
+      by rewrite !Rmult_assoc Rmult_comm Rmult_assoc.
   }
 constructor.
 - by move=> x m k; rewrite /TR.T_sin Pol.size_rec2 PolR.size_rec2.
