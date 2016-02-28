@@ -2205,78 +2205,72 @@ by rewrite 2!big_ord_recr IHn.
 Qed.
 *)
 
-Instance validIPoly_power_int p :
-  validIPoly (Xpower_int ^~ p) (TR.T_power_int tt p) (TI.T_power_int prec p).
-Proof.
-constructor.
-- by move=> ? ? n; rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
-    Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
-- move=> X0 x0 n Hx0.
-  unfold T_power_int, TR.T_power_int.
-  apply: Pol.dotmuldiv_correct.
-  by rewrite !size_rec1up (* TODO: Add one-liners, equivalent lemmas *).
-  apply: Pol.rec1_correct =>//.
-  + rewrite /pow_aux_rec /TR.pow_aux_rec; move=> _ _ m _.
-    case: ifP => H.
-    exact: R_power_int_correct.
-    apply: R_mask_correct Hx0.
-    exact: cont0.
-  + exact: R_power_int_correct.
-  move=> X x Hx Dx n k Hk.
-  rewrite /T_power_int.
-  apply/eqNaiP.
-  apply: Pol.dotmuldiv_propagate; last 1 first.
-  rewrite (@Pol.size_dotmuldiv n.+1) //.
-  by rewrite Pol.size_rec1.
-  by rewrite size_falling_seq.
-  by rewrite size_fact_seq.
-  by rewrite Pol.size_rec1 size_falling_seq.
-  by rewrite Pol.size_rec1 size_fact_seq.
-  apply: Pol.rec1_propagate.
-  move=> y m _.
-  rewrite /pow_aux_rec ifT.
-  apply/eqNaiP/contains_Xnan.
-  have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
-  move: Dx; rewrite /defined /Xpower_int.
-  admit. (* TODO *)
-  exact: I.power_int_correct.
-  admit. (* TODO *)
-  apply/eqNaiP/contains_Xnan.
-  have->: Xnan = Xpower_int^~ p (Xreal x).
-  by move: Dx; tac_def1 Xpower_int.
-  rewrite /defined in Dx.
-  exact: I.power_int_correct.
-Qed.
-
-Instance validPoly_power_int p :
-  validPoly (Xpower_int ^~ p) (TR.T_power_int tt p).
-Proof.
-constructor.
-- by move=> ? n; rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
-    Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
-- move=> x n k Hder Hk.
-  rewrite /TR.T_power_int PolR.nth_dotmuldiv ifF; last first.
-    rewrite PolR.size_rec1.
-    rewrite size_falling_seq size_fact_seq.
-    by rewrite !orbb ltnNge Hk.
-  elim: k Hk => [|k IHk] Hk.
-  simpl Derive_n; simpl INR; rewrite Rdiv_1.
-  admit.
-  admit.
-Qed.
-
 Lemma TM_power_int_correct (p : Z) X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
   (fun x => Xpower_int x p).
 Proof.
-move=> Hsubset [t Ht].
-apply: i_validTM_Ztech =>//.
-- exact: I.power_int_correct.
+move=> Hsubset Hex.
+apply i_validTM_Ztech with (TR.T_power_int tt p); last 2 first =>//.
+exact: I.power_int_correct.
+constructor.
+- by move=> {n} ? n;
+    rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
+    Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
+- { move=> x m k Hder Hk.
+    rewrite /TR.T_power_int PolR.nth_dotmuldiv ifF; last first.
+      rewrite PolR.size_rec1.
+      rewrite size_falling_seq size_fact_seq.
+      by rewrite !orbb ltnNge Hk.
+    elim: k Hk => [|k IHk] Hk.
+    simpl Derive_n; simpl INR; rewrite Rdiv_1.
+    admit.
+    admit.
+  }
+constructor.
+- by move=> {n} ? ? n;
+    rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
+      Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
+- { move=> {X0 n Hsubset Hex} X0 x0 n Hx0.
+    unfold T_power_int, TR.T_power_int.
+    apply: Pol.dotmuldiv_correct.
+    by rewrite size_falling_seq size_fact_seq.
+    apply: Pol.rec1_correct =>//.
+    + rewrite /pow_aux_rec /TR.pow_aux_rec; move=> _ _ m _.
+      case: ifP => H.
+      exact: R_power_int_correct.
+      apply: R_mask_correct Hx0.
+      exact: cont0.
+    + exact: R_power_int_correct.
+  }
+- { move=> {X X0 n Hsubset Hex} X x Hx Dx n k Hk.
+    rewrite /T_power_int.
+    apply/eqNaiP.
+    apply: Pol.dotmuldiv_propagate; last 1 first.
+    rewrite (@Pol.size_dotmuldiv n.+1) //.
+    by rewrite Pol.size_rec1.
+    by rewrite size_falling_seq.
+    by rewrite size_fact_seq.
+    by rewrite Pol.size_rec1 size_falling_seq.
+    by rewrite Pol.size_rec1 size_fact_seq.
+    apply: Pol.rec1_propagate.
+    move=> y m _.
+    rewrite /pow_aux_rec ifT.
+    apply/eqNaiP/contains_Xnan.
+    have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
+    move: Dx; rewrite /defined /Xpower_int.
+    admit. (* TODO *)
+    exact: I.power_int_correct.
+    admit. (* TODO *)
+    apply/eqNaiP/contains_Xnan.
+    have->: Xnan = Xpower_int^~ p (Xreal x).
+    by move: Dx; tac_def1 Xpower_int.
+    rewrite /defined in Dx.
+    exact: I.power_int_correct.
+  }
 - move=> k x Hx.
   admit.
-- by exists t.
 Qed.
 
 Lemma TM_inv_correct X0 X n :
@@ -2862,108 +2856,101 @@ Proof. by rewrite Pol.size_grec1. Qed.
 Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
-Instance validIPoly_atan : validIPoly Xatan (TR.T_atan tt) (TI.T_atan prec).
-Proof.
-constructor.
-- by move=> *; rewrite PolR.size_grec1 Pol.size_grec1.
-- move => X0 xi0 n Hx.
-  apply: Pol.grec1_correct =>//.
-  + move=> qi q m Hq.
-    by repeat first [apply: Pol.div_mixed_r_correct|
-                     apply: Pol.sub_correct|
-                     apply: Pol.add_correct|
-                     apply: Pol.deriv_correct|
-                     apply: Pol.lift_correct|
-                     apply: Pol.mul_mixed_correct|
-                     apply: R_from_nat_correct].
-  + move=> qi q m Hq.
-    by repeat first [apply: R_div_correct|
-                     apply: R_power_int_correct|
-                     apply: Pol.horner_correct|
-                     apply: R_add_correct|
-                     apply: R_sqr_correct|
-                     apply: I.fromZ_correct|
-                     apply: Pol.one_correct].
-  + exact: Pol.one_correct.
-  + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: cont0.
-    exact: R_atan_correct.
-- move=> X r Hr nDr n; done.
-Qed.
-
-Instance validPoly_atan : validPoly Xatan (TR.T_atan tt).
-Proof.
-constructor.
-- by move=> *; rewrite PolR.size_grec1.
-- move=> x n k Hdef H;
-  rewrite /TR.T_atan /PolR.nth /PolR.grec1
-    (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
-    nth_grec1up_last.
-  case: k H => [|k H]; first by rewrite /= ?Rdiv_1.
-  rewrite last_grec1up // head_gloop1.
-  rewrite [size _]/= subn1 [_.+1.-1]/=.
-  elim: k H x {Hdef} (* Erik: is this clear really necessary? *) =>[|k IHk] H x.
-  + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
-    symmetry; apply: is_derive_unique; auto_derive =>//.
-    by rewrite Rmult_1_r.
-  + move/ltnW in H; move/(_ H) in IHk.
-    rewrite [INR]lock [PolR.lift]lock [fact]lock /= -!lock.
-    set qk := iteri k
-      (fun i c => PolR.div_mixed_r tt _ (INR (i + 1).+1)) PolR.one in IHk *.
-    rewrite (@Derive_ext _
-      (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
-      first last.
-    move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
-    simpl_R.
-    apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk // Rmult_assoc Hri0; try lra.
-    by rewrite -Hr0; apply: INR_fact_neq_0.
-    apply: Rinv_r_neq0 (Hri0 _).
-    by rewrite -Hr0; apply: INR_fact_neq_0.
-    clear IHk.
-    rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
-    rewrite PolR.horner_mul_mixed !PolR.horner_lift Derive_scal_l.
-    rewrite Derive_div; first last.
-    * by apply: pow_nonzero; apply: Rsqr_plus1_neq0.
-    * by auto_derive.
-    * exact: PolR.ex_derive_horner.
-    rewrite Derive_pow; try by auto_derive.
-    rewrite Derive_plus; try by auto_derive.
-    rewrite Derive_const ?Rplus_0_l.
-    rewrite Derive_mult; try by auto_derive.
-    rewrite Derive_id.
-    rewrite PolR.Derive_horner.
-    rewrite -{1}(Rmult_1_r (qk^`().[x])) -Rmult_plus_distr_l.
-    rewrite SuccNat2Pos.id_succ.
-    rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
-    (* Now, some reals' bookkeeping *)
-    suff->: forall x, x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2.
-    suff->: INR (k.+1).*2 = (2 * INR k.+1)%R.
-    suff->: (((1 + x * x) ^ k.+1) ^ 2 = (1 + x * x) ^ k.+2 * (1 + x * x) ^ k)%R.
-    suff->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R.
-    * by field_simplify; first apply: Rdiv_eq_reg; first ring;
-      repeat first [ split
-                   | apply: Rmult_neq0
-                   | apply: not_0_INR
-                   | apply: pow_nonzero
-                   | apply: Rsqr_plus1_neq0].
-    * by rewrite !pow_S pow_O Rmult_1_r.
-    * by rewrite -pow_mult multE muln2 -pow_add plusE addSnnS -addnn.
-    * by rewrite -mul2n -multE mult_INR.
-    * clear; move=> x; apply: Rdiv_eq_reg.
-      - by rewrite [in RHS]fact_simpl mult_INR; lra.
-      - exact: INR_fact_neq_0.
-      - exact: not_0_INR.
-Qed.
-
 Lemma TM_atan_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_atan X0 X n) Xatan.
 Proof.
-move=> Hsubset [t Ht].
-apply: i_validTM_Ztech =>//; last by exists t.
+move=> Hsubset Hex.
+apply i_validTM_Ztech with (TR.T_atan tt); last 2 first =>//.
 exact: I.atan_correct.
-move=> k x _; rewrite toR_toXreal.
-exact: ex_derive_n_atan.
+constructor.
+- by move=> ? ?; rewrite PolR.size_grec1.
+- { move=> {X0 X n Hsubset Hex} x n k Hdef H;
+    rewrite /TR.T_atan /PolR.nth /PolR.grec1
+      (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
+      nth_grec1up_last.
+    case: k H => [|k H]; first by rewrite /= ?Rdiv_1.
+    rewrite last_grec1up // head_gloop1.
+    rewrite [size _]/= subn1 [_.+1.-1]/=.
+    elim: k H x {Hdef} (* Erik: is this clear really necessary? *) =>[|k IHk] H x.
+    + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
+      symmetry; apply: is_derive_unique; auto_derive =>//.
+      by rewrite Rmult_1_r.
+    + move/ltnW in H; move/(_ H) in IHk.
+      rewrite [INR]lock [PolR.lift]lock [fact]lock /= -!lock.
+      set qk := iteri k
+        (fun i c => PolR.div_mixed_r tt _ (INR (i + 1).+1)) PolR.one in IHk *.
+      rewrite (@Derive_ext _
+        (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
+        first last.
+      move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
+      simpl_R.
+      apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk // Rmult_assoc Hri0; try lra.
+      by rewrite -Hr0; apply: INR_fact_neq_0.
+      apply: Rinv_r_neq0 (Hri0 _).
+      by rewrite -Hr0; apply: INR_fact_neq_0.
+      clear IHk.
+      rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
+      rewrite PolR.horner_mul_mixed !PolR.horner_lift Derive_scal_l.
+      rewrite Derive_div; first last.
+      * by apply: pow_nonzero; apply: Rsqr_plus1_neq0.
+      * by auto_derive.
+      * exact: PolR.ex_derive_horner.
+      rewrite Derive_pow; try by auto_derive.
+      rewrite Derive_plus; try by auto_derive.
+      rewrite Derive_const ?Rplus_0_l.
+      rewrite Derive_mult; try by auto_derive.
+      rewrite Derive_id.
+      rewrite PolR.Derive_horner.
+      rewrite -{1}(Rmult_1_r (qk^`().[x])) -Rmult_plus_distr_l.
+      rewrite SuccNat2Pos.id_succ.
+      rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
+      (* Now, some reals' bookkeeping *)
+      suff->: forall x, x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2.
+      suff->: INR (k.+1).*2 = (2 * INR k.+1)%R.
+      suff->: (((1 + x * x) ^ k.+1) ^ 2 = (1 + x * x) ^ k.+2 * (1 + x * x) ^ k)%R.
+      suff->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R.
+      * by field_simplify; first apply: Rdiv_eq_reg; first ring;
+        repeat first [ split
+                     | apply: Rmult_neq0
+                     | apply: not_0_INR
+                     | apply: pow_nonzero
+                     | apply: Rsqr_plus1_neq0].
+      * by rewrite !pow_S pow_O Rmult_1_r.
+      * by rewrite -pow_mult multE muln2 -pow_add plusE addSnnS -addnn.
+      * by rewrite -mul2n -multE mult_INR.
+      * clear; move=> x; apply: Rdiv_eq_reg.
+        - by rewrite [in RHS]fact_simpl mult_INR; lra.
+        - exact: INR_fact_neq_0.
+        - exact: not_0_INR.
+  }
+constructor.
+- by move=> *; rewrite PolR.size_grec1 Pol.size_grec1.
+- { move => {X0 X n Hsubset Hex} X0 xi0 n Hx.
+    apply: Pol.grec1_correct =>//.
+    + move=> qi q m Hq.
+      by repeat first [apply: Pol.div_mixed_r_correct|
+                       apply: Pol.sub_correct|
+                       apply: Pol.add_correct|
+                       apply: Pol.deriv_correct|
+                       apply: Pol.lift_correct|
+                       apply: Pol.mul_mixed_correct|
+                       apply: R_from_nat_correct].
+    + move=> qi q m Hq.
+      by repeat first [apply: R_div_correct|
+                       apply: R_power_int_correct|
+                       apply: Pol.horner_correct|
+                       apply: R_add_correct|
+                       apply: R_sqr_correct|
+                       apply: I.fromZ_correct|
+                       apply: Pol.one_correct].
+    + exact: Pol.one_correct.
+    + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: cont0.
+      exact: R_atan_correct.
+  }
+- done.
+- by move=> *; apply: ex_derive_n_atan.
 Qed.
 
 (*
