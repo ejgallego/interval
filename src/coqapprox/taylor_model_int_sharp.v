@@ -2224,9 +2224,16 @@ constructor.
       rewrite size_falling_seq size_fact_seq.
       by rewrite !orbb ltnNge Hk.
     elim: k Hk => [|k IHk] Hk.
-    simpl Derive_n; simpl INR; rewrite Rdiv_1.
-    admit.
-    admit.
+      simpl Derive_n; simpl INR; rewrite Rdiv_1.
+      rewrite falling_seq_correct // fact_seq_correct //.
+      rewrite big_mkord big_ord0.
+      rewrite [PolR.nth _ _]nth_rec1up /= Rdiv_1 Rmult_1_l.
+      rewrite /Xpower_int /toR_fun /proj_fun /powerRZ.
+      case: p Hder =>// p Hp.
+      have K: ~~ (is_zero x) by admit. (* TODO: power_int *)
+      by rewrite (negbTE K).
+    rewrite falling_seq_correct // fact_seq_correct //.
+    admit. (* TODO: power_int *)
   }
 constructor.
 - by move=> {n} ? ? n;
@@ -2260,9 +2267,9 @@ constructor.
     apply/eqNaiP/contains_Xnan.
     have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
     move: Dx; rewrite /defined /Xpower_int.
-    admit. (* TODO *)
+    admit. (* TODO: power_int *)
     exact: I.power_int_correct.
-    admit. (* TODO *)
+    admit. (* TODO: power_int *)
     apply/eqNaiP/contains_Xnan.
     have->: Xnan = Xpower_int^~ p (Xreal x).
     by move: Dx; tac_def1 Xpower_int.
@@ -2270,7 +2277,7 @@ constructor.
     exact: I.power_int_correct.
   }
 - move=> k x Hx.
-  admit.
+  admit. (* TODO: power_int *)
 Qed.
 
 Lemma TM_inv_correct X0 X n :
