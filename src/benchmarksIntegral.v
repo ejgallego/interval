@@ -1,6 +1,19 @@
 Require Import Reals Coquelicot.
 Require Import Interval_tactic.
 
+(* This example is given page 14 of Laurent Fousse's thesis as failing Maple 10
+It now works on Maple 18, but it is still a nice example
+ *)
+Lemma foussep14 : Rabs ((RInt (fun x => exp(-x*x) * ln x) 17 42) - 2565 / (10^130)) <= 1 / (10 ^129).
+Proof.
+Time interval with (i_integral_depth 8, i_integral_deg 20).
+Qed.
+
+Lemma chyzak1 : Rabs(RInt (fun x => (2048*x^12-6144*x^10+6912*x^8-3584*x^6+840*x^4-72*x^2+1)*exp(-(x-3/4)^2)*(sqrt(-x^2+1))) (-1) 1 + 325558957 / 100000000000000) <= 1/10^10.
+(* Time interval with (i_integral_depth 25, i_integral_prec 45, i_prec 50). *)
+  (* the above works in 30 seconds *) admit .
+Qed.
+
 Lemma bench5 : True.
 Proof.
 interval_intro (RInt (fun x => sin(sin x)) 0 1). (* TODO : hardcode result and launch interval *)
