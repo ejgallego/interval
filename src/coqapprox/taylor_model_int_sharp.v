@@ -188,16 +188,6 @@ Definition TM_ln X0 X (n : nat) : rpa :=
   let P := (T_ln prec X0 n) in
   RPA P (Ztech prec (T_ln prec) P (I.ln prec) X0 X n).
 
-Definition TM_sqrt X0 X (n : nat) : rpa :=
-  let P := (T_sqrt prec X0 n) in
-  RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n).
-
-Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
-
-Definition TM_invsqrt X0 X (n : nat) : rpa :=
-  let P := (T_invsqrt prec X0 n) in
-  RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n).
-
 Definition TM_sin X0 X (n : nat) : rpa :=
   let P := (T_sin prec X0 n) in
   RPA P (Ztech prec (T_sin prec) P (I.sin prec) X0 X n).
@@ -872,6 +862,7 @@ Class validPoly : Prop := ValidPoly {
   Poly_size : forall (x0 : R) n, PolR.size (P x0 n) = n.+1;
   Poly_nth :
     forall (x : R) n k,
+    def x ->
     ex_derive_n f0 n x ->
     k <= n ->
     PolR.nth (P x n) k = Rdiv (Dn k x) (INR (fact k)) }.
@@ -890,12 +881,13 @@ Context { validIPoly_ : validIPoly }.
 
 Variables X : I.type.
 
-(* Hypothesis Hdef : forall x, X >: x -> def x. *)
+Hypothesis Hdef : forall x, X >: x -> def x.
 Hypothesis Hder_n : forall n x, X >: x -> ex_derive_n f0 n x.
 
 Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
 Proof.
 move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //.
+exact: Hdef.
 exact: Hder_n.
 Qed.
 
@@ -934,7 +926,7 @@ have H0 : X >: x0 by exact: (subset_contains (I.convert X0)).
 have Hbig :
   \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
   \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
-apply: eq_big_nat => i Hi; rewrite Poly_nth //; exact: Hder_n.
+apply: eq_big_nat => i Hi; rewrite Poly_nth //; exact: Hder_n || exact: Hdef.
 rewrite Hbig.
 have Hder' : forall n r, X >: r -> ex_derive_n (toR_fun xf) n r.
   move=> m r Hr.
@@ -942,9 +934,8 @@ have Hder' : forall n r, X >: r -> ex_derive_n (toR_fun xf) n r.
 have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 Hx).
 rewrite Hc {Hc t Ht} /TLrem.
 apply: R_mul_correct=>//.
-  rewrite -(@Poly_nth _ c n.+1 n.+1) //.
-    exact: IPoly_nth.
-  exact: Hder_n.
+  rewrite -(@Poly_nth _ c n.+1 n.+1) //;
+  exact: IPoly_nth || exact: Hder_n || exact: Hdef.
 rewrite pow_powerRZ.
 apply: R_power_int_correct.
 exact: R_sub_correct.
@@ -990,6 +981,7 @@ exact: derivable_pt_lim_pow.
 Qed.
 
 Lemma bigXadd_P (m n : nat) (x0 s : R) :
+  def x0 ->
   ex_derive_n f0 n x0 ->
   m <= n.+1 ->
   \big[Rplus/R0]_(0 <= i < m)
@@ -997,7 +989,7 @@ Lemma bigXadd_P (m n : nat) (x0 s : R) :
   \big[Rplus/R0]_(0 <= i < m)
     ((Dn i x0) / INR (fact i) * s ^ i)%R.
 Proof.
-move=> Hxi0 Hmn; rewrite !big_mkord.
+move=> H0 Hxi0 Hmn; rewrite !big_mkord.
 elim/big_ind2: _ =>[//|x1 x2 y1 y2 Hx Hy|i _]; first by rewrite Hx // Hy.
 rewrite Poly_nth //.
 case: i => [i Hi] /=.
@@ -1006,12 +998,13 @@ exact: leq_trans Hi Hmn.
 Qed.
 
 Lemma bigXadd'_P (m n : nat) (x0 s : R) :
+  def x0 ->
   ex_derive_n f0 n x0 ->
   m <= n ->
   \big[Rplus/R0]_(0 <= i < m) (PolR.nth (P x0 n) i.+1 * INR i.+1 * s ^ i)%R =
   \big[Rplus/R0]_(0 <= i < m) ((Dn i.+1 x0) / INR (fact i) * s ^ i)%R.
 Proof.
-move=> Hx0 Hmn; rewrite !big_mkord.
+move=> H0 Hx0 Hmn; rewrite !big_mkord.
 case: m Hmn =>[|m] Hmn; first by rewrite !big_ord0.
 elim/big_ind2: _ =>[//|x1 x2 y1 y2 -> ->//|i _].
 rewrite Poly_nth //; last by case: i => [i Hi] /=; exact: leq_trans Hi Hmn.
@@ -1387,7 +1380,7 @@ case=>[Hpos|Hneg].
           case: k => [//|k]; rewrite -ex_derive_nSS.
           by apply: (Hder_n k.+2) =>//; apply: Hdef.
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
-        rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+        rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
         set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
         have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1405,7 +1398,7 @@ case=>[Hpos|Hneg].
           case: k => [//|k]; rewrite -ex_derive_nSS.
           by apply: (Hder_n k.+2) =>//; apply: Hdef.
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
-        rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+        rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
         set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
         have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1429,7 +1422,7 @@ case=>[Hpos|Hneg].
     case: k => [//|k]; rewrite -ex_derive_nSS.
     by apply: (Hder_n k.+2) =>//; apply: Hdef.
   rewrite /Rdelta' PolR.horner_derivE Poly_size.
-  rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+  rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
   set b := \big[Rplus/R0]_(_ <= i < _) _.
   set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
   have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1455,7 +1448,7 @@ split.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       by apply: (Hder_n k.+2) =>//; apply: Hdef.
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
-    rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+    rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
     set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
     have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1473,7 +1466,7 @@ split.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       by apply: (Hder_n k.+2) =>//; apply: Hdef.
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
-    rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+    rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
     set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
     have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1498,7 +1491,7 @@ have [|||c [H1 [H2 H3]]] := TL =>//.
   case: k => [//|k]; rewrite -ex_derive_nSS.
   by apply: (Hder_n k.+2) =>//; apply: Hdef.
 rewrite /Rdelta' PolR.horner_derivE Poly_size.
-rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
+rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
 set b := \big[Rplus/R0]_(_ <= i < _) _.
 set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
 have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1528,6 +1521,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
+      exact/Hdef/intvlP.
       exact/Hder_n/intvlP.
       case/(_ _ inGamma): Hmain =>->.
       exact: Rle_refl.
@@ -1536,6 +1530,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
+      exact/Hdef/intvlP.
       exact/Hder_n/intvlP.
       move/(_ _ inGamma) in Hmain.
       exact: proj2 Hmain.
@@ -1544,6 +1539,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
+      exact/Hdef/intvlP.
       exact/Hder_n/intvlP.
       move/(_ _ inGamma) in Hmain.
       rewrite /proj_fun.
@@ -2102,6 +2098,333 @@ apply: TM_fun_eq; last apply: TM_var_correct Hsubset Hne.
 by move=> *; rewrite /defined Hid.
 Qed.
 
+Definition is_not_empty X : bool :=
+  match Xlower X, Xupper X with
+  | Xnan, _ | _ , Xnan => true
+  | Xreal l, Xreal u => Rle_bool l u
+  end.
+
+Lemma not_emptyP X : reflect (not_empty X) (is_not_empty X).
+Proof.
+apply: introP; rewrite /is_not_empty /not_empty; case: X => [|[|l][|u]]//=;
+  move=> H.
+by exists R0; split.
+by exists R0; split.
+by exists u; split; try apply: Rle_refl.
+by exists l; split; try apply: Rle_refl.
+exists l; split; try exact: Rle_refl.
+by case: Rle_bool_spec H.
+move=> [v Hv].
+have Hlu := Rle_trans _ _ _ (proj1 Hv) (proj2 Hv).
+case: Rle_bool_spec H =>//.
+by move/Rlt_not_le.
+Qed.
+
+Definition TM_sqrt X0 X (n : nat) : rpa :=
+  (* assuming X0 \subset X *)
+  let P := (T_sqrt prec X0 n) in
+  if I.subset X (I.upper_extent I.zero) then
+    if I.subset I.zero X
+    then RPA P I.nai (* could be refined *)
+    else RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n)
+  else RPA P I.nai.
+Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
+
+Definition TM_invsqrt X0 X (n : nat) : rpa :=
+  (* assuming X0 \subset X *)
+  let P := (T_invsqrt prec X0 n) in
+  if I.subset X (I.upper_extent I.zero) then
+    if I.subset I.zero X
+    then RPA P I.nai
+    else RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
+  else RPA P I.nai.
+
+Lemma TM_sqrt_correct X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
+Proof.
+move=> Hsubset Hex.
+rewrite /TM_sqrt.
+case E1: I.subset.
+case E2: I.subset.
+
+(* could be refined *)
+constructor =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_sqrt tt x0 n).
+apply: Pol.rec1_correct.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply: R_from_nat_correct
+               ].
+exact: R_sqrt_correct.
+by rewrite I.nai_correct.
+
+apply i_validTM_Ztech with (TR.T_sqrt tt); last 2 first =>//.
+exact: I.sqrt_correct.
+constructor.
+- by move=> *; rewrite PolR.size_rec1.
+- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
+    admit.
+  }
+constructor.
+- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
+    apply: Pol.rec1_correct =>//.
+    by move=> *;
+      repeat first [apply: R_div_correct
+                   |apply: R_mul_correct
+                   |apply: R_sub_correct
+                   |apply: I.fromZ_correct
+                   |apply: R_mul_correct
+                   |apply: I.fromZ_correct
+                   |apply: R_from_nat_correct
+                   ].
+    exact: R_sqrt_correct.
+  }
+- admit.
+- admit.
+- admit; exact: ex_derive_n_sqrt.
+
+constructor =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_sqrt tt x0 n).
+apply: Pol.rec1_correct.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply: R_from_nat_correct
+               ].
+exact: R_sqrt_correct.
+by rewrite I.nai_correct.
+Qed.
+
+(*
+apply TM_rec1_correct' with
+  (XDn := (fun (k : nat) (x : ExtendedR) =>
+    (\big[Xmul/Xreal 1]_(i < k) Xreal (/ 2 - INR i) * (Xsqrt x / x ^ k))%XR))
+  (XF_rec := TX.Rec.sqrt_rec tt)
+=>//.
+- by move=> x; apply: (nth_Xderive_pt_sqrt x).
+- by move=> x X1 HX1; apply: I.sqrt_correct.
+- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.sqrt_rec /TX.Rec.sqrt_rec.
+  by apply:I.div_correct=>//; apply: I.mul_correct =>//;
+   [apply: I.sub_correct; try apply: I.mul_correct | apply: I.mul_correct| ];
+   rewrite // /tnat INR_IZR_INZ -Z2R_IZR;
+   apply: I.fromZ_correct.
+move=> r k.
+have h2n0 : (2 <> 0)%Re.
+  move/Rlt_not_eq: Rlt_0_2 => // Hdiff Heq.
+  by rewrite Heq in Hdiff.
+rewrite /TX.Rec.sqrt_rec.
+set b1 := \big[Xmul/Xreal 1]_(i < k) _.
+set b2 := \big[Xmul/Xreal 1]_(i < k.+1) _.
+set s := (_ - _)%XR.
+have -> : b2 = (((Xreal (INR 1) - Xreal (INR 2) *
+                  Xreal (INR k))/Xreal (INR 2)) * b1)%XR.
+  rewrite /b2; rewrite big_ord_recr /= Xmul_comm.
+  congr Xmul.
+  by rewrite zeroF //; congr Xreal;field.
+rewrite !Xdiv_split -!(Xmul_assoc s).
+have -> : (s * Xinv (Xreal (INR 2)) * b1 = s * b1 *Xinv (Xreal (INR 2)))%XR.
+  by rewrite Xmul_comm -Xmul_assoc; congr Xmul; rewrite Xmul_comm.
+rewrite !Xmul_assoc;congr Xmul;congr Xmul.
+rewrite (Xmul_comm (Xinv (Xreal (INR 2)))) !Xmul_assoc; congr Xmul.
+case : r; first done.
+move=> r.
+case:(boolP (r == R0))=> /eqP r0.
+  rewrite r0; clear b1 b2 s; case: k.
+    rewrite /= (zeroF (R1_neq_R0)) Rinv_1 !Rmult_1_r !Xmul_1_l.
+    by rewrite Rmult_0_r is_zero_correct_zero.
+  move=> k; rewrite !Xpow_idem !Xpow_Xreal !pow_i; try apply/ltP => //=.
+  by rewrite /Xinv is_zero_correct_zero.
+have rk : forall k, (r ^ k)%Re <> R0.
+  by move=> *; apply: pow_nonzero.
+rewrite !Xmul_Xreal !Xpow_idem !Xpow_Xreal.
+set i:= (INR 2 * (r * INR k.+1))%Re.
+set fk1:= fact k.+1.
+rewrite /= (zeroF (rk k)).
+have : (INR 2 * r * INR k.+1)%Re <> R0.
+  apply: Rmult_integral_contrapositive; split.
+    by apply: Rmult_integral_contrapositive.
+  exact: not_0_INR.
+rewrite Rmult_assoc (zeroF (rk k.+1)).
+rewrite /i;move/zeroF ->.
+rewrite (zeroF (not_0_INR _ (fact_neq_0 k))).
+rewrite /fk1 (zeroF (not_0_INR _ (fact_neq_0 k.+1))).
+rewrite (zeroF h2n0) !Xmul_Xreal.
+congr Xreal.
+rewrite fact_simpl !mult_INR -(addn1 k) /=.
+field.
+by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
+
+Qed.
+*)
+
+Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
+Proof.
+by unfold TM_sqrt; case: I.subset; first case: I.subset; rewrite Pol.size_rec1.
+Qed.
+
+Ltac Inc :=
+  rewrite (*?*) INR_IZR_INZ -Z2R_IZR;
+  apply: I.fromZ_correct.
+
+Lemma TM_invsqrt_correct X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
+            (fun x => Xinv (Xsqrt x)).
+Proof.
+move=> Hsubset Hex.
+rewrite /TM_invsqrt.
+case E1: I.subset.
+case E2: I.subset.
+
+constructor =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_invsqrt tt x0 n).
+apply: Pol.rec1_correct.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply/eqNaiPy: R_from_nat_correct
+               |apply: R_add_correct
+               |apply: R_neg_correct
+               |Inc
+               ].
+by apply: R_inv_correct; apply: R_sqrt_correct.
+by rewrite I.nai_correct.
+
+apply i_validTM_Ztech with (TR.T_invsqrt tt); last 2 first =>//.
+admit.
+constructor.
+- by move=> *; rewrite PolR.size_rec1.
+- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
+    admit.
+  }
+constructor.
+- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
+    apply: Pol.rec1_correct =>//.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply/eqNaiPy: R_from_nat_correct
+               |apply: R_add_correct
+               |apply: R_neg_correct
+               |Inc
+               ].
+    apply: R_inv_correct; exact: R_sqrt_correct.
+  }
+- admit.
+- admit.
+- admit; exact: ex_derive_n_invsqrt.
+
+(* again *)
+constructor =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_invsqrt tt x0 n).
+apply: Pol.rec1_correct.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply/eqNaiPy: R_from_nat_correct
+               |apply: R_add_correct
+               |apply: R_neg_correct
+               |Inc
+               ].
+by apply: R_inv_correct; apply: R_sqrt_correct.
+by rewrite I.nai_correct.
+Qed.
+
+(*
+apply TM_rec1_correct' with
+  (XDn := (fun (k : nat) (x : ExtendedR) =>
+    (\big[Xmul/Xreal 1]_(i < k) Xreal (-/2 - INR i)*(Xinv (Xsqrt x) / x^k))%XR))
+  (XF_rec := TX.Rec.invsqrt_rec tt)
+=>//.
+- by move=> x; apply: nth_Xderive_pt_invsqrt.
+- move=> x X1 HX1;rewrite /tinvsqrt.
+  by apply: I.inv_correct; apply: I.sqrt_correct.
+- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.invsqrt_rec /TX.Rec.invsqrt_rec.
+  apply:I.div_correct; apply:I.mul_correct=> //;try Inc.
+    apply: I.neg_correct; apply:I.add_correct=> //; try Inc.
+    by apply:I.mul_correct; Inc.
+  by apply:I.mul_correct=>//; Inc.
+move=> r k.
+rewrite /TX.Rec.invsqrt_rec.
+have -> : (k.+1.-1) = k by [].
+set b := \big[Xmul/Xreal 1]_ _ _.
+rewrite Xmul_comm !Xdiv_split big_ord_recr /b {b} !Xmul_assoc; congr Xmul.
+rewrite 2!Xinv_Xmul_distr.
+case: r => // r.
+case: (boolP (is_negative r)); first by rewrite /=; move ->.
+move/negbTE=> rpos.
+have rge0: (0 <= r)%Re.
+  move:rpos; rewrite /is_negative.
+  case: (Rlt_bool_spec 0 r).
+    by move => rpos Hf; apply:Rcompare_not_Gt_inv; rewrite (Rcompare_Lt _ _ rpos).
+  case/Rle_lt_or_eq_dec; first by move/Rlt_bool_true ->.
+  by move -> => _; apply:Rle_refl.
+case:(boolP (r == R0))=> /eqP r0.
+  by rewrite r0 !Xpow_idem /Xpow_iter iter_nat_S Xinv_Xmul_distr /Xinv !is_zero_correct_zero !(Xmul_comm _ Xnan).
+rewrite /Xsqrt rpos.
+case: (boolP (sqrt r == R0)).
+  by move/eqP /(sqrt_eq_0 _ rge0) => re0; rewrite re0 in r0.
+move/eqP=> sqrtn0.
+have n_n0 i: INR i.+1 <> 0%Re by exact : not_0_INR.
+have Hfact n0:INR (fact n0) <> 0%Re by exact: (not_0_INR _ (fact_neq_0 n0)).
+have Hrk m : (r ^ m)%Re <> 0%Re by apply: pow_nonzero.
+have Rm0 x1 x2 := (Rmult_integral_contrapositive_currified x1 x2).
+rewrite -!Xinv_Xmul_distr !Xpow_idem !Xpow_Xreal !Xmul_Xreal.
+have H2rk: (INR 2 * (r * INR k.+1))%Re <> R0.
+  by apply: (Rm0);[| apply:(Rm0 r)]=>//; apply: not_0_INR.
+have Hrk2: (sqrt r * (r ^ k.+1 * INR (fact k.+1)))%Re <> R0.
+ by apply:(Rm0) => //; apply: (Rm0).
+rewrite /Xinv !zeroF // !Xmul_Xreal; f_equal.
+rewrite fact_simpl !mult_INR (S_INR k) -tech_pow_Rmult /= -(S_INR k).
+by field; split =>//; split.
+
+Qed.
+*)
+
+Lemma size_TM_invsqrt X0 X (n : nat) :
+  Pol.size (approx (TM_invsqrt X0 X n)) = n.+1.
+Proof.
+by unfold TM_invsqrt; case: I.subset; first case: I.subset; rewrite Pol.size_rec1.
+Qed.
+
 (*
 Definition TM_var' X0 X (n : nat) :=
   let pol := Pol.tpolyCons X0 Pol.tpolyNil in
@@ -2218,7 +2541,7 @@ constructor.
 - by move=> {n} ? n;
     rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
     Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
-- { move=> x m k Hder Hk.
+- { move=> x m k Hdef Hder Hk.
     rewrite /TR.T_power_int PolR.nth_dotmuldiv ifF; last first.
       rewrite PolR.size_rec1.
       rewrite size_falling_seq size_fact_seq.
@@ -2228,10 +2551,8 @@ constructor.
       rewrite falling_seq_correct // fact_seq_correct //.
       rewrite big_mkord big_ord0.
       rewrite [PolR.nth _ _]nth_rec1up /= Rdiv_1 Rmult_1_l.
-      rewrite /Xpower_int /toR_fun /proj_fun /powerRZ.
-      case: p Hder =>// p Hp.
-      have K: ~~ (is_zero x) by admit. (* TODO: power_int *)
-      by rewrite (negbTE K).
+      move: Hdef; rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
+      by case: p {Hder} =>//; case: is_zero.
     rewrite falling_seq_correct // fact_seq_correct //.
     admit. (* TODO: power_int *)
   }
@@ -2276,6 +2597,8 @@ constructor.
     rewrite /defined in Dx.
     exact: I.power_int_correct.
   }
+- move=> x Hx.
+  admit. (* TODO: power_int *)
 - move=> k x Hx.
   admit. (* TODO: power_int *)
 Qed.
@@ -2565,182 +2888,6 @@ by rewrite size_rec1up.
 by rewrite size_behead size_rec1up.
 Qed.
 
-Definition is_not_empty X : bool :=
-  match Xlower X, Xupper X with
-  | Xnan, _ | _ , Xnan => true
-  | Xreal l, Xreal u => Rle_bool l u
-  end.
-
-Lemma not_emptyP X : reflect (not_empty X) (is_not_empty X).
-Proof.
-apply: introP; rewrite /is_not_empty /not_empty; case: X => [|[|l][|u]]//=;
-  move=> H.
-by exists R0; split.
-by exists R0; split.
-by exists u; split; try apply: Rle_refl.
-by exists l; split; try apply: Rle_refl.
-exists l; split; try exact: Rle_refl.
-by case: Rle_bool_spec H.
-move=> [v Hv].
-have Hlu := Rle_trans _ _ _ (proj1 Hv) (proj2 Hv).
-case: Rle_bool_spec H =>//.
-by move/Rlt_not_le.
-Qed.
-
-Lemma TM_sqrt_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
-Proof.
-move=> Hsubset [t Ht].
-admit. (* TODO 
-apply(*:*) (i_validTM_Ztech (P := TR.T_sqrt tt)) =>//; last by exists t.
-- move=> r; case: Rlt_bool_spec => H1 H2; rewrite /defined /=.
-  by rewrite negativeF //; apply: Rlt_le.
-  by rewrite negativeT.
-- move=> k r Hr.
-  admit.
-- clear; move=> X.
-  pose b := is_not_empty X && Xgt0 X; case Eb : b; [left|right].
-  admit. (* TODO / easy / automated ? *)
-  admit. (* TODO / easy / automated ? *)
-- exact: I.sqrt_correct.
-- admit. (* TODO *)
-- admit. (* TODO *)
-*)
-Qed.
-
-(*
-apply TM_rec1_correct' with
-  (XDn := (fun (k : nat) (x : ExtendedR) =>
-    (\big[Xmul/Xreal 1]_(i < k) Xreal (/ 2 - INR i) * (Xsqrt x / x ^ k))%XR))
-  (XF_rec := TX.Rec.sqrt_rec tt)
-=>//.
-- by move=> x; apply: (nth_Xderive_pt_sqrt x).
-- by move=> x X1 HX1; apply: I.sqrt_correct.
-- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.sqrt_rec /TX.Rec.sqrt_rec.
-  by apply:I.div_correct=>//; apply: I.mul_correct =>//;
-   [apply: I.sub_correct; try apply: I.mul_correct | apply: I.mul_correct| ];
-   rewrite // /tnat INR_IZR_INZ -Z2R_IZR;
-   apply: I.fromZ_correct.
-move=> r k.
-have h2n0 : (2 <> 0)%Re.
-  move/Rlt_not_eq: Rlt_0_2 => // Hdiff Heq.
-  by rewrite Heq in Hdiff.
-rewrite /TX.Rec.sqrt_rec.
-set b1 := \big[Xmul/Xreal 1]_(i < k) _.
-set b2 := \big[Xmul/Xreal 1]_(i < k.+1) _.
-set s := (_ - _)%XR.
-have -> : b2 = (((Xreal (INR 1) - Xreal (INR 2) *
-                  Xreal (INR k))/Xreal (INR 2)) * b1)%XR.
-  rewrite /b2; rewrite big_ord_recr /= Xmul_comm.
-  congr Xmul.
-  by rewrite zeroF //; congr Xreal;field.
-rewrite !Xdiv_split -!(Xmul_assoc s).
-have -> : (s * Xinv (Xreal (INR 2)) * b1 = s * b1 *Xinv (Xreal (INR 2)))%XR.
-  by rewrite Xmul_comm -Xmul_assoc; congr Xmul; rewrite Xmul_comm.
-rewrite !Xmul_assoc;congr Xmul;congr Xmul.
-rewrite (Xmul_comm (Xinv (Xreal (INR 2)))) !Xmul_assoc; congr Xmul.
-case : r; first done.
-move=> r.
-case:(boolP (r == R0))=> /eqP r0.
-  rewrite r0; clear b1 b2 s; case: k.
-    rewrite /= (zeroF (R1_neq_R0)) Rinv_1 !Rmult_1_r !Xmul_1_l.
-    by rewrite Rmult_0_r is_zero_correct_zero.
-  move=> k; rewrite !Xpow_idem !Xpow_Xreal !pow_i; try apply/ltP => //=.
-  by rewrite /Xinv is_zero_correct_zero.
-have rk : forall k, (r ^ k)%Re <> R0.
-  by move=> *; apply: pow_nonzero.
-rewrite !Xmul_Xreal !Xpow_idem !Xpow_Xreal.
-set i:= (INR 2 * (r * INR k.+1))%Re.
-set fk1:= fact k.+1.
-rewrite /= (zeroF (rk k)).
-have : (INR 2 * r * INR k.+1)%Re <> R0.
-  apply: Rmult_integral_contrapositive; split.
-    by apply: Rmult_integral_contrapositive.
-  exact: not_0_INR.
-rewrite Rmult_assoc (zeroF (rk k.+1)).
-rewrite /i;move/zeroF ->.
-rewrite (zeroF (not_0_INR _ (fact_neq_0 k))).
-rewrite /fk1 (zeroF (not_0_INR _ (fact_neq_0 k.+1))).
-rewrite (zeroF h2n0) !Xmul_Xreal.
-congr Xreal.
-rewrite fact_simpl !mult_INR -(addn1 k) /=.
-field.
-by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
-
-Qed.
-*)
-
-Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
-Proof. by rewrite Pol.size_rec1. Qed.
-
-Ltac Inc :=
-  rewrite (*?*) INR_IZR_INZ -Z2R_IZR;
-  apply: I.fromZ_correct.
-
-Lemma TM_invsqrt_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
-            (fun x => Xinv (Xsqrt x)).
-Proof.
-move=> Hsubset Hex.
-admit.
-(*
-apply TM_rec1_correct' with
-  (XDn := (fun (k : nat) (x : ExtendedR) =>
-    (\big[Xmul/Xreal 1]_(i < k) Xreal (-/2 - INR i)*(Xinv (Xsqrt x) / x^k))%XR))
-  (XF_rec := TX.Rec.invsqrt_rec tt)
-=>//.
-- by move=> x; apply: nth_Xderive_pt_invsqrt.
-- move=> x X1 HX1;rewrite /tinvsqrt.
-  by apply: I.inv_correct; apply: I.sqrt_correct.
-- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.invsqrt_rec /TX.Rec.invsqrt_rec.
-  apply:I.div_correct; apply:I.mul_correct=> //;try Inc.
-    apply: I.neg_correct; apply:I.add_correct=> //; try Inc.
-    by apply:I.mul_correct; Inc.
-  by apply:I.mul_correct=>//; Inc.
-move=> r k.
-rewrite /TX.Rec.invsqrt_rec.
-have -> : (k.+1.-1) = k by [].
-set b := \big[Xmul/Xreal 1]_ _ _.
-rewrite Xmul_comm !Xdiv_split big_ord_recr /b {b} !Xmul_assoc; congr Xmul.
-rewrite 2!Xinv_Xmul_distr.
-case: r => // r.
-case: (boolP (is_negative r)); first by rewrite /=; move ->.
-move/negbTE=> rpos.
-have rge0: (0 <= r)%Re.
-  move:rpos; rewrite /is_negative.
-  case: (Rlt_bool_spec 0 r).
-    by move => rpos Hf; apply:Rcompare_not_Gt_inv; rewrite (Rcompare_Lt _ _ rpos).
-  case/Rle_lt_or_eq_dec; first by move/Rlt_bool_true ->.
-  by move -> => _; apply:Rle_refl.
-case:(boolP (r == R0))=> /eqP r0.
-  by rewrite r0 !Xpow_idem /Xpow_iter iter_nat_S Xinv_Xmul_distr /Xinv !is_zero_correct_zero !(Xmul_comm _ Xnan).
-rewrite /Xsqrt rpos.
-case: (boolP (sqrt r == R0)).
-  by move/eqP /(sqrt_eq_0 _ rge0) => re0; rewrite re0 in r0.
-move/eqP=> sqrtn0.
-have n_n0 i: INR i.+1 <> 0%Re by exact : not_0_INR.
-have Hfact n0:INR (fact n0) <> 0%Re by exact: (not_0_INR _ (fact_neq_0 n0)).
-have Hrk m : (r ^ m)%Re <> 0%Re by apply: pow_nonzero.
-have Rm0 x1 x2 := (Rmult_integral_contrapositive_currified x1 x2).
-rewrite -!Xinv_Xmul_distr !Xpow_idem !Xpow_Xreal !Xmul_Xreal.
-have H2rk: (INR 2 * (r * INR k.+1))%Re <> R0.
-  by apply: (Rm0);[| apply:(Rm0 r)]=>//; apply: not_0_INR.
-have Hrk2: (sqrt r * (r ^ k.+1 * INR (fact k.+1)))%Re <> R0.
- by apply:(Rm0) => //; apply: (Rm0).
-rewrite /Xinv !zeroF // !Xmul_Xreal; f_equal.
-rewrite fact_simpl !mult_INR (S_INR k) -tech_pow_Rmult /= -(S_INR k).
-by field; split =>//; split.
-*)
-Qed.
-
-Lemma size_TM_invsqrt X0 X (n : nat) :
-  Pol.size (approx (TM_invsqrt X0 X n)) = n.+1.
-Proof. by rewrite Pol.size_rec1. Qed.
-
 Lemma nat_ind2 (P : nat -> Prop) :
   P 0 -> P 1 ->
   (forall k, P k -> P k.+1 -> P k.+2) ->
@@ -2762,7 +2909,7 @@ apply i_validTM_Ztech with (TR.T_sin tt); last 2 first =>//.
 exact: I.sin_correct.
 constructor.
 - by move=> x m; rewrite /TR.T_sin PolR.size_rec2.
-- move=> x m k Hx Hk; rewrite /TR.T_sin toR_toXreal.
+- move=> x m k Dx Hx Hk; rewrite /TR.T_sin toR_toXreal.
   rewrite toR_toXreal in Hx.
   rewrite /PolR.nth /PolR.rec2; clear - Hk Hx.
   { move: k Hk; apply: nat_ind2.
@@ -2815,7 +2962,7 @@ apply i_validTM_Ztech with (TR.T_cos tt); last 2 first =>//.
 exact: I.cos_correct.
 constructor.
 - by move=> x m; rewrite /TR.T_cos PolR.size_rec2.
-- move=> x m k Hx Hk; rewrite /TR.T_cos toR_toXreal.
+- move=> x m k Dx Hx Hk; rewrite /TR.T_cos toR_toXreal.
   rewrite toR_toXreal in Hx.
   rewrite /PolR.nth /PolR.rec2; clear - Hk Hx.
   { move: k Hk; apply: nat_ind2.
@@ -2873,14 +3020,14 @@ apply i_validTM_Ztech with (TR.T_atan tt); last 2 first =>//.
 exact: I.atan_correct.
 constructor.
 - by move=> ? ?; rewrite PolR.size_grec1.
-- { move=> {X0 X n Hsubset Hex} x n k Hdef H;
+- { move=> {X0 X n Hsubset Hex} x n k Hdef Hder H;
     rewrite /TR.T_atan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
     case: k H => [|k H]; first by rewrite /= ?Rdiv_1.
     rewrite last_grec1up // head_gloop1.
     rewrite [size _]/= subn1 [_.+1.-1]/=.
-    elim: k H x {Hdef} (* Erik: is this clear really necessary? *) =>[|k IHk] H x.
+    elim: k H x {Hdef Hder} (* Erik: is this clear really necessary? *) =>[|k IHk] H x.
     + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
       symmetry; apply: is_derive_unique; auto_derive =>//.
       by rewrite Rmult_1_r.
