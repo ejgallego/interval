@@ -447,7 +447,7 @@ move => HnotInan.
 suff HiFNI : notInan iFab =>  [|].
 rewrite /f.
 move: HiFNI.
-rewrite /iFab -/evalInt => HiFNI.
+rewrite /iFab => HiFNI.
 apply: (integrableProg prec _ _ _ _ _ (I.join ia1 ib1)) => //.
 move => x Hx.
 case: (Rle_dec a1 b1) => [Hleab | Hltba].
@@ -460,7 +460,6 @@ case: (Rle_dec a1 b1) => [Hleab | Hltba].
   + by right.
   + by left.
   by rewrite Rmin_right // Rmax_left // in Hx.
-rewrite /boundsToInt /evalInt.
 move: HnotInan.
 by case: (iFab) => //.
 Qed.
@@ -555,7 +554,7 @@ Definition ex_RInt_base_case :=
          0
          (eval_real
             prog
-            (x::boundsToR bounds)) R0)
+            (x :: List.map A.real_from_bp bounds)) R0)
     (T.toR u0)
     (T.toR l1).
 
@@ -587,7 +586,7 @@ Lemma integral_float_absolute_ex_RInt
          0
          (eval_real
             prog
-            (x::boundsToR bounds)) R0)
+            (x :: List.map A.real_from_bp bounds)) R0)
     (T.toR u0)
     (T.toR l1).
 Proof.
@@ -696,7 +695,7 @@ Lemma integral_float_relative_ex_RInt
          0
          (eval_real
             prog
-            (x::boundsToR bounds)) R0)
+            (x :: List.map A.real_from_bp bounds)) R0)
     (T.toR u0)
     (T.toR l1).
 Proof.
@@ -728,7 +727,7 @@ Lemma integral_float_absolute_signed_ex_RInt
          0
          (eval_real
             prog
-            (x::boundsToR bounds)) R0)
+            (x :: List.map A.real_from_bp bounds)) R0)
     (T.toR u0)
     (T.toR l1).
 Proof.
@@ -822,7 +821,7 @@ Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
          0
          (eval_real
             prog
-            (x::boundsToR bounds)) R0)
+            (x :: List.map A.real_from_bp bounds)) R0)
     (T.toR u0)
     (T.toR l1).
 Proof.
@@ -830,7 +829,6 @@ move => Hrealu0 Hreall1 Hleu0l1 f iF HnotInan.
 apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
 - move => x; apply: aux => // .
 - move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
-  rewrite /boundsToInt.
   by case: j.
 Qed.
 

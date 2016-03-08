@@ -96,23 +96,14 @@ Module A := IntervalAlgos I.
 Section Integrability.
 
 Variable prec : I.precision.
-Definition evalInt := A.BndValuator.eval prec. (* to abstract to any evaluation *)
-Definition boundsToInt b := map A.interval_from_bp b.
-Definition boundsToR b := map A.real_from_bp b.
 Definition notInan := notInan F.type.
 
-Lemma continuousProg2 prog bounds (x : R) : forall m : nat,
-  notXnan (List.nth m
-          (eval_ext prog ((Xreal x)::List.map A.xreal_from_bp bounds))
-          Xnan) ->
-  continuous
-    (fun x =>
-       List.nth
-         m
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0) x.
+Lemma continuousProg2 :
+  forall prog bounds x m,
+  notXnan (nth m (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan) ->
+  continuous (fun x => nth m (eval_real prog (x :: map A.real_from_bp bounds)) R0) x.
 Proof.
+intros prog bounds x.
 rewrite /eval_ext /eval_real.
 intros m H.
 eapply proj2.
@@ -156,12 +147,11 @@ intros _.
 apply (conj eq_refl).
 apply continuous_id.
 simpl.
-unfold boundsToR.
 destruct (le_or_lt (length bounds) n).
 rewrite nth_overflow => //.
 by rewrite map_length.
 rewrite (nth_indep _ _ (Xreal 0)).
-replace (List.map A.xreal_from_bp bounds) with (List.map Xreal (List.map A.real_from_bp bounds)).
+replace (map A.xreal_from_bp bounds) with (map Xreal (map A.real_from_bp bounds)).
 rewrite map_nth.
 intros _.
 apply (conj eq_refl).
@@ -173,44 +163,27 @@ by rewrite map_length.
 Qed.
 
 (* we ensure that we get the former result by using the new one *)
-Lemma continuousProg prog bounds (m : nat) i:
-  forall x, contains (I.convert i) (Xreal x) ->
-  (notInan (List.nth m
-          (evalInt prog (i::boundsToInt bounds))
-          I.nai)) ->
-  continuous
-    (fun x =>
-       List.nth
-         m
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0) x.
+Lemma continuousProg :
+  forall prog bounds m i x,
+  contains (I.convert i) (Xreal x) ->
+  notInan (nth m (A.BndValuator.eval prec prog (i :: map A.interval_from_bp bounds)) I.nai) ->
+  continuous (fun x => nth m (eval_real prog (x :: map A.real_from_bp bounds)) R0) x.
 Proof.
-move => x Hcontains HnotInan.
+move => prog bounds m i x Hcontains HnotInan.
 apply: continuousProg2.
 generalize (A.BndValuator.eval_correct_ext prec prog bounds m i (Xreal x) Hcontains).
 revert HnotInan.
-unfold evalInt, boundsToInt.
-case: (List.nth _ _ _) => //.
-case: (List.nth _ _ _) => //.
+case: (nth _ _ _) => //.
+case: (nth _ _ _) => //.
 Qed.
 
-Lemma integrableProg prog bounds m a b i:
-  (forall x, Rmin a b <= x <= Rmax a b ->  contains (I.convert i) (Xreal x)) ->
-  (notInan (List.nth m
-          (evalInt prog (i::boundsToInt bounds))
-          I.nai)) ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         m
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0)
-    a
-    b.
+Lemma integrableProg :
+  forall prog bounds m a b i,
+  (forall x, Rmin a b <= x <= Rmax a b -> contains (I.convert i) (Xreal x)) ->
+  notInan (nth m (A.BndValuator.eval prec prog (i :: map A.interval_from_bp bounds)) I.nai) ->
+  ex_RInt (fun x => nth m (eval_real prog (x :: map A.real_from_bp bounds)) R0) a b.
 Proof.
-move => Hcontains HnotInan.
+move => prog bounds m a b i Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
 apply: continuousProg HnotInan.
