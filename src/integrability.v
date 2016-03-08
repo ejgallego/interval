@@ -102,74 +102,6 @@ Definition boundsToInt b := map A.interval_from_bp b.
 Definition boundsToR b := map A.real_from_bp b.
 Definition notInan := notInan F.type.
 
-Section Preliminary.
-Require Import Ssreflect.seq.
-
-Definition interval_operations := (A.BndValuator.operations prec).
-
-Lemma evalOpRight (A : Type) (ops : operations A) (z : A) op (prog : seq term) l m :
-  nth z (@eval_generic A z ops (rcons prog op) l) m =
-  nth z
-      (@eval_generic_body A z
-         ops
-         (@eval_generic _ z ops prog l) op) m.
-Proof.
-rewrite  /A.BndValuator.eval rev_formula revEq rev_rcons /= .
-by rewrite rev_formula revEq.
-Qed.
-
-
-(* copied from Interval_tactic *)
-Lemma contains_eval prog bounds n :
-  contains
-    (I.convert
-       (List.nth n
-                 (A.BndValuator.eval prec prog (map A.interval_from_bp bounds))
-                 I.nai))
-    (Xreal (List.nth n (eval_real prog (List.map A.real_from_bp bounds)) 0)).
-Proof.
-set (xi := List.nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
-apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
-now case (I.convert xi).
-easy.
-unfold xi.
-replace (List.map Xreal (List.map A.real_from_bp bounds)) with (List.map A.xreal_from_bp bounds).
-apply A.BndValuator.eval_correct.
-clear.
-induction bounds.
-easy.
-simpl.
-rewrite IHbounds.
-now case a.
-Qed.
-
-Lemma contains_eval_arg prog bounds n i x:
-  contains (I.convert i) (Xreal x) ->
-  contains
-    (I.convert
-       (List.nth n
-                 (A.BndValuator.eval prec prog (i :: map A.interval_from_bp bounds))
-                 I.nai))
-    (Xreal (List.nth n (eval_real prog (x :: List.map A.real_from_bp bounds)) 0)).
-Proof.
-move => Hcontains.
-set (xi := List.nth n (A.BndValuator.eval prec prog (i :: [seq A.interval_from_bp i | i <- bounds])%SEQ) I.nai).
-apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
-now case (I.convert xi).
-easy.
-unfold xi.
-replace (List.map Xreal (x :: List.map A.real_from_bp bounds)) with
-((Xreal x)::(List.map A.xreal_from_bp (bounds))).
-apply A.BndValuator.eval_correct_ext => //.
-clear.
-rewrite /=. congr (_ :: _).
-induction bounds.
-easy.
-simpl.
-rewrite IHbounds.
-now case a.
-Qed.
-
 Lemma continuousProg2 prog bounds (x : R) : forall m : nat,
   notXnan (List.nth m
           (eval_ext prog ((Xreal x)::List.map A.xreal_from_bp bounds))
@@ -337,8 +269,6 @@ intros z Hz.
 apply: continuousProgTaylor HnotInan.
 by apply: Hcontains.
 Qed.
-
-End Preliminary.
 
 End Integrability.
 End Integrability.

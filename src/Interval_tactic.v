@@ -169,6 +169,15 @@ rewrite IHbounds.
 now case a.
 Qed.
 
+Lemma contains_eval_arg :
+  forall prec prog bounds n xi x,
+  contains (I.convert xi) (Xreal x) ->
+  contains (I.convert (nth n (A.BndValuator.eval prec prog (xi :: map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (x :: map A.real_from_bp bounds)) R0)).
+Proof.
+intros prec prog bounds n xi x Hx.
+apply (contains_eval prec prog (A.Bproof x xi Hx :: bounds)).
+Qed.
+
 Lemma contains_bound_lr :
   forall x prec proga boundsa na progb boundsb nb,
   Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) R0) x /\
@@ -801,16 +810,6 @@ End IntegralProg.
 Section naive_ex_RInt_base_case.
 
 Require Import seq_patch.
-
-Lemma HfiF prec prog bounds :
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
-  forall (xi : Interval_interval_float.f_interval F.type) (x : R),
-    contains (Int.EF.I.convert xi) (Xreal x) ->
-    contains (Int.EF.I.convert (iF xi)) (Xreal (f x)).
-Proof.
-by apply: Integrability.contains_eval_arg.
-Qed.
 
 Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
   F.real u0 ->
