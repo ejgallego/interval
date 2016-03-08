@@ -21,7 +21,6 @@ FILES = \
 	Interval_univariate.v \
 	Interval_xreal.v \
 	Interval_xreal_derive.v \
-        seq_patch.v \
         reals_compl.v
 
 CAFILES = \

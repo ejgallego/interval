@@ -12,7 +12,6 @@ Require Import Interval_interval_float_full.
 Require Import Interval_bisect.
 
 Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrnat.
-Require Import seq_patch.
 
 Section Prelude.
 

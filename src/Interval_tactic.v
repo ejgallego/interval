@@ -809,8 +809,6 @@ End IntegralProg.
 
 Section naive_ex_RInt_base_case.
 
-Require Import seq_patch.
-
 Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
   F.real u0 ->
   F.real l1 ->
