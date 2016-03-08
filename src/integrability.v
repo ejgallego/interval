@@ -24,70 +24,6 @@ Definition notInan (fi : Interval_interval_float.f_interval Ftype) :=
 
 End Prelude.
 
-Lemma domain_correct unop a b x :
-  (notXnan b -> b = Xreal (a x) /\ continuous a x) ->
-  notXnan ((unary ext_operations unop) b) ->
-  (unary ext_operations unop) b = Xreal (unary real_operations unop (a x)) /\
-  continuous (fun x0 : R => unary real_operations unop (a x0)) x.
-Proof.
-move => Hb HbnotXnan.
-case Hbnan: b Hb => [|b1] // Hb.
-rewrite Hbnan /= in HbnotXnan.
-by case unop in HbnotXnan.
-case: Hb => // Hb Hcontax.
-move: HbnotXnan.
-rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
-split.
-case: unop HnotXnan => //=.
-- by case is_zero.
-- by case is_negative.
-- rewrite /Xtan /tan /Xdiv /Xcos /Xsin.
-  by case is_zero.
-- by case is_positive.
-- case => [||p] // .
-  by case is_zero.
-case: unop HnotXnan => /=.
-- move => _. by apply: continuous_opp.
-- move => _. by apply: continuous_Rabs_comp.
-- move => HnotXnan.
-  apply: continuous_Rinv_comp => // Ha.
-  move: HnotXnan.
-  by rewrite Ha is_zero_correct_zero.
-- move => _. by apply: continuous_mult.
-- move => HnotXnan.
-  apply: continuous_sqrt_comp => //.
-  by case: is_negative_spec HnotXnan.
-- move => _. by apply: continuous_cos_comp.
-- move => _. by apply: continuous_sin_comp.
-- move => HnotXnan.
-  apply: continuous_comp => //.
-  apply: continuous_tan => Ha.
-    move: HnotXnan.
-    by rewrite /Xtan /Xsin /Xcos /Xdiv Ha is_zero_correct_zero.
-- move => _. by apply: continuous_atan_comp.
-- move => _. by apply: continuous_exp_comp.
-- move => HnotXnan.
-  apply: continuous_comp => //.
-  apply: continuous_ln.
-  by case: is_positive_spec HnotXnan.
-- move => n.
-  rewrite /powerRZ.
-  case: n => [|n|n] HnotXnan.
-  + exact: continuous_const.
-  + apply: (continuous_comp a (fun x => pow x _)) => //.
-    apply: ex_derive_continuous.
-    apply: ex_derive_pow.
-    exact: ex_derive_id.
-  + case: is_zero_spec HnotXnan => // Ha _.
-    apply: continuous_comp.
-    apply: (continuous_comp a (fun x => pow x _)) => //.
-    apply: ex_derive_continuous.
-    apply: ex_derive_pow.
-    exact: ex_derive_id.
-    apply: continuous_Rinv.
-    exact: pow_nonzero.
-Qed.
-
 Module Integrability (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatIntervalFull F.
@@ -115,7 +51,7 @@ split.
 by rewrite -Heq.
 now eapply continuous_ext.
 move => unop a b Hb HnotXnan.
-exact: domain_correct.
+exact: continuous_unary.
 (* case of binary operator *)
 case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
 - move: HnotXnan Ha1 Ha2.

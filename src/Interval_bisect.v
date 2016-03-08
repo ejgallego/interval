@@ -20,6 +20,8 @@ liability. See the COPYING file for more details.
 Require Import Bool.
 Require Import List.
 Require Import Reals.
+Require Import Coquelicot.
+Require Import Ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
@@ -27,6 +29,7 @@ Require Import Interval_definitions.
 Require Import Interval_generic_proof.
 Require Import Interval_interval.
 Require Import Interval_taylor_model.
+Require Import coquelicot_compl.
 
 Inductive unary_op : Set :=
   | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | Ln | PowerInt (n : Z).
@@ -201,7 +204,7 @@ repeat rewrite <- Xmul_assoc.
 apply (f_equal (fun x => Xmul x (Xinv v))).
 pattern u' at 1 ; rewrite <- Xmul_1_r.
 pattern (Xmul (Xmul v' u) (Xinv v)) ; rewrite <- Xmask_Xfun_r with (1 := Xmul_propagate).
-rewrite Xfun_Xmask_r with (1 := Xsub_propagate).
+rewrite -> Xfun_Xmask_r with (1 := Xsub_propagate).
 rewrite <- Xfun_Xmask_l with (1 := Xsub_propagate).
 rewrite <- Xfun_Xmask_r with (1 := Xmul_propagate).
 rewrite <- Xmul_Xinv.
@@ -251,7 +254,7 @@ now destruct o.
 destruct a2 as [|a2].
 now destruct o.
 intros b1 b2 H1 H2.
-rewrite H1, H2.
+rewrite H1 H2.
 destruct o ; try easy ; simpl.
 now destruct (is_zero b2).
 (* . *)
@@ -260,6 +263,71 @@ destruct (le_or_lt (length (map Xreal terms)) k) as [H|H].
 now rewrite nth_overflow.
 rewrite (nth_indep _ _ (Xreal 0) H).
 now rewrite map_nth.
+Qed.
+
+Lemma continuous_unary :
+  forall unop a b x,
+  (notXnan b -> b = Xreal (a x) /\ continuous a x) ->
+  notXnan (unary ext_operations unop b) ->
+  unary ext_operations unop b = Xreal (unary real_operations unop (a x)) /\
+  continuous (fun x0 : R => unary real_operations unop (a x0)) x.
+Proof.
+move => unop a b x Hb HbnotXnan.
+case Hbnan: b Hb => [|b1] // Hb.
+rewrite Hbnan /= in HbnotXnan.
+by case unop in HbnotXnan.
+case: Hb => // Hb Hcontax.
+move: HbnotXnan.
+rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
+split.
+case: unop HnotXnan => //=.
+- by case is_zero.
+- by case is_negative.
+- rewrite /Xtan /tan /Xdiv /Xcos /Xsin.
+  by case is_zero.
+- by case is_positive.
+- case => [||p] // .
+  by case is_zero.
+case: unop HnotXnan => /=.
+- move => _. by apply: continuous_opp.
+- move => _. by apply: continuous_Rabs_comp.
+- move => HnotXnan.
+  apply: continuous_Rinv_comp => // Ha.
+  move: HnotXnan.
+  by rewrite Ha is_zero_correct_zero.
+- move => _. by apply: continuous_mult.
+- move => HnotXnan.
+  apply: continuous_sqrt_comp => //.
+  by case: is_negative_spec HnotXnan.
+- move => _. by apply: continuous_cos_comp.
+- move => _. by apply: continuous_sin_comp.
+- move => HnotXnan.
+  apply: continuous_comp => //.
+  apply: continuous_tan => Ha.
+    move: HnotXnan.
+    by rewrite /Xtan /Xsin /Xcos /Xdiv Ha is_zero_correct_zero.
+- move => _. by apply: continuous_atan_comp.
+- move => _. by apply: continuous_exp_comp.
+- move => HnotXnan.
+  apply: continuous_comp => //.
+  apply: continuous_ln.
+  by case: is_positive_spec HnotXnan.
+- move => n.
+  rewrite /powerRZ.
+  case: n => [|n|n] HnotXnan.
+  + exact: continuous_const.
+  + apply: (continuous_comp a (fun x => pow x _)) => //.
+    apply: ex_derive_continuous.
+    apply: ex_derive_pow.
+    exact: ex_derive_id.
+  + case: is_zero_spec HnotXnan => // Ha _.
+    apply: continuous_comp.
+    apply: (continuous_comp a (fun x => pow x _)) => //.
+    apply: ex_derive_continuous.
+    apply: ex_derive_pow.
+    exact: ex_derive_id.
+    apply: continuous_Rinv.
+    exact: pow_nonzero.
 Qed.
 
 Module IntervalAlgos (I : IntervalOps).
@@ -400,9 +468,9 @@ Lemma iterated_bnd_nth :
 Proof.
 intros bounds n.
 destruct (le_or_lt (length bounds) n) as [H|H].
-rewrite 2!nth_overflow by now rewrite map_length.
+rewrite -> 2!nth_overflow by now rewrite map_length.
 now rewrite I.nai_correct.
-rewrite (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
+rewrite -> (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
 assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
 pose (b := Bproof R0 I.nai H0).
 change (Xreal 0) with (xreal_from_bp b).
@@ -658,13 +726,13 @@ rewrite <- map_nth.
 rewrite map_map.
 simpl.
 destruct (le_or_lt (length terms) n) as [H|H].
-rewrite 2!nth_overflow by now rewrite map_length.
+rewrite -> 2!nth_overflow by now rewrite map_length.
 now case x.
-rewrite (nth_indep (map (fun _ => Xmask (Xreal 0) x) terms) _ (Xmask (Xreal 0) x))
+rewrite -> (nth_indep (map (fun _ => Xmask (Xreal 0) x) terms) _ (Xmask (Xreal 0) x))
   by now rewrite map_length.
 change (Xmask (Xreal 0) x) with ((fun _ => Xmask (Xreal 0) x) R0) at 2.
 rewrite map_nth.
-rewrite (nth_indep _ _ (Xreal 0)) by now rewrite map_length.
+rewrite -> (nth_indep _ _ (Xreal 0)) by now rewrite map_length.
 rewrite map_nth.
 apply Xderive_pt_constant.
 Qed.
@@ -731,7 +799,7 @@ generalize (I.sign_strict_correct yi).
 case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
 intros H _.
 specialize (H _ Hf).
-rewrite (proj1 H) at 1.
+rewrite {1}(proj1 H).
 simpl.
 rewrite Rcompare_Gt.
 apply I.div_correct.
@@ -780,7 +848,7 @@ intros o a (bl, br) H.
 rewrite H.
 now destruct o.
 intros o a1 a2 (bl1, br1) (bl2, br2) H1 H2.
-rewrite H1, H2.
+rewrite H1 H2.
 now destruct o.
 clear.
 intros [|n].
@@ -871,8 +939,8 @@ destruct (le_or_lt (length bounds) n).
 generalize H. intro H0.
 rewrite <- H1 in H.
 rewrite <- H2 in H0.
-rewrite nth_overflow with (1 := H).
-rewrite nth_overflow with (1 := H0).
+rewrite -> nth_overflow with (1 := H).
+rewrite -> nth_overflow with (1 := H0).
 now rewrite I.nai_correct.
 replace (nth n (map (fun _ => I.mask (I.fromZ 0) xi) bounds) I.nai) with (I.mask (I.fromZ 0) xi).
 replace (nth n (map (fun _ => Xmask (Xreal 0) x) bounds) Xnan) with (Xmask (Xreal 0) x).
@@ -1040,7 +1108,7 @@ set (Pxi := fun x => contains (I.convert xi) (Xreal x)).
 assert (H': forall c, Pxi c -> f' (Xreal c) <> Xnan).
 intros c Hc H.
 generalize (Hy' (Xreal c) Hc).
-rewrite H, Hyi'.
+rewrite H Hyi'.
 intro H0.
 elim H0.
 (* ... and we can apply the MVT *)
@@ -1154,7 +1222,7 @@ destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear Hym Hyu H.
 assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-rewrite Hxi, Hxl.
+rewrite Hxi Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1169,7 +1237,7 @@ destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
 split.
 generalize (Hd (Xreal a)).
 unfold Xderive_pt.
-rewrite Ha2, Ha1.
+rewrite Ha2 Ha1.
 intro H.
 exact (H R0).
 exact Ha3.
@@ -1177,7 +1245,7 @@ simpl.
 now rewrite <- Hxl.
 simpl.
 now rewrite <- Hx1.
-rewrite Hxi, Hx1, Hxl in Hx.
+rewrite -> Hxi, Hx1, Hxl in Hx.
 exact (proj1 Hx).
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
@@ -1189,7 +1257,7 @@ destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
 assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi, Hxu.
+rewrite Hxi Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1204,7 +1272,7 @@ destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
 split.
 generalize (Hd (Xreal a)).
 unfold Xderive_pt.
-rewrite Ha2, Ha1.
+rewrite Ha2 Ha1.
 intro H.
 exact (H R0).
 exact Ha3.
@@ -1212,7 +1280,7 @@ simpl.
 now rewrite <- Hx1.
 simpl.
 now rewrite <- Hxu.
-rewrite Hxi, Hx1, Hxu in Hx.
+rewrite -> Hxi, Hx1, Hxu in Hx.
 exact (proj2 Hx).
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
@@ -1245,7 +1313,7 @@ destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear H.
 assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-rewrite Hxi, Hxl.
+rewrite Hxi Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1260,7 +1328,7 @@ destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
 split.
 generalize (Hd (Xreal a)).
 unfold Xderive_pt.
-rewrite Ha2, Ha1.
+rewrite Ha2 Ha1.
 intro H.
 exact (H R0).
 exact Ha3.
@@ -1268,7 +1336,7 @@ simpl.
 now rewrite <- Hxl.
 simpl.
 now rewrite <- Hx1.
-rewrite Hxi, Hx1, Hxl in Hx.
+rewrite -> Hxi, Hx1, Hxl in Hx.
 exact (proj1 Hx).
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
@@ -1280,7 +1348,7 @@ destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
 assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi, Hxu.
+rewrite Hxi Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1295,7 +1363,7 @@ destruct (Hs2 _ Ha R0) as (Ha1, (Ha2, Ha3)).
 split.
 generalize (Hd (Xreal a)).
 unfold Xderive_pt.
-rewrite Ha2, Ha1.
+rewrite Ha2 Ha1.
 intro H.
 exact (H R0).
 exact Ha3.
@@ -1303,7 +1371,7 @@ simpl.
 now rewrite <- Hx1.
 simpl.
 now rewrite <- Hxu.
-rewrite Hxi, Hx1, Hxu in Hx.
+rewrite -> Hxi, Hx1, Hxu in Hx.
 exact (proj2 Hx).
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
@@ -1384,7 +1452,7 @@ clear H0.
 intros (H0, H1).
 apply Hf.
 apply (convert_bnd l l).
-rewrite H1, H0 in H.
+rewrite -> H1, H0 in H.
 rewrite H0.
 inversion H.
 split ; apply Rle_refl.
@@ -1397,7 +1465,7 @@ clear H0.
 intros (H0, H1).
 apply Hf.
 apply (convert_bnd u u).
-rewrite H1, H0 in H.
+rewrite -> H1, H0 in H.
 rewrite H0.
 inversion H.
 split ; apply Rle_refl.
@@ -1512,7 +1580,7 @@ induction (rev prog) as [|t l].
   + now apply TM.var_correct.
   + simpl.
     destruct (le_or_lt (length bounds) n) as [H|H].
-    rewrite nth_overflow by now rewrite map_length.
+    rewrite -> nth_overflow by now rewrite map_length.
     apply (@TM.approximates_ext (fun _ => Xnan)).
     intros t.
     apply sym_eq, nth_overflow.
