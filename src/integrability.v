@@ -23,116 +23,71 @@ Definition notInan (fi : Interval_interval_float.f_interval Ftype) :=
     | Interval_interval_float.Inan => false
     | _ => true end = true.
 
-
-Section InversionUsualFunctions.
-
-Lemma Xnan_inversion_Inv f (x : R) :
- notXnan (Xinv (Xreal (f x))) ->
- f x <> 0.
-Proof.
-move => HnotXnan Hfxeq0.
-by rewrite Hfxeq0 /= is_zero_correct_zero in HnotXnan.
-Qed.
-
-Lemma Xnan_inversion_sqrt f (x : R) :
-  notXnan (Xsqrt (Xreal (f x))) ->
-  0 <= f x.
-Proof.
-rewrite /Xsqrt.
-case Hneg : (is_negative (f x)) => // .
-move:  (is_negative_spec (f x)); rewrite Hneg.
-move => Habs.
-by inversion Habs.
-Qed.
-
-Lemma Xnan_inversion_ln f (x : R) :
-  notXnan(Xln (Xreal (f x))) ->
-  0 < f x.
-Proof.
-rewrite /Xln.
-case Hpos : (is_positive (f x)) => // .
-move:  (is_positive_spec (f x)); rewrite Hpos.
-move => Habs.
-by inversion Habs.
-Qed.
+End Prelude.
 
 Lemma domain_correct unop a b x :
   (notXnan b -> b = Xreal (a x) /\ continuous a x) ->
-  continuous a x ->
   notXnan ((unary ext_operations unop) b) ->
   (unary ext_operations unop) b = Xreal (unary real_operations unop (a x)) /\
   continuous (fun x0 : R => unary real_operations unop (a x0)) x.
 Proof.
-move => Hb Hconta HbnotXnan.
+move => Hb HbnotXnan.
 case Hbnan: b Hb => [|b1] // Hb.
 rewrite Hbnan /= in HbnotXnan.
 by case unop in HbnotXnan.
 case: Hb => // Hb Hcontax.
+move: HbnotXnan.
+rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
 split.
-inversion Hb.
-case: unop HbnotXnan; rewrite Hbnan -H0 //=.
-- by case: (is_zero b1).
-- by case: (is_negative b1).
-- rewrite /Xtan /tan.
-  rewrite /Xdiv /Xcos.
-  by case Hzero : (is_zero (cos b1)).
-- by case: (is_positive b1).
+case: unop HnotXnan => //=.
+- by case is_zero.
+- by case is_negative.
+- rewrite /Xtan /tan /Xdiv /Xcos /Xsin.
+  by case is_zero.
+- by case is_positive.
 - case => [||p] // .
-  by case : (is_zero b1).
-case: unop HbnotXnan.
+  by case is_zero.
+case: unop HnotXnan => /=.
 - move => _. by apply: continuous_opp.
 - move => _. by apply: continuous_Rabs_comp.
-- move => HnotXnan. apply: continuous_Rinv_comp => // .
-  by apply: (Xnan_inversion_Inv); rewrite Hbnan Hb in HnotXnan.
+- move => HnotXnan.
+  apply: continuous_Rinv_comp => // Ha.
+  move: HnotXnan.
+  by rewrite Ha is_zero_correct_zero.
 - move => _. by apply: continuous_mult.
-- move => HnotXnan. apply: continuous_sqrt_comp => // .
-  by apply: Xnan_inversion_sqrt; rewrite -Hb -Hbnan.
+- move => HnotXnan.
+  apply: continuous_sqrt_comp => //.
+  by case: is_negative_spec HnotXnan.
 - move => _. by apply: continuous_cos_comp.
 - move => _. by apply: continuous_sin_comp.
 - move => HnotXnan.
-  apply: continuous_comp => // .
-  apply: continuous_tan.
-    rewrite Hbnan /= /Xtan /Xdiv Hb /Xcos in HnotXnan.
-    move => Habs. move: HnotXnan.
-    rewrite Habs. rewrite is_zero_correct_zero.
-    by case: (Xsin _).
+  apply: continuous_comp => //.
+  apply: continuous_tan => Ha.
+    move: HnotXnan.
+    by rewrite /Xtan /Xsin /Xcos /Xdiv Ha is_zero_correct_zero.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
 - move => HnotXnan.
-    apply: continuous_comp => // .
-    apply: continuous_ln.
-    rewrite Hb in Hbnan.
-    rewrite Hbnan /= in HnotXnan.
-    move: HnotXnan.
-    case Hpos : (is_positive (a x)) => HnotXnan.
-    by apply: (is_positive_positive _ Hpos).
-    by move: HnotXnan.
-- move => n HnotXnan.
-  rewrite /= /powerRZ.
-  case: n HnotXnan => [|n|n] => HnotXnan.
+  apply: continuous_comp => //.
+  apply: continuous_ln.
+  by case: is_positive_spec HnotXnan.
+- move => n.
+  rewrite /powerRZ.
+  case: n => [|n|n] HnotXnan.
   + exact: continuous_const.
-  + apply: (continuous_comp a (fun x => pow x _)) => // .
+  + apply: (continuous_comp a (fun x => pow x _)) => //.
     apply: ex_derive_continuous.
     apply: ex_derive_pow.
     exact: ex_derive_id.
-  + have Hanot0 : a x <> 0.
-    move => Habs. move: HnotXnan.
-    rewrite /= /Xpower_int. rewrite Hb in Hbnan. rewrite Hbnan. case: ifP => // .
-    rewrite Habs.
-    by rewrite is_zero_correct_zero.
+  + case: is_zero_spec HnotXnan => // Ha _.
     apply: continuous_comp.
-    apply: (continuous_comp a (fun x => pow x _)) => // .
+    apply: (continuous_comp a (fun x => pow x _)) => //.
     apply: ex_derive_continuous.
     apply: ex_derive_pow.
     exact: ex_derive_id.
     apply: continuous_Rinv.
     exact: pow_nonzero.
 Qed.
-
-End InversionUsualFunctions.
-
-End Prelude.
-
 
 Module Integrability (F : FloatOps with Definition even_radix := true).
 
@@ -238,9 +193,7 @@ split.
 by rewrite -Heq.
 now eapply continuous_ext.
 move => unop a b Hb HnotXnan.
-apply: domain_correct => // .
-case : Hb => // .
-by move: HnotXnan; case: b => //; case: unop => // .
+exact: domain_correct.
 (* case of binary operator *)
 case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
 - move: HnotXnan Ha1 Ha2.
