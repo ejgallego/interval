@@ -3,6 +3,7 @@ Require Import List.
 Require Import Coquelicot.
 Require Import Interval_xreal.
 Require Import Interval_float_sig.
+Require Import Interval_float_ext.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
@@ -118,6 +119,7 @@ Module IntegralTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatInterval F.
 Module Int := Integrability F.
+Module F' := FloatExt F.
 Module EF := ExtraFloats F.
 Import EF.
 
@@ -212,8 +214,6 @@ Definition integralEstimatorCorrect (estimator : F.type -> F.type -> I.type) :=
           F.real b ->
           contains (I.convert (estimator a b)) (Xreal (RInt f (toR a) (toR b))).
 
-Let Fle := Int.I.Fle.
-
 Section Functions.
 
 Variable est : F.type -> F.type -> I.type.
@@ -238,7 +238,7 @@ Fixpoint integral_float_absolute (depth : nat) (a b : F.type) (epsilon : F.type)
              let halfeps := div2 epsilon in
              let roughEstimate_1 := est a m in
              let roughEstimate_2 := est m b in
-             match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
+             match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
                | true,true => I.add prec roughEstimate_1 roughEstimate_2
                | true,false => let int2 := integral_float_absolute n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
                | false,true => let int1 := integral_float_absolute n a m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
@@ -260,7 +260,7 @@ Definition integral_float_relative
           F.mul Interval_definitions.rnd_UP prec epsilon
             (I.upper (I.abs roughEst))
         else epsilon in
-      if Fle (diam roughEst) epsilon then roughEst
+      if F'.le (diam roughEst) epsilon then roughEst
       else integral_float_absolute (depth-1) a b epsilon
   else I.nai.
 
@@ -273,7 +273,7 @@ Lemma integral_float_absolute_Sn n a b epsilon :
   let roughEstimate_1 := est a m in
   let roughEstimate_2 := est m b in
   integral_float_absolute (S n) a b epsilon =
-  match Fle (diam roughEstimate_1) halfeps,Fle (diam roughEstimate_2) halfeps with
+  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
     | true,true => I.add prec roughEstimate_1 roughEstimate_2
     | true,false => let int2 := integral_float_absolute n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
     | false,true => let int1 := integral_float_absolute n a m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
@@ -287,7 +287,7 @@ by [].
 Qed.
 
 Definition integral_float_absolute_signed (depth : nat) (a b : F.type) (epsilon : F.type) :=
-  match Fle a b with
+  match F'.le a b with
     | false => I.neg (integral_float_relative depth b a epsilon)
     | true => integral_float_relative depth a b epsilon
   end.
@@ -362,7 +362,7 @@ have hm : F.real (I.midpoint (I.bnd a b)).
   suff /I.midpoint_correct []:
     exists x : ExtendedR, contains (I.convert (I.bnd a b)) x by move/F_realP.
   by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
-case Hcmp1 : (Fle d1 (div2 epsilon)); case Hcmp2 : (Fle d2 (div2 epsilon));
+case Hcmp1 : (F'.le d1 (div2 epsilon)); case Hcmp2 : (F'.le d2 (div2 epsilon));
 repeat ((try (apply: I.add_correct => // )); try (apply: Hcorrect => // ); try (apply: Hk => // )).
 Qed.
 
@@ -376,7 +376,7 @@ Proof.
 (*     move => Hfint Hab. apply:Hcorrect. *)
 case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [|depth] => // ;rewrite /integral_float_relative /IntervalIntegral.integral_float_relative ?Hareal ?Hbreal // .
 - by rewrite /=; apply: Hcorrect.
-- case: I.bounded; case: Fle; first by apply: Hcorrect.
+- case: I.bounded; case: F'.le; first by apply: Hcorrect.
   + by apply: integral_float_absolute_correct.
   + by apply: Hcorrect.
   + by apply: integral_float_absolute_correct.
@@ -438,13 +438,13 @@ Qed.
 Lemma Fle_Rle u0 l1 :
   F.real u0 ->
   F.real l1 ->
-  Int.I.Fle u0 l1 ->
+  F'.le u0 l1 ->
   toR u0 <= toR l1.
 Proof.
 move => /F_realP Hrealu0 /F_realP Hreall1.
-move: (Int.I.Fle_correct u0 l1).
-have -> : Int.I.I.convert_bound u0 = I.convert_bound u0 by []. (* ?? *)
-have -> : Int.I.I.convert_bound l1 = I.convert_bound l1 by [].
+move: (F'.le_correct u0 l1).
+have -> : F'.toX u0 = I.convert_bound u0 by [].
+have -> : F'.toX l1 = I.convert_bound l1 by [].
 by rewrite Hreall1 Hrealu0.
 Qed.
 
@@ -452,10 +452,10 @@ Lemma Rle_Fle a b :
   F.real a ->
   F.real b ->
   toR a <= toR b ->
-  Int.I.Fle a b.
+  F'.le a b.
 Proof.
-case Hle : (Int.I.Fle a b) => // .
-move: Hle; rewrite /Int.I.Fle.
+case Hle : (F'.le a b) => // .
+move: Hle; rewrite /F'.le.
 case Hcmp: (F.cmp a b) => // _.
 - move => /F_realP Hreala /F_realP Hrealb.
   move: Hcmp.
@@ -478,7 +478,7 @@ Lemma Req_Fle a b :
   F.real a ->
   F.real b ->
   toR a = toR b ->
-  Int.I.Fle a b.
+  F'.le a b.
 Proof.
 move => Hareal Hbreal Heq.
 apply: Rle_Fle => // .
@@ -487,10 +487,10 @@ Qed.
 
 
 Lemma Fle_rev a b :
-  F.real a -> F.real b -> Fle a b = false -> Fle b a = true.
+  F.real a -> F.real b -> F'.le a b = false -> F'.le b a = true.
 Proof.
 move => Hareal Hbreal Hfalse.
-rewrite /Fle /Int.I.Fle F.cmp_correct Fcmp_correct.
+rewrite /F'.le /F'.le F.cmp_correct Fcmp_correct.
 move/F_realP : Hareal. move /F_realP : Hbreal.
 rewrite /I.convert_bound => Hbreal Hareal.
 rewrite Hareal Hbreal /Xcmp.
@@ -498,15 +498,14 @@ case Hcomp : (Rcompare (toR b) (toR a)) => // .
 have Hleba := Rlt_le _ _ (Rcompare_Gt_inv (toR b) (toR a) Hcomp).
 move/F_realP in Hareal. move/F_realP in Hbreal.
 have := Rle_Fle a b Hareal Hbreal Hleba.
-have -> : Int.I.Fle = Fle by []. (* ?? *)
 by rewrite Hfalse.
 Qed.
 
 Lemma Fle_eq a b :
-  F.real a -> F.real b -> Fle a b = true -> Fle b a = true -> toR a = toR b.
+  F.real a -> F.real b -> F'.le a b = true -> F'.le b a = true -> toR a = toR b.
 Proof.
 move => Hareal Hbreal Htrue.
-case Hba : (Fle b a) => // .
+case Hba : (F'.le b a) => // .
 have := (Fle_Rle a b Hareal Hbreal Htrue).
 have :=(Fle_Rle b a Hbreal Hareal Hba).
 move => Hlbz Hlab _.
@@ -514,10 +513,10 @@ by apply: Rle_antisym.
 Qed.
 
 Lemma Fle_Rlt_Inv a b :
-  F.real a -> F.real b -> (toR a > toR b) -> Fle a b = false.
+  F.real a -> F.real b -> toR a > toR b -> F'.le a b = false.
 Proof.
 move => Hareal Hbreal Hgt.
-case Hab: (Fle a b) => // .
+case Hab: (F'.le a b) => // .
 have Hge := (Rlt_le _ _ Hgt).
 have := (Rle_Fle b a Hbreal Hareal Hge) => Hba.
 have := Fle_eq a b Hareal Hbreal Hab Hba => Habs.
@@ -540,9 +539,9 @@ Lemma integral_float_absolute_signed_correct (depth : nat) (a b : F.type) epsilo
 Proof.
 rewrite /integral_float_absolute_signed /IntervalIntegral.integral_float_absolute_signed.
 case (Rle_dec (toR a) (toR b)) => Hab Hintf Hreala Hrealb.
-- have -> : Fle a b = true by apply: Rle_Fle.
+- have -> : F'.le a b = true by apply: Rle_Fle.
   exact: integral_float_relative_correct.
-- have -> : Fle a b = false.
+- have -> : F'.le a b = false.
     apply: Fle_Rlt_Inv => // .
     by apply Rnot_le_gt.
 rewrite -RInt_swap Xreal_neg.

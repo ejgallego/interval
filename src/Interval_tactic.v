@@ -522,7 +522,7 @@ Qed.
 
 Lemma aux (u0 l1 : F.type) x :
   F.real u0 -> F.real l1 ->
-  I.Fle u0 l1 ->
+  I.F'.le u0 l1 ->
   Rmin (T.toR u0) (T.toR l1) <= x <= Rmax (T.toR u0) (T.toR l1) ->
   contains (I.convert (Interval_interval_float.Ibnd u0 l1)) (Xreal x).
 Proof.
@@ -546,7 +546,7 @@ Definition ex_RInt_base_case :=
   forall u0 l1,
   F.real u0 ->
   F.real l1 ->
-  I.Fle u0 l1 ->
+  I.F'.le u0 l1 ->
   notInan (estimator u0 l1) ->
   ex_RInt
     (fun x =>
@@ -565,9 +565,9 @@ Let integral_float_absolute_signed := Int.integral_float_absolute_signed prec es
 Let integral_float_absolute :=
   Int.integral_float_absolute prec estimator.
 
-Lemma Fle_true_real u0 l1 : I.Fle u0 l1 -> F.real u0 /\ F.real l1.
+Lemma Fle_true_real u0 l1 : I.F'.le u0 l1 -> F.real u0 /\ F.real l1.
 Proof.
-rewrite /I.Fle.
+rewrite /I.F'.le.
 rewrite F.cmp_correct.
 move: (F.real_correct u0) (F.real_correct l1).
 case: F.toF => [ | | s0 m0 e0] -> ;
@@ -579,7 +579,7 @@ Lemma integral_float_absolute_ex_RInt
       (depth : nat) u0 l1 epsilon :
   ex_RInt_base_case ->
   notInan (integral_float_absolute depth u0 l1 epsilon) ->
-  I.Fle u0 l1 ->
+  I.F'.le u0 l1 ->
   ex_RInt
     (fun x =>
        List.nth
@@ -688,7 +688,7 @@ Lemma integral_float_relative_ex_RInt
       (depth : nat) u0 l1 epsilon :
   ex_RInt_base_case ->
   notInan (integral_float_relative depth u0 l1 epsilon) ->
-  I.Fle u0 l1 ->
+  I.F'.le u0 l1 ->
   ex_RInt
     (fun x =>
        List.nth
@@ -706,7 +706,7 @@ move: HnotInan.
 rewrite Hrealu0 Hreall1.
 case: depth => [|depth].
 exact: ex_RInt_base_case.
-case: Int.Int.I.Fle.
+case: Int.F'.le.
 - exact: ex_RInt_base_case.
 - move => HnotInan.
   exact: integral_float_absolute_ex_RInt HnotInan _.
@@ -734,7 +734,7 @@ Proof.
 move => ex_RInt_base_case i.
 rewrite /Int.integral_float_absolute_signed.
 move => HnotInan.
-case Horder : (Int.Int.I.Fle  u0 l1) HnotInan => HnotInan.
+case Horder : (Int.F'.le  u0 l1) HnotInan => HnotInan.
 - exact: integral_float_relative_ex_RInt HnotInan _.
 - suff HnotInan2 : notInan (Int.integral_float_relative prec estimator depth l1 u0 epsilon).
   have [Hreall1 Hrealu0] := (integral_float_absolute_real_arguments depth l1 u0 epsilon HnotInan2).
@@ -811,7 +811,7 @@ Section naive_ex_RInt_base_case.
 Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
   F.real u0 ->
   F.real l1 ->
-  I.Fle u0 l1 ->
+  I.F'.le u0 l1 ->
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
   notInan (Int.naive_integral prec iF  u0 l1) ->
