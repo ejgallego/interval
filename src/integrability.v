@@ -172,38 +172,6 @@ now intros [].
 by rewrite map_length.
 Qed.
 
-Definition TaylorEvaluator deg prog bounds m i :=
-  A.TaylorValuator.TM.eval (prec, deg)
-    (List.nth m
-       (A.TaylorValuator.eval prec deg i prog
-         (A.TaylorValuator.TM.var::
-           List.map (fun b0 : A.bound_proof =>
-             A.TaylorValuator.TM.const (A.interval_from_bp b0)) bounds))
-       A.TaylorValuator.TM.dummy)
-    i i.
-
-(* we ensure that we get the former result by using the new one *)
-Lemma continuousProgTaylor deg prog bounds (m : nat) i :
-  forall x, contains (I.convert i) (Xreal x) ->
-  (notInan (TaylorEvaluator deg prog bounds m i)) ->
-  continuous
-    (fun x =>
-       List.nth
-         m
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0) x.
-Proof.
-move => x Hcontains HnotInan.
-apply: continuousProg2.
-generalize (A.TaylorValuator.eval_correct_ext prec deg prog bounds m i i (Xreal x) Hcontains).
-revert HnotInan.
-rewrite /TaylorEvaluator.
-case: A.TaylorValuator.TM.eval => //.
-case: (List.nth _ _ _) => //.
-Qed.
-
-
 (* we ensure that we get the former result by using the new one *)
 Lemma continuousProg prog bounds (m : nat) i:
   forall x, contains (I.convert i) (Xreal x) ->
@@ -246,26 +214,6 @@ move => Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
 apply: continuousProg HnotInan.
-by apply: Hcontains.
-Qed.
-
-Lemma integrableProgTaylor deg prog bounds m a b i:
-  (forall x, Rmin a b <= x <= Rmax a b ->  contains (I.convert i) (Xreal x)) ->
-  notInan (TaylorEvaluator deg prog bounds m i) ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         m
-         (eval_real
-            prog
-            (x::boundsToR bounds)) R0)
-    a
-    b.
-Proof.
-move => Hcontains HnotInan.
-apply: ex_RInt_continuous.
-intros z Hz.
-apply: continuousProgTaylor HnotInan.
 by apply: Hcontains.
 Qed.
 
