@@ -9,7 +9,6 @@ Require Import Interval_interval_float.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_missing.
-Require Import integrability.
 Require Import Coquelicot coquelicot_compl.
 Require Import Interval_generic.
 Require Import Interval.Interval_generic_proof.
@@ -118,7 +117,6 @@ End ExtraFloats.
 Module IntegralTactic (F : FloatOps with Definition even_radix := true).
 
 Module I := FloatInterval F.
-Module Int := Integrability F.
 Module F' := FloatExt F.
 Module EF := ExtraFloats F.
 Import EF.

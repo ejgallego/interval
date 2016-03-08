@@ -32,7 +32,6 @@ Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_integral_taylor.
 Require Import Interval_bisect.
-Require Import integrability.
 Require Import Interval_transcend.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
@@ -55,9 +54,6 @@ Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F.
 Module Int' := IntegralTacticTaylor F.
-Module Integrability := Integrability F.
-
-Import Integrability.
 
 Ltac get_float t :=
   let get_mantissa t :=
@@ -427,6 +423,8 @@ Variable estimator : F.type -> F.type -> I.type.
 
 Hypothesis Hcorrect : Int.integralEstimatorCorrect f estimator.
 
+Let notInan := A.BndValuator.notInan.
+
 Lemma all_integrals_correct_prog :
   forall ia ib a b,
    contains (I.convert ia) (Xreal a) ->
@@ -448,7 +446,7 @@ suff HiFNI : notInan iFab =>  [|].
 rewrite /f.
 move: HiFNI.
 rewrite /iFab => HiFNI.
-apply: (integrableProg prec _ _ _ _ _ (I.join ia1 ib1)) => //.
+apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (I.join ia1 ib1)) => //.
 move => x Hx.
 case: (Rle_dec a1 b1) => [Hleab | Hltba].
 - apply: (contains_connected _ a1 b1); try apply: I.join_correct.
@@ -808,6 +806,8 @@ End IntegralProg.
 
 Section naive_ex_RInt_base_case.
 
+Let notInan := A.BndValuator.notInan.
+
 Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
   F.real u0 ->
   F.real l1 ->
@@ -826,7 +826,7 @@ Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
     (T.toR l1).
 Proof.
 move => Hrealu0 Hreall1 Hleu0l1 f iF HnotInan.
-apply: (integrableProg prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
+apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
 - move => x; apply: aux => // .
 - move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
   by case: j.
@@ -871,6 +871,8 @@ Qed.
 End naive_ex_RInt_base_case.
 
 Section Correction_lemmas_integral_for_tactic.
+
+Let notInan := A.BndValuator.notInan.
 
 Lemma naive_integral_epsilon_correct :
   forall prec depth proga boundsa progb boundsb prog bounds epsilon,
@@ -1292,7 +1294,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
           match type of c with
-          | contains (Integrability.I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
+          | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
           end
         end
       end

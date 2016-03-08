@@ -636,6 +636,40 @@ exact Hx.
 apply iterated_bnd_nth.
 Qed.
 
+Definition notInan fi :=
+  match I.convert fi with
+  | Interval_interval.Inan => false
+  | _ => true
+  end = true.
+
+Lemma continuous_eval :
+  forall prec prog bounds m i x,
+  contains (I.convert i) (Xreal x) ->
+  notInan (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) ->
+  continuous (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) x.
+Proof.
+move => prec prog bounds m i x Hcontains HnotInan.
+apply: continuous_eval_ext.
+generalize (eval_correct_ext prec prog bounds m i (Xreal x) Hcontains).
+revert HnotInan.
+rewrite /notInan.
+case I.convert => //.
+by case: (nth _ _ _).
+Qed.
+
+Lemma ex_RInt_eval :
+  forall prec prog bounds m a b i,
+  (forall x, Rmin a b <= x <= Rmax a b -> contains (I.convert i) (Xreal x)) ->
+  notInan (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) ->
+  ex_RInt (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) a b.
+Proof.
+move => prec prog bounds m a b i Hcontains HnotInan.
+apply: ex_RInt_continuous.
+intros z Hz.
+apply: continuous_eval HnotInan.
+exact: Hcontains.
+Qed.
+
 End BndValuator.
 
 Module DiffValuator.

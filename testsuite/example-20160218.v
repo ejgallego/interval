@@ -4,7 +4,7 @@ Require Import Interval_tactic.
 Lemma constant :
   3 <= RInt (fun x => 1) 0 3 <= 3.
 Proof.
-Time interval.
+interval.
 Qed.
 
 Lemma exp_0_3 :

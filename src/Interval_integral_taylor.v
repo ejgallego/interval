@@ -9,7 +9,6 @@ Require Import Interval_interval_float_full.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_missing.
-Require Import integrability.
 Require Import Coquelicot coquelicot_compl.
 
 Require Import interval_compl.
