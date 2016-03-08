@@ -179,6 +179,7 @@ Definition eval_real :=
 Lemma rewrite_inv_diff :
   forall u u',
   Xmul u' (Xneg (Xsqr (Xinv u))) = Xneg (Xdiv u' (Xsqr u)).
+Proof.
 intros.
 rewrite Xmul_Xneg_distr_r.
 apply f_equal.
@@ -192,6 +193,7 @@ Qed.
 Lemma rewrite_div_diff :
   forall u v u' v',
   Xdiv (Xsub u' (Xmul v' (Xdiv u v))) v = Xdiv (Xsub (Xmul u' v) (Xmul v' u)) (Xmul v v).
+Proof.
 intros.
 repeat rewrite Xdiv_split.
 rewrite Xinv_Xmul_distr.
@@ -558,6 +560,7 @@ Lemma Xderive_eq :
  (forall x, f' x = g' x) ->
   Xderive g g' ->
   Xderive f f'.
+Proof.
 intros.
 apply Xderive_eq_fun with (1 := H).
 apply Xderive_eq_diff with (1 := H0).
@@ -598,6 +601,7 @@ Lemma binary_diff_correct :
   let v := binary (diff_operations _ ext_operations) o (f1 x, d1) (f2 x, d2) in
   binary ext_operations o (f1 x) (f2 x) = fst v /\
   Xderive_pt (fun x0 => binary ext_operations o (f1 x0) (f2 x0)) x (snd v).
+Proof.
 intros o f1 f2 d1 d2 x Hd1 Hd2.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_add.
@@ -612,6 +616,7 @@ Lemma eval_diff_correct :
   let v := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) terms)) (Xnan, Xnan) in
   nth n (eval_ext prog (x :: map Xreal terms)) Xnan = fst v /\
   Xderive_pt (fun x => nth n (eval_ext prog (x :: map Xreal terms)) Xnan) x (snd v).
+Proof.
 intros prog terms n x.
 (*set (inpA x := x :: map Xreal terms).
 set (inpB := (x, Xmask (Xreal 1) x) :: map (fun v : R => (Xreal v, Xmask (Xreal 0) x)) terms).*)
@@ -745,6 +750,7 @@ Lemma binary_diff_bnd_correct :
  (forall x, contains xi x -> contains (I.convert yi2') (f2' x)) ->
   let v := binary (diff_operations _ (BndValuator.operations prec)) o (yi1, yi1') (yi2, yi2') in
  (forall x, contains xi x -> contains (I.convert (snd v)) (snd (u x))).
+Proof.
 intros prec o f1 f2 f1' f2' u yi1 yi2 yi1' yi2' xi Hf1 Hf2 Hf1' Hf2' v x Hx.
 destruct o ; simpl ;
   repeat first
@@ -949,6 +955,7 @@ Lemma diff_refining_aux_0 :
   forall v,
   f x = Xreal (proj_fun v f (proj_val x)) /\
   f' x = Xreal (proj_fun v f' (proj_val x)).
+Proof.
 intros f f' xi yi' Hd Hs Hy' x Hx.
 case_eq (f' x).
 (* assuming f'(x) is NaN ... *)
@@ -994,6 +1001,7 @@ Lemma diff_refining_aux_1 :
  (forall x, contains (I.convert xi) x -> contains (I.convert yi') (f' x)) ->
   forall x, contains (I.convert xi) x ->
   contains (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))) (f x).
+Proof.
 intros prec f f' xi yi' m mi ymi Hd Hxm Hm Hym Hy' x Hx.
 case_eq (I.convert yi').
 (* - yi' is NaI *)
@@ -1055,6 +1063,7 @@ Lemma diff_refining_aux_2 :
  (forall x, contains xi x -> contains (Ibnd (Xreal 0) (Xreal 0)) (f' x)) ->
   forall x, contains xi x ->
   contains ymi (f x).
+Proof.
 intros f f' xi m ymi Hd Hm Hym Hy'.
 (* the derivative is zero ... *)
 destruct xi as [|xl xu].
@@ -1101,6 +1110,7 @@ Theorem diff_refining_points_correct :
   let m := I.midpoint xi in
   forall x, contains (I.convert xi) x ->
   contains (I.convert (diff_refining_points prec xi (I.sub prec xi (I.bnd m m)) yi yi' ym yl yu)) (f x).
+Proof.
 intros prec f f' xi yi yi' ym yl yu Hd Hyi Hyi' Hym Hyl Hyu m x Hx.
 unfold m. clear m.
 unfold diff_refining_points.
@@ -1318,6 +1328,7 @@ Qed.
 Lemma convert_bnd :
   forall l u v, contains (Ibnd l u) (I.convert_bound v) ->
   contains (I.convert (I.bnd v v)) (I.convert_bound v).
+Proof.
 intros l u v H.
 rewrite I.bnd_correct.
 destruct (I.convert_bound v).
@@ -1331,6 +1342,7 @@ Theorem diff_refining_correct :
   I.extension f' fi' ->
   Xderive f f' ->
   I.extension f (fun b => diff_refining prec b (fi b) (fi' b) fi).
+Proof.
 intros prec f f' fi fi' Hf Hf' Hd xi x Hx.
 unfold diff_refining.
 case_eq (I.convert xi) ; intros.
