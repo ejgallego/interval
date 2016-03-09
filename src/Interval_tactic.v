@@ -769,9 +769,9 @@ case Hib : ib Hibndlu => [|l1 u1] => //.
 rewrite /Int.integral_intBounds_epsilon /=.
 set res := Int.EF.I.add _ _ _.
 suff res_ok :
-   F.cmp u0 l1 = Xeq \/ F.cmp u0 l1 = Xlt ->
+   Int.F'.le u0 l1 = true ->
    res = Interval_interval_float.Ibnd l u -> ex_RInt f a b.
-    by move: res_ok; case Horder: (F.cmp u0 l1) => //; apply; [left | right].
+   by move: res_ok; case Horder: (Int.F'.le u0 l1) => // ; apply.
 move=> Horder; rewrite {}/res => Hibndlu.
 suff: notInan ((Int.all_integrals prec iF (Interval_interval_float.Ibnd l0 u0)
            (Int.EF.thin u0))) /\
@@ -873,27 +873,6 @@ End naive_ex_RInt_base_case.
 Section Correction_lemmas_integral_for_tactic.
 
 Let notInan := A.BndValuator.notInan.
-
-Lemma naive_integral_epsilon_correct :
-  forall prec depth proga boundsa progb boundsb prog bounds epsilon,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
-  let estimator := Int.naive_integral prec iF in
-  let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
-  (notInan i ->
-   ex_RInt f a b) /\
-  contains (I.convert i) (Xreal (RInt f a b)).
-Proof.
-move => prec depth proga boundsa progb boundsb prog bounds epsilon f iF a b ia ib estimator i.
-apply: integral_epsilon_correct.
-apply: Int.naive_integral_correct.
-apply: contains_eval_arg.
-apply: ex_RInt_base_case_naive'.
-Qed.
 
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
@@ -1289,8 +1268,6 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
         | (?pf, _ :: ?lf) =>
           let lcf := get_trivial_bounds lf prec in
           let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-          (* let c := constr:(proj2 (naive_integral_epsilon_correct prec rint_depth pa lca pb lcb pf lcf epsilon)) in *)
-          (* let c := constr:(proj2 (taylor_integral_correct prec 10%nat rint_depth pa lca pb lcb pf lcf)) in *)
           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
           match type of c with

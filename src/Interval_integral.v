@@ -296,13 +296,12 @@ I.mul prec (iF (I.join ia ib)) (I.sub prec ib ia).
 Definition integral_intBounds_epsilon depth (i1 i2 : I.type) epsilon :=
   if i1 is Ibnd a1 b1 then
     if i2 is Ibnd a2 b2 then
-      match F.cmp b1 a2 with
-        | Xeq | Xlt =>
+      if F'.le b1 a2 then
                 let si1 := all_integrals i1 (thin b1) in
                 let si2 := all_integrals (thin a2) i2 in
                 I.add prec
                       (I.add prec si1 (integral_float_absolute_signed depth b1 a2 epsilon)) si2
-        | _ => Inan end
+      else Inan
     else
       Inan
   else
@@ -316,8 +315,6 @@ Section Proofs.
 Variable estimator : F.type -> F.type -> I.type.
 
 Hypothesis Hcorrect : integralEstimatorCorrect estimator.
-
-Let integral_float_relative := integral_float_relative (estimator).
 
 Lemma integral_float_absolute_correct (depth : nat) (a b : F.type) epsilon :
   F.real a -> F.real b ->
@@ -367,7 +364,7 @@ Qed.
 Lemma integral_float_relative_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (toR a) (toR b) ->
   toR a <= toR b ->
-  contains (I.convert (integral_float_relative depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
+  contains (I.convert (integral_float_relative estimator depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
 Proof.
 (* case: depth => [|depth]. *)
 (*   - rewrite /integral_float_relative /IntervalIntegral.integral_float_relative. *)
@@ -528,14 +525,12 @@ case: dummy => // .
 by move => b p z; case: b.
 Qed.
 
-Let integral_float_absolute_signed := integral_float_absolute_signed (estimator).
-
 Lemma integral_float_absolute_signed_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (toR a) (toR b) ->
   (F.real a) -> (F.real b) ->
-  contains (I.convert (integral_float_absolute_signed depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
+  contains (I.convert (integral_float_absolute_signed estimator depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
 Proof.
-rewrite /integral_float_absolute_signed /IntervalIntegral.integral_float_absolute_signed.
+rewrite /integral_float_absolute_signed.
 case (Rle_dec (toR a) (toR b)) => Hab Hintf Hreala Hrealb.
 - have -> : F'.le a b = true by apply: Rle_Fle.
   exact: integral_float_relative_correct.
@@ -584,55 +579,36 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
         * by move : hx => [] _ Hltxb; apply: Rlt_le.
 Qed.
 
-Notation XRInt := (fun f a b => Xreal (RInt f a b)).
-
-Lemma foo :
-  forall a b,
-  match Xcmp a b with Xeq | Xlt => a <> Xnan /\ b <> Xnan /\ proj_val a <= proj_val b | _ => True end.
-Proof.
-move => [|a] [|b] //=.
-case: Rcompare_spec => // H.
-repeat split => //.
-exact: Rlt_le.
-repeat split => //.
-rewrite H.
-apply Rle_refl.
-Qed.
-
 Lemma toX_toF_Freal a : FtoX (F.toF a) <> Xnan -> F.real a.
 Proof.
 move: (F.real_correct a).
   by case: (F.toF a).
 Qed.
 
-Let integral_intBounds_epsilon := integral_intBounds_epsilon (estimator).
-
 Lemma integral_epsilon_correct (depth : nat) (a b : R) (ia ib : I.type) epsilon :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
   ex_RInt f a b ->
   contains
-    (I.convert (integral_intBounds_epsilon depth ia ib epsilon))
+    (I.convert (integral_intBounds_epsilon estimator depth ia ib epsilon))
     (Xreal (RInt f a b)).
 Proof.
 move => Hconta Hcontb HFInt.
 case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
-rewrite /integral_intBounds_epsilon /IntervalIntegral.integral_intBounds_epsilon.
-rewrite F.cmp_correct.
-rewrite Interval_generic_proof.Fcmp_correct.
-suff H: (FtoX (F.toF ua) <> Xnan /\
-FtoX (F.toF lb) <> Xnan /\
-proj_val (FtoX (F.toF ua)) <= proj_val (FtoX (F.toF lb)) ->
-contains
-  (I.convert
-     (I.add prec
-        (I.add prec (all_integrals (Ibnd la ua) (thin ua))
-           (integral_float_absolute_signed depth ua lb epsilon))
-        (all_integrals (thin lb) (Ibnd lb ub)))) (Xreal (RInt f a b))).
-generalize (foo (FtoX (F.toF ua)) (FtoX (F.toF lb))).
-now case Xcmp.
-intros [Hua [Hlb Hualb]].
+rewrite /integral_intBounds_epsilon.
+case Hle: F'.le. 2: easy.
+assert (FtoX (F.toF ua) <> Xnan /\ FtoX (F.toF lb) <> Xnan /\
+  proj_val (FtoX (F.toF ua)) <= proj_val (FtoX (F.toF lb))) as [Hua [Hlb Hualb]].
+  generalize (F'.le_correct ua lb).
+  destruct F'.le. 2: easy.
+  unfold F'.toX.
+  intros H.
+  specialize (H eq_refl).
+  destruct FtoX. easy.
+  destruct FtoX. easy.
+  split. easy.
+  split ; easy.
 have Haua: (a <= toR ua).
   generalize (proj2 Hconta).
   unfold I.convert_bound, toR.
@@ -650,8 +626,8 @@ apply: (ex_RInt_Chasles_2 _ a) Hfint_a_lb.
 by split.
 have -> : Xreal (RInt f a b) =
         Xadd
-          (Xadd (XRInt f a (toR ua)) (XRInt f (toR ua) (toR lb)))
-          (XRInt f (toR lb) b).
+          (Xadd (Xreal (RInt f a (toR ua))) (Xreal (RInt f (toR ua) (toR lb))))
+          (Xreal (RInt f (toR lb) b)).
      rewrite /= 2?RInt_Chasles //.
      apply: (ex_RInt_Chasles_2 _ a) => //.
      split => //.
