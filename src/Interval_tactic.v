@@ -461,19 +461,6 @@ move: HnotInan.
 by case: (iFab) => //.
 Qed.
 
-
-Lemma Xcmp_rev x y:
-  Xcmp y x = match Xcmp x y with
-    | Xeq => Xeq
-    | Xlt => Xgt
-    | Xgt => Xlt
-    | Xund => Xund end.
-Proof.
-case: x; case: y => // rx ry.
-rewrite /Xcmp.
-by rewrite Rcompare_sym; case: (Rcompare ry rx).
-Qed.
-
 Let integral_float_relative :=
   Int.integral_float_relative prec estimator.
 
@@ -482,61 +469,6 @@ Lemma integral_float_absolute_real_arguments depth l u epsilon :
 Proof.
 rewrite /integral_float_relative /Int.integral_float_relative.
 by case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // .
-Qed.
-
-Lemma Fcmp_aux1_not_Xund bb y : Fcmp_aux1 bb y = Xund -> False.
-Proof.
-by rewrite /Fcmp_aux1; case: (Z.pos bb ?= Z.pos y)%Z .
-Qed.
-
-Lemma Fcmp_aux2_not_Xund bb c y z :  Fcmp_aux2 F.radix bb c y z = Xund -> False.
-Proof.
-rewrite /Fcmp_aux2.
-case: (c + Z.pos (count_digits F.radix bb)
-      ?= z + Z.pos (count_digits F.radix y))%Z => // .
-case: (c - z)%Z=> //.
-- by have := Fcmp_aux1_not_Xund bb y.
-- by move => p; have := (Fcmp_aux1_not_Xund (shift F.radix bb p) y).
-- by move => p; have := (Fcmp_aux1_not_Xund bb (shift F.radix y p)).
-Qed.
-
-Lemma Fcmp_not_Xund l u :
-  F.real l -> F.real u -> F.cmp l u = Xund -> False.
-Proof.
-move => Hlreal Hureal.
-move: (F.real_correct l).
-move: (F.real_correct u).
-case Hu : (F.toF u) Hureal => [|| aa bb c] -> => // ;
-case Hl : (F.toF l) Hlreal => [|| x y z]-> => // .
-- by rewrite F.cmp_correct Hu Hl.
-- by rewrite F.cmp_correct Hu Hl /Fcmp; case: x Hl.
-- by rewrite F.cmp_correct Hu Hl /Fcmp; by case: aa Hu.
-- rewrite F.cmp_correct Hu Hl /Fcmp.
-  case: x Hl; case: aa Hu => // .
-    by have := (Fcmp_aux2_not_Xund bb c y z).
-  by have := (Fcmp_aux2_not_Xund y z bb c).
-Qed.
-
-Lemma aux (u0 l1 : F.type) x :
-  F.real u0 -> F.real l1 ->
-  I.F'.le u0 l1 ->
-  Rmin (T.toR u0) (T.toR l1) <= x <= Rmax (T.toR u0) (T.toR l1) ->
-  contains (I.convert (Interval_interval_float.Ibnd u0 l1)) (Xreal x).
-Proof.
-move => Fr_u0 Fr_l1; move/Int.EF.F_realP: (Fr_u0) => Hrealu0.
-move/Int.EF.F_realP: (Fr_l1) => Hreall1  Horder Hx.
-rewrite /Int.EF.I.convert_bound in Hrealu0.
-rewrite /Int.EF.I.convert_bound in Hreall1.
-have Hleu0l1 : (T.toR u0) <= (T.toR l1) by apply: Int.Fle_Rle.
-  have Hcontu0 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR u0)).
-    rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
-    by split; first exact: Rle_refl.
-have Hcontl1 : contains (I.convert (Interval_interval_float.Ibnd u0 l1))  (Xreal (T.toR l1)).
-  rewrite /contains /I.convert /I.I.convert /I.I.convert_bound Hrealu0 Hreall1.
-  by split; last exact: Rle_refl.
-apply: (contains_connected _ (T.toR u0) (T.toR l1)) => // .
-rewrite Rmin_left in Hx => // .
-by rewrite Rmax_right in Hx => //.
 Qed.
 
 Definition ex_RInt_base_case :=
@@ -807,38 +739,29 @@ Section naive_ex_RInt_base_case.
 
 Let notInan := A.BndValuator.notInan.
 
-Lemma ex_RInt_base_case_naive u0 l1 (prec : F.precision) prog bounds:
-  F.real u0 ->
-  F.real l1 ->
-  I.F'.le u0 l1 ->
+Lemma ex_RInt_base_case_naive prec prog bounds :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
-  notInan (Int.naive_integral prec iF  u0 l1) ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x :: List.map A.real_from_bp bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
-Proof.
-move => Hrealu0 Hreall1 Hleu0l1 f iF HnotInan.
-apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
-- move => x; apply: aux => // .
-- move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
-  by case: j.
-Qed.
-
-Lemma ex_RInt_base_case_naive' prec prog bounds :
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
-ex_RInt_base_case prog bounds (Int.naive_integral prec iF).
+  ex_RInt_base_case prog bounds (Int.naive_integral prec iF).
 Proof.
 move => f iF.
-move => u0 l1 Hleu0l1 HnotInan.
-by apply: ex_RInt_base_case_naive.
+move => u0 l1 Hrealu0 Hreall1 Hleu0l1 HnotInan.
+apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (Interval_interval_float.Ibnd u0 l1)).
+- move => x.
+  unfold I.convert.
+  move/Int.EF.F_realP :Hrealu0.
+  move/Int.EF.F_realP :Hreall1.
+  change Int.EF.I.convert_bound with I.convert_bound.
+  change Int.EF.toR with T.toR.
+  intros -> ->.
+  assert (T.toR u0 <= T.toR l1).
+  generalize (I.F'.le_correct u0 l1 Hleu0l1).
+  unfold I.F'.toX, T.toR.
+  destruct FtoX. easy.
+  now destruct FtoX.
+  now rewrite -> Rmin_left, Rmax_right.
+- move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
+  by case: j.
 Qed.
 
 Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
@@ -850,21 +773,20 @@ Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
   let estimator := fun fa fb =>
     let xi := I.bnd fa fb in
     Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
-ex_RInt_base_case prog bounds estimator.
+  ex_RInt_base_case prog bounds estimator.
 Proof.
 move => prec deg prog bounds iF' iF estimator.
 move => u0 l1 Hu0real Hl1real Hleu0l1.
 rewrite /estimator /Int'.taylor_integral_naive_intersection.
 move => HnotInan.
-apply: (ex_RInt_base_case_naive _ _ prec) => // .
+apply: (ex_RInt_base_case_naive prec) => // .
 move: HnotInan.
-rewrite /iF. replace Int'.IntTac.naive_integral with Int.naive_integral .
+rewrite /iF. change Int'.IntTac.naive_integral with Int.naive_integral.
 by case: (Int.naive_integral prec
         (fun xi : I.type =>
          nth 0
            (A.BndValuator.eval prec prog
               (xi :: map A.interval_from_bp bounds)) I.nai) u0 l1) => // .
-by [].
 Qed.
 
 End naive_ex_RInt_base_case.
