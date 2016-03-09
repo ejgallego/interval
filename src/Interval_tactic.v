@@ -20,8 +20,10 @@ liability. See the COPYING file for more details.
 Require Import Reals.
 Require Import List.
 Require Import Coquelicot.
-Require Import Interval_missing.
+Require Import Ssreflect.ssreflect Ssreflect.ssrbool.
+Require Import xreal_ssr_compat.
 Require Import ZArith.
+Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -345,7 +347,7 @@ simpl.
 intros _ u [_ Hu].
 rewrite 4!I.I.real_correct.
 unfold I.I.convert_bound in *.
-rewrite 2!F.neg_correct, 2!Fneg_correct.
+rewrite -> 2!F.neg_correct, 2!Fneg_correct.
 rewrite F.nan_correct.
 simpl.
 case_eq (FtoX (F.toF u)).
@@ -354,7 +356,7 @@ simpl.
 now rewrite F.nan_correct.
 simpl.
 intros ur Hur.
-rewrite F.neg_correct, Fneg_correct.
+rewrite F.neg_correct Fneg_correct.
 rewrite Hur in Hu.
 rewrite Hur.
 simpl.
@@ -383,16 +385,13 @@ specialize (H eq_refl).
 revert Hl.
 destruct H as [Hl _].
 unfold I.I.convert_bound in Hl |- *.
-rewrite F.neg_correct, Fneg_correct.
+rewrite F.neg_correct Fneg_correct.
 rewrite Hl.
 intros H1 [H2 H3].
 apply Rle_trans with (2 := H1).
 apply Rabs_le.
 now split.
 Qed.
-
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
-Require Import xreal_ssr_compat.
 
 Section IntegralProg.
 
@@ -925,6 +924,7 @@ move => x Hx.
 move: (H1 x Hx) (H4' x Hx) => {H1 H4'}.
 rewrite /Xmask /toXreal_fun /interval_compl.toR_fun
   /Interval_xreal_derive.proj_fun /interval_compl.defined.
+change (fun b0 : A.bound_proof => A.xreal_from_bp b0) with A.xreal_from_bp.
 set bx := A.Bproof x (I.bnd fa fb) Hx.
 rewrite -[_::map _ _]/(map _ (bx::_)).
 rewrite -[_::map _ _]/(map A.real_from_bp (bx::_)).
@@ -932,7 +932,7 @@ case E: (nth 0 _ Xnan) => H.
   by move: (H eq_refl).
 rewrite -[Xreal (_ - _)]/(Xsub (Xreal _) (Xreal _)).
 rewrite -E.
-rewrite (_ : map [eta A.xreal_from_bp] (bx :: bounds) = (map Xreal (map A.real_from_bp (bx :: bounds)))).
+rewrite (_ : map A.xreal_from_bp (bx :: bounds) = (map Xreal (map A.real_from_bp (bx :: bounds)))).
 exact: (xreal_to_real (fun x => contains _ (Xsub x (Xreal _))) (fun x => contains _ (Xreal (x - _)))).
 rewrite map_map.
 apply map_ext.
