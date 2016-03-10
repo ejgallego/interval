@@ -19,11 +19,6 @@ Require Import Interval_taylor_model.
 Require Import taylor_model_int_sharp.
 Require Import Interval_integral.
 
-Variables (f : R -> R) (ra rb : R).
-
-Hypothesis ltab : ra < rb.
-Hypothesis fint : ex_RInt f ra rb.
-
 Module IntegralTacticTaylor (F : FloatOps with Definition even_radix := true).
 
 Module EF := ExtraFloats F.
@@ -49,7 +44,6 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 Variable Mf : TM.TMI.rpa.
 Variables X : I.type.
 Definition X0 := I.bnd (I.midpoint X) (I.midpoint X).
-Variable dom : R -> bool.
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
 
@@ -69,7 +63,6 @@ Hypothesis hb : F.real b.
 
 Variables ia ib : I.type.
 
-Definition x0 := toR (I.midpoint X).
 Hypothesis Hconta : contains (I.convert ia) (Xreal (toR a)).
 Hypothesis Hcontb : contains (I.convert ib) (Xreal (toR b)).
 Hypothesis Hcontxa : contains iX (Xreal (toR a)).
@@ -77,12 +70,6 @@ Hypothesis Hcontxb : contains iX (Xreal (toR b)).
 
 Definition taylor_integral :=
   TM.TMI.integralEnclosure prec X0 Mf ia ib.
-
-Definition taylor_integral_subtle :=
-  match taylor_integral with
-    | Inan => IntTac.naive_integral prec iF a b
-    | x => x
-  end.
 
 (* now we take the intersection of a naive and intelligent way of computing the integral *)
 Definition taylor_integral_naive_intersection :=
@@ -101,23 +88,11 @@ Lemma taylor_integral_correct :
     (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral.
-apply: (@TM.TMI.integralEnclosure_correct prec X0 X (toXreal_fun f) Mf x0) => //.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (toXreal_fun f) Mf (toR (I.midpoint X))) => //.
 rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
 split ; apply Rle_refl.
 eexists.
 exact: Hcontxa.
-Qed.
-
-Lemma taylor_integral_subtle_correct :
-  contains
-    (I.convert taylor_integral_subtle)
-    (Xreal (RInt f (toR a) (toR b))).
-Proof.
-rewrite /taylor_integral_subtle.
-case Htaylor_int : taylor_integral => [|l u].
-apply: IntTac.naive_integral_correct => // .
-rewrite -Htaylor_int.
-apply: taylor_integral_correct.
 Qed.
 
 Lemma taylor_integral_naive_intersection_correct :
