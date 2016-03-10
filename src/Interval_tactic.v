@@ -38,8 +38,6 @@ Require Import Interval_transcend.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
-Module T := TranscendentalFloatFast F.
-
 Inductive interval_tac_parameters :=
   | i_prec : nat -> interval_tac_parameters
   | i_bisect : R -> interval_tac_parameters
@@ -52,6 +50,7 @@ Inductive interval_tac_parameters :=
 
 Module Private.
 
+Module T := TranscendentalFloatFast F.
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F.
