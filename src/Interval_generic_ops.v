@@ -44,6 +44,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition even_radix_correct := refl_equal even_radix.
   Definition type := float radix.
   Definition toF := fun x : float radix => x.
+  Definition toX := fun x : float radix => FtoX x.
   Definition fromF := fun x : float radix => x.
   Definition precision := positive.
   Definition sfactor := Z.
@@ -71,6 +72,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition mul := @Fmul radix.
   Definition div := @Fdiv radix.
   Definition sqrt := @Fsqrt radix.
+  Definition toF_correct := fun x => refl_equal (@FtoX radix x).
   Definition zero_correct := refl_equal zero.
   Definition nan_correct := refl_equal nan.
   Definition cmp_correct := fun x y => refl_equal (cmp x y).

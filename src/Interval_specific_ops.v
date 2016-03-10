@@ -56,6 +56,10 @@ Definition toF (x : type) : float radix :=
     end
   end.
 
+Definition toX (x : type) := FtoX (toF x).
+
+Definition toF_correct := fun x => refl_equal (toX x).
+
 Definition fromF (f : Interval_generic.float radix) :=
   match f with
   | Interval_generic.Fnan => Fnan

@@ -31,6 +31,7 @@ Parameter even_radix : bool.
 Parameter even_radix_correct : match radix_val radix with Zpos (xO _) => true | _ => false end = even_radix.
 Parameter type : Type.
 Parameter toF : type -> float radix.
+Parameter toX : type -> ExtendedR.
 
 Parameter precision : Type.
 Parameter sfactor : Type.
@@ -64,6 +65,9 @@ Parameter sub : rounding_mode -> precision -> type -> type -> type.
 Parameter mul : rounding_mode -> precision -> type -> type -> type.
 Parameter div : rounding_mode -> precision -> type -> type -> type.
 Parameter sqrt : rounding_mode -> precision -> type -> type.
+
+Parameter toF_correct :
+  forall x, FtoX (toF x) = toX x.
 
 Parameter zero_correct : toF zero = @Fzero radix.
 Parameter nan_correct : toF nan = @Fnan radix.
