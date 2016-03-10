@@ -399,22 +399,6 @@ Variable prec : F.precision.
 Variables prog proga progb : list term.
 Variables bounds boundsa boundsb : list A.bound_proof.
 
-Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
-Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
-Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
-Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai.
-
-Lemma Hconta:  contains (I.convert ia) (Xreal a).
-Proof.
-by apply: contains_eval.
-Qed.
-
-Lemma Hcontb:  contains (I.convert ib) (Xreal b).
-Proof.
-by apply: contains_eval.
-Qed.
-
-
 Let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0.
 Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai).
 
@@ -426,16 +410,10 @@ Let notInan := A.BndValuator.notInan.
 
 Lemma all_integrals_correct_prog :
   forall ia ib a b,
-   contains (I.convert ia) (Xreal a) ->
-   contains (I.convert ib) (Xreal b) ->
-notInan (Int.all_integrals prec
-                    (fun xi : I.type =>
-                     nth 0
-                       (A.BndValuator.eval prec prog
-                          (xi :: map A.interval_from_bp bounds)) I.nai)
-                    ia
-                    ib) ->
-ex_RInt f a b.
+  contains (I.convert ia) (Xreal a) ->
+  contains (I.convert ib) (Xreal b) ->
+  notInan (Int.all_integrals prec iF ia ib) ->
+  ex_RInt f a b.
 Proof.
 move  => ia1 ib1 a1 b1 Hconta1 Hcontb1.
 rewrite /Int.all_integrals.
@@ -477,17 +455,7 @@ Definition ex_RInt_base_case :=
   F.real l1 ->
   I.F'.le u0 l1 ->
   notInan (estimator u0 l1) ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x :: List.map A.real_from_bp bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
-
-
+  ex_RInt f (T.toR u0) (T.toR l1).
 
 Let integral_float_absolute_signed := Int.integral_float_absolute_signed prec estimator.
 
@@ -509,15 +477,7 @@ Lemma integral_float_absolute_ex_RInt
   ex_RInt_base_case ->
   notInan (integral_float_absolute depth u0 l1 epsilon) ->
   I.F'.le u0 l1 ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x :: List.map A.real_from_bp bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
+  ex_RInt f (T.toR u0) (T.toR l1).
 Proof.
 move => ex_RInt_base_case HnotInan Hleu0l1.
 rewrite /integral_float_absolute in HnotInan (* /Int.integral_float_absolute *).
@@ -618,15 +578,7 @@ Lemma integral_float_relative_ex_RInt
   ex_RInt_base_case ->
   notInan (integral_float_relative depth u0 l1 epsilon) ->
   I.F'.le u0 l1 ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x :: List.map A.real_from_bp bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
+  ex_RInt f (T.toR u0) (T.toR l1).
 Proof.
 rewrite /integral_float_relative /Int.integral_float_relative.
 move => ex_RInt_base_case HnotInan Hleu0l1.
@@ -650,15 +602,7 @@ Lemma integral_float_absolute_signed_ex_RInt
   in
   ex_RInt_base_case ->
   notInan (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) ->
-  ex_RInt
-    (fun x =>
-       List.nth
-         0
-         (eval_real
-            prog
-            (x :: List.map A.real_from_bp bounds)) R0)
-    (T.toR u0)
-    (T.toR l1).
+  ex_RInt f (T.toR u0) (T.toR l1).
 Proof.
 move => ex_RInt_base_case i.
 rewrite /Int.integral_float_absolute_signed.
@@ -673,6 +617,11 @@ case Horder : (Int.F'.le  u0 l1) HnotInan => HnotInan.
 - move: HnotInan.
   by case: Int.integral_float_relative.
 Qed.
+
+Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
+Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
+Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
+Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai.
 
 Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
@@ -735,7 +684,7 @@ Qed.
 
 End IntegralProg.
 
-Section naive_ex_RInt_base_case.
+Section Correction_lemmas_integral_for_tactic.
 
 Let notInan := A.BndValuator.notInan.
 
@@ -781,19 +730,9 @@ rewrite /estimator /Int'.taylor_integral_naive_intersection.
 move => HnotInan.
 apply: (ex_RInt_base_case_naive prec) => // .
 move: HnotInan.
-rewrite /iF. change Int'.IntTac.naive_integral with Int.naive_integral.
-by case: (Int.naive_integral prec
-        (fun xi : I.type =>
-         nth 0
-           (A.BndValuator.eval prec prog
-              (xi :: map A.interval_from_bp bounds)) I.nai) u0 l1) => // .
+rewrite -/iF. change Int'.IntTac.naive_integral with Int.naive_integral.
+by case: (Int.naive_integral prec iF u0 l1).
 Qed.
-
-End naive_ex_RInt_base_case.
-
-Section Correction_lemmas_integral_for_tactic.
-
-Let notInan := A.BndValuator.notInan.
 
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
