@@ -838,3 +838,5 @@ Definition Fmag beta (x : float beta) :=
   | Float _ m e => Zplus e (Zpos (count_digits beta m))
   | _ => Z0
   end.
+
+Implicit Arguments Fmag.
