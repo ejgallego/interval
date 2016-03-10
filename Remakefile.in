@@ -21,8 +21,7 @@ FILES = \
 	Interval_transcend.v \
 	Interval_univariate.v \
 	Interval_xreal.v \
-	Interval_xreal_derive.v \
-        reals_compl.v
+	Interval_xreal_derive.v
 
 CAFILES = \
 	basic_rec.v \

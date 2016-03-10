@@ -23,6 +23,7 @@ Require Import Reals.
 Require Import Coquelicot.
 Require Import NaryFunctions.
 Require Import Flocq.Core.Fcore.
+Require Import Interval_missing.
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -31,8 +32,7 @@ Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-(* Require Import CoqEAL_theory.hrel CoqEAL_refinements.refinements. *)
-Require Import Rstruct reals_compl interval_compl nary_tuple basic_rec seq_compl.
+Require Import Rstruct interval_compl nary_tuple basic_rec seq_compl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

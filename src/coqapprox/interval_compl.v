@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith Reals Psatz.
 Require Import Coquelicot.
-Require Import reals_compl Interval_missing.
+Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_interval Interval_xreal_derive.
 Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.

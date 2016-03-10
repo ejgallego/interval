@@ -1,7 +1,7 @@
 Require Import Reals Psatz.
 Require Import Coquelicot.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-Require Import Rstruct reals_compl reals_tac.
+Require Import Rstruct Interval_missing reals_tac.
 
 Section MissingContinuity.
 

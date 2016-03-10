@@ -1336,3 +1336,30 @@ unfold tg_alt.
 rewrite <- Rmult_assoc.
 apply Rmult_comm.
 Qed.
+
+Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
+Proof.
+now rewrite INR_IZR_INZ, <-Z2R_IZR.
+Qed.
+
+Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%R.
+Proof.
+intros H.
+destruct (Rtotal_order r1 r2) as [H'|[H'|H']].
+now left.
+now elim H.
+now right.
+Qed.
+
+(** Define a shorter name *)
+Notation Rmult_neq0 := Rmult_integral_contrapositive_currified.
+
+Lemma Rdiv_eq_reg a b c d :
+  (a * d = b * c -> b <> 0%R -> d <> 0%R -> a / b = c / d)%R.
+Proof.
+intros Heq Hb Hd.
+apply (Rmult_eq_reg_r (b * d)).
+field_simplify; trivial.
+now rewrite Heq.
+now apply Rmult_neq0.
+Qed.
