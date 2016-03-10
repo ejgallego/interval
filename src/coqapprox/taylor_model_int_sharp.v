@@ -500,20 +500,19 @@ Proof.
 move => Hf3_int HZx1 HZx2 Hext.
 case : (total_order_T x1 x2) => [[H12|Heq]|H21].
 - apply: contains_RInt => // x H1x2; apply: Hext.
-  by rewrite Rmin_lt // Rmax_lt //.
+  now rewrite -> Rmin_left, Rmax_right by now apply Rlt_le.
 - rewrite Heq. rewrite RInt_point.
   apply: (@mul_0_contains_0_l _ (Xreal (f3 x1))).
   + apply: (Hext x1); split.
-    * by rewrite Heq Rmin_refl; lra.
-    * by rewrite Heq Rmax_refl; lra.
+    apply Rmin_l.
+    apply Rmax_l.
   + have -> :
     Xreal 0 = Xsub (Xreal x2) (Xreal x1) ; first by rewrite Heq /= Rminus_eq_0.
     by apply: I.sub_correct.
 - apply: contains_RInt_gt => // .
     by apply: ex_RInt_swap.
   move => x H1x2; apply: Hext.
-  rewrite Rmin_swap Rmin_lt; try lra.
-  rewrite Rmax_swap Rmax_lt; try lra.
+  now rewrite -> Rmin_right, Rmax_left by now apply Rlt_le.
 Qed.
 
 Lemma pol_int_sub pol x1 x2 x3:  ex_RInt (fun y : R => PolR.horner tt pol (y - x3)) x1 x2.
@@ -617,10 +616,12 @@ rewrite Xreal_add; apply:I.add_correct.
     apply: Herror.
     have [Hab|Hba] := Rle_dec a b.
       apply: contains_intvl_trans Ha Hb _; red.
-      by rewrite Rmin_leq // Rmax_leq in Hx.
-    move/Rnot_le_lt in Hba.
+      revert Hx.
+      now rewrite -> Rmin_left, Rmax_right.
+    apply Rnot_le_lt, Rlt_le in Hba.
     apply: contains_intvl_trans Hb Ha _; red.
-    by rewrite Rmin_swap Rmax_swap Rmin_lt // Rmax_lt in Hx.
+    revert Hx.
+    now rewrite -> Rmin_right, Rmax_left.
 Qed.
 
 End NumericIntegration.
