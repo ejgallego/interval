@@ -117,9 +117,8 @@ generalize (F.real_correct f).
 case_eq (F.toF f) ; try easy.
 intros [|] m e Hf _.
 exact I.
-unfold I.I.convert_bound in H1, H2.
-rewrite F.neg_correct in H1.
-rewrite Fneg_correct in H1.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct in H1.
+rewrite <- F.toF_correct in H2.
 rewrite Hf in H1, H2.
 simpl in H1, H2.
 now apply Rabs_def1_le.
@@ -139,10 +138,10 @@ case_eq (F.toF f) ; try easy.
 intros [|] m e Hf _ H.
 easy.
 destruct (Rabs_def2_le _ _ H) as (H1,H2).
-split ; unfold I.I.convert_bound.
-rewrite F.neg_correct.
-rewrite Fneg_correct.
+split.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
 now rewrite Hf.
+rewrite <- F.toF_correct.
 now rewrite Hf.
 Qed.
 
@@ -193,18 +192,17 @@ easy.
 simpl.
 intros _ u [_ Hu].
 rewrite 4!I.I.real_correct.
-unfold I.I.convert_bound in *.
 rewrite F.nan_correct.
 simpl.
 split.
-case_eq (FtoX (F.toF l)).
+case_eq (F.toX l).
 intros _.
 now rewrite F.nan_correct.
 intros lr Hlr.
 rewrite Hlr in Hl.
 rewrite Hlr.
 now apply Rle_trans with (2 := Hx1).
-destruct (FtoX (F.toF u)) as [|ur].
+destruct (F.toX u) as [|ur].
 exact I.
 now apply Rle_trans with (1 := Hx2).
 Qed.
@@ -258,10 +256,9 @@ easy.
 simpl.
 intros l _ [Hl _].
 split.
-destruct (I.I.convert_bound l) as [|lr].
+destruct (F.toX l) as [|lr].
 exact I.
 now apply Rle_trans with (2 := Hx).
-unfold I.I.convert_bound.
 now rewrite F.nan_correct.
 Qed.
 
@@ -301,9 +298,8 @@ easy.
 simpl.
 intros _ u [_ Hu].
 split.
-unfold I.I.convert_bound.
 now rewrite F.nan_correct.
-destruct (I.I.convert_bound u) as [|ur].
+destruct (F.toX u) as [|ur].
 exact I.
 now apply Rle_trans with (1 := Hx).
 Qed.
@@ -345,17 +341,16 @@ easy.
 simpl.
 intros _ u [_ Hu].
 rewrite 4!I.I.real_correct.
-unfold I.I.convert_bound in *.
-rewrite -> 2!F.neg_correct, 2!Fneg_correct.
+rewrite <- 5!F.toF_correct, 2!F.neg_correct, 2!Fneg_correct, 4!F.toF_correct.
 rewrite F.nan_correct.
 simpl.
-case_eq (FtoX (F.toF u)).
+case_eq (F.toX u).
 intros _.
 simpl.
 now rewrite F.nan_correct.
 simpl.
 intros ur Hur.
-rewrite F.neg_correct Fneg_correct.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
 rewrite Hur in Hu.
 rewrite Hur.
 simpl.
@@ -383,8 +378,7 @@ intros H _.
 specialize (H eq_refl).
 revert Hl.
 destruct H as [Hl _].
-unfold I.I.convert_bound in Hl |- *.
-rewrite F.neg_correct Fneg_correct.
+rewrite <- (F.toF_correct (F.neg _)), F.neg_correct, Fneg_correct, F.toF_correct.
 rewrite Hl.
 intros H1 [H2 H3].
 apply Rle_trans with (2 := H1).
@@ -485,7 +479,7 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 eps
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
   have Hrealm : (F.real m).
-    suff: I.convert_bound m = Xreal (T.toR m).
+    suff: F.toX m = Xreal (T.toR m).
     by move/Int.EF.F_realP.
   have := (I.midpoint_correct (I.bnd u0 l1)).
     + case.
@@ -508,7 +502,7 @@ elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 eps
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
   have Hrealm : (F.real m).
-    suff: I.convert_bound m = Xreal (T.toR m).
+    suff: F.toX m = Xreal (T.toR m).
       by move/Int.EF.F_realP.
     have := (I.midpoint_correct (I.bnd u0 l1)).
       case.
@@ -699,14 +693,13 @@ apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (Interval_interval_float.Ibnd 
   unfold I.convert.
   move/Int.EF.F_realP :Hrealu0.
   move/Int.EF.F_realP :Hreall1.
-  change Int.EF.I.convert_bound with I.convert_bound.
   change Int.EF.toR with T.toR.
   intros -> ->.
   assert (T.toR u0 <= T.toR l1).
   generalize (I.F'.le_correct u0 l1 Hleu0l1).
-  unfold I.F'.toX, T.toR.
-  destruct FtoX. easy.
-  now destruct FtoX.
+  unfold T.toR.
+  destruct F.toX. easy.
+  now destruct F.toX.
   now rewrite -> Rmin_left, Rmax_right.
 - move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
   by case: j.
@@ -767,11 +760,9 @@ have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (i
   apply: A.TaylorValuator.eval_correct_aux.
   exists (Int.EF.toR fa).
   split.
-  move /Int.EF.F_realP : Hra.
-  rewrite -[Int.EF.I.convert_bound]/I.convert_bound => ->.
+  move /Int.EF.F_realP : Hra => ->.
   apply Rle_refl.
-  move /Int.EF.F_realP : Hrb.
-  by rewrite -[Int.EF.I.convert_bound]/I.convert_bound => ->.
+  by move /Int.EF.F_realP : Hrb => ->.
 rewrite /Int'.TM.TMI.i_validTM /Int'.TM.TMI.Aux.eqNai.
 case: (Int'.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
   by case.
@@ -802,15 +793,11 @@ exact: Int.EF.thin_correct.
 rewrite -(Int.EF.F_realP _ Hrb).
 exact: Int.EF.thin_correct.
 split.
-  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   move /Int'.EF.F_realP : Hra => ->.
   apply Rle_refl.
-  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   by move /Int'.EF.F_realP : Hrb => ->.
 split.
-  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   by move /Int'.EF.F_realP : Hra => ->.
-  rewrite -[Int'.I.convert_bound]/Int'.EF.I.convert_bound.
   move /Int'.EF.F_realP : Hrb => ->.
   apply Rle_refl.
 exact: ex_RInt_base_case_taylor_integral_naive_intersection.

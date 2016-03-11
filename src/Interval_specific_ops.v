@@ -78,13 +78,13 @@ Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 
 Definition zero := Float mantissa_zero exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
-Definition nan_correct := refl_equal (@Interval_generic.Fnan radix).
+Definition nan_correct := refl_equal Xnan.
 
 Lemma zero_correct :
-  toF zero = Interval_generic.Fzero.
+  toX zero = Xreal 0.
 Proof.
 generalize (mantissa_sign_correct mantissa_zero).
-simpl.
+unfold toX. simpl.
 case (mantissa_sign mantissa_zero).
 trivial.
 rewrite mantissa_zero_correct.
@@ -798,7 +798,7 @@ Lemma add_exact_aux_correct :
 Proof.
 assert (Aux: forall sx mx sy my e,
   valid_mantissa mx -> valid_mantissa my ->
-  toF (add_exact_aux1 sx sy mx my e) = Fround_none (Fadd_slow_aux1 radix sx sy (MtoP mx) (MtoP my) (EtoZ e))).
+  FtoX (toF (add_exact_aux1 sx sy mx my e)) = FtoX (Fround_none (Fadd_slow_aux1 radix sx sy (MtoP mx) (MtoP my) (EtoZ e)))).
 intros sx mx sy my e Mx My.
 unfold add_exact_aux1, Fadd_slow_aux1.
 case eqb.
@@ -827,7 +827,6 @@ rewrite <- exponent_sub_correct.
 case_eq (EtoZ (exponent_sub ex ey)).
 simpl.
 intros H.
-apply f_equal.
 now apply Aux.
 simpl.
 intros p Hp.

@@ -88,9 +88,8 @@ case_eq (F'.le xu xl).
   intros Hl.
   apply F'.le_correct in Hl.
   simpl in Ha.
-  unfold I.convert_bound, F'.toX in Ha, Hl.
-  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
-  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  destruct (F.toX xu) as [|xur] ; try easy.
+  destruct (F.toX xl) as [|xlr] ; try easy.
   replace (Rabs x) with xlr.
   exact Hcxl.
   apply Rle_antisym.
@@ -101,18 +100,17 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2))).
   intros Hu.
   apply F'.le_correct in Hu.
   simpl in Ha.
-  unfold I.convert_bound, F'.toX in Ha, Hu.
-  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= PI)%R).
     revert Hu.
-    rewrite F.scale2_correct by easy.
+    rewrite <- F.toF_correct, F.scale2_correct by easy.
     rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
+    rewrite F.toF_correct.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
-    unfold T.I.convert_bound.
     intros [H _] Hu.
-    destruct (FtoX (F.toF pi4l)) as [|pi4r] ; try easy.
+    destruct (F.toX pi4l) as [|pi4r] ; try easy.
     apply Rle_trans with (1 := Hu).
     rewrite <- (Rmult_1_r PI).
     rewrite <- (Rinv_l 4) at 5.
@@ -124,12 +122,9 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2))).
   split.
     apply proj2 in Ha.
     destruct (T.cos_fast prec xu) as [|cu cu'] ; simpl.
-      unfold I.convert_bound.
       now rewrite F.nan_correct.
     destruct Hcxu as [Hcu _].
-    unfold T.I.convert_bound in Hcu.
-    unfold I.convert_bound.
-    destruct (FtoX (F.toF cu)) as [|cur] ; try easy.
+    destruct (F.toX cu) as [|cur] ; try easy.
     apply Rle_trans with (1 := Hcu).
     apply cos_decr_1 with (4 := Hxur) (5 := Ha).
     apply Rabs_pos.
@@ -139,12 +134,10 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 2))).
   generalize (T.cos_fast_correct prec xl).
   destruct (T.cos_fast prec xl) as [|cl' cl] ; simpl.
     intros _.
-    unfold I.convert_bound.
     now rewrite F.nan_correct.
-  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
-  unfold T.I.convert_bound, I.convert_bound.
+  destruct (F.toX xl) as [|xlr] ; try easy.
   intros [_ Hl].
-  destruct (FtoX (F.toF cl)) as [|clr] ; try easy.
+  destruct (F.toX cl) as [|clr] ; try easy.
   apply Rle_trans with (2 := Hl).
   apply cos_decr_1 with (1 := Hal).
   apply Rle_trans with (2 := Hxur).
@@ -157,18 +150,17 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
   intros Hu.
   apply F'.le_correct in Hu.
   simpl in Ha.
-  unfold I.convert_bound, F'.toX in Ha, Hu.
-  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
+  destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= 2 * PI)%R).
     revert Hu.
-    rewrite F.scale2_correct by easy.
+    rewrite <- F.toF_correct, F.scale2_correct by easy.
     rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
     generalize (T.pi4_correct prec).
+    rewrite F.toF_correct.
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
-    unfold T.I.convert_bound.
     intros [H _] Hu.
-    destruct (FtoX (F.toF pi4l)) as [|pi4r] ; try easy.
+    destruct (F.toX pi4l) as [|pi4r] ; try easy.
     apply Rle_trans with (1 := Hu).
     rewrite <- (Rmult_1_r PI).
     rewrite <- (Rinv_l 4) at 9.
@@ -181,19 +173,18 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
   case_eq (F'.le (F.scale2 (I.upper (T.pi4 prec)) (F.ZtoS 2)) xl).
     intros Hl.
     apply F'.le_correct in Hl.
-    unfold I.convert_bound, F'.toX in Hl.
-    destruct (FtoX (F.toF xl)) as [|xlr].
-    now destruct (FtoX (F.toF (F.scale2 (I.upper (T.pi4 prec)) (F.ZtoS 2)))).
+    destruct (F.toX xl) as [|xlr].
+    now destruct (F.toX (F.scale2 (I.upper (T.pi4 prec)) (F.ZtoS 2))).
     assert (Hxlr: (PI <= xlr)%R).
       revert Hl.
-      rewrite F.scale2_correct by easy.
+      rewrite <- F.toF_correct, F.scale2_correct by easy.
       rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
+      rewrite F.toF_correct.
       generalize (T.pi4_correct prec).
       destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
       now rewrite F.nan_correct.
-      unfold T.I.convert_bound.
       intros [_ H] Hl.
-      destruct (FtoX (F.toF pi4u)) as [|pi4r] ; try easy.
+      destruct(F.toX pi4u) as [|pi4r] ; try easy.
       apply Rle_trans with (2 := Hl).
       rewrite <- (Rmult_1_r PI).
       rewrite <- (Rinv_l 4) at 1.
@@ -204,12 +195,9 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
     clear Hl.
     split.
       destruct (T.cos_fast prec xl) as [|cl cl'] ; simpl.
-        unfold I.convert_bound.
         now rewrite F.nan_correct.
       destruct Hcxl as [Hcl _].
-      unfold T.I.convert_bound in Hcl.
-      unfold I.convert_bound.
-      destruct (FtoX (F.toF cl)) as [|clr] ; try easy.
+      destruct (F.toX cl) as [|clr] ; try easy.
       apply Rle_trans with (1 := Hcl).
       apply cos_incr_1 with (1 := Hxlr) (5 := proj1 Ha).
       apply Rle_trans with (2 := Hxur).
@@ -217,12 +205,9 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
       apply Rle_trans with (1 := Hxlr) (2 := proj1 Ha).
       apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
     destruct (T.cos_fast prec xu) as [|cu' cu] ; simpl.
-      unfold I.convert_bound.
       now rewrite F.nan_correct.
     destruct Hcxu as [_ Hcu].
-    unfold T.I.convert_bound in Hcu.
-    unfold I.convert_bound.
-    destruct (FtoX (F.toF cu)) as [|cur] ; try easy.
+    destruct (F.toX cu) as [|cur] ; try easy.
     apply Rle_trans with (2 := Hcu).
     apply cos_incr_1 with (4 := Hxur) (5 := proj2 Ha).
     apply Rle_trans with (1 := Hxlr) (2 := proj1 Ha).
@@ -230,21 +215,19 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
     apply Rle_trans with (1 := Hxlr).
     apply Rle_trans with (1 := proj1 Ha) (2 := proj2 Ha).
   intros _.
-  split ; unfold I.convert_bound.
+  split.
     rewrite F.fromZ_correct.
     apply COS_bound.
-  rewrite F.max_correct, Interval_generic_proof.Fmax_correct.
+  rewrite <- F.toF_correct, F.max_correct, Interval_generic_proof.Fmax_correct, 2!F.toF_correct.
   destruct (T.cos_fast prec xl) as [|cl' cl] ; simpl.
     now rewrite F.nan_correct.
-  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  destruct (F.toX xl) as [|xlr] ; try easy.
   destruct Hcxl as [_ Hcl].
-  unfold T.I.convert_bound in Hcl.
-  destruct (FtoX (F.toF cl)) as [|clr] ; try easy.
+  destruct (F.toX cl) as [|clr] ; try easy.
   destruct (T.cos_fast prec xu) as [|cu' cu] ; simpl.
     now rewrite F.nan_correct.
   destruct Hcxu as [_ Hcu].
-  unfold T.I.convert_bound in Hcu.
-  destruct (FtoX (F.toF cu)) as [|cur] ; try easy.
+  destruct (F.toX cu) as [|cur] ; try easy.
   destruct (Rle_dec (Rabs x) PI) as [Hx|Hx].
     apply Rle_trans with (2 := Rmax_l _ _).
     apply Rle_trans with (2 := Hcl).
@@ -257,7 +240,7 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
   apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
   apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
 intros _.
-unfold I.convert, I.convert_bound, I.bnd.
+unfold I.convert, I.bnd.
 rewrite 2!F.fromZ_correct.
 apply COS_bound.
 Qed.
@@ -292,9 +275,8 @@ case_eq (F'.le xu xl).
   intros Hl.
   apply F'.le_correct in Hl.
   assert (Hsxl := T.sin_fast_correct prec xl).
-  unfold I.convert_bound, F'.toX in Hxl, Hxu, Hl.
-  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
-  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  destruct (F.toX xu) as [|xur] ; try easy.
+  destruct (F.toX xl) as [|xlr] ; try easy.
   replace x with xlr.
   exact Hsxl.
   apply Rle_antisym with (1 := Hxl).
@@ -304,35 +286,31 @@ set (pi2 := F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1)).
 case_eq (F'.le (F.neg pi2) xl).
   intros Hpl.
   generalize (F'.le_correct _ _ Hpl).
-  unfold F'.toX.
   I.xreal_tac xl.
-    now case (I.convert_bound (F.neg pi2)).
+    now case (F.toX (F.neg pi2)).
   clear Hpl. intros Hpl.
   case_eq (F'.le xu pi2).
     intros Hpu.
     generalize (F'.le_correct _ _ Hpu).
-    unfold F'.toX.
     I.xreal_tac xu. easy.
     I.xreal_tac pi2. easy.
     clear Hpu. intros Hpu.
     revert Hpl.
-    unfold I.convert_bound.
-    rewrite F.neg_correct, Interval_generic_proof.Fneg_correct.
-    fold (I.convert_bound pi2).
+    rewrite <- F.toF_correct, F.neg_correct, Interval_generic_proof.Fneg_correct, F.toF_correct.
     rewrite X1.
     simpl.
     intros Hpl.
     generalize (F.scale2_correct (I.lower (T.pi4 prec)) 1 (refl_equal _)).
     rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
+    rewrite 2!F.toF_correct.
     intros X2.
-    change (I.convert_bound pi2 = Xmul (I.convert_bound (I.lower (T.pi4 prec))) (Xreal 2)) in X2.
+    change (F.toX pi2 = Xmul (F.toX (I.lower (T.pi4 prec))) (Xreal 2)) in X2.
     rewrite X1 in X2. clear X1.
     revert X2.
     generalize (T.pi4_correct prec).
     case (T.pi4 prec) ; simpl.
-      now unfold I.convert_bound ; rewrite F.nan_correct.
+      now rewrite F.nan_correct.
     intros p.
-    change (T.I.convert_bound p) with (I.convert_bound p).
     I.xreal_tac p. easy.
     intros _ [Hp _] H.
     injection H.
@@ -353,13 +331,11 @@ case_eq (F'.le (F.neg pi2) xl).
     split.
       generalize (T.sin_fast_correct prec xl).
       destruct (T.sin_fast prec xl) as [|yl yu].
-        unfold I.convert_bound. simpl.
+        simpl.
         now rewrite F.nan_correct.
-      fold (I.convert_bound xl). rewrite X.
+      rewrite X.
       simpl.
-      change (T.I.convert_bound yl) with (I.convert_bound yl).
       I.xreal_tac yl. easy.
-      change (T.I.convert_bound yu) with (I.convert_bound yu).
       intros [Hy _].
       apply Rle_trans with (1 := Hy).
       assert (H' := Rle_trans _ _ _ Hxu Hpu').
@@ -368,11 +344,10 @@ case_eq (F'.le (F.neg pi2) xl).
       now apply Rle_trans with r.
     generalize (T.sin_fast_correct prec xu).
     destruct (T.sin_fast prec xu) as [|yl yu].
-      unfold I.convert_bound. simpl.
+      simpl.
       now rewrite F.nan_correct.
-    fold (I.convert_bound xu). rewrite X0.
+    rewrite X0.
     simpl.
-    change (T.I.convert_bound yu) with (I.convert_bound yu).
     I.xreal_tac yu. easy.
     intros [_ Hy].
     apply Rle_trans with (2 := Hy).
@@ -425,9 +400,9 @@ case_eq (F'.le xu xl).
   intros Hl.
   apply F'.le_correct in Hl.
   assert (Htxl := T.tan_fast_correct prec xl).
-  unfold I.convert, I.convert_bound, F'.toX in Hx, Hl.
-  destruct (FtoX (F.toF xu)) as [|xur] ; try easy.
-  destruct (FtoX (F.toF xl)) as [|xlr] ; try easy.
+  unfold I.convert in Hx, Hl.
+  destruct (F.toX xu) as [|xur] ; try easy.
+  destruct (F.toX xl) as [|xlr] ; try easy.
   replace x with xlr.
   exact Htxl.
   apply Rle_antisym with (1 := proj1 Hx).
@@ -442,14 +417,13 @@ intros Hlt2.
 apply F'.lt_correct in Hlt2.
 generalize (T.tan_correct prec xl) (T.tan_correct prec xu).
 simpl in Hx.
-unfold I.convert_bound, F'.toX in Hx, Hlt1, Hlt2.
-destruct (FtoX (F.toF xl)) as [|rl].
-now destruct (FtoX (F.toF (F.neg (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1))))).
-destruct (FtoX (F.toF xu)) as [|ru] ; try easy.
+destruct (F.toX xl) as [|rl].
+now destruct (F.toX (F.neg (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 1)))).
+destruct (F.toX xu) as [|ru] ; try easy.
 intros Hl Hu.
 rewrite I.bnd_correct.
-rewrite F.neg_correct, Interval_generic_proof.Fneg_correct in Hlt1.
-rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct in Hlt1, Hlt2 ;
+rewrite <- F.toF_correct, F.neg_correct, Interval_generic_proof.Fneg_correct, F.toF_correct in Hlt1.
+rewrite <- F.toF_correct, F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct in Hlt1, Hlt2 ;
   try easy ; try apply F.even_radix_correct.
 generalize (T.pi4_correct prec).
 destruct (T.pi4 prec) as [|pi4l pi4u].
@@ -457,8 +431,7 @@ simpl in Hlt1.
 now rewrite F.nan_correct in Hlt1.
 intros [Hpil _].
 simpl in Hlt1, Hlt2.
-unfold T.I.convert_bound in Hpil.
-destruct (FtoX (F.toF pi4l)) as [|pi4r] ; try easy.
+destruct (F.toX pi4l) as [|pi4r] ; try easy.
 simpl in Hlt1, Hlt2.
 apply (Rmult_le_compat_r 2) in Hpil.
 2: now apply (Fcore_Raux.Z2R_le 0 2).
@@ -482,7 +455,6 @@ now rewrite <- Ropp_mult_distr_l_reverse.
 now apply Rle_lt_trans with ru.
 unfold Xtan in Hl, Hu.
 intros _.
-unfold I.convert_bound.
 split.
 - destruct (T.tan_fast prec xl) as [|tl tu].
   simpl.
@@ -490,9 +462,8 @@ split.
   revert Hl.
   simpl.
   case is_zero_spec ; try easy.
-  unfold T.I.convert_bound.
   intros _ [H _].
-  destruct (FtoX (F.toF tl)) as [|rtl] ; try easy.
+  destruct (F.toX tl) as [|rtl] ; try easy.
   apply Rle_trans with (1 := H).
   destruct (proj1 Hx) as [Hx'|Hx'].
   apply Rlt_le.
@@ -506,9 +477,8 @@ split.
   revert Hu.
   simpl.
   case is_zero_spec ; try easy.
-  unfold T.I.convert_bound.
   intros _ [_ H].
-  destruct (FtoX (F.toF tu)) as [|rtu] ; try easy.
+  destruct (F.toX tu) as [|rtu] ; try easy.
   apply Rle_trans with (2 := H).
   destruct (proj2 Hx) as [Hx'|Hx'].
   apply Rlt_le.
@@ -539,17 +509,15 @@ rewrite 2!I.real_correct.
 simpl in Hx.
 split.
 - generalize (proj1 Hx). clear Hx.
-  case_eq (I.convert_bound xl).
+  case_eq (F.toX xl).
   intros _ _.
-  unfold I.convert_bound.
-  rewrite F.neg_correct, Interval_generic_proof.Fneg_correct.
-  rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct ; try easy.
+  rewrite <- F.toF_correct, F.neg_correct, Interval_generic_proof.Fneg_correct.
+  rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct ; try easy.
   2: apply F.even_radix_correct.
   destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
   now rewrite F.nan_correct.
   simpl in Hpi.
-  unfold T.I.convert_bound in Hpi.
-  destruct (FtoX (F.toF pi4u)) as [|rpi4] ; try easy.
+  destruct (F.toX pi4u) as [|rpi4] ; try easy.
   apply Rlt_le.
   apply Rle_lt_trans with (2 := proj1 (atan_bound x)).
   replace (- PI / 2)%R with (-(PI / 4 * 2))%R by field.
@@ -560,14 +528,11 @@ split.
   generalize (T.atan_correct prec xl).
   destruct (T.atan_fast prec xl) as [|al au].
   intros _.
-  unfold I.convert_bound.
   simpl.
   now rewrite F.nan_correct.
   simpl.
-  unfold I.convert_bound in Hl.
   rewrite Hl.
-  unfold T.I.convert_bound, I.convert_bound.
-  destruct (FtoX (F.toF al)) as [|ral] ; try easy.
+  destruct (F.toX al) as [|ral] ; try easy.
   intros [H _].
   apply Rle_trans with (1 := H).
   destruct Hx as [Hx|Hx].
@@ -575,16 +540,14 @@ split.
   rewrite Hx.
   apply Rle_refl.
 - generalize (proj2 Hx). clear Hx.
-  case_eq (I.convert_bound xu).
+  case_eq (F.toX xu).
   intros _ _.
-  unfold I.convert_bound.
-  rewrite F.scale2_correct, Interval_generic_proof.Fscale2_correct ; try easy.
+  rewrite <- F.toF_correct, F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct ; try easy.
   2: apply F.even_radix_correct.
   destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
   now rewrite F.nan_correct.
   simpl in Hpi.
-  unfold T.I.convert_bound in Hpi.
-  destruct (FtoX (F.toF pi4u)) as [|rpi4] ; try easy.
+  destruct (F.toX pi4u) as [|rpi4] ; try easy.
   apply Rlt_le.
   apply Rlt_le_trans with (1 := proj2 (atan_bound x)).
   replace (PI / 2)%R with (PI / 4 * 2)%R by field.
@@ -594,14 +557,11 @@ split.
   generalize (T.atan_correct prec xu).
   destruct (T.atan_fast prec xu) as [|al au].
   intros _.
-  unfold I.convert_bound.
   simpl.
   now rewrite F.nan_correct.
   simpl.
-  unfold I.convert_bound in Hl.
   rewrite Hl.
-  unfold T.I.convert_bound, I.convert_bound.
-  destruct (FtoX (F.toF au)) as [|rau] ; try easy.
+  destruct (F.toX au) as [|rau] ; try easy.
   intros [_ H].
   apply Rle_trans with (2 := H).
   destruct Hx as [Hx|Hx].
@@ -632,20 +592,17 @@ split.
 clear Hxu.
 rewrite I.real_correct.
 I.xreal_tac xl.
-unfold I.convert_bound.
 rewrite F.zero_correct.
 simpl.
 apply Rlt_le.
 apply exp_pos.
 generalize (T.exp_fast_correct prec xl).
 destruct (T.exp_fast prec xl) as [|yl yu].
-unfold I.convert_bound, I.lower.
+unfold I.lower.
 now rewrite F.nan_correct.
-unfold I.convert_bound in X.
 rewrite X.
 intros (H, _).
 simpl.
-unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (1 := H).
 now apply Fcore_Raux.exp_le.
@@ -653,17 +610,14 @@ now apply Fcore_Raux.exp_le.
 clear Hxl.
 rewrite I.real_correct.
 I.xreal_tac xu.
-unfold I.convert_bound.
 now rewrite F.nan_correct.
 generalize (T.exp_fast_correct prec xu).
 destruct (T.exp_fast prec xu) as [|yl yu].
-unfold I.convert_bound, I.upper.
+unfold I.upper.
 now rewrite F.nan_correct.
-unfold I.convert_bound in X.
 rewrite X.
 intros (_, H).
 simpl.
-unfold T.I.convert_bound in H.
 I.xreal_tac2.
 apply Rle_trans with (2 := H).
 now apply Fcore_Raux.exp_le.
@@ -692,7 +646,6 @@ intros [Hl Hu].
 unfold ln.
 case_eq (F'.lt F.zero xl) ; intros Hlt ; try easy.
 apply F'.lt_correct in Hlt.
-unfold I.convert_bound, F'.toX in *.
 rewrite F.zero_correct in Hlt.
 simpl in Hlt.
 case is_positive_spec.
@@ -701,21 +654,18 @@ split.
 generalize (T.ln_fast_correct prec xl).
 case T.ln_fast.
 intros _.
-unfold I.convert_bound.
 simpl.
 now rewrite F.nan_correct.
 intros l u.
 simpl.
-case_eq (Xln (FtoX (F.toF xl))).
+case_eq (Xln (F.toX xl)).
 easy.
 intros lnx Hlnx.
-unfold T.I.convert_bound.
 intros [H _].
-unfold I.convert_bound.
-destruct (FtoX (F.toF l)) as [|lr].
+destruct (F.toX l) as [|lr].
 easy.
 apply Rle_trans with (1 := H).
-destruct (FtoX (F.toF xl)) as [|xlr].
+destruct (F.toX xl) as [|xlr].
 easy.
 revert Hlnx.
 simpl.
@@ -729,8 +679,7 @@ rewrite Hl.
 apply Rle_refl.
 easy.
 rewrite I.real_correct.
-unfold I.convert_bound.
-case_eq (FtoX (F.toF xu)).
+case_eq (F.toX xu).
 now rewrite F.nan_correct.
 intros xur Hxu.
 rewrite Hxu in Hu.
@@ -745,9 +694,8 @@ rewrite Hxu.
 simpl.
 case is_positive_spec.
 intros _.
-unfold T.I.convert_bound.
 intros [_ H].
-destruct (FtoX (F.toF u)) as [|ur].
+destruct (F.toX u) as [|ur].
 easy.
 apply Rle_trans with (2 := H).
 destruct Hu as [Hu|Hu].
@@ -756,7 +704,7 @@ rewrite Hu.
 apply Rle_refl.
 easy.
 intros Hx.
-destruct (FtoX (F.toF xl)) as [|xlr].
+destruct (F.toX xl) as [|xlr].
 easy.
 elim Rle_not_lt with (1 := Hx).
 now apply Rlt_le_trans with xlr.

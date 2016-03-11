@@ -18,12 +18,13 @@ Require Import interval_compl.
 Module ExtraFloats (F : FloatOps with Definition even_radix := true).
 Module I := FloatInterval F.
 
-Definition toR x := proj_val (FtoX (F.toF x)).
+Definition toR x := proj_val (F.toX x).
 
 Lemma F_realP (fl : F.type) :
- reflect (I.convert_bound fl = Xreal (toR fl)) (F.real fl).
+ reflect (F.toX fl = Xreal (toR fl)) (F.real fl).
 Proof.
 have := (F.real_correct fl); rewrite /I.convert_bound /toR.
+rewrite <- F.toF_correct.
 by case: (F.toF fl)=> [||y z t] ->; constructor.
 Qed.
 
@@ -34,28 +35,28 @@ Definition notFnan (f : F.type) :=
   end = true.
 
 Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound a).
+  toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX a).
 Proof.
-move/F_realP => hra  hleab; rewrite hra; apply: le_contains.
+move/F_realP => hra hleab; rewrite hra; apply: le_contains.
   by rewrite hra; apply: le_lower_refl.
 case Hb : (F.real b).
 by move/F_realP : Hb ->.
 move: (F.real_correct b); case H: (F.toF b); rewrite Hb //.
 move => _.
-have HXnan : I.convert_bound b = Xnan by rewrite /I.convert_bound H.
+have HXnan : F.toX b = Xnan by rewrite -F.toF_correct H.
 by rewrite HXnan.
 Qed.
 
 Lemma contains_convert_bnd_r (a b : F.type) : F.real b ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (I.convert_bound b).
+  toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX b).
 Proof.
-move/F_realP =>  hrb hleab; rewrite hrb; apply: le_contains.
+move/F_realP => hrb hleab; rewrite hrb; apply: le_contains.
 case Ha : (F.real a).
 move/F_realP : Ha ->.
   rewrite /le_lower /=; exact: Ropp_le_contravar.
 move: (F.real_correct a); case H : (F.toF a); rewrite Ha // .
 move => _.
-have -> : I.convert_bound a = Xnan by rewrite /I.convert_bound H.
+have -> : F.toX a = Xnan by rewrite -F.toF_correct H.
 done.
 rewrite hrb; exact: le_upper_refl.
 Qed.
@@ -85,19 +86,19 @@ have non_empty_iab : exists x : ExtendedR, contains (I.convert iab) x.
 have [isr_xm xm_in_iab {non_empty_iab}] := I.midpoint_correct iab non_empty_iab.
 rewrite -/(toR m) in isr_xm. (* I.midpoint_correct is ill stated *)
 have [le_xa_xm le_xm_xb {xm_in_iab}] := contains_le xa xb _ xm_in_iab.
-split; last by move: le_xm_xb; rewrite isr_xm /xb (F_realP _ hrb).
+split; last by move: le_xm_xb; rewrite isr_xm /xb /I.convert_bound (F_realP _ hrb).
 move: le_xa_xm.
-by rewrite isr_xm /xa (F_realP _ hra) /le_lower /=; exact: Ropp_le_cancel.
+by rewrite isr_xm /xa /I.convert_bound (F_realP _ hra) /le_lower /=; exact: Ropp_le_cancel.
 Qed.
 
 Definition thin (f : F.type) : I.type :=
   if F.real f then I.bnd f f else I.nai.
 
 Lemma thin_correct (fl : F.type) :
- contains (I.convert (thin fl)) (I.convert_bound fl).
+ contains (I.convert (thin fl)) (F.toX fl).
 Proof.
-rewrite /thin I.real_correct.
-case ex: (I.convert_bound fl) => [|r] //=.
+rewrite /thin I.real_correct /I.convert_bound.
+case ex: (F.toX fl) => [|r] //=.
 rewrite ex; split; exact: Rle_refl.
 Qed.
 
@@ -383,6 +384,7 @@ Proof.
 intros a Ha.
 generalize (F.real_correct a).
 rewrite Ha /toR.
+rewrite <- F.toF_correct.
 now destruct F.toF.
 Qed.
 
@@ -419,8 +421,7 @@ Lemma Fcmp_geP u0 l1 :
 Proof.
   move => /F_realP Hrealu0 /F_realP Hreall1.
   rewrite F.cmp_correct Fcmp_correct /Xcmp.
-  rewrite /I.convert_bound in Hrealu0.
-  rewrite /I.convert_bound in Hreall1.
+  rewrite 2!F.toF_correct.
   rewrite Hreall1.
   rewrite Hrealu0.
   case Hcomp : (Rcompare (toR u0) (toR l1)) => // .
@@ -438,8 +439,6 @@ Lemma Fle_Rle u0 l1 :
 Proof.
 move => /F_realP Hrealu0 /F_realP Hreall1.
 move: (F'.le_correct u0 l1).
-have -> : F'.toX u0 = I.convert_bound u0 by [].
-have -> : F'.toX l1 = I.convert_bound l1 by [].
 by rewrite Hreall1 Hrealu0.
 Qed.
 
@@ -454,17 +453,13 @@ move: Hle; rewrite /F'.le.
 case Hcmp: (F.cmp a b) => // _.
 - move => /F_realP Hreala /F_realP Hrealb.
   move: Hcmp.
-  rewrite F.cmp_correct Fcmp_correct /Xcmp.
-  rewrite /I.convert_bound in Hreala.
-  rewrite /I.convert_bound in Hrealb.
+  rewrite F.cmp_correct Fcmp_correct /Xcmp 2!F.toF_correct.
   rewrite Hreala Hrealb.
   case Hcomp : (Rcompare (toR a) (toR b)) => // _ Hab.
   by have Habs := (Rcompare_not_Gt (toR a) (toR b) Hab).
 - move => /F_realP Hreala /F_realP Hrealb.
   move: Hcmp.
-  rewrite F.cmp_correct Fcmp_correct /Xcmp.
-  rewrite /I.convert_bound in Hreala.
-  rewrite /I.convert_bound in Hrealb.
+  rewrite F.cmp_correct Fcmp_correct /Xcmp 2!F.toF_correct.
   rewrite Hreala Hrealb.
   by case: (Rcompare (toR a) (toR b)).
 Qed.
@@ -480,14 +475,13 @@ apply: Rle_Fle => // .
 by apply: Req_le_sym.
 Qed.
 
-
 Lemma Fle_rev a b :
   F.real a -> F.real b -> F'.le a b = false -> F'.le b a = true.
 Proof.
 move => Hareal Hbreal Hfalse.
-rewrite /F'.le /F'.le F.cmp_correct Fcmp_correct.
+rewrite /F'.le /F'.le F.cmp_correct Fcmp_correct 2!F.toF_correct.
 move/F_realP : Hareal. move /F_realP : Hbreal.
-rewrite /I.convert_bound => Hbreal Hareal.
+move => Hbreal Hareal.
 rewrite Hareal Hbreal /Xcmp.
 case Hcomp : (Rcompare (toR b) (toR a)) => // .
 have Hleba := Rlt_le _ _ (Rcompare_Gt_inv (toR b) (toR a) Hcomp).
@@ -579,10 +573,11 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
         * by move : hx => [] _ Hltxb; apply: Rlt_le.
 Qed.
 
-Lemma toX_toF_Freal a : FtoX (F.toF a) <> Xnan -> F.real a.
+Lemma toX_toF_Freal a : F.toX a <> Xnan -> F.real a.
 Proof.
 move: (F.real_correct a).
-  by case: (F.toF a).
+rewrite -F.toF_correct.
+by case: (F.toF a).
 Qed.
 
 Lemma integral_epsilon_correct (depth : nat) (a b : R) (ia ib : I.type) epsilon :
@@ -598,25 +593,24 @@ case Ha : ia Hconta => // [la ua] Hconta.
 case Hb : ib Hcontb => // [lb ub] Hcontb.
 rewrite /integral_intBounds_epsilon.
 case Hle: F'.le. 2: easy.
-assert (FtoX (F.toF ua) <> Xnan /\ FtoX (F.toF lb) <> Xnan /\
-  proj_val (FtoX (F.toF ua)) <= proj_val (FtoX (F.toF lb))) as [Hua [Hlb Hualb]].
+assert (F.toX ua <> Xnan /\ F.toX lb <> Xnan /\
+  proj_val (F.toX ua) <= proj_val (F.toX lb)) as [Hua [Hlb Hualb]].
   generalize (F'.le_correct ua lb).
   destruct F'.le. 2: easy.
-  unfold F'.toX.
   intros H.
   specialize (H eq_refl).
-  destruct FtoX. easy.
-  destruct FtoX. easy.
+  destruct F.toX. easy.
+  destruct F.toX. easy.
   split. easy.
   split ; easy.
 have Haua: (a <= toR ua).
   generalize (proj2 Hconta).
   unfold I.convert_bound, toR.
-  by destruct FtoX.
+  by destruct F.toX.
 have Hlbb : (toR lb <= b).
   generalize (proj1 Hcontb).
   unfold I.convert_bound, toR.
-  by destruct (FtoX (F.toF lb)).
+  by destruct (F.toX lb).
 have Hfint_a_lb : ex_RInt f a (toR lb).
   apply: (ex_RInt_Chasles_1 _ _ _ b) HFInt.
   split => //.
@@ -639,14 +633,14 @@ have -> : Xreal (RInt f a b) =
      * apply: all_integrals_correct_leq => // .
        generalize (thin_correct ua).
        unfold I.convert_bound, toR.
-       by destruct FtoX.
+       by destruct F.toX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
      * apply: integral_float_absolute_signed_correct => // ; apply: toX_toF_Freal => // .
    + apply: (all_integrals_correct_leq _ _ (toR lb) b) => //.
      generalize (thin_correct lb).
      unfold I.convert_bound, toR.
-     by destruct (FtoX (F.toF lb)).
+     by destruct (F.toX lb).
      apply: (ex_RInt_Chasles_2 _ a) => //.
      split => //.
      now apply Rle_trans with (1 := Haua).

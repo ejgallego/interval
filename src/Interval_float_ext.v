@@ -22,10 +22,9 @@ Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_float_sig.
 Require Import Interval_generic.
+Require Import Interval_generic_proof.
 
 Module FloatExt (F : FloatOps).
-
-Definition toX x := FtoX (F.toF x).
 
 Definition le x y :=
   match F.cmp x y with
@@ -36,16 +35,16 @@ Definition le x y :=
 Lemma le_correct :
   forall x y,
   le x y = true ->
-  match toX x, toX y with
+  match F.toX x, F.toX y with
   | Xreal xr, Xreal yr => (xr <= yr)%R
   | _, _ => False
   end.
 Proof.
 intros x y.
-unfold le, toX.
-rewrite F.cmp_correct, Interval_generic_proof.Fcmp_correct.
-destruct FtoX as [|xr]. easy.
-destruct FtoX as [|yr]. easy.
+unfold le.
+rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct.
+destruct F.toX as [|xr]. easy.
+destruct F.toX as [|yr]. easy.
 simpl.
 now case Fcore_Raux.Rcompare_spec ; auto with real.
 Qed.
@@ -59,16 +58,16 @@ Definition lt x y :=
 Lemma lt_correct :
   forall x y,
   lt x y = true ->
-  match toX x, toX y with
+  match F.toX x, F.toX y with
   | Xreal xr, Xreal yr => (xr < yr)%R
   | _, _ => False
   end.
 Proof.
 intros x y.
-unfold lt, toX.
-rewrite F.cmp_correct, Interval_generic_proof.Fcmp_correct.
-destruct FtoX as [|xr]. easy.
-destruct FtoX as [|yr]. easy.
+unfold lt.
+rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct.
+destruct F.toX as [|xr]. easy.
+destruct F.toX as [|yr]. easy.
 simpl.
 now case Fcore_Raux.Rcompare_spec.
 Qed.

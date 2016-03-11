@@ -50,11 +50,11 @@ Definition type := f_interval F.type.
 Definition bound_type := F.type.
 Definition precision := F.precision.
 
-Definition convert_bound x := FtoX (F.toF x).
+Definition convert_bound := F.toX.
 Definition convert xi :=
   match xi with
   | Inan => Interval_interval.Inan
-  | Ibnd l u => Interval_interval.Ibnd (convert_bound l) (convert_bound u)
+  | Ibnd l u => Interval_interval.Ibnd (F.toX l) (F.toX u)
   end.
 
 Definition nai := @Inan F.type.
@@ -63,18 +63,20 @@ Definition zero := Ibnd F.zero F.zero.
 
 Lemma bnd_correct :
   forall l u,
-  convert (bnd l u) = Interval_interval.Ibnd (convert_bound l) (convert_bound u).
+  convert (bnd l u) = Interval_interval.Ibnd (F.toX l) (F.toX u).
+Proof.
 split.
 Qed.
 
 Lemma nai_correct :
   convert nai = Interval_interval.Inan.
+Proof.
 split.
 Qed.
 
 Lemma zero_correct :
   convert zero = Interval_interval.Ibnd (Xreal 0) (Xreal 0).
-Proof. now simpl; unfold convert_bound; rewrite F.zero_correct. Qed.
+Proof. now simpl; rewrite F.zero_correct. Qed.
 
 Definition bounded xi :=
   match xi with
@@ -426,18 +428,19 @@ Definition power_int prec xi n :=
   end.
 
 Ltac convert_clean :=
+  unfold convert_bound in * ;
   repeat
   match goal with
   | H: context [FtoX (F.toF ?v)] |- _
-    => change (FtoX (F.toF v)) with (convert_bound v) in H
+    => rewrite !F.toF_correct in H
   | |- context [FtoX (F.toF ?v)]
-    => change (FtoX (F.toF v)) with (convert_bound v)
+    => rewrite !F.toF_correct
   end.
 
 Ltac xreal_tac v :=
   convert_clean ;
   let X := fresh "X" in
-  case_eq (convert_bound v) ;
+  case_eq (F.toX v) ;
   [ intros X ; try exact I
   | let r := fresh "r" in
     intros r X ; try rewrite X in * ].
@@ -445,9 +448,9 @@ Ltac xreal_tac v :=
 Ltac xreal_tac2 :=
   convert_clean ;
   match goal with
-  | H: convert_bound ?v = Xreal _ |- context [convert_bound ?v] =>
+  | H: F.toX ?v = Xreal _ |- context [F.toX ?v] =>
     rewrite H
-  | |- context [convert_bound ?v] => xreal_tac v
+  | |- context [F.toX ?v] => xreal_tac v
   end.
 
 Ltac bound_tac :=
@@ -460,40 +463,41 @@ Ltac bound_tac :=
   end.
 
 Lemma lower_correct :
-  forall xi : type, convert_bound (lower xi) = Xlower (convert xi).
+  forall xi : type, F.toX (lower xi) = Xlower (convert xi).
 Proof.
 intros [|xl xu].
 simpl.
-unfold convert_bound.
 now rewrite F.nan_correct.
 easy.
 Qed.
 
 Lemma upper_correct :
-  forall xi : type, convert_bound (upper xi) = Xupper (convert xi).
+  forall xi : type, F.toX (upper xi) = Xupper (convert xi).
 Proof.
 intros [|xl xu].
 simpl.
-unfold convert_bound.
 now rewrite F.nan_correct.
 easy.
 Qed.
 
 Lemma real_correct :
   forall (A : Type) x (y1 y2 : A),
-  (if F.real x then y1 else y2) = match convert_bound x with Xnan => y2 | _ => y1 end.
+  (if F.real x then y1 else y2) = match F.toX x with Xnan => y2 | _ => y1 end.
+Proof.
 intros.
 generalize (F.real_correct x).
-unfold convert_bound.
+rewrite <- F.toF_correct.
 case (F.toF x) ; intros ; rewrite H ; apply refl_equal.
 Qed.
 
 Lemma Fcmp_le_mixed :
   forall xl yu,
-  F.cmp xl yu <> Xgt -> le_mixed (convert_bound xl) (convert_bound yu).
+  F.cmp xl yu <> Xgt -> le_mixed (F.toX xl) (F.toX yu).
+Proof.
 intros.
 rewrite F.cmp_correct in H.
 rewrite Fcmp_correct in H.
+rewrite 2!F.toF_correct in H.
 xreal_tac yu.
 xreal_tac xl.
 refine (Rnot_lt_le _ _ _).
@@ -506,6 +510,7 @@ Qed.
 Theorem subset_correct :
   forall xi yi : type,
   subset xi yi = true -> Interval_interval.subset (convert xi) (convert yi).
+Proof.
 intros xi yi.
 case xi ; case yi ; try (simpl ; intros ; try exact I ; discriminate).
 intros yl yu xl xu H.
@@ -513,16 +518,15 @@ destruct (andb_prop _ _ H) as (H1, H2).
 split.
 (* lower bound *)
 generalize H1. clear.
-rewrite F.cmp_correct.
-rewrite Fcmp_correct.
-unfold le_lower, le_upper, convert_bound.
-case (FtoX (F.toF xl)) ; simpl.
-unfold negb. rewrite real_correct.
-intros. now xreal_tac2.
-intros xrl.
-xreal_tac2.
-split.
-destruct (Rcompare_spec xrl r) ; intros ; simpl.
+rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+unfold le_lower, le_upper, negb.
+rewrite real_correct.
+destruct (F.toX yl) as [|ylr].
+easy.
+destruct (F.toX xl) as [|xlr].
+easy.
+simpl.
+destruct (Rcompare_spec xlr ylr) ; intros ; simpl.
 discriminate H1.
 rewrite H.
 apply Rle_refl.
@@ -530,19 +534,18 @@ apply Ropp_le_contravar.
 now left.
 (* upper bound *)
 generalize H2. clear.
-rewrite F.cmp_correct.
-rewrite Fcmp_correct.
-unfold le_upper, convert_bound.
-case (FtoX (F.toF xu)) ; simpl.
-unfold negb. rewrite real_correct.
-intros. now xreal_tac2.
-intros xru.
-xreal_tac2.
-split.
-destruct (Rcompare_spec xru r) ; intros.
+rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+unfold le_upper, negb.
+rewrite real_correct.
+destruct (F.toX yu) as [|yur].
+easy.
+destruct (F.toX xu) as [|xur].
+easy.
+simpl.
+destruct (Rcompare_spec xur yur) ; intros.
 now left.
 now right.
-now right.
+easy.
 Qed.
 
 Lemma Xmin_Rle : forall a b c,
@@ -571,6 +574,7 @@ pose proof F.min_correct xl yl as Hmin.
 pose proof F.max_correct xu yu as Hmax.
 rewrite Fmin_correct in Hmin.
 rewrite Fmax_correct in Hmax.
+rewrite <- 4!F.toF_correct.
 intros [(Hx1,Hx2)|(Hx1,Hx2)]; split;
   xreal_tac2;
   convert_clean;
@@ -597,6 +601,7 @@ Theorem meet_correct :
   forall xi yi v,
   contains (convert xi) v -> contains (convert yi) v ->
   contains (convert (meet xi yi)) v.
+Proof.
 intros [|xl xu] [|yl yu] [|v] ; simpl ; intros Hx Hy ; trivial.
 destruct Hx as (Hx1, Hx2).
 destruct Hy as (Hy1, Hy2).
@@ -608,9 +613,8 @@ exact Hy1.
 rewrite real_correct.
 xreal_tac yl.
 now rewrite X.
-unfold convert_bound in *.
-rewrite F.max_correct.
-rewrite Fmax_correct.
+rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
+convert_clean.
 rewrite X, X0.
 simpl.
 now apply Rmax_best.
@@ -621,30 +625,30 @@ exact Hy2.
 rewrite real_correct.
 xreal_tac yu.
 now rewrite X.
-unfold convert_bound in *.
-rewrite F.min_correct.
-rewrite Fmin_correct.
+rewrite <- F.toF_correct, F.min_correct, Fmin_correct.
+convert_clean.
 rewrite X, X0.
 simpl.
 now apply Rmin_best.
 Qed.
 
 Definition bounded_prop xi :=
-  convert xi = Interval_interval.Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
+  convert xi = Interval_interval.Ibnd (F.toX (lower xi)) (F.toX (upper xi)).
 
 Theorem lower_bounded_correct :
   forall xi,
   lower_bounded xi = true ->
-  convert_bound (lower xi) = Xreal (proj_val (convert_bound (lower xi))) /\
+  F.toX (lower xi) = Xreal (proj_val (F.toX (lower xi))) /\
   bounded_prop xi.
+Proof.
 unfold lower_bounded.
 intros [|xl xu] H.
 discriminate H.
 generalize (F.real_correct xl).
 rewrite H.
 clear H.
-unfold convert_bound.
 simpl.
+rewrite <- F.toF_correct.
 case (F.toF xl).
 intro H.
 discriminate H.
@@ -655,16 +659,17 @@ Qed.
 Theorem upper_bounded_correct :
   forall xi,
   upper_bounded xi = true ->
-  convert_bound (upper xi) = Xreal (proj_val (convert_bound (upper xi))) /\
+  F.toX (upper xi) = Xreal (proj_val (F.toX (upper xi))) /\
   bounded_prop xi.
+Proof.
 unfold upper_bounded.
 intros [|xl xu] H.
 discriminate H.
 generalize (F.real_correct xu).
 rewrite H.
 clear H.
-unfold convert_bound.
 simpl.
+rewrite <- F.toF_correct.
 case (F.toF xu).
 intro H.
 discriminate H.
@@ -676,6 +681,7 @@ Theorem bounded_correct :
   forall xi,
   bounded xi = true ->
   lower_bounded xi = true /\ upper_bounded xi = true.
+Proof.
 unfold bounded.
 intros [|xl xu] H.
 discriminate H.
@@ -687,10 +693,10 @@ Theorem lower_extent_correct :
   contains (convert xi) (Xreal y) ->
   (x <= y)%R ->
   contains (convert (lower_extent xi)) (Xreal x).
+Proof.
 intros [|xl xu] x y Hy Hx.
 exact I.
 split.
-unfold convert_bound.
 rewrite F.nan_correct.
 exact I.
 simpl in Hy.
@@ -704,6 +710,7 @@ Theorem upper_extent_correct :
   contains (convert xi) (Xreal y) ->
   (y <= x)%R ->
   contains (convert (upper_extent xi)) (Xreal x).
+Proof.
 intros [|xl xu] x y Hy Hx.
 exact I.
 split.
@@ -711,7 +718,6 @@ simpl in Hy.
 xreal_tac xl.
 apply Rle_trans with (2 := Hx).
 exact (proj1 Hy).
-unfold convert_bound.
 rewrite F.nan_correct.
 exact I.
 Qed.
@@ -719,9 +725,9 @@ Qed.
 Theorem whole_correct :
   forall x,
   contains (convert whole) (Xreal x).
+Proof.
 intros x.
 simpl.
-unfold convert_bound.
 rewrite F.nan_correct.
 split ; split.
 Qed.
@@ -737,25 +743,83 @@ Lemma sign_large_correct_ :
     match FtoX (F.toF xl) with Xreal rl => (rl <= 0)%R | _=> True end /\
     match FtoX (F.toF xu) with Xreal ru => (0 <= ru)%R | _=> True end
   end.
+Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_large_.
-do 2 rewrite F.cmp_correct.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct.
+convert_clean.
 rewrite F.zero_correct.
-generalize Hxl Hxu.
-clear.
-unfold convert_bound.
-case (F.toF xl) ; [ idtac | idtac | intros sl ml el ; case sl ] ;
-  ( case (F.toF xu) ; [ idtac | idtac | intros su mu eu ; case su ] ) ; simpl ;
-  intros ; repeat split ; try exact I ; try assumption ;
-  try refl_exists ; try apply Rle_refl ;
-  try ( try apply Rle_trans with (2 := Hxl) ; apply Rlt_le ; apply FtoR_Rpos ) ;
-  try ( try apply Rle_trans with (1 := Hxu) ; apply Rlt_le ; apply FtoR_Rneg ).
-apply Rle_antisym ; assumption.
-apply Rle_trans with x ; assumption.
-apply Rle_trans with (1 := Hxl).
-apply Rle_trans with (1 := Hxu).
-apply Rlt_le.
-apply FtoR_Rneg.
+destruct (F.toX xu) as [|xur].
+simpl.
+destruct (F.toX xl) as [|xlr].
+easy.
+simpl.
+case Rcompare_spec ; intro Hl ; repeat split.
+now apply Rlt_le.
+now rewrite Hl in Hxl.
+rewrite Hl in Hxl |- *.
+eexists ; repeat split.
+apply Rle_refl.
+now apply Rlt_le, Rlt_le_trans with (2 := Hxl).
+eexists ; repeat split.
+now apply Rlt_le.
+simpl.
+case Rcompare_spec.
+intros Hu.
+replace (match Xcmp (F.toX xl) (Xreal 0) with Xeq => Xlt | _ => Xlt end) with Xlt by now case Xcmp.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+now apply Rlt_le, Rle_lt_trans with (1 := Hxu).
+eexists ; repeat split.
+now apply Rlt_le.
+repeat split.
+now apply Rlt_le, Rle_lt_trans with (1 := Hxu).
+now apply Rlt_le, Rle_lt_trans with (2 := Hu), Rle_trans with x.
+eexists ; repeat split.
+now apply Rlt_le.
+intros ->.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+easy.
+eexists ; repeat split.
+apply Rle_refl.
+simpl.
+case Rcompare_spec.
+intros Hl.
+repeat split.
+easy.
+now apply Rlt_le.
+eexists ; repeat split.
+apply Rle_refl.
+intros ->.
+repeat split.
+now apply Rle_antisym.
+intros Hl.
+repeat split.
+easy.
+now apply Rle_trans with (1 := Hxl).
+eexists ; repeat split.
+apply Rle_refl.
+intros Hu.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+now apply Rlt_le.
+simpl.
+case Rcompare_spec.
+intros Hl.
+now split ; apply Rlt_le.
+intros ->.
+repeat split.
+easy.
+now apply Rlt_le.
+eexists ; repeat split.
+apply Rle_refl.
+intros Hl.
+repeat split.
+now apply Rlt_le, Rlt_le_trans with (2 := Hxl).
+now apply Rlt_le.
+eexists ; repeat split.
+now apply Rlt_le.
 Qed.
 
 Theorem sign_large_correct :
@@ -766,6 +830,7 @@ Theorem sign_large_correct :
   | Xgt => forall x, contains (convert xi) x -> x = Xreal (proj_val x) /\ Rle 0 (proj_val x)
   | Xund => True
   end.
+Proof.
 intros [|xl xu].
 exact I.
 generalize (sign_large_correct_ xl xu).
@@ -782,36 +847,75 @@ Lemma sign_strict_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_strict_ xl xu with
-  | Xeq => x = R0 /\ convert_bound xl = Xreal R0 /\ convert_bound xu = Xreal R0
-  | Xlt => (x < 0)%R /\ (match convert_bound xl with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, convert_bound xu = Xreal ru /\ (ru < 0)%R)
-  | Xgt => (0 < x)%R /\ (match convert_bound xu with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, convert_bound xl = Xreal rl /\ (0 < rl)%R)
+  | Xeq => x = R0 /\ F.toX xl = Xreal R0 /\ F.toX xu = Xreal R0
+  | Xlt => (x < 0)%R /\ (match F.toX xl with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, F.toX xu = Xreal ru /\ (ru < 0)%R)
+  | Xgt => (0 < x)%R /\ (match F.toX xu with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, F.toX xl = Xreal rl /\ (0 < rl)%R)
   | Xund =>
-    match convert_bound xl with Xreal rl => (rl <= 0)%R | _=> True end /\
-    match convert_bound xu with Xreal ru => (0 <= ru)%R | _=> True end
+    match F.toX xl with Xreal rl => (rl <= 0)%R | _=> True end /\
+    match F.toX xu with Xreal ru => (0 <= ru)%R | _=> True end
   end.
+Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_strict_.
-do 2 rewrite F.cmp_correct.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct.
+convert_clean.
 rewrite F.zero_correct.
-generalize Hxl Hxu.
-clear.
-unfold convert_bound.
-case_eq (F.toF xl) ; [ idtac | idtac | intros sl ml el ; case sl ] ;
-  ( case_eq (F.toF xu) ; [ idtac | idtac | intros su mu eu ; case su ] ) ; simpl ;
-  intros ; repeat split ; try exact I ; try assumption ;
-  try refl_exists ; try apply Rle_refl ;
-  try ( try apply Rlt_le_trans with (2 := Hxl) ; try apply Rlt_le ; apply FtoR_Rpos ) ;
-  try ( try apply Rle_lt_trans with (1 := Hxu) ; try apply Rlt_le ; apply FtoR_Rneg ).
-apply Rle_antisym ; assumption.
-apply Rle_lt_trans with (1 := Hxl).
-apply Rle_lt_trans with (1 := Hxu).
-apply FtoR_Rneg.
-apply Rlt_le_trans with (2 := Hxu).
-apply Rlt_le_trans with (2 := Hxl).
-apply FtoR_Rpos.
-apply Rle_lt_trans with (1 := Hxl).
-apply Rle_lt_trans with (1 := Hxu).
-apply FtoR_Rneg.
+destruct (F.toX xu) as [|xur].
+simpl.
+destruct (F.toX xl) as [|xlr].
+easy.
+simpl.
+case Rcompare_spec ; intro Hl ; repeat split.
+now apply Rlt_le.
+rewrite Hl.
+apply Rle_refl.
+now apply Rlt_le_trans with (2 := Hxl).
+now eexists ; repeat split.
+simpl.
+case Rcompare_spec.
+intros Hu.
+replace (match Xcmp (F.toX xl) (Xreal 0) with Xeq => Xlt | _ => Xlt end) with Xlt by now case Xcmp.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+now apply Rle_lt_trans with (1 := Hxu).
+now eexists ; repeat split.
+repeat split.
+now apply Rle_lt_trans with (1 := Hxu).
+now apply Rle_lt_trans with (2 := Hu), Rle_trans with x.
+now eexists ; repeat split.
+intros ->.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+apply Rle_refl.
+simpl.
+case Rcompare_spec.
+intros Hl.
+split.
+now apply Rlt_le.
+apply Rle_refl.
+intros ->.
+repeat split.
+now apply Rle_antisym.
+intros Hl.
+elim Rlt_not_le with (1 := Hl).
+now apply Rle_trans with (1 := Hxl).
+intros Hu.
+destruct (F.toX xl) as [|xlr].
+repeat split.
+now apply Rlt_le.
+simpl.
+case Rcompare_spec.
+intros Hl.
+now split ; apply Rlt_le.
+intros ->.
+split.
+apply Rle_refl.
+now apply Rlt_le.
+intros Hl.
+repeat split.
+now apply Rlt_le_trans with (2 := Hxl).
+easy.
+now eexists ; repeat split.
 Qed.
 
 Theorem sign_strict_correct :
@@ -838,9 +942,9 @@ Qed.
 Theorem fromZ_correct :
   forall v,
   contains (convert (fromZ v)) (Xreal (Z2R v)).
+Proof.
 intros.
 simpl.
-unfold convert_bound.
 rewrite F.fromZ_correct.
 split ; apply Rle_refl.
 Qed.
@@ -848,12 +952,12 @@ Qed.
 Theorem midpoint_correct :
   forall xi,
   (exists x, contains (convert xi) x) ->
-  convert_bound (midpoint xi) = Xreal (proj_val (convert_bound (midpoint xi))) /\
-  contains (convert xi) (convert_bound (midpoint xi)).
+  F.toX (midpoint xi) = Xreal (proj_val (F.toX (midpoint xi))) /\
+  contains (convert xi) (F.toX (midpoint xi)).
+Proof.
 intros [|xl xu].
 intros _.
 refine (conj _ I).
-unfold convert_bound.
 simpl.
 now rewrite F.zero_correct.
 intros (x, Hx).
@@ -866,16 +970,14 @@ rewrite <- bpow_powerRZ.
 now apply (bpow_le F.radix 0).
 (* . *)
 simpl.
-repeat rewrite F.cmp_correct.
-repeat rewrite Fcmp_correct.
+repeat rewrite F.cmp_correct, Fcmp_correct.
 xreal_tac xl ; xreal_tac xu ; simpl ;
-  change (convert_bound F.zero) with (FtoX (F.toF F.zero)) ;
   rewrite F.zero_correct ; simpl.
 repeat split.
 (* infinite lower *)
-destruct (Rcompare_spec r 0) ; unfold convert_bound.
-rewrite F.scale_correct, Fscale_correct.
-unfold convert_bound in X0.
+destruct (Rcompare_spec r 0).
+rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
+convert_clean.
 rewrite X0.
 simpl.
 repeat split.
@@ -891,7 +993,7 @@ rewrite F.zero_correct.
 repeat split.
 exact (Rlt_le _ _ H).
 (* infinite upper *)
-destruct (Rcompare_spec r 0) ; unfold convert_bound.
+destruct (Rcompare_spec r 0).
 rewrite F.zero_correct.
 repeat split.
 exact (Rlt_le _ _ H).
@@ -899,8 +1001,8 @@ rewrite H.
 rewrite F.fromZ_correct.
 repeat split.
 now apply (Z2R_le 0 1).
-rewrite F.scale_correct, Fscale_correct.
-unfold convert_bound in X.
+rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
+convert_clean.
 rewrite X.
 simpl.
 repeat split.
@@ -918,7 +1020,7 @@ rewrite F.scale2_correct. 2: apply refl_equal.
 rewrite Fscale2_correct. 2: apply F.even_radix_correct.
 rewrite F.add_exact_correct.
 rewrite Fadd_exact_correct.
-unfold convert_bound in *.
+convert_clean.
 rewrite X, X0.
 simpl.
 pattern r at 1 ; rewrite <- eps2.
@@ -934,12 +1036,11 @@ apply Rmult_le_compat_r.
 auto with real.
 eapply Rle_trans ; eassumption.
 (* finite bounds 2 *)
-case_eq (FtoX (F.toF (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))))) ; intros.
-rewrite H0 in H.
-elim H.
+convert_clean.
+case_eq (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) ; intros.
+now rewrite H0 in H.
 destruct (Rcompare_spec r 0) as [H1|H1|H1] ;
   destruct (Rcompare_spec r0 0) as [H2|H2|H2] ;
-  unfold convert_bound ;
   try (
     refine (conj _ H) ;
     rewrite H0 ;
@@ -952,6 +1053,7 @@ Qed.
 
 Theorem mask_correct :
   extension_2 Xmask mask.
+Proof.
 now intros xi [|yl yu] x [|y] Hx Hy.
 Qed.
 
@@ -967,16 +1069,17 @@ Definition propagate_r fi :=
 
 Theorem neg_correct :
   extension Xneg neg.
+Proof.
 intros [ | xl xu] [ | x] ; simpl ; trivial.
 intros (Hxl, Hxu).
-unfold convert_bound.
-split ; rewrite F.neg_correct ; rewrite Fneg_correct ;
+split ; rewrite <- F.toF_correct, F.neg_correct, Fneg_correct ;
   unfold Xneg ; [ xreal_tac xu | xreal_tac xl ] ;
   apply Ropp_le_contravar ; assumption.
 Qed.
 
 Theorem abs_correct :
   extension Xabs abs.
+Proof.
 intros [ | xl xu] [ | x] Hx ; trivial ; [ elim Hx | idtac ].
 simpl.
 generalize (sign_large_correct_ _ _ _ Hx).
@@ -985,7 +1088,6 @@ case (sign_large_ xl xu) ; intros.
 rewrite (proj1 H).
 rewrite Rabs_R0.
 simpl.
-unfold convert_bound.
 rewrite F.zero_correct.
 split ; exact (Rle_refl R0).
 (* negative *)
@@ -997,16 +1099,14 @@ exact Hx.
 (* both *)
 clear H.
 simpl.
-unfold convert_bound.
 rewrite F.zero_correct.
 split.
 exact (Rabs_pos x).
 (* - upper *)
-rewrite F.max_correct.
-rewrite Fmax_correct.
+rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
 rewrite F.neg_correct.
 rewrite Fneg_correct.
-unfold contains, convert, convert_bound in Hx.
+unfold contains, convert in Hx.
 destruct Hx as (Hxl, Hxu).
 do 2 xreal_tac2.
 simpl.
@@ -1022,7 +1122,7 @@ Qed.
 
 Theorem abs_ge_0 :
   forall xi, convert xi <> Interval_interval.Inan ->
-  le_lower' (Xreal 0) (FtoX (F.toF (lower (abs xi)))).
+  le_lower' (Xreal 0) (F.toX (lower (abs xi))).
 Proof.
 intros [|xl xu].
 intros H.
@@ -1030,8 +1130,8 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct, F.zero_correct.
-case_eq (FtoX (F.toF xl)) ; case_eq (FtoX (F.toF xu)).
+rewrite 2!F.cmp_correct, 2!Fcmp_correct, 3!F.toF_correct, F.zero_correct.
+case_eq (F.toX xl) ; case_eq (F.toX xu).
 simpl.
 intros _ _.
 rewrite F.zero_correct.
@@ -1039,12 +1139,12 @@ apply Rle_refl.
 simpl.
 intros ru Hu _.
 case Rcompare_spec ; simpl ; intros H.
-rewrite F.neg_correct, Fneg_correct, Hu.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct, Hu.
 simpl.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
-rewrite F.neg_correct, Fneg_correct, Hu.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct, Hu.
 rewrite H.
 simpl.
 rewrite Ropp_0.
@@ -1064,8 +1164,9 @@ intros ru Hu rl Hl.
 simpl.
 case Rcompare_spec ; simpl ; intros H1 ;
   case Rcompare_spec ; simpl ; intros H2 ;
-    try rewrite F.neg_correct, Fneg_correct ;
+    try rewrite <- F.toF_correct, F.neg_correct, Fneg_correct ;
     try rewrite F.zero_correct ;
+    try rewrite F.toF_correct ;
     try apply Rle_refl.
 rewrite <- Ropp_0, Hu.
 apply Ropp_le_contravar.
@@ -1091,7 +1192,7 @@ now apply Rlt_le.
 Qed.
 
 Theorem abs_ge_0' :
-  forall xi, (0 <= proj_val (FtoX (F.toF (lower (abs xi)))))%R.
+  forall xi, (0 <= proj_val (F.toX (lower (abs xi))))%R.
 Proof.
 intros [|xl xu].
 simpl.
@@ -1100,21 +1201,22 @@ apply Rle_refl.
 refine (_ (abs_ge_0 (Ibnd xl xu) _)).
 2: discriminate.
 simpl.
-now case FtoX.
+now case F.toX.
 Qed.
 
 Theorem scale2_correct :
   forall xi x d,
   contains (convert xi) x ->
   contains (convert (scale2 xi (F.ZtoS d))) (Xmul x (Xreal (bpow radix2 d))).
+Proof.
 intros [ | xl xu].
 split.
 intros [ | x] d Hx.
 elim Hx.
-unfold convert, convert_bound in Hx.
+unfold convert in Hx.
 destruct Hx as (Hxl, Hxu).
-unfold convert, convert_bound, scale2.
-do 2 ( rewrite F.scale2_correct ; [ idtac | apply refl_equal ] ).
+unfold convert, scale2.
+do 2 ( rewrite <- F.toF_correct, F.scale2_correct ; [ idtac | apply refl_equal ] ).
 do 2 ( rewrite Fscale2_correct ; [ idtac | apply F.even_radix_correct ]).
 split ; xreal_tac2 ; simpl ;
   ( apply Rmult_le_compat_r ;
@@ -1124,12 +1226,12 @@ Qed.
 Theorem add_correct :
   forall prec,
   extension_2 Xadd (add prec).
+Proof.
 intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ; trivial.
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
-unfold convert_bound.
 split ;
-  rewrite F.add_correct ; rewrite Fadd_correct ;
+  rewrite <- F.toF_correct, F.add_correct, Fadd_correct ;
   do 2 xreal_tac2 ; unfold Xadd ; bound_tac ;
   apply Rplus_le_compat ; assumption.
 Qed.
@@ -1137,12 +1239,12 @@ Qed.
 Theorem sub_correct :
   forall prec,
   extension_2 Xsub (sub prec).
+Proof.
 intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ; trivial.
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
-unfold convert_bound.
 split ;
-  rewrite F.sub_correct ; rewrite Fsub_correct ;
+  rewrite <- F.toF_correct, F.sub_correct, Fsub_correct ;
   do 2 xreal_tac2 ; unfold Xsub ; bound_tac ;
   unfold Rminus ; apply Rplus_le_compat ;
   try apply Ropp_le_contravar ; assumption.
@@ -1151,6 +1253,7 @@ Qed.
 Lemma is_zero_float :
   forall r s m e,
   is_zero (FtoR r s m e) = false.
+Proof.
 intros.
 destruct (is_zero_spec (FtoR r s m e)).
 destruct s.
@@ -1164,6 +1267,7 @@ Qed.
 Lemma is_positive_float :
   forall r s m e,
   is_positive (FtoR r s m e) = negb s.
+Proof.
 intros.
 destruct (is_positive_spec (FtoR r s m e)) ;
   destruct s ; try apply refl_equal.
@@ -1177,6 +1281,7 @@ Qed.
 Lemma is_negative_float :
   forall r s m e,
   is_negative (FtoR r s m e) = s.
+Proof.
 intros.
 destruct (is_negative_spec (FtoR r s m e)) ;
   destruct s ; try apply refl_equal.
@@ -1189,31 +1294,32 @@ Qed.
 
 Theorem sqrt_correct :
   forall prec, extension Xsqrt (sqrt prec).
+Proof.
 intros prec [ | xl xu] [ | x] ; simpl ; trivial.
 intro.
 elim H.
 intros (Hxl, Hxu).
 rewrite F.cmp_correct.
 rewrite Fcmp_correct.
+convert_clean.
 rewrite F.zero_correct.
-generalize Hxl. clear Hxl.
-unfold convert_bound.
-case_eq (FtoX (F.toF xl)) ; [ split | idtac ].
+revert Hxl.
+case_eq (F.toX xl) ; [ split | idtac ].
 intros rl Hrl Hxl.
 simpl.
 destruct (is_negative_spec x).
 rewrite Rcompare_Lt.
 exact I.
 apply Rle_lt_trans with (1 := Hxl) (2 := H).
-destruct (Rcompare_spec rl 0) ; simpl ; unfold convert_bound ;
-  repeat ( rewrite F.sqrt_correct ; rewrite Fsqrt_correct ).
+destruct (Rcompare_spec rl 0) ; simpl ;
+  repeat rewrite <- ?F.toF_correct, F.sqrt_correct, Fsqrt_correct ;
+  convert_clean.
 exact I.
 (* xl zero *)
 rewrite F.zero_correct.
 simpl.
 split.
 now apply sqrt_positivity.
-unfold convert_bound in Hxu.
 xreal_tac xu.
 simpl.
 destruct (is_negative_spec r).
@@ -1234,7 +1340,6 @@ apply sqrt_le_1.
 exact (Rlt_le _ _ H0).
 exact H.
 exact Hxl.
-unfold convert_bound in Hxu.
 xreal_tac xu.
 simpl.
 destruct (is_negative_spec r).
@@ -1247,11 +1352,13 @@ exact Hxu.
 Qed.
 
 Lemma Xmin_swap_nan : forall x, Xmin x Xnan = Xnan.
+Proof.
 intros x.
 case x ; intros ; apply refl_equal.
 Qed.
 
 Lemma Xmax_swap_nan : forall x, Xmax x Xnan = Xnan.
+Proof.
 intros x.
 case x ; intros ; apply refl_equal.
 Qed.
@@ -1301,17 +1408,16 @@ Proof.
 intros prec yf [ | xl xu] [ | x] ; try easy.
 intros (Hxl, Hxu).
 simpl.
-rewrite F.cmp_correct, Fcmp_correct, F.zero_correct.
+rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct, F.zero_correct.
 xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hr ;
-  try ( simpl ; unfold convert_bound ;
-        rewrite 2!F.mul_correct, 2!Fmul_correct ;
+  try ( simpl ;
+        rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct ;
         xreal_tac2 ;
         split ;
           ( xreal_tac2 ; simpl ; bound_tac ; eauto with mulauto ; fail ) ).
 simpl.
-unfold convert_bound.
 rewrite F.zero_correct.
 rewrite Hr, Rmult_0_r.
 split ; simpl ; apply Rle_refl.
@@ -1320,12 +1426,13 @@ Qed.
 Theorem mul_correct :
   forall prec,
   extension_2 Xmul (mul prec).
+Proof.
 intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ;
   try ( intros ; exact I ) ;
   try ( intros H1 H2 ; try elim H1 ; elim H2 ; fail ).
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
-unfold bnd, contains, convert, convert_bound.
+unfold bnd, contains, convert.
 (* case study on sign of xi *)
 generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
@@ -1333,21 +1440,19 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   try ( generalize (sign_large_correct_ yl yu y (conj Hyl Hyu)) ;
         case (sign_large_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   (* remove trivial comparisons with zero *)
-  try ( rewrite F.zero_correct ; simpl ;
+  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
         try ( rewrite (proj1 Hx0) ; rewrite Rmult_0_l ) ;
         try ( rewrite (proj1 Hy0) ; rewrite Rmult_0_r ) ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
-  try ( split ; rewrite F.mul_correct ; rewrite Fmul_correct ;
+  try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct ;
         do 2 xreal_tac2 ; unfold Xmul ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
   try ( eauto with mulauto ; fail ).
 (* multiplication around zero *)
-rewrite F.min_correct.
-rewrite Fmin_correct.
-rewrite F.max_correct.
-rewrite Fmax_correct.
+rewrite <- F.toF_correct, F.min_correct, Fmin_correct.
+rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
 do 4 rewrite F.mul_correct.
 do 4 rewrite Fmul_correct.
 do 4 xreal_tac2 ;
@@ -1418,13 +1523,12 @@ Proof.
 intros prec yf [ | xl xu] [x | ] ; try easy.
 intros y (Hxl, Hxu).
 simpl.
-rewrite F.cmp_correct, Fcmp_correct, F.zero_correct.
+rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct, F.zero_correct.
 xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hy ; try exact I ;
   simpl ; simpl_is_zero ;
-  unfold convert_bound ;
-  rewrite 2!F.div_correct, 2!Fdiv_correct ;
+  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct ;
   xreal_tac2 ;
   split ;
     xreal_tac2 ;
@@ -1436,12 +1540,13 @@ Qed.
 Theorem div_correct :
   forall prec,
   extension_2 Xdiv (div prec).
+Proof.
 intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ;
   try ( intros ; exact I ) ;
   try ( intros H1 H2 ; try elim H1 ; elim H2 ; fail ).
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
-unfold bnd, contains, convert, convert_bound.
+unfold bnd, contains, convert.
 (* case study on sign of xi *)
 generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
@@ -1450,19 +1555,17 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         case (sign_strict_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   try exact I ; try simpl_is_zero ; unfold Rdiv ;
   (* remove trivial comparisons with zero *)
-  try ( rewrite F.zero_correct ; simpl ;
+  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
         rewrite (proj1 Hx0) ; rewrite Rmult_0_l ;
         split ; apply Rle_refl ) ;
   (* simplify Fdivz *)
   try ( unfold Fdivz ;
         rewrite real_correct ;
         try xreal_tac yl ; xreal_tac yu ) ;
-  unfold convert_bound ;
   try rewrite F.zero_correct ;
   split ;
   (* remove rounding operators *)
-  try ( rewrite F.div_correct ;
-        rewrite Fdiv_correct ;
+  try ( rewrite <- F.toF_correct, F.div_correct, Fdiv_correct ;
         do 2 xreal_tac2 ; unfold Xdiv, Rdiv ;
         match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
         bound_tac ) ;
@@ -1482,7 +1585,7 @@ intros prec [ | xl xu] [ | x] ;
   try ( intros H1 ; elim H1 ; fail ).
 intros (Hxl, Hxu).
 simpl.
-unfold bnd, contains, convert, convert_bound.
+unfold bnd, contains, convert.
 generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
 (* case study on sign of xi *)
 case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
@@ -1491,16 +1594,18 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* simplify Fdivz *)
   unfold Fdivz ; rewrite 2!real_correct ;
   destruct Hx0 as (Hx0, (Hx1, (r, (Hx2, Hx3)))) ;
+  convert_clean ;
   rewrite Hx2 in * ;
   split ;
   [ idtac | xreal_tac xl | xreal_tac xu | idtac ] ;
-  try ( unfold convert_bound ; rewrite F.zero_correct ;
+  try ( rewrite F.zero_correct ;
         simpl ; auto with mulauto ; fail ) ;
   (* remove rounding operators *)
-  unfold convert_bound ;
-  rewrite F.div_correct, Fdiv_correct, F.fromZ_correct ;
-  try ( unfold convert_bound in X0 ; rewrite X0 ) ;
-  try ( unfold convert_bound in Hx2 ; rewrite Hx2 ) ;
+  rewrite <- !F.toF_correct, F.div_correct, Fdiv_correct ;
+  convert_clean ;
+  rewrite F.fromZ_correct ;
+  try rewrite X0 ;
+  try rewrite Hx2 ;
   unfold Xdiv, Rdiv ;
   match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
   bound_tac ; rewrite Rmult_1_l ; auto with mulauto.
@@ -1515,16 +1620,16 @@ intros prec [ | xl xu] [ | x] ;
   try ( intros H1 ; elim H1 ; fail ).
 intros (Hxl, Hxu).
 simpl.
-unfold bnd, contains, convert, convert_bound.
+unfold bnd, contains, convert.
 (* case study on sign of xi *)
 generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* remove trivial comparisons with zero *)
-  try ( rewrite F.zero_correct ; simpl ;
+  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
         try ( rewrite (proj1 Hx0) ; rewrite Rmult_0_l ) ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
-  try ( split ; rewrite F.mul_correct ; rewrite Fmul_correct  ;
+  try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct  ;
         xreal_tac2 ; unfold Xmul ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
@@ -1533,7 +1638,7 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
 split.
 rewrite F.zero_correct ; simpl.
 apply Rle_0_sqr.
-rewrite F.mul_correct, Fmul_correct.
+rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
 rewrite F.max_correct, Fmax_correct.
 rewrite F.abs_correct, Fabs_correct.
 do 2 xreal_tac2.
@@ -1569,7 +1674,7 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct, F.zero_correct.
+rewrite 2!F.cmp_correct, 2!Fcmp_correct, !F.toF_correct, F.zero_correct.
 assert (Hd: forall x xr, FtoX (F.toF x) = Xreal xr ->
     match FtoX (F.toF (F.mul rnd_DN prec x x)) with
     | Xnan => False
@@ -1586,8 +1691,10 @@ assert (Hz: match FtoX (F.toF F.zero) with
     | Xnan => False
     | Xreal yr => (0 <= yr)%R
     end).
+  convert_clean.
   rewrite F.zero_correct.
   apply Rle_refl.
+rewrite <- 3!F.toF_correct.
 case_eq (FtoX (F.toF xl)) ; case_eq (FtoX (F.toF xu)) ; simpl.
 now intros _ _.
 intros ru Hu _.
@@ -1605,7 +1712,7 @@ Theorem sqr_ge_0' :
 Proof.
 intros prec [|xl xu].
 simpl.
-rewrite F.nan_correct.
+rewrite F.toF_correct, F.nan_correct.
 apply Rle_refl.
 refine (_ (sqr_ge_0 prec (Ibnd xl xu) _)).
 2: discriminate.
@@ -1729,7 +1836,7 @@ Theorem power_pos_correct :
   extension (fun x => Xpower_int x (Zpos n)) (fun x => power_pos prec x n).
 Proof.
 intros prec n [ | xl xu] [ | x] ; try easy.
-unfold contains, convert, convert_bound, power_pos, Xpower_int.
+unfold contains, convert, power_pos, Xpower_int.
 intros (Hxl,Hxu).
 generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0.
@@ -1742,7 +1849,7 @@ apply lt_O_nat_of_P.
 (* *)
 destruct n as [n|n|].
 (* . *)
-rewrite 2!F.neg_correct, 2!Fneg_correct.
+rewrite <- 2!F.toF_correct, 2!F.neg_correct, 2!Fneg_correct.
 split.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
@@ -1911,7 +2018,7 @@ destruct n as [n|n|].
 (* . *)
 split.
 (* .. *)
-rewrite F.neg_correct, Fneg_correct.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
 unfold le_upper.
 rewrite F.abs_correct, Fabs_correct.
@@ -2057,7 +2164,6 @@ unfold power_int, Xpower_int.
 intros [ | xl xu] [ | x] ; try easy.
 intros _.
 simpl.
-unfold convert_bound.
 rewrite F.fromZ_correct.
 split ; apply Rle_refl.
 apply power_pos_correct.

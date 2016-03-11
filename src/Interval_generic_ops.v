@@ -73,8 +73,8 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition div := @Fdiv radix.
   Definition sqrt := @Fsqrt radix.
   Definition toF_correct := fun x => refl_equal (@FtoX radix x).
-  Definition zero_correct := refl_equal zero.
-  Definition nan_correct := refl_equal nan.
+  Definition zero_correct := refl_equal (Xreal R0).
+  Definition nan_correct := refl_equal Xnan.
   Definition cmp_correct := fun x y => refl_equal (cmp x y).
   Definition min_correct := fun x y => refl_equal (FtoX (min x y)).
   Definition max_correct := fun x y => refl_equal (FtoX (max x y)).
