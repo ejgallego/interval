@@ -220,25 +220,22 @@ Definition neg (f : type) :=
   end.
 
 Lemma neg_correct :
-  forall x, FtoX (toF (neg x)) = FtoX (Fneg (toF x)).
+  forall x, toX (neg x) = Xneg (toX x).
 Proof.
 intros.
 destruct x as [| m e].
 apply refl_equal.
+unfold toX.
 simpl.
-rewrite (match_helper_1 _ _ (fun (s : bool) p => Float ((if s then mantissa_pos else mantissa_neg) p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ e)) (fun a => FtoX (Fneg a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
-intros H _.
-rewrite H.
-apply refl_equal.
-intros s p H0 (H1, H2).
+intros -> _.
+now rewrite Ropp_0.
+intros s p H0 [H1 H2].
 generalize (toF_float (negb s) p e H2).
-case s ; simpl ;
-  intro H ; rewrite H ;
-  apply refl_equal.
+destruct s ; simpl ; intros -> ;
+  now rewrite FtoR_neg.
 Qed.
 
 (*
@@ -256,23 +253,22 @@ Definition abs (f : type) :=
   end.
 
 Lemma abs_correct :
-  forall x, FtoX (toF (abs x)) = FtoX (Fabs (toF x)).
+  forall x, toX (abs x) = Xabs (toX x).
 Proof.
 intros.
 destruct x as [| m e].
 apply refl_equal.
+unfold toX.
 simpl.
-rewrite (match_helper_1 _ _ (fun (s : bool) p => Float (mantissa_pos p) e) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ e)) (fun a => FtoX (Fabs a))).
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
 simpl.
-intros H _.
-rewrite H.
-apply refl_equal.
-intros s p H0 (H1, H2).
-apply f_equal.
-exact (toF_float false p e H2).
+intros -> _.
+now rewrite Rabs_R0.
+intros s p H0 [H1 H2].
+generalize (toF_float false p e H2).
+simpl ; intros ->.
+now rewrite FtoR_abs.
 Qed.
 
 (*
@@ -1062,12 +1058,11 @@ Lemma sub_exact_correct :
 Proof.
 intros x y.
 unfold sub_exact.
-rewrite add_exact_correct.
-rewrite Fadd_exact_correct.
-rewrite neg_correct.
+rewrite add_exact_correct, Fadd_exact_correct.
 replace (Fsub_exact (toF x) (toF y)) with (Fadd_exact (toF x) (Fneg (toF y))).
 rewrite Fadd_exact_correct.
-apply refl_equal.
+fold (toX (neg y)).
+now rewrite neg_correct, Fneg_correct.
 now case (toF y).
 Qed.
 
@@ -1086,8 +1081,8 @@ rewrite Fsub_split.
 unfold sub.
 rewrite add_correct.
 do 2 rewrite Fadd_correct.
-rewrite neg_correct.
-apply refl_equal.
+fold (toX (neg y)).
+now rewrite neg_correct, Fneg_correct.
 Qed.
 
 (*

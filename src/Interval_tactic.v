@@ -117,8 +117,8 @@ generalize (F.real_correct f).
 case_eq (F.toF f) ; try easy.
 intros [|] m e Hf _.
 exact I.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct in H1.
-rewrite <- F.toF_correct in H2.
+rewrite F.neg_correct in H1.
+rewrite <- F.toF_correct in H1, H2.
 rewrite Hf in H1, H2.
 simpl in H1, H2.
 now apply Rabs_def1_le.
@@ -139,8 +139,8 @@ intros [|] m e Hf _ H.
 easy.
 destruct (Rabs_def2_le _ _ H) as (H1,H2).
 split.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
-now rewrite Hf.
+rewrite F.neg_correct.
+now rewrite <- F.toF_correct, Hf.
 rewrite <- F.toF_correct.
 now rewrite Hf.
 Qed.
@@ -341,7 +341,7 @@ easy.
 simpl.
 intros _ u [_ Hu].
 rewrite 4!I.I.real_correct.
-rewrite <- 5!F.toF_correct, 2!F.neg_correct, 2!Fneg_correct, 4!F.toF_correct.
+rewrite 2!F.neg_correct.
 rewrite F.nan_correct.
 simpl.
 case_eq (F.toX u).
@@ -350,7 +350,7 @@ simpl.
 now rewrite F.nan_correct.
 simpl.
 intros ur Hur.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
+rewrite F.neg_correct.
 rewrite Hur in Hu.
 rewrite Hur.
 simpl.
@@ -378,7 +378,7 @@ intros H _.
 specialize (H eq_refl).
 revert Hl.
 destruct H as [Hl _].
-rewrite <- (F.toF_correct (F.neg _)), F.neg_correct, Fneg_correct, F.toF_correct.
+rewrite F.neg_correct.
 rewrite Hl.
 intros H1 [H2 H3].
 apply Rle_trans with (2 := H1).

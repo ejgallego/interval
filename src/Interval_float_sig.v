@@ -88,10 +88,10 @@ Parameter max_correct :
   forall x y, toX (max x y) = Xmax (toX x) (toX y).
 
 Parameter neg_correct :
-  forall x, FtoX (toF (neg x)) = FtoX (Fneg (toF x)).
+  forall x, toX (neg x) = Xneg (toX x).
 
 Parameter abs_correct :
-  forall x, FtoX (toF (abs x)) = FtoX (Fabs (toF x)).
+  forall x, toX (abs x) = Xabs (toX x).
 
 Parameter scale_correct :
   forall x d, FtoX (toF (scale x (ZtoS d))) = FtoX (Fscale (toF x) d).

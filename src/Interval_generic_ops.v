@@ -78,8 +78,8 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition cmp_correct := @Fcmp_correct radix.
   Definition min_correct := @Fmin_correct radix.
   Definition max_correct := @Fmax_correct radix.
-  Definition neg_correct := fun x => refl_equal (FtoX (neg x)).
-  Definition abs_correct := fun x => refl_equal (FtoX (abs x)).
+  Definition neg_correct := @Fneg_correct radix.
+  Definition abs_correct := @Fabs_correct radix.
   Definition scale_correct := fun x d => refl_equal (FtoX (scale x d)).
   Definition scale2_correct := fun x d (_ : even_radix = true) => refl_equal (FtoX (scale2 x d)).
   Definition add_exact_correct := fun x y => refl_equal (FtoX (add_exact x y)).

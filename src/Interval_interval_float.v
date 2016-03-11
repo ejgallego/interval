@@ -1057,7 +1057,7 @@ Theorem neg_correct :
 Proof.
 intros [ | xl xu] [ | x] ; simpl ; trivial.
 intros (Hxl, Hxu).
-split ; rewrite <- F.toF_correct, F.neg_correct, Fneg_correct ;
+split ; rewrite F.neg_correct ;
   unfold Xneg ; [ xreal_tac xu | xreal_tac xl ] ;
   apply Ropp_le_contravar ; assumption.
 Qed.
@@ -1089,7 +1089,7 @@ split.
 exact (Rabs_pos x).
 (* - upper *)
 rewrite F.max_correct.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
+rewrite F.neg_correct.
 unfold contains, convert in Hx.
 destruct Hx as (Hxl, Hxu).
 do 2 xreal_tac2.
@@ -1123,12 +1123,12 @@ apply Rle_refl.
 simpl.
 intros ru Hu _.
 case Rcompare_spec ; simpl ; intros H.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct, Hu.
+rewrite F.neg_correct, Hu.
 simpl.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct, Hu.
+rewrite F.neg_correct, Hu.
 rewrite H.
 simpl.
 rewrite Ropp_0.
@@ -1148,9 +1148,8 @@ intros ru Hu rl Hl.
 simpl.
 case Rcompare_spec ; simpl ; intros H1 ;
   case Rcompare_spec ; simpl ; intros H2 ;
-    try rewrite <- F.toF_correct, F.neg_correct, Fneg_correct ;
+    try rewrite F.neg_correct ;
     try rewrite F.zero_correct ;
-    try rewrite F.toF_correct ;
     try apply Rle_refl.
 rewrite <- Ropp_0, Hu.
 apply Ropp_le_contravar.
@@ -1622,7 +1621,7 @@ rewrite F.zero_correct ; simpl.
 apply Rle_0_sqr.
 rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, F.toF_correct.
 rewrite F.max_correct.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 do 2 xreal_tac2.
 simpl.
 bound_tac.
@@ -1830,12 +1829,12 @@ apply lt_O_nat_of_P.
 (* *)
 destruct n as [n|n|].
 (* . *)
-rewrite <- 2!F.toF_correct, 2!F.neg_correct, 2!Fneg_correct.
+rewrite 2!F.neg_correct.
 split.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
 unfold le_upper.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
 easy.
 xreal_tac xl ; simpl.
@@ -1869,7 +1868,7 @@ exact Hxl.
 (* .. *)
 generalize (Fpower_pos_dn_correct prec (F.abs xu) (xI n)).
 unfold le_lower'.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~1).
 easy.
 xreal_tac xu ; simpl.
@@ -1907,7 +1906,7 @@ split.
 (* .. *)
 generalize (Fpower_pos_dn_correct prec (F.abs xu) (xO n)).
 unfold le_lower'.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~0).
 easy.
 xreal_tac xu ; simpl.
@@ -1934,7 +1933,7 @@ now apply Ropp_le_contravar.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xO n)).
 unfold le_upper.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~0).
 easy.
 xreal_tac xl ; simpl.
@@ -1999,10 +1998,10 @@ destruct n as [n|n|].
 (* . *)
 split.
 (* .. *)
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
+rewrite F.neg_correct.
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
 unfold le_upper.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
 easy.
 xreal_tac xl ; simpl.
@@ -2095,7 +2094,7 @@ apply Rle_0_sqr.
 generalize (Fpower_pos_up_correct prec (F.max (F.abs xl) xu) (xO n)).
 unfold le_upper.
 rewrite F.max_correct.
-rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
+rewrite F.abs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.max (F.abs xl) xu) n~0).
 easy.
 xreal_tac xl ; simpl.

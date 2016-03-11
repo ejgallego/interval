@@ -971,17 +971,14 @@ rewrite atan_opp.
 apply (I.neg_correct _ (Xreal _)).
 apply atan_fastP_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
-now rewrite F.toF_correct, Hr.
+now rewrite F.neg_correct, Hr.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
-rewrite F.toF_correct, Hr.
+rewrite F.neg_correct, Hr.
 simpl.
 rewrite <- Ropp_0.
 now apply Ropp_le_contravar, Rlt_le.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
-now rewrite F.toF_correct, Hr.
+now rewrite F.neg_correct, Hr.
 (* zero *)
 rewrite H, atan_0.
 simpl.
@@ -2069,7 +2066,7 @@ exact (H x Hxr Hx H0).
 intros _.
 simpl.
 unfold c1.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
+rewrite F.neg_correct.
 rewrite F.fromZ_correct.
 refine (conj _ I).
 simpl.
@@ -2207,17 +2204,14 @@ replace r with (- toR (F.neg x))%R.
 rewrite cos_neg.
 apply cos_fastP_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-now rewrite Hr.
+now rewrite F.neg_correct, Hr.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 apply Ropp_involutive.
 (* zero *)
 rewrite H, cos_0.
@@ -2606,8 +2600,7 @@ intros [Hc Hs].
 destruct ss.
 simpl.
 unfold c1.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite F.fromZ_correct.
+rewrite F.neg_correct, F.fromZ_correct.
 apply SIN_bound.
 rewrite <- (Ropp_involutive (sin (toR x))).
 change (Xreal (- - sin (toR x))) with (Xneg (Xreal (- sin (toR x)))).
@@ -2676,17 +2669,14 @@ rewrite <- sin_neg.
 replace (Ropp r) with (toR (F.neg x)).
 apply sin_fastP_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-now rewrite Hr.
+now rewrite F.neg_correct, Hr.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-now rewrite Hr.
+now rewrite F.neg_correct, Hr.
 (* zero *)
 rewrite H, sin_0.
 simpl.
@@ -2925,8 +2915,7 @@ rewrite <- (Xneg_involutive (Xtan _)).
 apply I.neg_correct.
 generalize (tan_fastP_correct prec (F.neg x)).
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 simpl.
 intros H'.
 assert (H1 : (0 <= -r)%R).
@@ -3372,16 +3361,13 @@ case Rcompare_spec ; intros H.
 replace r with (Ropp (toR (F.neg x))).
 apply expn_reduce_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-now rewrite Hr.
+now rewrite F.neg_correct, Hr.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 rewrite <- Ropp_0.
 now apply Ropp_lt_contravar.
 unfold toR.
-rewrite <- F.toF_correct, F.neg_correct, Fneg_correct, F.toF_correct.
-rewrite Hr.
+rewrite F.neg_correct, Hr.
 apply Ropp_involutive.
 (* zero *)
 simpl.
