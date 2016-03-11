@@ -579,17 +579,6 @@ case Hcmp: (F.cmp a b) => // _.
   by case: (Rcompare (toR a) (toR b)).
 Qed.
 
-Lemma Req_Fle a b :
-  F.real a ->
-  F.real b ->
-  toR a = toR b ->
-  F'.le a b.
-Proof.
-move => Hareal Hbreal Heq.
-apply: Rle_Fle => // .
-by apply: Req_le_sym.
-Qed.
-
 Lemma Fle_rev a b :
   F.real a -> F.real b -> F'.le a b = false -> F'.le b a = true.
 Proof.
@@ -626,12 +615,6 @@ have := (Rle_Fle b a Hbreal Hareal Hge) => Hba.
 have := Fle_eq a b Hareal Hbreal Hab Hba => Habs.
 rewrite Habs in Hgt.
 elim (Rlt_irrefl _ Hgt).
-Qed.
-
-Lemma FcmpCancelRight beta dummy : Fcmp dummy (@Fnan beta) = Xund.
-Proof.
-case: dummy => // .
-by move => b p z; case: b.
 Qed.
 
 Lemma integral_float_absolute_signed_correct (depth : nat) (a b : F.type) epsilon :
