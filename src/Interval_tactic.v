@@ -441,14 +441,6 @@ rewrite /integral_float_relative /Int.integral_float_relative.
 by case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // .
 Qed.
 
-Definition ex_RInt_base_case :=
-  forall u0 l1,
-  F.real u0 ->
-  F.real l1 ->
-  I.F'.le u0 l1 ->
-  notInan (estimator u0 l1) ->
-  ex_RInt f (T.toR u0) (T.toR l1).
-
 Let integral_float_absolute_signed := Int.integral_float_absolute_signed prec estimator.
 
 Let integral_float_absolute :=
@@ -464,110 +456,8 @@ case: F.toF => [ | | s0 m0 e0] -> ;
   case: F.toF => [ | | s1 m1 e1] -> ; try easy.
 Qed.
 
-Lemma integral_float_absolute_ex_RInt
-      (depth : nat) u0 l1 epsilon :
-  ex_RInt_base_case ->
-  notInan (integral_float_absolute depth u0 l1 epsilon) ->
-  I.F'.le u0 l1 ->
-  ex_RInt f (T.toR u0) (T.toR l1).
-Proof.
-move => ex_RInt_base_case HnotInan Hleu0l1.
-rewrite /integral_float_absolute in HnotInan (* /Int.integral_float_absolute *).
-have [Hrealu0 Hreall1] := (Fle_true_real u0 l1 Hleu0l1).
-elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0l1 => [|d HId] u0 l1 epsilon Hreall1 Hrealu0 HnotInan Horder.
-- pose m := I.midpoint (I.bnd u0 l1).
-  have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
-  have Hrealm : (F.real m).
-    suff: F.toX m = Xreal (T.toR m).
-    by move/Int.EF.F_realP.
-  have := (I.midpoint_correct (I.bnd u0 l1)).
-    + case.
-      exists (Xreal (T.toR u0)).
-      move: (Int.EF.contains_convert_bnd_l u0 l1 Hrealu0 Hleu0ml1).
-      by move/Int.EF.F_realP :Hrealu0 => -> .
-    + by [].
-  (* first we establish a useful inequality on u0, m and l1 *)
-  have := (Int.EF.midpoint_bnd_in u0 l1 Hrealu0 Hreall1 Hleu0ml1).
-  rewrite -[Int.EF.I.midpoint _]/m.
-  move => [Hleu0m Hleml1].
-  apply: (ex_RInt_Chasles _ _ (T.toR m)).
-    + apply: ex_RInt_base_case => // .
-      * exact: Int.Rle_Fle.
-      * by move: HnotInan; rewrite /Int.integral_float_absolute; case: (estimator u0 m).
-    + apply: ex_RInt_base_case => // .
-      * exact: Int.Rle_Fle.
-      * move: HnotInan; rewrite /Int.integral_float_absolute.
-        by case: (estimator m l1); case: estimator.
-- pose m := I.midpoint (I.bnd u0 l1).
-  have Hleu0ml1 := (Int.Fle_Rle u0 l1 Hrealu0 Hreall1 Horder).
-  have Hrealm : (F.real m).
-    suff: F.toX m = Xreal (T.toR m).
-      by move/Int.EF.F_realP.
-    have := (I.midpoint_correct (I.bnd u0 l1)).
-      case.
-      exists (Xreal (T.toR u0)).
-      move: (Int.EF.contains_convert_bnd_l u0 l1 Hrealu0 Hleu0ml1).
-      by move/Int.EF.F_realP :Hrealu0 => -> .
-    by [].
-  (* first we establish a useful inequality on u0, m and l1 *)
-  have := (Int.EF.midpoint_bnd_in u0 l1 Hrealu0 Hreall1 Hleu0ml1).
-  rewrite -[Int.EF.I.midpoint _]/m.
-  move => [Hleu0m Hleml1].
-  apply: (ex_RInt_Chasles _ _ (T.toR m)).
-  + move: HnotInan.
-    rewrite Int.integral_float_absolute_Sn -[Int.EF.I.midpoint _]/m.
-    set b1 := (X in (if X then _ else _)).
-    set b2 := (X in (if X then (I.add prec _ _) else _)).
-    case Hb1 : b1.
-    * by case Hb2 : b2; move => HnotInan;
-      apply: (ex_RInt_base_case) => // ;
-        try apply: Int.Rle_Fle => // ; move: HnotInan;
-      by case:(estimator u0 m).
-    * set b3 := (X in (if X then _ else _)).
-      case Hb3 : b3.
-      - set epsilon' := (F.sub_exact _ _); move => HnotInan.
-        apply: (HId u0 m epsilon') => //.
-        move: HnotInan.
-        by case: Int.integral_float_absolute.
-        exact: Int.Rle_Fle.
-      - set epsilon' := (Int.div2 _); move => HnotInan.
-        apply: (HId u0 m epsilon') => //.
-        move: HnotInan.
-        by case: Int.integral_float_absolute.
-        exact: Int.Rle_Fle.
-  + move: HnotInan.
-    rewrite Int.integral_float_absolute_Sn -[Int.EF.I.midpoint _]/m.
-    set b1 := (X in (if X then _ else _)).
-    set b2 := (X in (if X then (I.add prec _ _) else _)).
-    case Hb1 : b1.
-    * case Hb2 : b2.
-      + move => HnotInan.
-        apply: ex_RInt_base_case => //.
-        exact: Int.Rle_Fle.
-      move: HnotInan.
-      by  case:(estimator m l1); case:( estimator u0 m).
-      + set epsilon' := (F.sub_exact _ _); move => HnotInan.
-        apply: (HId m l1 epsilon') => //.
-        move: HnotInan.
-        by case: Int.integral_float_absolute => // ; case: estimator.
-        exact: Int.Rle_Fle.
-    * set b3 := (X in (if X then _ else _)).
-      case Hb3 : b3.
-      - move => HnotInan; apply: ex_RInt_base_case => //.
-        exact: Int.Rle_Fle.
-        rewrite -/iF.
-        move: HnotInan; case: (estimator m l1) => //.
-        by case: Int.integral_float_absolute.
-      - set epsilon' := (Int.div2 _); move => HnotInan.
-        apply: (HId m l1 epsilon') => //.
-        move: HnotInan.
-        by case: Int.integral_float_absolute => // ; case: Int.integral_float_absolute.
-        exact: Int.Rle_Fle.
-Qed.
-
-Lemma integral_float_relative_ex_RInt
-      (depth : nat) u0 l1 epsilon :
-  ex_RInt_base_case ->
+Lemma integral_float_relative_ex_RInt (depth : nat) u0 l1 epsilon :
+  Int.ex_RInt_base_case f estimator ->
   notInan (integral_float_relative depth u0 l1 epsilon) ->
   I.F'.le u0 l1 ->
   ex_RInt f (T.toR u0) (T.toR l1).
@@ -578,21 +468,19 @@ have [Hrealu0 Hreall1] := (Fle_true_real u0 l1 Hleu0l1).
 move: HnotInan.
 rewrite Hrealu0 Hreall1.
 case: depth => [|depth].
-exact: ex_RInt_base_case.
+apply: ex_RInt_base_case => //.
+exact: Int.Fle_Rle.
 case: Int.F'.le.
-- exact: ex_RInt_base_case.
+- apply: ex_RInt_base_case => //.
+  exact: Int.Fle_Rle.
 - move => HnotInan.
-  exact: integral_float_absolute_ex_RInt HnotInan _.
+  exact: Int.integral_float_absolute_ex_RInt HnotInan _.
 Qed.
 
 Lemma integral_float_absolute_signed_ex_RInt
       (depth : nat) u0 l1 epsilon :
-  let i := Int.integral_float_absolute_signed
-             prec
-             estimator
-             depth u0 l1 epsilon
-  in
-  ex_RInt_base_case ->
+  let i := Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon in
+  Int.ex_RInt_base_case f estimator ->
   notInan (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) ->
   ex_RInt f (T.toR u0) (T.toR l1).
 Proof.
@@ -617,12 +505,8 @@ Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb))
 
 Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
-  let i := Int.integral_intBounds_epsilon
-             prec
-             iF
-             estimator depth ia ib epsilon
-  in
-  ex_RInt_base_case ->
+  let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
+  Int.ex_RInt_base_case f estimator ->
   (notInan i ->
    ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
@@ -683,7 +567,7 @@ Let notInan := A.BndValuator.notInan.
 Lemma ex_RInt_base_case_naive prec prog bounds :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai) in
-  ex_RInt_base_case prog bounds (Int.naive_integral prec iF).
+  Int.ex_RInt_base_case f (Int.naive_integral prec iF).
 Proof.
 move => f iF.
 move => u0 l1 Hrealu0 Hreall1 Hleu0l1 HnotInan.
@@ -694,11 +578,6 @@ apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (Interval_interval_float.Ibnd 
   move/Int.EF.F_realP :Hreall1.
   change Int.EF.toR with T.toR.
   intros -> ->.
-  assert (T.toR u0 <= T.toR l1).
-  generalize (I.F'.le_correct u0 l1 Hleu0l1).
-  unfold T.toR.
-  destruct F.toX. easy.
-  now destruct F.toX.
   now rewrite -> Rmin_left, Rmax_right.
 - move: HnotInan; rewrite /Int.naive_integral /=  /iF. set j := nth _ _ _.
   by case: j.
@@ -706,6 +585,7 @@ Qed.
 
 Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
   forall prec deg prog bounds,
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
     (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
         map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
@@ -713,9 +593,9 @@ Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
   let estimator := fun fa fb =>
     let xi := I.bnd fa fb in
     Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb (Int.EF.thin fa) (Int.EF.thin fb) in
-  ex_RInt_base_case prog bounds estimator.
+  Int.ex_RInt_base_case f estimator.
 Proof.
-move => prec deg prog bounds iF' iF estimator.
+move => prec deg prog bounds f iF' iF estimator.
 move => u0 l1 Hu0real Hl1real Hleu0l1.
 rewrite /estimator /Int'.taylor_integral_naive_intersection.
 move => HnotInan.
