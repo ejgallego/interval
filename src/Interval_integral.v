@@ -318,6 +318,17 @@ Definition ex_RInt_base_case :=
   notInan (estimator u0 l1) ->
   ex_RInt f (toR u0) (toR l1).
 
+Lemma integral_ex_RInt_aux u0 l1 :
+  F'.le u0 l1 ->
+  F.real u0 /\ F.real l1 /\ toR u0 <= toR l1.
+Proof.
+  rewrite 2!F.real_correct.
+  move /F'.le_correct => H.
+  unfold toR.
+  destruct F.toX ; try easy.
+  by destruct F.toX.
+Qed.
+
 Lemma integral_float_absolute_ex_RInt (depth : nat) u0 l1 epsilon :
   ex_RInt_base_case ->
   notInan (integral_float_absolute estimator depth u0 l1 epsilon) ->
@@ -325,14 +336,7 @@ Lemma integral_float_absolute_ex_RInt (depth : nat) u0 l1 epsilon :
   ex_RInt f (toR u0) (toR l1).
 Proof.
 move => ex_RInt_base_case HnotInan Hleu0l1.
-have [Hrealu0 [Hreall1 Hleu0ml1]] : F.real u0 /\ F.real l1 /\ toR u0 <= toR l1.
-  clear -Hleu0l1.
-  rewrite 2!F.real_correct.
-  move: (F'.le_correct _ _ Hleu0l1) => H.
-  unfold toR.
-  destruct F.toX ; try easy.
-  by destruct F.toX.
-(*rewrite /integral_float_absolute in HnotInan.*)
+have [Hrealu0 [Hreall1 Hleu0ml1]] := integral_ex_RInt_aux _ _ Hleu0l1.
 elim: depth u0 l1 epsilon Hreall1 Hrealu0 HnotInan {Hleu0l1} Hleu0ml1 => [|d HId] u0 l1 epsilon Hreall1 Hrealu0 HnotInan Hleu0ml1.
 - pose m := I.midpoint (I.bnd u0 l1).
   have Hrealm : (F.real m).
@@ -458,14 +462,30 @@ case Hcmp1 : (F'.le d1 (div2 epsilon)); case Hcmp2 : (F'.le d2 (div2 epsilon));
 repeat ((try (apply: I.add_correct => // )); try (apply: Hcorrect => // ); try (apply: Hk => // )).
 Qed.
 
+Lemma integral_float_relative_ex_RInt (depth : nat) u0 l1 epsilon :
+  ex_RInt_base_case ->
+  notInan (integral_float_relative estimator depth u0 l1 epsilon) ->
+  F'.le u0 l1 ->
+  ex_RInt f (toR u0) (toR l1).
+Proof.
+move => ex_RInt_base_case HnotInan Hleu0l1.
+have [Hrealu0 [Hreall1 Hleu0ml1]] := integral_ex_RInt_aux _ _ Hleu0l1.
+move: HnotInan.
+rewrite /integral_float_relative.
+rewrite Hrealu0 Hreall1.
+case: depth => [|depth].
+exact: ex_RInt_base_case.
+case: F'.le.
+- exact: ex_RInt_base_case.
+- move => HnotInan.
+  exact: integral_float_absolute_ex_RInt HnotInan _.
+Qed.
+
 Lemma integral_float_relative_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (toR a) (toR b) ->
   toR a <= toR b ->
   contains (I.convert (integral_float_relative estimator depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
 Proof.
-(* case: depth => [|depth]. *)
-(*   - rewrite /integral_float_relative /IntervalIntegral.integral_float_relative. *)
-(*     move => Hfint Hab. apply:Hcorrect. *)
 case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [|depth] => // ;rewrite /integral_float_relative /IntervalIntegral.integral_float_relative ?Hareal ?Hbreal // .
 - by rewrite /=; apply: Hcorrect.
 - case: I.bounded; case: F'.le; first by apply: Hcorrect.
