@@ -101,7 +101,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition real (f : float radix) := match f with Fnan => false | _ => true end.
 
   Lemma real_correct :
-    forall f, match toF f with Fnan => real f = false | _ => real f = true end.
+    forall f, real f = match toX f with Xnan => false | _ => true end.
   Proof.
   intros f.
   now case f.

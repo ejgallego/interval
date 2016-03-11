@@ -105,12 +105,14 @@ Definition mag (x : type) :=
 Definition real (f : type) := match f with Fnan => false | _ => true end.
 
 Lemma real_correct :
-  forall f, match toF f with Interval_generic.Fnan => real f = false | _ => real f = true end.
+  forall f, real f = match toX f with Xnan => false | _ => true end.
 Proof.
 intros.
 case f ; simpl.
 apply refl_equal.
 intros m e.
+unfold toX.
+simpl.
 now case (mantissa_sign m).
 Qed.
 

@@ -504,7 +504,7 @@ Proof.
 intros prec [|xl xu] [|x] Hx ; try easy.
 assert (Hpi := T.pi4_correct prec).
 simpl.
-rewrite 2!I.real_correct.
+rewrite 2!F.real_correct.
 simpl in Hx.
 split.
 - generalize (proj1 Hx). clear Hx.
@@ -589,7 +589,7 @@ intros (Hxl, Hxu).
 split.
 (* lower *)
 clear Hxu.
-rewrite I.real_correct.
+rewrite F.real_correct.
 I.xreal_tac xl.
 rewrite F.zero_correct.
 simpl.
@@ -607,7 +607,7 @@ apply Rle_trans with (1 := H).
 now apply Fcore_Raux.exp_le.
 (* upper *)
 clear Hxl.
-rewrite I.real_correct.
+rewrite F.real_correct.
 I.xreal_tac xu.
 now rewrite F.nan_correct.
 generalize (T.exp_fast_correct prec xu).
@@ -677,7 +677,7 @@ now apply Rlt_le, ln_increasing.
 rewrite Hl.
 apply Rle_refl.
 easy.
-rewrite I.real_correct.
+rewrite F.real_correct.
 case_eq (F.toX xu).
 now rewrite F.nan_correct.
 intros xur Hxu.

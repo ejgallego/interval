@@ -191,9 +191,8 @@ case (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.
 easy.
 simpl.
 intros _ u [_ Hu].
-rewrite 4!I.I.real_correct.
+rewrite 3!F.real_correct.
 rewrite F.nan_correct.
-simpl.
 split.
 case_eq (F.toX l).
 intros _.
@@ -340,7 +339,7 @@ case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai
 easy.
 simpl.
 intros _ u [_ Hu].
-rewrite 4!I.I.real_correct.
+rewrite 4!F.real_correct.
 rewrite 2!F.neg_correct.
 rewrite F.nan_correct.
 simpl.

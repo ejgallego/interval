@@ -76,7 +76,7 @@ Parameter fromZ_correct :
 
 Parameter real_correct :
   forall f,
-  match toF f with Fnan => real f = false | _ => real f = true end.
+  real f = match toX f with Xnan => false | _ => true end.
 
 Parameter cmp_correct :
   forall x y, cmp x y = Xcmp (toX x) (toX y).

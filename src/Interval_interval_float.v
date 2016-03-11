@@ -480,16 +480,6 @@ now rewrite F.nan_correct.
 easy.
 Qed.
 
-Lemma real_correct :
-  forall (A : Type) x (y1 y2 : A),
-  (if F.real x then y1 else y2) = match F.toX x with Xnan => y2 | _ => y1 end.
-Proof.
-intros.
-generalize (F.real_correct x).
-rewrite <- F.toF_correct.
-case (F.toF x) ; intros ; rewrite H ; apply refl_equal.
-Qed.
-
 Lemma Fcmp_le_mixed :
   forall xl yu,
   F.cmp xl yu <> Xgt -> le_mixed (F.toX xl) (F.toX yu).
@@ -518,7 +508,7 @@ split.
 generalize H1. clear.
 rewrite F.cmp_correct.
 unfold le_lower, le_upper, negb.
-rewrite real_correct.
+rewrite F.real_correct.
 destruct (F.toX yl) as [|ylr].
 easy.
 destruct (F.toX xl) as [|xlr].
@@ -534,7 +524,7 @@ now left.
 generalize H2. clear.
 rewrite F.cmp_correct.
 unfold le_upper, negb.
-rewrite real_correct.
+rewrite F.real_correct.
 destruct (F.toX yu) as [|yur].
 easy.
 destruct (F.toX xu) as [|xur].
@@ -594,12 +584,10 @@ Proof.
 intros [|xl xu] [|yl yu] [|v] ; simpl ; intros Hx Hy ; trivial.
 destruct Hx as (Hx1, Hx2).
 destruct Hy as (Hy1, Hy2).
-split.
+split ; rewrite 2!F.real_correct.
 (* . *)
-rewrite real_correct.
 xreal_tac xl.
 exact Hy1.
-rewrite real_correct.
 xreal_tac yl.
 now rewrite X.
 rewrite F.max_correct.
@@ -607,10 +595,8 @@ rewrite X, X0.
 simpl.
 now apply Rmax_best.
 (* . *)
-rewrite real_correct.
 xreal_tac xu.
 exact Hy2.
-rewrite real_correct.
 xreal_tac yu.
 now rewrite X.
 rewrite F.min_correct.
@@ -1541,7 +1527,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         split ; apply Rle_refl ) ;
   (* simplify Fdivz *)
   try ( unfold Fdivz ;
-        rewrite real_correct ;
+        rewrite F.real_correct ;
         try xreal_tac yl ; xreal_tac yu ) ;
   try rewrite F.zero_correct ;
   split ;
@@ -1573,7 +1559,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
   try exact I ; try simpl_is_zero ;
   (* simplify Fdivz *)
-  unfold Fdivz ; rewrite 2!real_correct ;
+  unfold Fdivz ; rewrite 2!F.real_correct ;
   destruct Hx0 as (Hx0, (Hx1, (r, (Hx2, Hx3)))) ;
   convert_clean ;
   rewrite Hx2 in * ;

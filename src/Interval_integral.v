@@ -28,45 +28,32 @@ rewrite <- F.toF_correct.
 by case: (F.toF fl)=> [||y z t] ->; constructor.
 Qed.
 
-Definition notFnan (f : F.type) :=
-  match F.toF f with
-    | Interval_generic.Fnan  => false
-    | _ => true
-  end = true.
-
 Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX a).
 Proof.
-move/F_realP => hra hleab; rewrite hra; apply: le_contains.
-  by rewrite hra; apply: le_lower_refl.
-case Hb : (F.real b).
-by move/F_realP : Hb ->.
-move: (F.real_correct b); case H: (F.toF b); rewrite Hb //.
-move => _.
-have HXnan : F.toX b = Xnan by rewrite -F.toF_correct H.
-by rewrite HXnan.
+rewrite F.real_correct /toR /I.convert /=.
+case: F.toX => //= r _ H.
+split.
+apply Rle_refl.
+now destruct F.toX.
 Qed.
 
 Lemma contains_convert_bnd_r (a b : F.type) : F.real b ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX b).
 Proof.
-move/F_realP => hrb hleab; rewrite hrb; apply: le_contains.
-case Ha : (F.real a).
-move/F_realP : Ha ->.
-  rewrite /le_lower /=; exact: Ropp_le_contravar.
-move: (F.real_correct a); case H : (F.toF a); rewrite Ha // .
-move => _.
-have -> : F.toX a = Xnan by rewrite -F.toF_correct H.
-done.
-rewrite hrb; exact: le_upper_refl.
+rewrite F.real_correct /toR /I.convert /=.
+case: F.toX => //= r _ H.
+split.
+now destruct F.toX.
+apply Rle_refl.
 Qed.
 
 Lemma contains_convert_bnd (a b : F.type) r :  F.real a -> F.real b ->
   toR a <= r <= toR b -> contains (I.convert (I.bnd a b)) (Xreal r).
 Proof.
-move/F_realP => hra /F_realP hrb hleab; apply: le_contains.
-  by rewrite hra /le_lower /=; apply: Ropp_le_contravar; case: hleab.
-by rewrite hrb /le_lower /=; case: hleab.
+rewrite 2!F.real_correct /toR /I.convert /=.
+case: F.toX => //= ra _.
+by case: F.toX.
 Qed.
 
 (* Remember : toR = fun x : F.type => proj_val (FtoX (F.toF x)) *)
@@ -97,7 +84,7 @@ Definition thin (f : F.type) : I.type :=
 Lemma thin_correct (fl : F.type) :
  contains (I.convert (thin fl)) (F.toX fl).
 Proof.
-rewrite /thin I.real_correct /I.convert_bound.
+rewrite /thin F.real_correct /I.convert_bound.
 case ex: (F.toX fl) => [|r] //=.
 rewrite ex; split; exact: Rle_refl.
 Qed.
