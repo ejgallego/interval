@@ -379,7 +379,7 @@ case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [
 Qed.
 
 Lemma real_correct' :
-  forall a, F.real a -> FtoX (F.toF a) = Xreal (toR a).
+  forall a, F.real a -> F.toX a = Xreal (toR a).
 Proof.
 intros a Ha.
 generalize (F.real_correct a).
@@ -392,7 +392,7 @@ Lemma RgtToFcmp a b :
   F.real a -> F.real b -> toR b < toR a -> F.cmp a b = Xgt.
 Proof.
 move => Ha Hb Hlt.
-rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+rewrite F.cmp_correct.
 by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Gt.
 Qed.
 
@@ -400,7 +400,7 @@ Lemma RltToFcmp a b :
   F.real a -> F.real b -> toR a < toR b -> F.cmp a b = Xlt.
 Proof.
 move => Ha Hb Hlt.
-rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+rewrite F.cmp_correct.
 by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Lt.
 Qed.
 
@@ -408,7 +408,7 @@ Lemma ReqToFcmp a b :
   F.real a -> F.real b -> toR a = toR b -> F.cmp a b = Xeq.
 Proof.
 move => Ha Hb Heq.
-rewrite F.cmp_correct Interval_generic_proof.Fcmp_correct.
+rewrite F.cmp_correct.
 by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Eq.
 Qed.
 
@@ -420,8 +420,7 @@ Lemma Fcmp_geP u0 l1 :
     | _ => False end -> (toR u0) <= (toR l1).
 Proof.
   move => /F_realP Hrealu0 /F_realP Hreall1.
-  rewrite F.cmp_correct Fcmp_correct /Xcmp.
-  rewrite 2!F.toF_correct.
+  rewrite F.cmp_correct /Xcmp.
   rewrite Hreall1.
   rewrite Hrealu0.
   case Hcomp : (Rcompare (toR u0) (toR l1)) => // .
@@ -453,13 +452,13 @@ move: Hle; rewrite /F'.le.
 case Hcmp: (F.cmp a b) => // _.
 - move => /F_realP Hreala /F_realP Hrealb.
   move: Hcmp.
-  rewrite F.cmp_correct Fcmp_correct /Xcmp 2!F.toF_correct.
+  rewrite F.cmp_correct /Xcmp.
   rewrite Hreala Hrealb.
   case Hcomp : (Rcompare (toR a) (toR b)) => // _ Hab.
   by have Habs := (Rcompare_not_Gt (toR a) (toR b) Hab).
 - move => /F_realP Hreala /F_realP Hrealb.
   move: Hcmp.
-  rewrite F.cmp_correct Fcmp_correct /Xcmp 2!F.toF_correct.
+  rewrite F.cmp_correct /Xcmp.
   rewrite Hreala Hrealb.
   by case: (Rcompare (toR a) (toR b)).
 Qed.
@@ -479,7 +478,7 @@ Lemma Fle_rev a b :
   F.real a -> F.real b -> F'.le a b = false -> F'.le b a = true.
 Proof.
 move => Hareal Hbreal Hfalse.
-rewrite /F'.le /F'.le F.cmp_correct Fcmp_correct 2!F.toF_correct.
+rewrite /F'.le /F'.le F.cmp_correct.
 move/F_realP : Hareal. move /F_realP : Hbreal.
 move => Hbreal Hareal.
 rewrite Hareal Hbreal /Xcmp.

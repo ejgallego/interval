@@ -42,7 +42,7 @@ Lemma le_correct :
 Proof.
 intros x y.
 unfold le.
-rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct.
+rewrite F.cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.
@@ -65,7 +65,7 @@ Lemma lt_correct :
 Proof.
 intros x y.
 unfold lt.
-rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct.
+rewrite F.cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.

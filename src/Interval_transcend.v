@@ -117,7 +117,7 @@ Lemma le_spec :
 Proof.
 intros.
 unfold le.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+rewrite F.cmp_correct.
 case_eq (F.toX x).
 intros _. apply le_false.
 intros xr Hx.
@@ -229,9 +229,8 @@ refine (_ (I.sqr_ge_0 prec (Ibnd xl xu) _)).
 generalize (I.sqr_correct prec _ _ Ix).
 destruct (I.sqr prec (Ibnd xl xu)) as [|sl su].
 simpl.
-now rewrite F.toF_correct, F.nan_correct.
+now rewrite F.nan_correct.
 intros [Hsl Hsu] Hsl'.
-rewrite F.toF_correct in Hsl'.
 simpl in Hsl'.
 case_eq (F.toX sl).
 intros H.
@@ -534,7 +533,7 @@ rewrite atan_atanc.
 replace (atanc (toR x)) with (1 - (1 - atanc (toR x)))%R by ring.
 rewrite Rmult_comm.
 change (Xreal (_ * _)) with (Xmul (Xreal (1 - (1 - atanc (toR x)))) (Xreal (toR x))).
-rewrite <- Rx, <- F.toF_correct.
+rewrite <- Rx.
 apply I.mul_mixed_correct.
 apply (I.sub_correct _ _ _ (Xreal _) (Xreal _)).
 rewrite I.bnd_correct.
@@ -853,7 +852,7 @@ Lemma atan_fastP_correct :
 Proof.
 intros prec x Rx Bx.
 unfold atan_fastP, c1, sm1, s1.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+rewrite F.cmp_correct.
 rewrite scale2_correct.
 rewrite F.fromZ_correct.
 rewrite Rx.
@@ -866,7 +865,7 @@ now apply Rlt_le.
 apply atan_fast0_correct with (1 := Rx).
 rewrite Rabs_pos_eq with (1 := Bx).
 now apply Req_le.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+rewrite F.cmp_correct.
 rewrite scale2_correct.
 rewrite F.fromZ_correct.
 rewrite Rx.
@@ -960,8 +959,7 @@ Lemma atan_fast_correct :
 Proof.
 intros prec x.
 unfold atan_fast.
-rewrite F.cmp_correct, Fcmp_correct.
-rewrite 2!F.toF_correct, F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x) ; simpl.
 easy.
 intros r Hr.
@@ -1450,8 +1448,7 @@ replace (ln x) with (ln (sqrt x) * 2)%R.
 change (Xreal (ln (sqrt x) * 2)) with (Xmul (Xreal (ln (sqrt x))) (Xreal (bpow radix2 1))).
 apply I.scale2_correct.
 simpl I.sqrt.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
-rewrite F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 rewrite Hxl1.
 simpl Xcmp.
 rewrite Rcompare_Gt.
@@ -1526,8 +1523,7 @@ Theorem ln_fast_correct :
 Proof.
 intros prec x.
 unfold ln_fast.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct, 3!F.toF_correct.
-rewrite F.zero_correct.
+rewrite 2!F.cmp_correct, F.zero_correct.
 unfold c1.
 rewrite F.fromZ_correct.
 case_eq (Xcmp (F.toX x) (Xreal 0)) ; try easy.
@@ -2200,8 +2196,7 @@ Theorem cos_fast_correct :
 Proof.
 intros prec x.
 unfold cos_fast.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
-rewrite F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -2264,7 +2259,6 @@ replace (sinc (toR x)) with (1 - (1 - sinc (toR x)))%R by ring.
 rewrite Rmult_comm.
 change (Xreal (_ * _)) with (Xmul (Xreal (1 - (1 - sinc (toR x)))) (Xreal (toR x))).
 rewrite <- Rx.
-rewrite <- F.toF_correct.
 apply I.mul_mixed_correct.
 apply (I.sub_correct _ _ _ (Xreal _) (Xreal _)).
 rewrite I.bnd_correct.
@@ -2668,8 +2662,7 @@ Theorem sin_fast_correct :
 Proof.
 intros prec x.
 unfold sin_fast.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
-rewrite F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -2921,8 +2914,7 @@ Theorem tan_fast_correct :
 Proof.
 intros prec x.
 unfold tan_fast.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
-rewrite F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -3370,8 +3362,7 @@ Theorem exp_fast_correct :
 Proof.
 intros prec x.
 unfold exp_fast.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
-rewrite F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.

@@ -218,7 +218,7 @@ case_eq (F'.le xu (F.scale2 (I.lower (T.pi4 prec)) (F.ZtoS 3))).
   split.
     rewrite F.fromZ_correct.
     apply COS_bound.
-  rewrite <- F.toF_correct, F.max_correct, Interval_generic_proof.Fmax_correct, 2!F.toF_correct.
+  rewrite F.max_correct.
   destruct (T.cos_fast prec xl) as [|cl' cl] ; simpl.
     now rewrite F.nan_correct.
   destruct (F.toX xl) as [|xlr] ; try easy.

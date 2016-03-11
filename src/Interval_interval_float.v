@@ -496,8 +496,6 @@ Lemma Fcmp_le_mixed :
 Proof.
 intros.
 rewrite F.cmp_correct in H.
-rewrite Fcmp_correct in H.
-rewrite 2!F.toF_correct in H.
 xreal_tac yu.
 xreal_tac xl.
 refine (Rnot_lt_le _ _ _).
@@ -518,7 +516,7 @@ destruct (andb_prop _ _ H) as (H1, H2).
 split.
 (* lower bound *)
 generalize H1. clear.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+rewrite F.cmp_correct.
 unfold le_lower, le_upper, negb.
 rewrite real_correct.
 destruct (F.toX yl) as [|ylr].
@@ -534,7 +532,7 @@ apply Ropp_le_contravar.
 now left.
 (* upper bound *)
 generalize H2. clear.
-rewrite F.cmp_correct, Fcmp_correct, 2!F.toF_correct.
+rewrite F.cmp_correct.
 unfold le_upper, negb.
 rewrite real_correct.
 destruct (F.toX yu) as [|yur].
@@ -570,31 +568,22 @@ Lemma join_correct :
   contains (convert (join xi yi)) v.
 Proof.
 intros [|xl xu] [|yl yu] [|v]; simpl; try tauto.
-pose proof F.min_correct xl yl as Hmin.
-pose proof F.max_correct xu yu as Hmax.
-rewrite Fmin_correct in Hmin.
-rewrite Fmax_correct in Hmax.
-rewrite <- 4!F.toF_correct.
-intros [(Hx1,Hx2)|(Hx1,Hx2)]; split;
-  xreal_tac2;
-  convert_clean;
-  [xreal_tac xl;xreal_tac yl|
-    xreal_tac xu;xreal_tac yu|
-    xreal_tac xl;xreal_tac yl|
-    xreal_tac xu;xreal_tac yu];
-  try rewrite X0 in Hmin;
-  try rewrite X1 in Hmin;
-  try rewrite X0 in Hmax;
-  try rewrite X1 in Hmax;
-  try discriminate.
-apply Rle_trans with (r2 := r0); trivial.
-exact (proj1 (Xmin_Rle _ _ _ Hmin)).
-apply Rle_trans with (r2 := r0); trivial.
-exact (proj1 (Xmax_Rle _ _ _ Hmax)).
-apply Rle_trans with (r2 := r1); trivial.
-exact (proj2 (Xmin_Rle _ _ _ Hmin)).
-apply Rle_trans with (r2 := r1); trivial.
-exact (proj2 (Xmax_Rle _ _ _ Hmax)).
+rewrite F.min_correct, F.max_correct.
+split.
+xreal_tac xl ; xreal_tac yl ; try easy.
+simpl.
+destruct H as [[H _]|[H _]].
+apply Rle_trans with (2 := H).
+apply Rmin_l.
+apply Rle_trans with (2 := H).
+apply Rmin_r.
+xreal_tac xu ; xreal_tac yu ; try easy.
+simpl.
+destruct H as [[_ H]|[_ H]].
+apply Rle_trans with (1 := H).
+apply Rmax_l.
+apply Rle_trans with (1 := H).
+apply Rmax_r.
 Qed.
 
 Theorem meet_correct :
@@ -613,8 +602,7 @@ exact Hy1.
 rewrite real_correct.
 xreal_tac yl.
 now rewrite X.
-rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
-convert_clean.
+rewrite F.max_correct.
 rewrite X, X0.
 simpl.
 now apply Rmax_best.
@@ -625,8 +613,7 @@ exact Hy2.
 rewrite real_correct.
 xreal_tac yu.
 now rewrite X.
-rewrite <- F.toF_correct, F.min_correct, Fmin_correct.
-convert_clean.
+rewrite F.min_correct.
 rewrite X, X0.
 simpl.
 now apply Rmin_best.
@@ -736,18 +723,17 @@ Lemma sign_large_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_large_ xl xu with
-  | Xeq => x = R0 /\ FtoX (F.toF xl) = Xreal R0 /\ FtoX (F.toF xu) = Xreal R0
-  | Xlt => (x <= 0)%R /\ (match FtoX (F.toF xl) with Xreal rl => (rl <= 0)%R | _=> True end) /\ (exists ru, FtoX (F.toF xu) = Xreal ru /\ (ru <= 0)%R)
-  | Xgt => (0 <= x)%R /\ (match FtoX (F.toF xu) with Xreal ru => (0 <= ru)%R | _=> True end) /\ (exists rl, FtoX (F.toF xl) = Xreal rl /\ (0 <= rl)%R)
+  | Xeq => x = R0 /\ F.toX xl = Xreal R0 /\ F.toX xu = Xreal R0
+  | Xlt => (x <= 0)%R /\ (match F.toX xl with Xreal rl => (rl <= 0)%R | _=> True end) /\ (exists ru, F.toX xu = Xreal ru /\ (ru <= 0)%R)
+  | Xgt => (0 <= x)%R /\ (match F.toX xu with Xreal ru => (0 <= ru)%R | _=> True end) /\ (exists rl, F.toX xl = Xreal rl /\ (0 <= rl)%R)
   | Xund =>
-    match FtoX (F.toF xl) with Xreal rl => (rl <= 0)%R | _=> True end /\
-    match FtoX (F.toF xu) with Xreal ru => (0 <= ru)%R | _=> True end
+    match F.toX xl with Xreal rl => (rl <= 0)%R | _=> True end /\
+    match F.toX xu with Xreal ru => (0 <= ru)%R | _=> True end
   end.
 Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_large_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct.
-convert_clean.
+rewrite 2!F.cmp_correct.
 rewrite F.zero_correct.
 destruct (F.toX xu) as [|xur].
 simpl.
@@ -857,8 +843,7 @@ Lemma sign_strict_correct_ :
 Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_strict_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct.
-convert_clean.
+rewrite 2!F.cmp_correct.
 rewrite F.zero_correct.
 destruct (F.toX xu) as [|xur].
 simpl.
@@ -970,7 +955,7 @@ rewrite <- bpow_powerRZ.
 now apply (bpow_le F.radix 0).
 (* . *)
 simpl.
-repeat rewrite F.cmp_correct, Fcmp_correct.
+repeat rewrite F.cmp_correct.
 xreal_tac xl ; xreal_tac xu ; simpl ;
   rewrite F.zero_correct ; simpl.
 repeat split.
@@ -1103,9 +1088,8 @@ rewrite F.zero_correct.
 split.
 exact (Rabs_pos x).
 (* - upper *)
-rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
-rewrite F.neg_correct.
-rewrite Fneg_correct.
+rewrite F.max_correct.
+rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
 unfold contains, convert in Hx.
 destruct Hx as (Hxl, Hxu).
 do 2 xreal_tac2.
@@ -1130,7 +1114,7 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct, 3!F.toF_correct, F.zero_correct.
+rewrite 2!F.cmp_correct, F.zero_correct.
 case_eq (F.toX xl) ; case_eq (F.toX xu).
 simpl.
 intros _ _.
@@ -1300,8 +1284,6 @@ intro.
 elim H.
 intros (Hxl, Hxu).
 rewrite F.cmp_correct.
-rewrite Fcmp_correct.
-convert_clean.
 rewrite F.zero_correct.
 revert Hxl.
 case_eq (F.toX xl) ; [ split | idtac ].
@@ -1403,12 +1385,12 @@ Hint Local Resolve Rmult_le_compat_neg_r : mulauto.
 
 Theorem mul_mixed_correct :
   forall prec yf,
-  extension (fun x => Xmul x (FtoX (F.toF yf))) (fun xi => mul_mixed prec xi yf).
+  extension (fun x => Xmul x (F.toX yf)) (fun xi => mul_mixed prec xi yf).
 Proof.
 intros prec yf [ | xl xu] [ | x] ; try easy.
 intros (Hxl, Hxu).
 simpl.
-rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct, F.zero_correct.
+rewrite F.cmp_correct,  F.zero_correct.
 xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hr ;
@@ -1451,8 +1433,8 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* solve by transivity *)
   try ( eauto with mulauto ; fail ).
 (* multiplication around zero *)
-rewrite <- F.toF_correct, F.min_correct, Fmin_correct.
-rewrite <- F.toF_correct, F.max_correct, Fmax_correct.
+rewrite F.min_correct, F.max_correct.
+rewrite <- !F.toF_correct.
 do 4 rewrite F.mul_correct.
 do 4 rewrite Fmul_correct.
 do 4 xreal_tac2 ;
@@ -1523,7 +1505,7 @@ Proof.
 intros prec yf [ | xl xu] [x | ] ; try easy.
 intros y (Hxl, Hxu).
 simpl.
-rewrite F.cmp_correct, Fcmp_correct, !F.toF_correct, F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hy ; try exact I ;
@@ -1638,9 +1620,9 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
 split.
 rewrite F.zero_correct ; simpl.
 apply Rle_0_sqr.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
-rewrite F.max_correct, Fmax_correct.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, F.toF_correct.
+rewrite F.max_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 do 2 xreal_tac2.
 simpl.
 bound_tac.
@@ -1666,7 +1648,7 @@ Qed.
 
 Theorem sqr_ge_0 :
   forall prec xi, convert xi <> Interval_interval.Inan ->
-  le_lower' (Xreal 0) (FtoX (F.toF (lower (sqr prec xi)))).
+  le_lower' (Xreal 0) (F.toX (lower (sqr prec xi))).
 Proof.
 intros prec [|xl xu].
 intros H.
@@ -1674,28 +1656,27 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, 2!Fcmp_correct, !F.toF_correct, F.zero_correct.
-assert (Hd: forall x xr, FtoX (F.toF x) = Xreal xr ->
-    match FtoX (F.toF (F.mul rnd_DN prec x x)) with
+rewrite 2!F.cmp_correct, F.zero_correct.
+assert (Hd: forall x xr, F.toX x = Xreal xr ->
+    match F.toX (F.mul rnd_DN prec x x) with
     | Xnan => False
     | Xreal yr => (0 <= yr)%R
     end).
   intros x xr Hx.
-  rewrite F.mul_correct, Fmul_correct.
+  rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, F.toF_correct.
   rewrite Hx.
   simpl.
   apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
   apply Fcore_generic_fmt.generic_format_0.
   apply Rle_0_sqr.
-assert (Hz: match FtoX (F.toF F.zero) with
+assert (Hz: match F.toX F.zero with
     | Xnan => False
     | Xreal yr => (0 <= yr)%R
     end).
   convert_clean.
   rewrite F.zero_correct.
   apply Rle_refl.
-rewrite <- 3!F.toF_correct.
-case_eq (FtoX (F.toF xl)) ; case_eq (FtoX (F.toF xu)) ; simpl.
+case_eq (F.toX xl) ; case_eq (F.toX xu) ; simpl.
 now intros _ _.
 intros ru Hu _.
 case Rcompare_spec ; simpl ; intros H ; try apply Hz ; apply Hd with (1 := Hu).
@@ -1708,22 +1689,22 @@ case Rcompare_spec ; simpl ; intros H1 ;
 Qed.
 
 Theorem sqr_ge_0' :
-  forall prec xi, (0 <= proj_val (FtoX (F.toF (lower (sqr prec xi)))))%R.
+  forall prec xi, (0 <= proj_val (F.toX (lower (sqr prec xi))))%R.
 Proof.
 intros prec [|xl xu].
 simpl.
-rewrite F.toF_correct, F.nan_correct.
+rewrite F.nan_correct.
 apply Rle_refl.
 refine (_ (sqr_ge_0 prec (Ibnd xl xu) _)).
 2: discriminate.
 simpl.
-now case FtoX.
+now case F.toX.
 Qed.
 
 Lemma Fpower_pos_up_correct :
   forall prec x n,
-  le_upper (Xreal 0) (FtoX (F.toF x)) ->
-  le_upper (Xpower_int (FtoX (F.toF x)) (Zpos n)) (FtoX (F.toF (Fpower_pos rnd_UP prec x n))).
+  le_upper (Xreal 0) (F.toX x) ->
+  le_upper (Xpower_int (F.toX x) (Zpos n)) (F.toX (Fpower_pos rnd_UP prec x n)).
 Proof.
 intros prec x n.
 revert x.
@@ -1731,7 +1712,7 @@ unfold le_upper, Xpower_int.
 induction n ; intros x Hx ; simpl.
 (* *)
 generalize (IHn (F.mul rnd_UP prec x x)).
-rewrite 2!F.mul_correct, 2!Fmul_correct.
+rewrite <- 2!(F.toF_correct (F.mul _ _ _ _)), 2!F.mul_correct, 2!Fmul_correct.
 xreal_tac x ; simpl.
 easy.
 xreal_tac (Fpower_pos rnd_UP prec (F.mul rnd_UP prec x x) n) ; simpl.
@@ -1751,7 +1732,7 @@ bound_tac.
 now apply Rmult_le_pos.
 (* *)
 generalize (IHn (F.mul rnd_UP prec x x)).
-rewrite F.mul_correct, Fmul_correct.
+rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
 xreal_tac x ; simpl.
 intros H.
 now apply H.
@@ -1775,8 +1756,8 @@ Qed.
 
 Lemma Fpower_pos_dn_correct :
   forall prec x n,
-  le_lower' (Xreal 0) (FtoX (F.toF x)) ->
-  le_lower' (FtoX (F.toF (Fpower_pos rnd_DN prec x n))) (Xpower_int (FtoX (F.toF x)) (Zpos n)).
+  le_lower' (Xreal 0) (F.toX x) ->
+  le_lower' (F.toX (Fpower_pos rnd_DN prec x n)) (Xpower_int (F.toX x) (Zpos n)).
 Proof.
 intros prec x n.
 revert x.
@@ -1784,7 +1765,7 @@ unfold le_lower', Xpower_int.
 induction n ; intros x Hx ; simpl.
 (* *)
 generalize (IHn (F.mul rnd_DN prec x x)).
-rewrite 2!F.mul_correct, 2!Fmul_correct.
+rewrite <- 2!(F.toF_correct (F.mul _ _ _ _)), 2!F.mul_correct, 2!Fmul_correct.
 xreal_tac x ; simpl.
 easy.
 xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
@@ -1807,7 +1788,7 @@ bound_tac.
 apply Rle_refl.
 (* *)
 generalize (IHn (F.mul rnd_DN prec x x)).
-rewrite F.mul_correct, Fmul_correct.
+rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
 xreal_tac x ; simpl.
 now rewrite X in Hx.
 xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
@@ -1854,7 +1835,7 @@ split.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
 unfold le_upper.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
 easy.
 xreal_tac xl ; simpl.
@@ -1888,7 +1869,7 @@ exact Hxl.
 (* .. *)
 generalize (Fpower_pos_dn_correct prec (F.abs xu) (xI n)).
 unfold le_lower'.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~1).
 easy.
 xreal_tac xu ; simpl.
@@ -1926,7 +1907,7 @@ split.
 (* .. *)
 generalize (Fpower_pos_dn_correct prec (F.abs xu) (xO n)).
 unfold le_lower'.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_DN prec (F.abs xu) n~0).
 easy.
 xreal_tac xu ; simpl.
@@ -1953,7 +1934,7 @@ now apply Ropp_le_contravar.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xO n)).
 unfold le_upper.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~0).
 easy.
 xreal_tac xl ; simpl.
@@ -2021,7 +2002,7 @@ split.
 rewrite <- F.toF_correct, F.neg_correct, Fneg_correct.
 generalize (Fpower_pos_up_correct prec (F.abs xl) (xI n)).
 unfold le_upper.
-rewrite F.abs_correct, Fabs_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.abs xl) n~1).
 easy.
 xreal_tac xl ; simpl.
@@ -2113,7 +2094,8 @@ apply Rle_0_sqr.
 (* .. *)
 generalize (Fpower_pos_up_correct prec (F.max (F.abs xl) xu) (xO n)).
 unfold le_upper.
-rewrite F.max_correct, Fmax_correct, F.abs_correct, Fabs_correct.
+rewrite F.max_correct.
+rewrite <- F.toF_correct, F.abs_correct, Fabs_correct.
 xreal_tac (Fpower_pos rnd_UP prec (F.max (F.abs xl) xu) n~0).
 easy.
 xreal_tac xl ; simpl.

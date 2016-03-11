@@ -460,9 +460,9 @@ Proof.
 rewrite /I.F'.le.
 rewrite F.cmp_correct.
 move: (F.real_correct u0) (F.real_correct l1).
+rewrite <- 2!F.toF_correct.
 case: F.toF => [ | | s0 m0 e0] -> ;
   case: F.toF => [ | | s1 m1 e1] -> ; try easy.
-by case s0.
 Qed.
 
 Lemma integral_float_absolute_ex_RInt

@@ -440,9 +440,11 @@ Definition cmp (f1 f2 : type) :=
   end.
 
 Lemma cmp_correct :
-  forall x y, cmp x y = Fcmp (toF x) (toF y).
+  forall x y, cmp x y = Xcmp (toX x) (toX y).
 Proof.
 intros.
+unfold toX.
+rewrite <- Fcmp_correct.
 destruct x as [| mx ex].
 apply refl_equal.
 destruct y as [| my ey].
@@ -476,12 +478,15 @@ Definition min x y :=
 
 Lemma min_correct :
   forall x y,
-  FtoX (toF (min x y)) = FtoX (Fmin (toF x) (toF y)).
+  toX (min x y) = Xmin (toX x) (toX y).
 Proof.
 intros.
-unfold min, Fmin.
+unfold min.
 rewrite cmp_correct.
-case (Fcmp (toF x) (toF y)) ; apply refl_equal.
+unfold toX.
+rewrite <- Fcmp_correct, <- Fmin_correct.
+unfold Fmin.
+now case Fcmp.
 Qed.
 
 (*
@@ -498,12 +503,15 @@ Definition max x y :=
 
 Lemma max_correct :
   forall x y,
-  FtoX (toF (max x y)) = FtoX (Fmax (toF x) (toF y)).
+  toX (max x y) = Xmax (toX x) (toX y).
 Proof.
 intros.
-unfold max, Fmax.
+unfold max.
 rewrite cmp_correct.
-case (Fcmp (toF x) (toF y)) ; apply refl_equal.
+unfold toX.
+rewrite <- Fcmp_correct, <- Fmax_correct.
+unfold Fmax.
+now case Fcmp.
 Qed.
 
 (*

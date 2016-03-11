@@ -79,13 +79,13 @@ Parameter real_correct :
   match toF f with Fnan => real f = false | _ => real f = true end.
 
 Parameter cmp_correct :
-  forall x y, cmp x y = Fcmp (toF x) (toF y).
+  forall x y, cmp x y = Xcmp (toX x) (toX y).
 
 Parameter min_correct :
-  forall x y, FtoX (toF (min x y)) = FtoX (Fmin (toF x) (toF y)).
+  forall x y, toX (min x y) = Xmin (toX x) (toX y).
 
 Parameter max_correct :
-  forall x y, FtoX (toF (max x y)) = FtoX (Fmax (toF x) (toF y)).
+  forall x y, toX (max x y) = Xmax (toX x) (toX y).
 
 Parameter neg_correct :
   forall x, FtoX (toF (neg x)) = FtoX (Fneg (toF x)).
