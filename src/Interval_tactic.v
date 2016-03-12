@@ -431,31 +431,6 @@ move: HnotInan.
 by case: (iFab) => //.
 Qed.
 
-Let integral_float_relative :=
-  Int.integral_float_relative prec estimator.
-
-Lemma integral_float_absolute_real_arguments depth l u epsilon :
-  notInan (integral_float_relative depth l u epsilon) -> (F.real l) /\ (F.real u).
-Proof.
-rewrite /integral_float_relative /Int.integral_float_relative.
-by case Hlreal: (F.real l) => [|]; case Hureal: (F.real u) => // .
-Qed.
-
-Let integral_float_absolute_signed := Int.integral_float_absolute_signed prec estimator.
-
-Let integral_float_absolute :=
-  Int.integral_float_absolute prec estimator.
-
-Lemma Fle_true_real u0 l1 : I.F'.le u0 l1 -> F.real u0 /\ F.real l1.
-Proof.
-rewrite /I.F'.le.
-rewrite F.cmp_correct.
-move: (F.real_correct u0) (F.real_correct l1).
-rewrite <- 2!F.toF_correct.
-case: F.toF => [ | | s0 m0 e0] -> ;
-  case: F.toF => [ | | s1 m1 e1] -> ; try easy.
-Qed.
-
 Lemma integral_float_absolute_signed_ex_RInt (depth : nat) u0 l1 epsilon :
   let i := Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon in
   Int.ex_RInt_base_case f estimator ->
@@ -468,7 +443,10 @@ move => HnotInan.
 case Horder : (Int.F'.le  u0 l1) HnotInan => HnotInan.
 - exact: Int.integral_float_relative_ex_RInt HnotInan _.
 - suff HnotInan2 : notInan (Int.integral_float_relative prec estimator depth l1 u0 epsilon).
-  have [Hreall1 Hrealu0] := (integral_float_absolute_real_arguments depth l1 u0 epsilon HnotInan2).
+  have [Hreall1 Hrealu0] : F.real l1 /\ F.real u0.
+    move: HnotInan2.
+    rewrite /Int.integral_float_relative.
+    by case Hlreal: (F.real l1); case Hureal: (F.real u0).
   apply: ex_RInt_swap.
   apply: Int.integral_float_relative_ex_RInt HnotInan2 _ => //.
   exact: Int.Fle_rev.
