@@ -570,8 +570,6 @@ Proof.
 by rewrite integralDifference; ring.
 Qed.
 
-Local Notation XRInt := (fun f a b => Xreal (RInt f a b)).
-
 (*
 With the new archi, this result is now given by Pol.primitive_correct:
 
@@ -583,7 +581,7 @@ Proof. by move=> ?; apply: Pol.primitive_correct =>//; apply: cont0. Qed.
 
 Lemma integralEnclosure_correct :
   i_validTM iX0 iX Mf xF ->
-  contains (I.convert integralEnclosure) (XRInt f a b).
+  contains (I.convert integralEnclosure) (Xreal (RInt f a b)).
 Proof.
 move => [] Hdef Hcontains0 HX0X H.
 have := (H x0 Hx0).

@@ -497,53 +497,9 @@ Qed.
 Lemma real_correct' :
   forall a, F.real a -> F.toX a = Xreal (toR a).
 Proof.
-intros a Ha.
-generalize (F.real_correct a).
-rewrite Ha /toR.
-rewrite <- F.toF_correct.
-now destruct F.toF.
-Qed.
-
-Lemma RgtToFcmp a b :
-  F.real a -> F.real b -> toR b < toR a -> F.cmp a b = Xgt.
-Proof.
-move => Ha Hb Hlt.
-rewrite F.cmp_correct.
-by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Gt.
-Qed.
-
-Lemma RltToFcmp a b :
-  F.real a -> F.real b -> toR a < toR b -> F.cmp a b = Xlt.
-Proof.
-move => Ha Hb Hlt.
-rewrite F.cmp_correct.
-by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Lt.
-Qed.
-
-Lemma ReqToFcmp a b :
-  F.real a -> F.real b -> toR a = toR b -> F.cmp a b = Xeq.
-Proof.
-move => Ha Hb Heq.
-rewrite F.cmp_correct.
-by rewrite (real_correct' a Ha) (real_correct' b Hb) /= Rcompare_Eq.
-Qed.
-
-Lemma Fcmp_geP u0 l1 :
-  F.real u0 -> F.real l1 ->
-  match F.cmp u0 l1 with
-    | Xeq => True
-    | Xlt => True
-    | _ => False end -> (toR u0) <= (toR l1).
-Proof.
-  move => /F_realP Hrealu0 /F_realP Hreall1.
-  rewrite F.cmp_correct /Xcmp.
-  rewrite Hreall1.
-  rewrite Hrealu0.
-  case Hcomp : (Rcompare (toR u0) (toR l1)) => // .
-  have := (Rcompare_Eq_inv _ _ Hcomp) => -> _.
-    exact: Rle_refl.
-  have := (Rcompare_Lt_inv _ _ Hcomp).
-    by move => H1 _; apply: Rlt_le.
+intros a.
+rewrite F.real_correct /toR.
+now destruct F.toX.
 Qed.
 
 Lemma Fle_Rle u0 l1 :
@@ -563,58 +519,34 @@ Lemma Rle_Fle a b :
   toR a <= toR b ->
   F'.le a b.
 Proof.
-case Hle : (F'.le a b) => // .
-move: Hle; rewrite /F'.le.
-case Hcmp: (F.cmp a b) => // _.
-- move => /F_realP Hreala /F_realP Hrealb.
-  move: Hcmp.
-  rewrite F.cmp_correct /Xcmp.
-  rewrite Hreala Hrealb.
-  case Hcomp : (Rcompare (toR a) (toR b)) => // _ Hab.
-  by have Habs := (Rcompare_not_Gt (toR a) (toR b) Hab).
-- move => /F_realP Hreala /F_realP Hrealb.
-  move: Hcmp.
-  rewrite F.cmp_correct /Xcmp.
-  rewrite Hreala Hrealb.
-  by case: (Rcompare (toR a) (toR b)).
+rewrite 2!F.real_correct /toR /F'.le F.cmp_correct.
+destruct F.toX. easy.
+destruct F.toX. easy.
+move => _ _ /=.
+case Rcompare_spec => //.
+by move /Rlt_not_le.
 Qed.
 
 Lemma Fle_rev a b :
-  F.real a -> F.real b -> F'.le a b = false -> F'.le b a = true.
+  F.real a -> F.real b ->
+  F'.le a b = false ->
+  F'.le b a = true.
 Proof.
-move => Hareal Hbreal Hfalse.
-rewrite /F'.le /F'.le F.cmp_correct.
-move/F_realP : Hareal. move /F_realP : Hbreal.
-move => Hbreal Hareal.
-rewrite Hareal Hbreal /Xcmp.
-case Hcomp : (Rcompare (toR b) (toR a)) => // .
-have Hleba := Rlt_le _ _ (Rcompare_Gt_inv (toR b) (toR a) Hcomp).
-move/F_realP in Hareal. move/F_realP in Hbreal.
-have := Rle_Fle a b Hareal Hbreal Hleba.
-by rewrite Hfalse.
+rewrite 2!F.real_correct /toR /F'.le 2!F.cmp_correct.
+destruct F.toX. easy.
+destruct F.toX. easy.
+move => _ _ /=.
+case Rcompare_spec => // H _.
+by rewrite Rcompare_Lt.
 Qed.
 
-Lemma Fle_eq a b :
-  F.real a -> F.real b -> F'.le a b = true -> F'.le b a = true -> toR a = toR b.
-Proof.
-move => Hareal Hbreal Htrue.
-case Hba : (F'.le b a) => // .
-have := (Fle_Rle a b Hareal Hbreal Htrue).
-have :=(Fle_Rle b a Hbreal Hareal Hba).
-move => Hlbz Hlab _.
-by apply: Rle_antisym.
-Qed.
-
-Lemma Fle_Rlt_Inv a b :
-  F.real a -> F.real b -> toR a > toR b -> F'.le a b = false.
+Lemma Fle_Rgt a b :
+  F.real a -> F.real b -> toR b < toR a -> F'.le a b = false.
 Proof.
 move => Hareal Hbreal Hgt.
-case Hab: (F'.le a b) => // .
-have Hge := (Rlt_le _ _ Hgt).
-have := (Rle_Fle b a Hbreal Hareal Hge) => Hba.
-have := Fle_eq a b Hareal Hbreal Hab Hba => Habs.
-rewrite Habs in Hgt.
-elim (Rlt_irrefl _ Hgt).
+case Hab: (F'.le a b) => //.
+elim Rlt_not_le with (1 := Hgt).
+now apply Fle_Rle.
 Qed.
 
 Lemma integral_float_absolute_signed_correct (depth : nat) (a b : F.type) epsilon :
@@ -627,8 +559,8 @@ case (Rle_dec (toR a) (toR b)) => Hab Hintf Hreala Hrealb.
 - have -> : F'.le a b = true by apply: Rle_Fle.
   exact: integral_float_relative_correct.
 - have -> : F'.le a b = false.
-    apply: Fle_Rlt_Inv => // .
-    by apply Rnot_le_gt.
+    apply: Fle_Rgt => //.
+    now apply Rnot_le_lt.
 rewrite -RInt_swap Xreal_neg.
 apply: I.neg_correct.
 apply: integral_float_relative_correct.
