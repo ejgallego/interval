@@ -8,7 +8,6 @@ FILES = \
 	Interval_generic_proof.v \
 	Interval_generic.v \
 	Interval_integral.v \
-	Interval_integral_taylor.v \
 	Interval_interval.v \
 	Interval_interval_float.v \
 	Interval_interval_float_full.v \
