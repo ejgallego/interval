@@ -297,8 +297,7 @@ case: unop HnotXnan => /=.
   by rewrite Ha is_zero_correct_zero.
 - move => _. by apply: continuous_mult.
 - move => HnotXnan.
-  apply: continuous_sqrt_comp => //.
-  by case: is_negative_spec HnotXnan.
+  exact: continuous_sqrt_comp.
 - move => _. by apply: continuous_cos_comp.
 - move => _. by apply: continuous_sin_comp.
 - move => HnotXnan.

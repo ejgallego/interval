@@ -96,21 +96,33 @@ apply: continuous_comp => //.
 by apply: continuous_exp.
 Qed.
 
-(* 0 <= x is an unnecessary hypothesis thanks to sqrt(-x) = 0 for x >= 0 *)
-(* still I don't know how to explain this to Coquelicot *)
-Lemma continuous_sqrt x : (0 <= x) -> continuous sqrt x.
+Lemma continuous_sqrt (x : R) : continuous sqrt x.
 Proof.
-move => Hx.
+destruct (Rle_or_lt 0 x) as [Hx|Hx].
 apply continuity_pt_filterlim.
 by apply: continuity_pt_sqrt.
+assert (Hs: forall t, t < 0 -> sqrt t = 0).
+  intros t Ht.
+  unfold sqrt.
+  case Rcase_abs.
+  easy.
+  intros Ht'.
+  now elim Rge_not_lt with (1 := Ht').
+intros P H.
+rewrite Hs // in H.
+unfold filtermap.
+apply: locally_open.
+apply open_lt. 2: exact Hx.
+move => /= t Ht.
+rewrite Hs //.
+now apply locally_singleton.
 Qed.
 
 Lemma continuous_sqrt_comp (f : R -> R) x:
   continuous f x ->
-  0 <= f x ->
   continuous (fun x => sqrt (f x)) x.
 Proof.
-move => Hcont Hfxpos.
+move => Hcont.
 apply: continuous_comp => // .
 by apply: continuous_sqrt.
 Qed.
