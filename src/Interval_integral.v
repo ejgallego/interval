@@ -162,14 +162,15 @@ Hypothesis  Hleab : toR a <= toR b.
 Hypothesis ha : F.real a.
 Hypothesis hb : F.real b.
 
-Definition naive_integral := I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)).
+Definition naive_integral_float :=
+  I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)).
 
-Lemma naive_integral_correct :
+Lemma naive_integral_float_correct :
   contains
-    (I.convert (naive_integral))
+    (I.convert (naive_integral_float))
     (Xreal (RInt f (toR a) (toR b))).
 Proof.
-rewrite /naive_integral.
+rewrite /naive_integral_float.
 case elu: (iF (I.bnd a b)) => // [l u].
 set ra := toR a; set rb := toR b; fold ra rb in Hintegrable, ha, hb, Hleab.
 set Iab := RInt _ _ _.
@@ -278,17 +279,16 @@ Definition integral_float_absolute_signed (depth : nat) (a b : F.type) (epsilon 
     | true => integral_float_relative depth a b epsilon
   end.
 
-Definition all_integrals (ia ib : I.type) :=
-I.mul prec (iF (I.join ia ib)) (I.sub prec ib ia).
+Definition naive_integral (ia ib : I.type) :=
+  I.mul prec (iF (I.join ia ib)) (I.sub prec ib ia).
 
 Definition integral_intBounds_epsilon depth (i1 i2 : I.type) epsilon :=
   if i1 is Ibnd a1 b1 then
     if i2 is Ibnd a2 b2 then
       if F'.le b1 a2 then
-                let si1 := all_integrals i1 (thin b1) in
-                let si2 := all_integrals (thin a2) i2 in
-                I.add prec
-                      (I.add prec si1 (integral_float_absolute_signed depth b1 a2 epsilon)) si2
+        let si1 := naive_integral i1 (thin b1) in
+        let si2 := naive_integral (thin a2) i2 in
+        I.add prec (I.add prec si1 (integral_float_absolute_signed depth b1 a2 epsilon)) si2
       else Inan
     else
       Inan
@@ -568,15 +568,15 @@ apply: integral_float_relative_correct.
 + apply: Rlt_le; exact: Rnot_le_gt.
 Qed.
 
-Lemma all_integrals_correct_leq (ia ib: I.type) (a b : R) :
+Lemma naive_integral_correct_leq (ia ib: I.type) (a b : R) :
   a <= b ->
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
   ex_RInt f a b ->
-  contains (I.convert (all_integrals ia ib)) (Xreal (RInt f a b)).
+  contains (I.convert (naive_integral ia ib)) (Xreal (RInt f a b)).
 Proof.
 move => Hleab Hcont1 Hcont2 Hfint.
-rewrite /all_integrals.
+rewrite /naive_integral.
 case elu: (iF (I.join ia ib)) => // [l u].
 set Iab := RInt _ _ _.
 have Hjoina : contains (I.convert (I.join ia ib)) (Xreal a).
@@ -660,14 +660,14 @@ have -> : Xreal (RInt f a b) =
      by split.
    apply: I.add_correct.
    + apply: I.add_correct.
-     * apply: all_integrals_correct_leq => // .
+     * apply: naive_integral_correct_leq => // .
        generalize (thin_correct ua).
        unfold I.convert_bound, toR.
        by destruct F.toX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
      * apply: integral_float_absolute_signed_correct => // ; apply: toX_toF_Freal => // .
-   + apply: (all_integrals_correct_leq _ _ (toR lb) b) => //.
+   + apply: (naive_integral_correct_leq _ _ (toR lb) b) => //.
      generalize (thin_correct lb).
      unfold I.convert_bound, toR.
      by destruct (F.toX lb).

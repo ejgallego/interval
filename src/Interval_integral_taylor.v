@@ -73,7 +73,7 @@ Definition taylor_integral :=
 
 (* now we take the intersection of a naive and intelligent way of computing the integral *)
 Definition taylor_integral_naive_intersection :=
-  let temp := IntTac.naive_integral prec iF a b in
+  let temp := IntTac.naive_integral_float prec iF a b in
   match temp with
     | Inan => Inan
     | temp => match taylor_integral with
@@ -101,14 +101,14 @@ Lemma taylor_integral_naive_intersection_correct :
     (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral_naive_intersection.
-set tmp := (IntTac.naive_integral _ _ _ _).
+set tmp := (IntTac.naive_integral_float _ _ _ _).
 case Ht : tmp => [| l u] => // .
 set int := Xreal _.
 case Hti : (taylor_integral) => [| l1 u1]; rewrite -Ht.
-- by apply: IntTac.naive_integral_correct.
+- by apply: IntTac.naive_integral_float_correct.
 - rewrite -Hti; apply: (I.meet_correct taylor_integral tmp).
   apply: taylor_integral_correct.
-  by apply: IntTac.naive_integral_correct.
+  by apply: IntTac.naive_integral_float_correct.
 Qed.
 
 End DepthZeroPol.
