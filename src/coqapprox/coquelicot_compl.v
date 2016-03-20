@@ -111,7 +111,7 @@ assert (Hs: forall t, t < 0 -> sqrt t = 0).
 intros P H.
 rewrite Hs // in H.
 unfold filtermap.
-apply: locally_open.
+eapply locally_open.
 apply open_lt. 2: exact Hx.
 move => /= t Ht.
 rewrite Hs //.
