@@ -2119,6 +2119,8 @@ case: Rle_bool_spec H =>//.
 by move/Rlt_not_le.
 Qed.
 
+(* First attempt with [I.subset I.zero] and [I.upper_extent I.zero]
+
 Definition TM_sqrt X0 X (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_sqrt prec X0 n) in
@@ -2138,6 +2140,44 @@ Definition TM_invsqrt X0 X (n : nat) : rpa :=
     else RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
   else RPA P I.nai.
 
+Lemma prop_geq0 X x :
+  I.subset X (I.upper_extent I.zero) ->
+  X >: x -> (0 <= x)%R.
+Proof.
+move/I.subset_correct.
+(* cannot be proved with current interface *)
+Abort.
+
+Lemma prop_neq0 X x :
+  I.subset I.zero X = false ->
+  X >: x -> x <> R0.
+Proof.
+move=> HF Hx Heq0.
+suff HT : I.subset I.zero X by rewrite HT in HF.
+(* cannot be proved with current interface *)
+Abort.
+*)
+
+Definition TM_sqrt X0 X (n : nat) : rpa :=
+  (* assuming X0 \subset X *)
+  let P := (T_sqrt prec X0 n) in
+  if ge0 X then
+    if gt0 X
+    then RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n)
+    else RPA P I.nai (* could be refined *)
+  else RPA P I.nai.
+
+Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
+
+Definition TM_invsqrt X0 X (n : nat) : rpa :=
+  (* assuming X0 \subset X *)
+  let P := (T_invsqrt prec X0 n) in
+  if ge0 X then
+    if gt0 X
+    then RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
+    else RPA P I.nai
+  else RPA P I.nai.
+
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2145,10 +2185,42 @@ Lemma TM_sqrt_correct X0 X n :
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_sqrt.
-case E1: I.subset.
-case E2: I.subset.
+case E1: ge0.
+case E2: gt0.
 
-(* could be refined *)
+apply i_validTM_Ztech with (TR.T_sqrt tt); last 2 first =>//.
+exact: I.sqrt_correct.
+constructor.
+- by move=> *; rewrite PolR.size_rec1.
+- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
+    admit. (* sqrt: formula for Derive_n *)
+  }
+constructor.
+- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
+    apply: Pol.rec1_correct =>//.
+    by move=> *;
+      repeat first [apply: R_div_correct
+                   |apply: R_mul_correct
+                   |apply: R_sub_correct
+                   |apply: I.fromZ_correct
+                   |apply: R_mul_correct
+                   |apply: I.fromZ_correct
+                   |apply: R_from_nat_correct
+                   ].
+    exact: R_sqrt_correct.
+  }
+- admit. (* sqrt: nai propagation *)
+- admit. (* sqrt: defined over X *)
+- { clear - E1 E2.
+    move=> n x Hx.
+    move/(gt0_correct Hx) in E2.
+    eapply ex_derive_n_ext_loc; last eapply ex_derive_n_sqrt =>//.
+    apply: locally_open E2; first exact: open_gt.
+    simpl=> y Hy; rewrite /Xsqrt /toR_fun /proj_fun negativeF //.
+    exact: Rlt_le.
+  }
+
 constructor =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
 by rewrite I.nai_correct.
@@ -2167,32 +2239,7 @@ by move=> *;
 exact: R_sqrt_correct.
 by rewrite I.nai_correct.
 
-apply i_validTM_Ztech with (TR.T_sqrt tt); last 2 first =>//.
-exact: I.sqrt_correct.
-constructor.
-- by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
-    admit.
-  }
-constructor.
-- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
-- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
-    apply: Pol.rec1_correct =>//.
-    by move=> *;
-      repeat first [apply: R_div_correct
-                   |apply: R_mul_correct
-                   |apply: R_sub_correct
-                   |apply: I.fromZ_correct
-                   |apply: R_mul_correct
-                   |apply: I.fromZ_correct
-                   |apply: R_from_nat_correct
-                   ].
-    exact: R_sqrt_correct.
-  }
-- admit.
-- admit.
-- admit; exact: ex_derive_n_sqrt.
-
+(* same proof now *)
 constructor =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
 by rewrite I.nai_correct.
@@ -2276,7 +2323,7 @@ Qed.
 
 Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
 Proof.
-by unfold TM_sqrt; case: I.subset; first case: I.subset; rewrite Pol.size_rec1.
+by rewrite /TM_sqrt; case: ge0; first case: gt0; rewrite Pol.size_rec1.
 Qed.
 
 Ltac Inc :=
@@ -2291,8 +2338,45 @@ Lemma TM_invsqrt_correct X0 X n :
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_invsqrt.
-case E1: I.subset.
-case E2: I.subset.
+case E1: ge0.
+case E2: gt0.
+
+apply i_validTM_Ztech with (TR.T_invsqrt tt); last 2 first =>//.
+admit. (* invsqrt: I.extension *)
+constructor.
+- by move=> *; rewrite PolR.size_rec1.
+- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
+    admit. (* invsqrt: formula for Derive_n *)
+  }
+constructor.
+- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
+    apply: Pol.rec1_correct =>//.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_mul_correct
+               |apply: R_sub_correct
+               |apply: I.fromZ_correct
+               |apply: R_mul_correct
+               |apply: I.fromZ_correct
+               |apply/eqNaiPy: R_from_nat_correct
+               |apply: R_add_correct
+               |apply: R_neg_correct
+               |Inc
+               ].
+    apply: R_inv_correct; exact: R_sqrt_correct.
+  }
+- admit. (* invsqrt: nai propagation *)
+- admit. (* invsqrt: defined over X *)
+- { clear - E1 E2.
+    move=> n x Hx.
+    move/(gt0_correct Hx) in E2.
+    eapply ex_derive_n_ext_loc; last eapply ex_derive_n_invsqrt =>//.
+    apply: locally_open E2; first exact: open_gt.
+    simpl=> y Hy; rewrite /Xsqrt /Xinv /toR_fun /proj_fun negativeF ?zeroF //.
+    apply: RMicromega.Rlt_neq; exact: sqrt_lt_R0.
+    exact: Rlt_le.
+  }
 
 constructor =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
@@ -2314,35 +2398,6 @@ by move=> *;
                ].
 by apply: R_inv_correct; apply: R_sqrt_correct.
 by rewrite I.nai_correct.
-
-apply i_validTM_Ztech with (TR.T_invsqrt tt); last 2 first =>//.
-admit.
-constructor.
-- by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
-    admit.
-  }
-constructor.
-- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
-- { move => {X0 X n Hsubset Hex E1 E2} X0 xi0 n Hx.
-    apply: Pol.rec1_correct =>//.
-by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
-               |apply: I.fromZ_correct
-               |apply: R_mul_correct
-               |apply: I.fromZ_correct
-               |apply/eqNaiPy: R_from_nat_correct
-               |apply: R_add_correct
-               |apply: R_neg_correct
-               |Inc
-               ].
-    apply: R_inv_correct; exact: R_sqrt_correct.
-  }
-- admit.
-- admit.
-- admit; exact: ex_derive_n_invsqrt.
 
 (* again *)
 constructor =>//.
@@ -2421,7 +2476,7 @@ Qed.
 Lemma size_TM_invsqrt X0 X (n : nat) :
   Pol.size (approx (TM_invsqrt X0 X n)) = n.+1.
 Proof.
-by unfold TM_invsqrt; case: I.subset; first case: I.subset; rewrite Pol.size_rec1.
+by rewrite /TM_invsqrt; case: ge0; first case: gt0; rewrite Pol.size_rec1.
 Qed.
 
 (*

@@ -711,6 +711,62 @@ rewrite -H3 /contains H3.
 by case Er : x =>[//|r]; case Es : (I.convert_bound (I.lower X)) =>[|s]; lra.
 Qed.
 
+Definition ge0 xi : bool :=
+  if I.sign_large xi is Xgt then true else false.
+
+Definition le0 xi : bool :=
+  if I.sign_large xi is Xlt then true else false.
+
+Definition gt0 xi : bool :=
+  if I.sign_strict xi is Xgt then true else false.
+
+Definition lt0 xi : bool :=
+  if I.sign_strict xi is Xlt then true else false.
+
+Definition neq0 xi : bool :=
+  match I.sign_strict xi with
+  | Xlt | Xgt => true
+  | _ => false
+  end.
+
+Lemma ge0_correct X x :
+  contains (I.convert X) (Xreal x) -> ge0 X -> (0 <= x)%R.
+Proof.
+move=> Hx; rewrite /ge0; have := I.sign_large_correct X; case: I.sign_large=>//.
+by case/(_ _ Hx) =>/=.
+Qed.
+
+Lemma le0_correct X x :
+  contains (I.convert X) (Xreal x) -> le0 X -> (x <= 0)%R.
+Proof.
+move=> Hx; rewrite /le0; have := I.sign_large_correct X; case: I.sign_large=>//.
+by case/(_ _ Hx) =>/=.
+Qed.
+
+Lemma gt0_correct X x :
+  contains (I.convert X) (Xreal x) -> gt0 X -> (0 < x)%R.
+Proof.
+move=> Hx; rewrite /gt0.
+have := I.sign_strict_correct X; case: I.sign_strict=>//.
+by case/(_ _ Hx) =>/=.
+Qed.
+
+Lemma lt0_correct X x :
+  contains (I.convert X) (Xreal x) -> lt0 X -> (x < 0)%R.
+Proof.
+move=> Hx; rewrite /lt0.
+have := I.sign_strict_correct X; case: I.sign_strict=>//.
+by case/(_ _ Hx) =>/=.
+Qed.
+
+Lemma neq0_correct X x :
+  contains (I.convert X) (Xreal x) -> neq0 X -> (x <> 0)%R.
+Proof.
+move=> Hx; rewrite /neq0.
+have := I.sign_strict_correct X; case: I.sign_strict=>//;
+  by case/(_ _ Hx) =>/=; auto with real.
+Qed.
+
 Lemma intvlP X :
   I.bounded X = true ->
   forall x,
