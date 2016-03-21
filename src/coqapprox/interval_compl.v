@@ -723,7 +723,7 @@ Definition gt0 xi : bool :=
 Definition lt0 xi : bool :=
   if I.sign_strict xi is Xlt then true else false.
 
-Definition neq0 xi : bool :=
+Definition apart0 xi : bool :=
   match I.sign_strict xi with
   | Xlt | Xgt => true
   | _ => false
@@ -759,10 +759,10 @@ have := I.sign_strict_correct X; case: I.sign_strict=>//.
 by case/(_ _ Hx) =>/=.
 Qed.
 
-Lemma neq0_correct X x :
-  contains (I.convert X) (Xreal x) -> neq0 X -> (x <> 0)%R.
+Lemma apart0_correct X x :
+  contains (I.convert X) (Xreal x) -> apart0 X -> (x <> 0)%R.
 Proof.
-move=> Hx; rewrite /neq0.
+move=> Hx; rewrite /apart0.
 have := I.sign_strict_correct X; case: I.sign_strict=>//;
   by case/(_ _ Hx) =>/=; auto with real.
 Qed.

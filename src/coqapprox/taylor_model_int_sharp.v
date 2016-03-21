@@ -171,10 +171,6 @@ Definition TM_cst c : rpa :=
 Definition TM_var X0 :=
   RPA (Pol.set_nth Pol.polyX 0 X0) I.zero.
 
-Definition TM_power_int (p : Z) X0 X (n : nat) :=
-  let P := (T_power_int prec p X0 n) in RPA P
-  (Ztech prec (T_power_int prec p) P (fun x => I.power_int prec x p) X0 X n).
-
 Definition TM_inv X0 X (n : nat) :=
   let P := (T_inv prec X0 n) in
   (** Note that this let-in is essential in call-by-value context. *)
@@ -2158,6 +2154,7 @@ suff HT : I.subset I.zero X by rewrite HT in HF.
 Abort.
 *)
 
+(* Erik/TODO: simplify the function so there's only 1 test in the main branch *)
 Definition TM_sqrt X0 X (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_sqrt prec X0 n) in
@@ -2342,7 +2339,7 @@ case E1: ge0.
 case E2: gt0.
 
 apply i_validTM_Ztech with (TR.T_invsqrt tt); last 2 first =>//.
-admit. (* invsqrt: I.extension *)
+move=> Y y Hy; apply: I.inv_correct; exact: I.sqrt_correct.
 constructor.
 - by move=> *; rewrite PolR.size_rec1.
 - { move=> {X0 X n Hsubset Hex E1 E2} x n k Hdef H.
@@ -2496,15 +2493,6 @@ by rewrite tsize_set_nth !sizes maxnSS maxn0.
 Qed.
 *)
 
-Lemma size_TM_power_int (p : Z) X0 X (n : nat) :
-  Pol.size (approx (TM_power_int p X0 X n)) = n.+1.
-Proof.
-rewrite /= /T_power_int (@Pol.size_dotmuldiv (n.+1)) //.
-by rewrite Pol.size_rec1.
-by rewrite size_rec1up.
-by rewrite size_rec1up.
-Qed.
-
 (*
 Lemma tnth_pow_aux_rec (p : Z) (x : ExtendedR) n k :
   k <= n ->
@@ -2582,13 +2570,42 @@ by rewrite 2!big_ord_recr IHn.
 Qed.
 *)
 
-Lemma TM_power_int_correct (p : Z) X0 X n :
+(*
+Definition TM_power_int (p : Z) X0 X (n : nat) :=
+  let P := (T_power_int prec p X0 n) in
+  RPA P (Ztech prec (T_power_int prec p) P
+               (fun x => I.power_int prec x p) X0 X n).
+*)
+
+Definition TM_power_int (p : Z) X0 X (n : nat) :=
+  let P := (T_power_int prec p X0 n) in
+  if p is Z.neg _ then
+    if apart0 X then
+      RPA P (Ztech prec (T_power_int prec p) P
+                   (fun x => I.power_int prec x p) X0 X n)
+    else RPA P I.nai
+  else RPA P (Ztech prec (T_power_int prec p) P
+                    (fun x => I.power_int prec x p) X0 X n).
+
+Lemma size_TM_power_int (p : Z) X0 X (n : nat) :
+  Pol.size (approx (TM_power_int p X0 X n)) = n.+1.
+Proof.
+rewrite /TM_power_int.
+case: p => [|p|p]; last case: apart0;
+  by rewrite (@Pol.size_dotmuldiv (n.+1)) ?(Pol.size_rec1, size_rec1up).
+Qed.
+
+Lemma TM_power_int_correct_aux (p : Z) X0 X n :
+  (0 <= p)%Z \/ apart0 X ->
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
-  (fun x => Xpower_int x p).
-Proof.
-move=> Hsubset Hex.
+  i_validTM (I.convert X0) (I.convert X) (let P := (T_power_int prec p X0 n) in
+                                          RPA P (Ztech
+                                                   prec (T_power_int prec p) P
+                                                   (fun x => I.power_int prec x p)
+                                                   X0 X n))
+            (fun x => Xpower_int x p).
+move=> Hyp Hsubset Hex.
 apply i_validTM_Ztech with (TR.T_power_int tt p); last 2 first =>//.
 exact: I.power_int_correct.
 constructor.
@@ -2606,9 +2623,9 @@ constructor.
       rewrite big_mkord big_ord0.
       rewrite [PolR.nth _ _]nth_rec1up /= Rdiv_1 Rmult_1_l.
       move: Hdef; rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-      by case: p {Hder} =>//; case: is_zero.
+      by case: p {Hyp Hder} =>//; case: is_zero.
     rewrite falling_seq_correct // fact_seq_correct //.
-    admit. (* TODO: power_int *)
+    admit. (* power_int: formula for Derive_n *)
   }
 constructor.
 - by move=> {n} ? ? n;
@@ -2626,7 +2643,7 @@ constructor.
       exact: cont0.
     + exact: R_power_int_correct.
   }
-- { move=> {X X0 n Hsubset Hex} X x Hx Dx n k Hk.
+- { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
     rewrite /T_power_int.
     apply/eqNaiP.
     apply: Pol.dotmuldiv_propagate; last 1 first.
@@ -2642,9 +2659,12 @@ constructor.
     apply/eqNaiP/contains_Xnan.
     have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
     move: Dx; rewrite /defined /Xpower_int.
-    admit. (* TODO: power_int *)
+    by case Ep: p =>//; case: is_zero =>//; case: m.
     exact: I.power_int_correct.
-    admit. (* TODO: power_int *)
+    match goal with |- is_true ?a => rewrite -(negbK a) negb_or end.
+    apply/negP; case/andP => /negbTE H0 /negbTE Hm.
+    move: Dx; rewrite /defined /Xpower_int.
+    by case: {Hyp} p H0 Hm.
     apply/eqNaiP/contains_Xnan.
     have->: Xnan = Xpower_int^~ p (Xreal x).
     by move: Dx; tac_def1 Xpower_int.
@@ -2652,9 +2672,42 @@ constructor.
     exact: I.power_int_correct.
   }
 - move=> x Hx.
-  admit. (* TODO: power_int *)
+  rewrite /defined /Xpower_int.
+  have {Hyp} [H0 | H0] := Hyp.
+  by case: p H0 =>// p H0; move/Z.leb_le in H0.
+  case: p H0 =>// p H0.
+  rewrite zeroF //.
+  exact: apart0_correct.
 - move=> k x Hx.
-  admit. (* TODO: power_int *)
+  admit. (* power_int : ex_derive_n *)
+Qed.
+
+Lemma TM_power_int_correct (p : Z) X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
+            (fun x => Xpower_int x p).
+Proof.
+move=> Hsubs Hnex.
+rewrite /TM_power_int.
+case Ep: p => [|p'|p']; last case E0: apart0;
+  try apply: TM_power_int_correct_aux; intuition.
+
+constructor =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_power_int tt (Z.neg p') x0 n).
+apply: Pol.dotmuldiv_correct.
+by rewrite size_falling_seq size_fact_seq.
+apply: Pol.rec1_correct.
+rewrite /pow_aux_rec /TR.pow_aux_rec -Ep.
+move=> ai a m Ha.
+case: ((p <? 0) || (p >=? Z.of_nat m))%Z.
+exact: R_power_int_correct.
+apply R_mask_correct with x0; done || exact: cont0.
+exact: R_power_int_correct.
+by move=> x Hx; rewrite I.nai_correct.
 Qed.
 
 Lemma TM_inv_correct X0 X n :
@@ -2739,13 +2792,12 @@ constructor.
       rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_exp _ _)).
       rewrite fact_simpl mult_INR.
       field_simplify; first apply: Rdiv_eq_reg; try ring;
-        repeat first [ split
-                     | apply: Rmult_neq0
-                     | apply: not_0_INR
-                     | apply: pow_nonzero
-                     | apply: Rsqr_plus1_neq0
-                     | apply: fact_neq_0
-                     | done].
+        by repeat first [ split
+                        | apply: Rmult_neq0
+                        | apply: not_0_INR
+                        | apply: pow_nonzero
+                        | apply: Rsqr_plus1_neq0
+                        | apply: fact_neq_0 ].
   }
 constructor.
 - by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
