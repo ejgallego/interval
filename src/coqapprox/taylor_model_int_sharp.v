@@ -2725,43 +2725,40 @@ Lemma TM_exp_correct X0 X n :
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) Xexp.
 Proof.
 move=> Hsubset Hex.
-rewrite /TM_exp /T_exp /=.
-admit.
-(*
-apply TM_rec1_correct' with
-  (XDn := fun n x => Xexp x)
-  (F_rec := fun _ => Rec.exp_rec prec)
-  (XF_rec := fun _ => TX.Rec.exp_rec tt) =>//.
-- by move=> ?; apply: nth_Xderive_pt_exp.
-- by move=> x X1 HX1; apply: I.exp_correct.
-- move=> x0 x X1 X2 m HX1 HX2.
-  rewrite /Rec.exp_rec /TX.Rec.exp_rec.
-  apply: I.div_correct =>//.
-  rewrite /tnat.
-  rewrite INR_IZR_INZ -Z2R_IZR.
-  exact: I.fromZ_correct.
-move=> r k.
-rewrite /TX.Rec.exp_rec.
-case Cex: (Xexp r) =>[//|re].
-rewrite /Xdiv !(fact_zeroF) zeroF.
-  congr Xreal.
-  rewrite S_INR /= plus_INR mult_INR; field.
-  split.
-    rewrite -mult_INR -plus_INR.
-    change ((fact k + (k * fact k)%coq_nat)%coq_nat) with (fact k.+1).
-    move=> H.
-    case: (fact_neq_0 k.+1).
-    exact: INR_eq.
-  split.
-    move=> H.
-    case: (fact_neq_0 k).
-    exact: INR_eq.
-  apply: Rgt_not_eq.
-  change 1%Re with (INR 1).
-  rewrite -plus_INR plusE.
-  by apply: Rlt_gt; apply: lt_0_INR; apply/ltP; rewrite addn1.
-by apply: Rgt_not_eq; apply: lt_0_INR; apply/ltP.
-*)
+rewrite /TM_sqrt.
+apply i_validTM_Ztech with (TR.T_exp tt); last 2 first =>//.
+exact: I.exp_correct.
+constructor.
+- by move=> *; rewrite PolR.size_rec1.
+- { move=> {X0 X n Hsubset Hex} x n k Hdef H Hk; rewrite toR_toXreal /PolR.nth.
+    elim: k Hk => [|k IHk] Hk.
+    - by rewrite (nth_rec1up_indep _ _ _ 0%R (m2 := 0)) //= Rdiv_1.
+      rewrite (nth_rec1up_indep _ _ _ 0%R (m2 := k)) // in IHk; last exact: ltnW.
+      rewrite (nth_rec1up_indep _ _ _ 0%R (m2 := k.+1)) // nth_rec1upS.
+      rewrite {}IHk /TR.exp_rec; last exact: ltnW.
+      rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_exp _ _)).
+      rewrite fact_simpl mult_INR.
+      field_simplify; first apply: Rdiv_eq_reg; try ring;
+        repeat first [ split
+                     | apply: Rmult_neq0
+                     | apply: not_0_INR
+                     | apply: pow_nonzero
+                     | apply: Rsqr_plus1_neq0
+                     | apply: fact_neq_0
+                     | done].
+  }
+constructor.
+- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move => {X0 X n Hsubset Hex} X0 xi0 n Hx.
+    apply: Pol.rec1_correct =>//.
+    by move=> *;
+      repeat first [apply: R_div_correct
+                   |apply: R_from_nat_correct
+                   ].
+    exact: R_exp_correct.
+  }
+- done.
+- move=> {n} n x Hx; eapply ex_derive_n_is_derive_n; exact: is_derive_n_exp.
 Qed.
 
 Lemma size_TM_exp X0 X (n : nat) : Pol.size (approx (TM_exp X0 X n)) = n.+1.
