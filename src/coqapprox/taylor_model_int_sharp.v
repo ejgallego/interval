@@ -171,12 +171,8 @@ Definition TM_cst c : rpa :=
 Definition TM_var X0 :=
   RPA (Pol.set_nth Pol.polyX 0 X0) I.zero.
 
-Definition TM_inv X0 X (n : nat) :=
-  let P := (T_inv prec X0 n) in
-  (** Note that this let-in is essential in call-by-value context. *)
-  RPA P (Ztech prec (T_inv prec) P (I.inv prec) X0 X n).
-
 Definition TM_exp X0 X (n : nat) : rpa :=
+  (** Note that this let-in is essential in call-by-value context. *)
   let P := (T_exp prec X0 n) in
   RPA P (Ztech prec (T_exp prec) P (I.exp prec) X0 X n).
 
@@ -2218,7 +2214,7 @@ constructor.
     exact: Rlt_le.
   }
 
-constructor =>//.
+split =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
 by rewrite I.nai_correct.
 move=> x0 Hx0.
@@ -2237,7 +2233,7 @@ exact: R_sqrt_correct.
 by rewrite I.nai_correct.
 
 (* same proof now *)
-constructor =>//.
+split =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
 by rewrite I.nai_correct.
 move=> x0 Hx0.
@@ -2710,67 +2706,62 @@ exact: R_power_int_correct.
 by move=> x Hx; rewrite I.nai_correct.
 Qed.
 
+Definition TM_inv X0 X (n : nat) :=
+  let P := (T_inv prec X0 n) in
+  if apart0 X then
+    RPA P (Ztech prec (T_inv prec) P (I.inv prec) X0 X n)
+  else RPA P I.nai.
+
+Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
+Proof. by rewrite /TM_inv; case: apart0 =>/=; rewrite Pol.size_rec1. Qed.
+
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv.
 Proof.
 move=> Hsubset Hex.
-rewrite /TM_inv /T_inv /=.
-admit. (*
-apply TM_rec1_correct' with
-  (XDn := (fun n x => ((- Xreal 1)^n * Xreal (INR (fact n)))
-    * (Xmask (Xreal 1) x) / x^n.+1)%XR)
-  (XF_rec := TX.Rec.inv_rec tt) =>//.
-+ by move=> x; apply: nth_Xderive_pt_inv.
-+ move=> x X1 HX1.
-  exact: I.inv_correct.
-+ move=> x0 x X1 X2 m HX1 HX2.
-  rewrite /Rec.inv_rec.
-  rewrite /TX.Rec.inv_rec.
-  apply: I.div_correct =>//.
-  exact: I.neg_correct.
-move=> r k.
-rewrite /TX.Rec.inv_rec.
-rewrite !Xpow_idem !Xpow_Xreal.
-case r =>[|rr] //.
-rewrite !Xpow_Xreal /=.
-destruct (Req_EM_T rr 0) as [e | e].
-  by rewrite !zeroT //=; rewrite e; ring.
-rewrite !zeroF /=.
-+ rewrite !zeroF /=.
-  - rewrite zeroF /=.
-    f_equal.
-    rewrite !plus_INR !mult_INR.
-    field.
-    split; first exact: pow_nonzero.
-    split=>//.
-    split.
-      rewrite -mult_INR -plus_INR.
-      change ((fact k + (k * fact k)%coq_nat)%coq_nat) with (fact k.+1).
-      move=> H.
-      case: (fact_neq_0 k.+1).
-      exact: INR_eq.
-    move=> H.
-    case: (fact_neq_0 k).
-    exact: INR_eq.
-  exact: Ropp_neq_0_compat.
-+ change ((fact k + (k * fact k)%coq_nat)%coq_nat) with (fact k.+1).
-  move=> H.
-  case: (fact_neq_0 k.+1).
-  exact: INR_eq.
-+ move=> H.
-  case: (fact_neq_0 k).
-  exact: INR_eq.
-+ change (rr * (rr * rr ^ k))%Re with (rr ^ k.+2)%Re.
-  exact: pow_nonzero.
-change ((rr * rr ^ k))%Re with (rr ^ k.+1)%Re.
-exact: pow_nonzero.
-*)
-Qed.
+rewrite /TM_inv /=.
+case E0: apart0.
+apply i_validTM_Ztech with (TR.T_inv tt); last 2 first =>//.
+exact: I.inv_correct.
+constructor.
+- by move=> {n} ? n; rewrite PolR.size_rec1.
+- { move=> x m k Hdef Hder Hk.
+    admit. (* inv: formula for Derive_n *)
+  }
+constructor.
+- by move=> {n} ? ? n; rewrite PolR.size_rec1 Pol.size_rec1.
+- { move=> {X0 n Hsubset Hex} X0 x0 n Hx0.
+    apply: Pol.rec1_correct; last exact: R_inv_correct.
+    move=> ai a m Ha; apply: R_div_correct =>//.
+    exact: R_neg_correct.
+  }
+- { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
+    rewrite /T_inv.
+    admit. (* inv: nai propagation *)
+  }
+- { move=> x Hx; rewrite /Xinv /defined zeroF //.
+    exact: apart0_correct.
+  }
+- { move=> {n} n x Hx.
+    admit. (* inv: ex_derive_n *)
+  }
 
-Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
-Proof. by rewrite Pol.size_rec1. Qed.
+split =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_inv tt x0 n).
+apply: Pol.rec1_correct.
+by move=> *;
+  repeat first [apply: R_div_correct
+               |apply: R_inv_correct
+               |apply: R_neg_correct
+               ].
+exact: R_inv_correct.
+by rewrite I.nai_correct.
+Qed.
 
 Lemma TM_exp_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -2778,7 +2769,6 @@ Lemma TM_exp_correct X0 X n :
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) Xexp.
 Proof.
 move=> Hsubset Hex.
-rewrite /TM_sqrt.
 apply i_validTM_Ztech with (TR.T_exp tt); last 2 first =>//.
 exact: I.exp_correct.
 constructor.
