@@ -176,10 +176,6 @@ Definition TM_exp X0 X (n : nat) : rpa :=
   let P := (T_exp prec X0 n) in
   RPA P (Ztech prec (T_exp prec) P (I.exp prec) X0 X n).
 
-Definition TM_ln X0 X (n : nat) : rpa :=
-  let P := (T_ln prec X0 n) in
-  RPA P (Ztech prec (T_ln prec) P (I.ln prec) X0 X n).
-
 Definition TM_sin X0 X (n : nat) : rpa :=
   let P := (T_sin prec X0 n) in
   RPA P (Ztech prec (T_sin prec) P (I.sin prec) X0 X n).
@@ -2851,134 +2847,79 @@ Lemma Xreal_Rinv r :
   Xreal (/ r) = Xpower_int (Xreal r) (-1).
 Proof. by move=> Hr; rewrite /Xpower_int Hr /= Rmult_1_r. Qed.
 
+Definition TM_ln X0 X (n : nat) : rpa :=
+  let P := (T_ln prec X0 n) in
+  if gt0 X then
+    RPA P (Ztech prec (T_ln prec) P (I.ln prec) X0 X n)
+  else RPA P I.nai.
+
+Lemma size_TM_ln X0 X (n : nat) : Pol.size (approx (TM_ln X0 X n)) = n.+1.
+Proof.
+by rewrite /TM_ln; case: gt0; case: n => [|n] /=; rewrite !sizes
+  ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1, size_rec1up, size_behead).
+Qed.
+
 Lemma TM_ln_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln.
 Proof.
-move=> Hsubset [t Ht].
-admit.
-(*
-eapply (i_validTM_Ztech
-  (XDn :=
-    (fun k x => if k isn't k'.+1 then Xln x else
-      if x is Xreal r then
-        if is_positive r then
-          Xreal (\big[Rmult/R1]_(i < k') (Z2R (- Z.of_nat i.+1))) *
-          Xpower_int (Xreal r) (- Z.of_nat k'.+1)%Z
-        else Xnan
-      else Xnan)%XR)); last by eexists; exact Ht.
-6: done.
-done.
-red=> x; simpl.
-apply nth_Xderive_pt_ln.
-apply: I.ln_correct.
-
-(* validXPoly *)
-instantiate (1 := TX.T_ln tt).
-split.
-move=> x [ |k]; rewrite /TX.T_ln !sizes ?PolR_tsize_dotmuldiv //.
-rewrite /T_ln /TX.T_ln.
-move=> x n' k Hk.
-rewrite PolR.tnth_polyCons; last first.
-  case: n' Hk =>[ |n']; first by rewrite ltnS leqn0; move/eqP->.
-  by rewrite ltnS => Hk; rewrite PolR_tsize_dotmuldiv.
-case: k Hk =>[//|k Hk]; first by rewrite Xdiv_1_r.
-rewrite ltnS in Hk.
-rewrite -(subnKC Hk) /= -addnE.
-have->: k + (n' - k.+1) = n'.-1 by rewrite -[in RHS](subnKC Hk) addSn.
-have->: k.+1 + (n' - k.+1) = n'.-1.+1 by rewrite -[in RHS](subnKC Hk) addSn.
-case: x =>[ |x] /=.
-rewrite PolR.tnth_dotmuldiv.
-case: k Hk =>[//|k Hk].
-rewrite PolR.trec1_spec0 XmulC //.
-rewrite PolR.trec1_spec.
-rewrite /TX.Rec.pow_aux_rec XmulC //.
-exact: ltn_leq_pred.
-rewrite PolR_tsize_dotmuldiv.
-exact: ltn_leq_pred.
-case: is_positive_spec=> Hx.
-rewrite /= zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite PolR.tnth_dotmuldiv; last first.
-rewrite PolR_tsize_dotmuldiv.
-exact: ltn_leq_pred.
-rewrite Rmult_1_r Xreal_Rinv; last first.
-rewrite zeroF; case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite aux_tnth_ln.
-rewrite [Xpower_int _ _]/=.
-rewrite zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite falling_seq_correct.
-rewrite nth_behead.
-rewrite fact_seq_correct.
-rewrite !Xdiv_split.
-rewrite !Xmul_assoc (Xmul_comm (Xinv _)).
-rewrite -!Xmul_assoc; congr Xmul.
-- rewrite [Z.sub]lock /= -lock; repeat f_equal.
-  rewrite big_mkord.
-  apply: (@big_ind2 _ _ (fun a b => IZR a = b)) =>//.
-  by move=> a b c d <- <-; rewrite mult_IZR.
-  move=> i _;   rewrite minus_IZR /=.
-  rewrite Pos.of_nat_succ P2R_INR Nat2Pos.id // S_INR -INR_IZR_INZ.
-  rewrite Ropp_plus_distr Rplus_comm.
-  by auto with real.
-- by repeat f_equal; rewrite INR_IZR_INZ; repeat f_equal.
-exact: ltn_leq_pred.
-exact: ltn_leq_pred.
-done.
-by rewrite /is_positive /Rlt_bool Rcompare_Lt.
-rewrite PolR.tnth_dotmuldiv; last first.
-by rewrite PolR_tsize_dotmuldiv; apply: ltn_leq_pred.
-simpl.
-case: is_zero =>//.
-elim: k Hk =>[ |k IHk] Hk; first by rewrite PolR.trec1_spec0 XmulC.
-rewrite PolR.trec1_spec //=; exact: ltn_leq_pred.
-
-(* validPoly *)
-split=> Y y m.
-rewrite /TX.T_ln /T_ln sizes.
-case: m =>[ |m]; first by rewrite !sizes.
-by rewrite !sizes !PolR_tsize_dotmuldiv !PolI_tsize_dotmuldiv.
-(* . *)
-move=> k Hy Hk.
-rewrite /TX.T_ln /T_ln.
-rewrite ?(PolR.tnth_polyCons, tnth_polyCons); first last.
-case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
-by move=> Hk; rewrite PolI_tsize_dotmuldiv.
-case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
-by move=> Hk; rewrite PolR_tsize_dotmuldiv.
-case: k Hk =>[ |k] Hk.
+move=> Hsubset Hex.
+rewrite /TM_ln.
+case E0: gt0.
+apply i_validTM_Ztech with (TR.T_ln tt); last 2 first =>//.
 exact: I.ln_correct.
-rewrite ltnS in Hk.
-rewrite -(ltn_predK Hk).
-rewrite ?(PolR.tnth_dotmuldiv,tnth_dotmuldiv); first last.
-rewrite PolI_tsize_dotmuldiv; exact: ltn_leq_pred.
-rewrite PolR_tsize_dotmuldiv; exact: ltn_leq_pred.
-apply I.mul_correct.
-apply I.div_correct; rewrite -Z2R_IZR; exact: I.fromZ_correct.
-case: k Hk =>[ |k] Hk.
-rewrite trec1_spec0 // PolR.trec1_spec0 //.
-apply: I.power_int_correct.
-apply: I.mask_correct =>//.
-exact: I.ln_correct.
-rewrite trec1_spec // ?PolR.trec1_spec //.
-rewrite /Rec.pow_aux_rec /TX.Rec.pow_aux_rec.
-rewrite orTb.
-apply: I.power_int_correct.
-apply: I.mask_correct =>//.
-exact: I.ln_correct.
-exact: ltn_leq_pred.
-exact: ltn_leq_pred.
-*)
-Qed.
+constructor.
+- by move=> {n} x [|n]; rewrite /TR.T_ln // !sizes
+    ?(@PolR.size_dotmuldiv n.+1, PolR.size_rec1, size_rec1up, size_behead).
+- { move=> x m k Hdef Hder Hk.
+    admit. (* ln: formula for Derive_n *)
+  }
+constructor.
+- by move=> {n X Hsubset E0} X x [|n]; rewrite /TR.T_ln !sizes //=
+    ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
+      @PolR.size_dotmuldiv n.+1, PolR.size_rec1, size_rec1up, size_behead).
+- { move=> {X0 n Hsubset Hex} X0 x0 n Hx0.
+    rewrite /T_ln /TR.T_ln.
+    apply: Pol.polyCons_correct; last exact: R_ln_correct.
+    case: n => [|n]; first exact: Pol.polyNil_correct.
+    apply: Pol.dotmuldiv_correct;
+      first by rewrite size_falling_seq size_behead size_fact_seq.
+    apply: Pol.rec1_correct; first move=> *;
+      repeat first [apply: R_div_correct
+                   |apply: R_power_int_correct
+                   |apply: R_ln_correct
+                   ];
+      exact: (R_mask_correct (ln x0) Hx0 (R_ln_correct prec Hx0)).
+  }
+- { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
+    rewrite /T_ln.
+    admit. (* ln: nai propagation *)
+  }
+- { move=> x Hx; rewrite /Xln /defined positiveT //.
+    exact: gt0_correct.
+  }
+- { move=> {n} n x Hx.
+    admit. (* ln: ex_derive_n *)
+  }
 
-Lemma size_TM_ln X0 X (n : nat) : Pol.size (approx (TM_ln X0 X n)) = n.+1.
-Proof.
-rewrite /= /T_ln.
-case: n => [|n]; first by rewrite !sizes.
-rewrite sizes (@Pol.size_dotmuldiv n.+1) //.
-by rewrite Pol.size_rec1.
-by rewrite size_rec1up.
-by rewrite size_behead size_rec1up.
+split =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_ln tt x0 n).
+apply: Pol.polyCons_correct; case: n =>[|n]/=; first exact: Pol.polyNil_correct.
+- apply: Pol.dotmuldiv_correct;
+    first by rewrite size_falling_seq size_behead size_fact_seq.
+  apply: Pol.rec1_correct; first move=> *;
+    repeat first [apply: R_div_correct
+                 |apply: R_power_int_correct
+                 |apply: R_ln_correct
+                 ];
+    exact: (R_mask_correct (ln x0) Hx0 (R_ln_correct prec Hx0)).
+- exact: R_ln_correct.
+- exact: R_ln_correct.
+by rewrite I.nai_correct.
 Qed.
 
 Lemma nat_ind2 (P : nat -> Prop) :
