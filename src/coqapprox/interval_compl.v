@@ -299,6 +299,9 @@ Proof. done. Qed.
 Lemma Xreal_tan x : cos x <> 0%R -> Xreal (tan x) = Xtan (Xreal x).
 Proof. by move=> H; rewrite Xreal_div. Qed.
 
+Lemma Xreal_tan_alt x : defined Xtan x -> Xreal (tan x) = Xtan (Xreal x).
+Proof. by rewrite /defined /Xtan /Xsin /Xcos /tan /=; case: is_zero. Qed.
+
 Lemma Xreal_atan x : Xreal (atan x) = Xatan (Xreal x).
 Proof. done. Qed.
 

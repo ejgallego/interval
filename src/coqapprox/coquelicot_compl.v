@@ -535,6 +535,11 @@ apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
 Qed.
 
+
+Definition is_derive_tan x :
+  cos x <> 0%R -> is_derive tan x (tan x ^ 2 + 1)%R.
+Proof. now intros Hx; unfold tan; auto_derive; trivial; field_simplify. Qed.
+
 Lemma ex_derive_n_atan :
   forall n (x : R), ex_derive_n atan n x.
 Proof.

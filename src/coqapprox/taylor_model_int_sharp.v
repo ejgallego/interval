@@ -184,10 +184,6 @@ Definition TM_cos X0 X (n : nat) : rpa :=
   let P := (T_cos prec X0 n) in
   RPA P (Ztech prec (T_cos prec) P (I.cos prec) X0 X n).
 
-Definition TM_tan X0 X (n : nat) : rpa :=
-  let P := (T_tan prec X0 n) in
-  RPA P (Ztech prec (T_tan prec) P (I.tan prec) X0 X n).
-
 Definition TM_atan X0 X (n : nat) : rpa :=
   let P := (T_atan prec X0 n) in
   RPA P (Ztech prec (T_atan prec) P (I.atan prec) X0 X n).
@@ -3199,9 +3195,6 @@ Qed.
 Lemma size_TM_cos X0 X (n : nat) : Pol.size (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
-Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
-Proof. by rewrite Pol.size_grec1. Qed.
-
 Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
@@ -3233,12 +3226,12 @@ constructor.
       rewrite (@Derive_ext _
         (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
         first last.
-      move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
-      simpl_R.
-      apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk // Rmult_assoc Hri0; try lra.
-      by rewrite -Hr0; apply: INR_fact_neq_0.
-      apply: Rinv_r_neq0 (Hri0 _).
-      by rewrite -Hr0; apply: INR_fact_neq_0.
+        move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
+        simpl_R.
+        apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk // Rmult_assoc Hri0; try lra.
+        by rewrite -Hr0; apply: INR_fact_neq_0.
+        apply: Rinv_r_neq0 (Hri0 _).
+        by rewrite -Hr0; apply: INR_fact_neq_0.
       clear IHk.
       rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
       rewrite PolR.horner_mul_mixed !PolR.horner_lift Derive_scal_l.
@@ -3300,6 +3293,151 @@ constructor.
   }
 - done.
 - by move=> *; apply: ex_derive_n_atan.
+Qed.
+
+Definition TM_tan X0 X (n : nat) : rpa :=
+  let P := (T_tan prec X0 n) in
+  let ic := I.cos prec X in
+  if apart0 ic
+  then RPA P (Ztech prec (T_tan prec) P (I.tan prec) X0 X n)
+  else RPA P I.nai.
+
+Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
+Proof. by rewrite /TM_tan; case: apart0; rewrite Pol.size_grec1. Qed.
+
+(* Erik: This lemma could be generalized... *)
+Lemma toR_tan : forall x, defined Xtan x -> toR_fun Xtan x = tan x.
+Proof. by rewrite /defined /Xtan /toR_fun /proj_fun => x /=; case: is_zero. Qed.
+
+Lemma def_tan : forall x, defined Xtan x <-> cos x <> R0.
+Proof.
+by move=> x; split; rewrite /defined /Xtan /=; case E0: is_zero =>//;
+  move: E0; case: is_zero_spec.
+Qed.
+
+Definition Rsimpl :=
+  (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
+
+Lemma TM_tan_correct X0 X n :
+  I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) Xtan.
+Proof.
+move=> Hsubset Hex.
+rewrite /TM_tan.
+case E0: apart0.
+
+apply i_validTM_Ztech with (TR.T_tan tt); last 2 first =>//.
+exact: I.tan_correct.
+constructor.
+- by move=> ? ?; rewrite PolR.size_grec1.
+- { move=> {X0 X n Hsubset Hex E0} x n k Hdef (*Hder*) H;
+    rewrite /TR.T_tan /PolR.nth /PolR.grec1
+      (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
+      nth_grec1up_last.
+    have->: Derive_n (toR_fun Xtan) k x = Derive_n tan k x.
+      move/def_tan in Hdef.
+      apply: (@Derive_n_ext_loc _ tan).
+      eapply locally_open with
+        (1 := open_comp cos (fun y => y <> 0%R)
+          (fun y _ => continuous_cos y)
+        (open_neq R0)) (3 := Hdef).
+      move=> {Hdef x} x Hdef.
+      by rewrite toR_tan // def_tan.
+    rewrite last_grec1up // head_gloop1.
+    rewrite [size _]/= subn0.
+    elim: k H x Hdef =>[|k IHk] H x Hdef.
+    + by rewrite /= !Rsimpl.
+    + move/ltnW in H; move/(_ H) in IHk.
+      rewrite [INR]lock [PolR.lift]lock [fact]lock /= -!lock.
+      set qk := iteri k
+        (fun i c => PolR.div_mixed_r tt _ (INR (i + 0).+1)) (PolR.lift 1 PolR.one) in IHk *.
+      move/def_tan in Hdef.
+      rewrite (@Derive_ext_loc _ (fun x => qk.[tan x] * INR (fact k))%R);
+        first last.
+        eapply locally_open with
+          (1 := open_comp cos (fun y => y <> 0%R)
+            (fun y _ => continuous_cos y)
+          (open_neq 0%R)) (3 := Hdef).
+        move=> t /def_tan Hdef'; move/(_ t Hdef') in IHk.
+        simpl_R.
+        move/(@Rmult_eq_compat_r r) in IHk.
+        have Hr0 : r <> 0%R by rewrite -Hr; apply: INR_fact_neq_0.
+        rewrite Rmult_assoc [Rmult ri r]Rmult_comm Hri // Rsimpl in IHk.
+        by simpl Derive_n in IHk; rewrite -{}IHk.
+      clear IHk.
+      rewrite PolR.horner_div_mixed_r.
+      rewrite PolR.horner_add addn0.
+      rewrite !PolR.horner_lift Derive_scal_l.
+      rewrite Derive_comp; first last.
+      * by eexists; apply: is_derive_tan.
+      * exact: PolR.ex_derive_horner.
+      rewrite !PolR.Derive_horner.
+      rewrite (is_derive_unique _ _ _ (is_derive_tan _ Hdef)).
+      rewrite /Rdiv Rmult_assoc.
+      rewrite -simpl_fact Rinv_involutive.
+      by ring_simplify.
+      exact: INR_fact_neq_0.
+    }
+
+constructor.
+- by move=> *; rewrite PolR.size_grec1 Pol.size_grec1.
+- { move => {X0 X n Hsubset Hex E0} X0 xi0 n Hx.
+    apply: Pol.grec1_correct =>//.
+    + move=> qi q m Hq.
+      by repeat first [apply: Pol.div_mixed_r_correct|
+                       apply: Pol.sub_correct|
+                       apply: Pol.add_correct|
+                       apply: Pol.deriv_correct|
+                       apply: Pol.lift_correct|
+                       apply: Pol.mul_mixed_correct|
+                       apply: R_from_nat_correct].
+    + move=> qi q m Hq.
+      by repeat first [apply: R_div_correct|
+                       apply: R_power_int_correct|
+                       apply: Pol.horner_correct|
+                       apply: R_add_correct|
+                       apply: R_sqr_correct|
+                       apply: I.fromZ_correct|
+                       apply: Pol.one_correct|
+                       apply: R_tan_correct].
+    + apply: Pol.lift_correct; exact: Pol.one_correct.
+    + move=> [/=|k]; rewrite /PolR.nth ?nth_default //; exact: cont0.
+  }
+- { move => {X0 X n Hsubset Hex E0} X x Hx Dx n k Hk.
+    admit. (* tan: nai propagation *)
+  }
+- move/apart0_correct in E0.
+  move=> x Hx; apply/def_tan; apply: E0.
+  exact: R_cos_correct.
+- move=> m x Hx; move/apart0_correct in E0.
+  move/(_ (cos x) (R_cos_correct _ Hx)) in E0.
+  eapply (@ex_derive_n_ext_loc tan); last exact: ex_derive_n_tan.
+  eapply locally_open with
+    (1 := open_comp cos (fun y => y <> 0%R)
+      (fun y _ => continuous_cos y)
+    (open_neq 0%R)) (3 := E0).
+  by move=> *; rewrite toR_tan //; apply/def_tan.
+
+simpl.
+split =>//.
+by move=> *; apply/eqNaiP; rewrite I.nai_correct.
+by rewrite I.nai_correct.
+move=> x0 Hx0.
+exists (TR.T_tan tt x0 n); last by rewrite I.nai_correct.
+apply: Pol.grec1_correct;
+  by repeat first [move=> *; apply: Pol.div_mixed_r_correct
+                  |apply: Pol.add_correct
+                  |apply: Pol.deriv_correct
+                  |apply: Pol.lift_correct
+                  |apply: Pol.deriv_correct
+                  |apply: R_from_nat_correct
+                  |move=> *; apply: Pol.horner_correct
+                  |apply: R_tan_correct
+                  |apply: Pol.lift_correct
+                  |apply: Pol.one_correct
+                  |move=> [|k]; rewrite /PolR.nth ?nth_default //; exact: cont0
+                  ].
 Qed.
 
 (*
