@@ -3397,7 +3397,7 @@ Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
   (fun xr => Xneg (f xr)).
 Proof.
 move=> [Hdef Hsubset Hzero /= Hmain].
-admit. (* TODO
+admit. (* TM_opp
 split=>//.
   by move=> x Hx Dx; move: (Hdef x Hx Dx); tac_def1 f.
   rewrite -Ropp_0 Xreal_neg.
@@ -3433,7 +3433,7 @@ Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
   (fun xr => Xsub (f xr) (g xr)).
 Proof.
 move=> [Hdf Hzero1 Hsubset1 /= Hf] [Hdg Hzero2 _ /= Hg].
-admit. (* TODO
+admit. (* TM_sub
 split=>//=.
   move=> x Hx /andP [Df Dg].
   by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
@@ -3522,8 +3522,7 @@ have Lem : contains (I.convert (error (TM_div_mixed_r M b))) Xnan.
   simpl.
   rewrite -(Xdiv_0_r (Xreal R0)).
   exact: I.div_correct.
-admit.
-(* TODO
+admit. (* TM_div_mixed_r/aux
 split=>//.
    by move=> x Hx /= /andP => [[]]; rewrite eqxx.
    by rewrite (proj1 (contains_Xnan _) Lem).
@@ -3539,7 +3538,7 @@ Lemma TM_mul_mixed_correct a M X0 X f (y : R) :
   (fun x => Xmul (Xreal y) (f x)).
 Proof.
 move=> Hy [Hdef H0 Hss Hmain].
-admit. (* TODO 
+admit. (* TM_mul_mixed
 split=>//.
   by move=> x Hx Dx; move: (Hdef x Hx); tac_def1 f.
   have->: (Xreal 0) = (Xmul (Xreal y) (Xreal 0)) by simpl; congr Xreal; ring.
@@ -3591,9 +3590,8 @@ Corollary TM_mul_mixed_correct_strong a M X0 X f g :
   i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
   (fun x => Xmul (f x) (g x)).
 Proof.
+admit. (* TM_mul_mixed+strong
 move=> tHt [[|y] Hy1 Hy2] Hg; move: (Hg) => [Hdef Hnan Hsubset Hmain].
-admit.
-(* TODO
 split=>//.
 
 move=> x Hx /andP [Df Dg].
@@ -3626,7 +3624,6 @@ suff->: defined f x = true by [].
 by move: (Hy2 x Hx); tac_def1 f.
 by move=> x Hx /=; rewrite Hy2.
 *)
-admit.
 Qed.
 
 Lemma not_empty_Imid_ex2 (X : I.type) :
@@ -3653,8 +3650,7 @@ Proof.
 have [->|Hy0] := Req_dec y R0.
   exact: TM_div_mixed_r_aux0.
 move=> Hy [Hdef H0 Hss Hmain].
-admit.
-(* TODO
+admit. (* TM_div_mixed_r
 split=>//.
   move=> x Hx /andP [Df Dy].
   by move: (Hdef x Hx Df); rewrite /defined; case: (f) =>//=; rewrite zeroF.
@@ -3718,9 +3714,8 @@ Corollary TM_div_mixed_r_correct_strong M b X0 X f g :
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
   (fun x => Xdiv (f x) (g x)).
 Proof.
+admit. (* TM_div_mixed_r/strong
 move=> tHt Hf [[|y] Hy1 Hy2]; move: (Hf) => [Hdef Hnan Hsubset Hmain].
-admit.
-(* TODO
 split=>//=.
   move=> x Hx /andP [Df Dg].
   by move: (Hdef x Hx Df) Dg; rewrite /Xinv;
@@ -3752,7 +3747,6 @@ apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR _ (predI df (fun _ : R => y != 0%
 - by move=> x Hx; rewrite Hy2.
 - exact: TM_div_mixed_r_correct.
 *)
-admit.
 Qed.
 
 Definition mul_error prec n (f g : rpa) X0 X :=
@@ -3870,8 +3864,7 @@ have Ht0 : X0 >: t by apply: (subset_contains smallX0).
 have Ht : X >: t by apply: subset_contains Ht'.
 have Hf0 := Hf t Ht'.
 have Hg0 := Hg t Ht'.
-admit.
-(* TODO
+admit. (* TM_mul
 split =>//.
 by move=> x Hx /andP [Dfx Dgx]; move: (Hdf x Hx Dfx) (Hdg x Hx Dgx); tac_def2 f g.
   case Df0: (df t); case Dg0: (dg t); rewrite Df0 in Hf0; rewrite Dg0 in Hg0.
@@ -3981,10 +3974,9 @@ apply/Xreal_inj; rewrite !(Xreal_add, Xreal_sub, Xreal_mul).
   move: (Hdg x Hx Dg); by tac_def1 g.
   move: (Hdf x Hx Df) (Hdg x Hx Dg); by tac_def2 f g.
   simpl.
-  *)
 
-  admit. admit. admit.
-  (*
+****************
+
   rewrite cn in Heq.
   rewrite -/n cn in Hf1.
   rewrite -Heq in Hg1.
@@ -4232,9 +4224,9 @@ Proof. by rewrite /TM_opp /= Pol.size_opp. Qed.
 Lemma size_poly_horner_tm n p Mf X0 X :
   Pol.size (approx (poly_horner_tm n p Mf X0 X)) = n.+1.
 Proof.
+admit. (* size_poly_horner_tm
 rewrite /poly_horner_tm.
 elim/Pol.poly_ind: p =>[|a p IHp].
-  admit. admit. (* FIXME/WIP
   by rewrite Pol.fold_polyNil /TM_cst Pol.size_rec1.
 by rewrite Pol.fold_polyCons size_TM_add /TM_cst Pol.size_rec1 size_TM_mul maxnn.
 *)
@@ -4452,8 +4444,7 @@ Lemma TMset0_correct X0 X TMf f :
 Proof.
 move=> Ht [Hf0 Hf1 Hf2] nf Hnf.
 move=> fi0 Hfi0.
-  admit.
-(*
+admit. (* TMset0
 have {Hf2} [alf [Hsize Hnth Herr]] := Hf2 fi0 Hfi0.
 exists (PolR.tnth alf 0).
 split=>//.
@@ -4545,12 +4536,12 @@ Proof.
 move=> Hnan Ht n Hn Hf Hg.
 have {Ht} /not_empty'E [t Ht] := Ht.
 case Hf => [H0 H1 H2].
+admit. (* TM_comp
 split=>//.
   move=> x Hx Dx.
-  admit.
+
   rewrite /= (_ : (Xreal 0) = (Xreal 0 + Xreal 0)); last by rewrite /= Rplus_0_l.
-  admit.
-(*
+
   have [pr [Hpr Hnth Herr]] := (H2 t Ht).
   have Hcp : Link.contains_pointwise _ _ := conj (esym Hpr) Hnth. (* FIXME *)
   have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
@@ -4874,7 +4865,6 @@ rewrite ca.
 case: (g (f x)); case: (PolR.horner tt cn (x - Xreal r)) =>//=.
 move=> *; f_equal; ring.
 *)
-admit.
 Qed.
 
 Definition TM_inv_comp Mf X0 X (n : nat) := TM_comp TM_inv Mf X0 X n.
@@ -4939,7 +4929,9 @@ let xG := toXreal_fun
   (fun r => RInt (fun x => Derive f x / (1 + (f x)^2)) x1 r + Ratan.atan (f x1))%R in
 forall x, xG x = Xatan (xF x).
 Proof.
-admit. (* Coquelicot proof *)
+
+(* TODO: Coquelicot proof *)
+
 Qed.
 
 Theorem atan2_correct :
@@ -4959,10 +4951,14 @@ rewrite /atan2.
 rewrite /xG /toXreal_fun.
 apply: prim_correct.
 exact: toXreal_fun (fun r : R => Derive f r / (1 + f r ^ 2)).
-admit. (* midpoint *)
+
+(* TODO: midpoint *)
+
 apply: I.atan_correct.
 split =>//.
-admit. (* to see later *)
+
+(* TODO: to see later *)
+
 rewrite /atan2 /prim.
 case: tf H.
 apply: prim_correct.

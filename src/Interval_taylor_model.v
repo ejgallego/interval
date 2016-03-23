@@ -274,10 +274,13 @@ by congr Xreal; auto with real.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
   exact: R_sub_correct.
+case: (eqNaiP (error tm)); first by move=>->.
+move=> /eqNaiP/negbTE Hnn; rewrite Hnn in Hdef.
 rewrite Xreal_sub Xreal_toR // in Hdelta.
 apply: Hdelta.
 exact: (subset_contains _ _ Hsubset).
-admit.
+apply: contraT; apply: Hdef.
+exact: (subset_contains _ _ Hsubset).
 Qed.
 
 Definition add_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
@@ -466,10 +469,10 @@ case: tf Hf {Hnil} => [|cf||tmf] Hf;
   case: tg Hg => [|cg||tmg] Hg /=;
   try (have {Hf} Hf := Hf Hne);
   try (have {Hg} Hg := Hg Hne);
-  admit; apply: TM_mul_correct =>//. (* FIXME
+  admit; apply: TM_mul_correct =>//. (* mul_slow_correct
 (* . *)
 by rewrite [RHS]size_get_tm.
-admit; rewrite [RHS]size_get_tm.
+  rewrite [RHS]size_get_tm.
 by rewrite not_nilE in Hnil.
 (* . *)
 case: tf Hf Hg {Hnil}; case: tg =>// *;
@@ -578,11 +581,10 @@ rewrite /div_slow.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
-admit; apply TM_div_correct=>//.
-(*
+admit; apply TM_div_correct=>//. (* div_slow_correct
 (* . *)
 by rewrite [RHS]size_get_tm.
-admit; by rewrite [RHS]size_get_tm.
+  by rewrite [RHS]size_get_tm.
 by rewrite not_nilE in Hnil.
 (* . *)
 case: tf Hf Hg {Hnil}; case: tg =>// *;
@@ -624,8 +626,6 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
-admit.
-admit. (*
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
@@ -640,7 +640,6 @@ red=>Hne.
 apply: TM_div_mixed_r_correct_strong =>//.
   exact: not_empty_Imid.
 exact: H1.
-*)
 Qed.
 
 Definition abs (u : U) (X : I.type) (t : T) : T :=
@@ -727,12 +726,9 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     have [[z Hz]|H] := not_empty_dec (I.convert Y);
     by exists (Xreal y); [| move=> x Hx; rewrite Habs // Hy2].
 - byp Habs Hmain.
-- move=> Hne; have [df Hdf] := Hmain Hne.
-  (* eexists; apply: (TM_fun_eq (df := df));
-  move: Hdf.
-  Fail byp Habs Hmain.
-  admit. admit. admit. admit. *) admit. admit. admit. admit. admit. admit.
-  admit. admit. admit. admit. admit. (*
+- move=> Hne; apply: (@TM_fun_eq f).
+  byp Habs Hmain.
+  exact: Hmain.
 - have [[|y] Hy1 Hy2] := Hmain;
     first (by
       exists (Xneg Xnan); first exact: I.neg_correct; move=> x Hx; rewrite Hy2);
@@ -762,7 +758,6 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
 - foo.
 - foo.
 - foo.
-*)
 Qed.
 
 (** ** Generic implementation of basic functions *)
@@ -805,26 +800,24 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   by rewrite /not_nil /ft /fun_gen /= Hsiz.
   simpl.
   move=> HneY.
-  admit. admit. (*
-  eapply TM_fun_eq.
-  2: by move=> *; rewrite Hmain.
-  2: apply: Hvalid.
+  apply: (@TM_fun_eq fx).
+  by move=> *; rewrite Hmain.
+  apply: Hvalid.
   exact: Imid_subset.
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists y.
 - split; first by rewrite Hnan.
   by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
   move=> HneY; move/(_ HneY) in Hmain.
-  have [Hzero Hsubset Htm] := Hmain.
+  have [Hdef Hzero Hsubset Htm] := Hmain.
   have Hne' := not_empty_Imid HneY.
   have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
   + rewrite /tmsize.
     rewrite /= /tmsize in Hnil.
-    by case: Pol.size Hnil.
+    admit; by case: Pol.size Hnil. (* FIXME *)
   + move=> *; split; first exact: Hvalid.
     by rewrite -/(tmsize _) Hsiz.
-  *)
 Qed.
 
 (*
@@ -984,7 +977,7 @@ Proof.
 apply: fun_gen_correct =>//.
 - exact: I.tan_correct.
 - exact: size_TM_tan.
-- admit.
+- exact: TM_tan_correct.
 Qed.
 
 (*
