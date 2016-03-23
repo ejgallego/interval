@@ -3303,6 +3303,42 @@ Local Notation "a - b" := (Xsub a b).
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
 
+Lemma definedPnV (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined (fun v => op (f v) (g v)) x ->
+  (forall x y, (* OK for +,-,* only *)
+    op (Xreal x) (Xreal y) = Xreal (proj_val (op (Xreal x) (Xreal y)))) ->
+  ~~ defined f x \/ ~~ defined g x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f; case: g.
+- by left.
+- by left.
+- by right.
+- by move=> a b; rewrite Hop.
+Qed.
+
+Lemma definedPnl (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined f x ->
+  (forall y, op Xnan y = Xnan) ->
+  ~~ defined (fun v => op (f v) (g v)) x.
+Proof.
+move=> Dx Hl; move: Dx; rewrite /defined.
+case: f.
+- by rewrite Hl.
+- done.
+Qed.
+
+Lemma definedPnr (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined g x ->
+  (forall x, op x Xnan = Xnan) ->
+  ~~ defined (fun v => op (f v) (g v)) x.
+Proof.
+move=> Dx Hr; move: Dx; rewrite /defined.
+case: g.
+- by rewrite Hr.
+- done.
+Qed.
+
 Lemma TM_add_correct_gen
   (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   I.subset_ smallX0 (I.convert X) ->
@@ -3312,47 +3348,36 @@ Lemma TM_add_correct_gen
   (fun xr => Xadd (f xr) (g xr)).
 Proof.
 move=> HinX [Hdf Hef H0 Hf] [Hdg Heg _ Hg].
-admit. (* TODO
+have HL :
+   forall x : R,
+   X >: x ->
+   ~~ defined (fun xr : ExtendedR => f xr + g xr) x -> eqNai (I.add prec (error TMf) (error TMg)).
+  move=> x Hx Dx; apply/eqNaiP.
+  have [//|Df|Dg] := definedPnV Dx.
+  by move/(_ x Hx Df)/eqNaiP in Hdf; rewrite I.add_propagate_l.
+  by move/(_ x Hx Dg)/eqNaiP in Hdg; rewrite I.add_propagate_r.
 split=>//=.
-  move=> x Hx /andP [Df Dg].
-  by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
-  step_xr (Xreal 0 + Xreal 0); by [apply: I.add_correct|rewrite /= Rplus_0_l].
-move=> x0 Hx0 /=.
-case Dfg0 : andb.
-  have /andP [Df0 Dg0] := Dfg0.
-  move: (Hf x0 Hx0) (Hg x0 Hx0); rewrite Df0 Dg0.
-  move => [pf Hf1 Hf2] [pg Hg1 Hg2].
-  exists (PolR.add tt pf pg); first exact: Pol.add_correct.
+step_xr (Xreal 0 + Xreal 0); by [apply: I.add_correct|rewrite /= Rplus_0_l].
+move=> x0 Hx0 /=; move: (Hf x0 Hx0) (Hg x0 Hx0) => [pf Hf1 Hf2] [pg Hg1 Hg2].
+exists (PolR.add tt pf pg); first exact: Pol.add_correct.
 move=> x Hx /=.
-case Dfg : andb.
-  have /andP [Df Dg] := Dfg.
-rewrite PolR.horner_add.
-rewrite Xreal_sub Xreal_toR // ?Xreal_add; last first.
-  by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
+rewrite PolR.horner_add Xreal_sub.
+(* rewrite Xreal_toR. *)
+case E0: (eqNai (I.add prec (error TMf) (error TMg))); first by move/eqNaiP: E0 =>->.
+rewrite E0 in HL.
+rewrite Xreal_toR // ?Xreal_add; last by apply: contraT; apply: HL.
 set fx := f _; set gx := g _; set pfx := _ (pf.[_]); set pgx := _ (pg.[_]).
 have->: (fx + gx - (pfx + pgx) = (fx - pfx) + (gx - pgx))%XR.
-  rewrite /fx /gx /pfx /pgx -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
-  congr Xreal; ring.
-rewrite /fx /gx /pfx /pgx -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
+  rewrite /fx /gx /pfx /pgx.
+  case: (f); case: (g); done || move=> * /=; congr Xreal; ring.
+rewrite /fx /gx /pfx /pgx.
+have Df : defined f x by apply: contraT=> K; exact: HL _ Hx (definedPnl _ K _).
+have Dg : defined g x. apply: contraT=> K; apply: HL _ Hx (definedPnr _ K _).
+  by move=> ?; rewrite Xadd_comm.
+rewrite -(Xreal_toR Df) -(Xreal_toR Dg) /=.
 apply: R_add_correct.
-by have := Hf2 x Hx; rewrite Df.
-by have := Hg2 x Hx; rewrite Dg.
-move/negbT in Dfg.
-rewrite negb_and in Dfg.
-have /orP [nDf|nDg] := Dfg.
-have := Hf2 x Hx; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.add_propagate_l.
-have := Hg2 x Hx; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.add_propagate_r.
-
-move/negbT in Dfg0.
-rewrite negb_and in Dfg0.
-have /orP [nDf|nDg] := Dfg0.
-have := Hf x0 Hx0; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.add_propagate_l.
-have := Hg x0 Hx0; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.add_propagate_r.
-*)
+by have := Hf2 x Hx.
+by have := Hg2 x Hx.
 Qed.
 
 Lemma TM_add_correct (X0 X : I.type) (TMf TMg : rpa) f g :
