@@ -3426,57 +3426,44 @@ apply/eqNaiP; by rewrite I.neg_propagate.
 *)
 Qed.
 
-Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
+Lemma TM_sub_correct (X0 X : interval (*I.type?*)) (TMf TMg : rpa) f g :
   i_validTM X0 X TMf f ->
   i_validTM X0 X TMg g ->
   i_validTM X0 X (TM_sub TMf TMg)
   (fun xr => Xsub (f xr) (g xr)).
 Proof.
 move=> [Hdf Hzero1 Hsubset1 /= Hf] [Hdg Hzero2 _ /= Hg].
-admit. (* TM_sub
+have HL :
+   forall x : R,
+   contains X (Xreal x) ->
+   ~~ defined (fun xr : ExtendedR => f xr - g xr) x -> eqNai (I.sub prec (error TMf) (error TMg)).
+  move=> x Hx Dx; apply/eqNaiP.
+  have [//|Df|Dg] := definedPnV Dx.
+  by move/(_ x Hx Df)/eqNaiP in Hdf; rewrite I.sub_propagate_l.
+  by move/(_ x Hx Dg)/eqNaiP in Hdg; rewrite I.sub_propagate_r.
 split=>//=.
-  move=> x Hx /andP [Df Dg].
-  by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
   suff->: Xreal 0 = (Xreal 0 - Xreal 0)%XR by apply: I.sub_correct.
   by rewrite /= Rminus_0_r.
 move=> x0 Hx0 /=.
-case Dfg0 : andb.
-  have /andP [Df0 Dg0] := Dfg0.
-  move: (Hf x0 Hx0) (Hg x0 Hx0); rewrite Df0 Dg0.
-  move => [pf Hf1 Hf2] [pg Hg1 Hg2].
-  exists (PolR.sub tt pf pg); first exact: Pol.sub_correct.
+move: (Hf x0 Hx0) (Hg x0 Hx0) => [pf Hf1 Hf2] [pg Hg1 Hg2].
+exists (PolR.sub tt pf pg); first exact: Pol.sub_correct.
 move=> x Hx /=.
-case Dfg : andb.
-  have /andP [Df Dg] := Dfg.
 rewrite PolR.horner_sub.
-rewrite Xreal_sub Xreal_toR // ?(Xreal_add, Xreal_neg); last first.
-  by move: (Hdf x Hx Df) (Hdg x Hx Dg); tac_def2 f g.
+case E0: (eqNai (I.sub prec (error TMf) (error TMg))); first by move/eqNaiP: E0 =>->.
+rewrite E0 in HL.
+rewrite Xreal_sub Xreal_toR ?(Xreal_add, Xreal_neg) //; last by apply: contraT; apply: HL.
 set fx := f _; set gx := g _; set pfx := _ (pf.[_]); set pgx := _ (pg.[_]).
 have->: (fx - gx - (pfx + (- pgx)) = (fx - pfx) - (gx - pgx))%XR.
   rewrite /fx /gx /pfx /pgx.
-  rewrite -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
-  congr Xreal; ring.
+  case: (f); case: (g); done || move=> * /=; congr Xreal; ring.
 rewrite /fx /gx /pfx /pgx.
-rewrite -(Xreal_toR (Hdf x Hx Df)) -(Xreal_toR (Hdg x Hx Dg)) /=.
+have Df : defined f x by apply: contraT=> K; exact: HL _ Hx (definedPnl _ K _).
+have Dg : defined g x. apply: contraT=> K; apply: HL _ Hx (definedPnr _ K _).
+  by move=> ?; rewrite Xsub_Xnan_r.
+rewrite -(Xreal_toR Df) -(Xreal_toR Dg) /=.
 apply: R_sub_correct.
-by have := Hf2 x Hx; rewrite Df.
-by have := Hg2 x Hx; rewrite Dg.
-move/negbT in Dfg.
-rewrite negb_and in Dfg.
-have /orP [nDf|nDg] := Dfg.
-have := Hf2 x Hx; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.sub_propagate_l.
-have := Hg2 x Hx; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.sub_propagate_r.
-
-move/negbT in Dfg0.
-rewrite negb_and in Dfg0.
-have /orP [nDf|nDg] := Dfg0.
-have := Hf x0 Hx0; rewrite (negbTE nDf) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.sub_propagate_l.
-have := Hg x0 Hx0; rewrite (negbTE nDg) /TM_add /= => /eqNaiP H.
-by apply/eqNaiP; rewrite I.sub_propagate_r.
-*)
+by have := Hf2 x Hx.
+by have := Hg2 x Hx.
 Qed.
 
 (* TO REMOVE
