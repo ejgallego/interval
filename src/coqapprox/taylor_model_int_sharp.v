@@ -3391,39 +3391,59 @@ case Hf => [Df _ H0 _].
 exact: TM_add_correct_gen.
 Qed.
 
+Lemma definedPnT (op : ExtendedR -> ExtendedR) f x :
+  ~~ defined (fun v => op (f v)) x ->
+  (forall x, op (Xreal x) = Xreal (proj_val (op (Xreal x)))) ->
+  ~~ defined f x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f.
+- done.
+- by move=> a; rewrite Hop.
+Qed.
+
+Lemma definedPnTE (op : ExtendedR -> ExtendedR) f x :
+  ~~ defined f x ->
+  (op Xnan = Xnan) ->
+  ~~ defined (fun v => op (f v)) x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f.
+- by rewrite Hop.
+- done.
+Qed.
+
 Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
   i_validTM X0 X TMf f ->
   i_validTM X0 X (TM_opp TMf)
   (fun xr => Xneg (f xr)).
 Proof.
 move=> [Hdef Hsubset Hzero /= Hmain].
-admit. (* TM_opp
+have HL :
+   forall x : R,
+   contains X (Xreal x) ->
+   ~~ defined (fun xr : ExtendedR => - f xr)%XR x -> eqNai (I.neg (error TMf)).
+  move=> x Hx Dx; apply/eqNaiP.
+  have Df : ~~ defined f x by apply: (definedPnT Dx).
+  by move/(_ x Hx Df)/eqNaiP in Hdef; rewrite I.neg_propagate.
 split=>//.
-  by move=> x Hx Dx; move: (Hdef x Hx Dx); tac_def1 f.
   rewrite -Ropp_0 Xreal_neg.
   exact: I.neg_correct.
 simpl=> x0 Hx0.
-case Df0 : df.
 move/(_ x0 Hx0) in Hmain.
-rewrite Df0 in Hmain.
 have [Q H1 H2] := Hmain.
 exists (PolR.opp Q); first exact: Pol.opp_correct.
 move=> x Hx.
-case Df : df.
 move/(_ x Hx) in H2.
-rewrite Df in H2.
 rewrite PolR.horner_opp.
 set g := Xreal (toR_fun _ _ - - _)%R.
+case E0: (eqNai (I.neg (error TMf))); first by move/eqNaiP: E0 =>->.
+rewrite E0 in HL.
 suff->: g = Xreal (Ropp ((toR_fun f x) - (Q.[(x - x0)%Re]))%R) by exact: R_neg_correct.
 rewrite /g !(Xreal_sub, Xreal_toR, Xreal_neg) //.
 by rewrite !(Xsub_split, Xneg_involutive, Xneg_Xadd).
-by rewrite Hdef.
-by move: (Hdef x Hx Df); tac_def1 f.
-move/(_ x Hx): H2; rewrite Df; move/eqNaiP => H2.
-apply/eqNaiP; by rewrite I.neg_propagate.
-move/(_ x0 Hx0): Hmain; rewrite Df0; move/eqNaiP => ?.
-apply/eqNaiP; by rewrite I.neg_propagate.
-*)
+by apply: contraT => K; apply: HL _ Hx (definedPnTE K _).
+by apply: contraT => K; apply: HL _ Hx K.
 Qed.
 
 Lemma TM_sub_correct (X0 X : interval (*I.type?*)) (TMf TMg : rpa) f g :
