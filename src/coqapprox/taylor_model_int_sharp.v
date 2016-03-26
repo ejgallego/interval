@@ -2274,7 +2274,12 @@ constructor.
     + move=> [/=|k]; rewrite /PolR.nth ?nth_default //; exact: cont0.
   }
 - { move => {X0 X n Hsubset Hex E0} X x Hx Dx n k Hk.
-    admit. (* tan: nai propagation *)
+    apply/eqNaiP/Pol.grec1_propagate =>//.
+      move=> q _; apply/eqNaiP.
+      apply/Pol.horner_propagate/contains_Xnan.
+      move/definedPn: Dx =><-.
+      exact: I.tan_correct.
+    by rewrite Pol.size_grec1.
   }
 - move/apart0_correct in E0.
   move=> x Hx; apply/def_tan; apply: E0.
