@@ -2309,45 +2309,7 @@ apply: Pol.grec1_correct;
                   ].
 Qed.
 
-(* First attempt with [I.subset I.zero] and [I.upper_extent I.zero]
-
-Definition TM_sqrt X0 X (n : nat) : rpa :=
-  (* assuming X0 \subset X *)
-  let P := (T_sqrt prec X0 n) in
-  if I.subset X (I.upper_extent I.zero) then
-    if I.subset I.zero X
-    then RPA P I.nai (* could be refined *)
-    else RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n)
-  else RPA P I.nai.
-Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
-
-Definition TM_invsqrt X0 X (n : nat) : rpa :=
-  (* assuming X0 \subset X *)
-  let P := (T_invsqrt prec X0 n) in
-  if I.subset X (I.upper_extent I.zero) then
-    if I.subset I.zero X
-    then RPA P I.nai
-    else RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
-  else RPA P I.nai.
-
-Lemma prop_geq0 X x :
-  I.subset X (I.upper_extent I.zero) ->
-  X >: x -> (0 <= x)%R.
-Proof.
-move/I.subset_correct.
-(* cannot be proved with current interface *)
-Abort.
-
-Lemma prop_neq0 X x :
-  I.subset I.zero X = false ->
-  X >: x -> x <> R0.
-Proof.
-move=> HF Hx Heq0.
-suff HT : I.subset I.zero X by rewrite HT in HF.
-(* cannot be proved with current interface *)
-Abort.
-*)
-
+(*
 Definition Ztech_sqrt prec P X0 X :=
   let F := I.sqrt prec in
   let a := I.lower X in let b := I.upper X in
@@ -2357,33 +2319,19 @@ Definition Ztech_sqrt prec P X0 X :=
   let Db := I.sub prec (F B) (Pol.horner prec P (I.sub prec B X0)) in
   let Dx0 := I.sub prec (F X0) (Pol.nth P 0) (* :-D *) in
   I.join (I.join Da Db) Dx0.
+*)
 
 Definition TM_sqrt X0 X (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_sqrt prec X0 n) in
   if gt0 X
   then RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n)
-  else if ge0 X && I.bounded X && apart0 X0
-       then RPA P (Ztech_sqrt prec P X0 X)
-       else RPA P I.nai.
+  else RPA P I.nai.
 
 Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
 Proof.
 by rewrite /TM_sqrt;
-  case: gt0; last (case: ge0; first case: I.bounded ; first case : apart0);
-  rewrite Pol.size_rec1.
-Qed.
-
-Lemma Ztech_derive_sign_sqrt (X : I.type) (n : nat) :
-  not_empty (I.convert X) ->
-  ge0 X -> I.bounded X = true ->
-  Rcst_sign (intvl (proj_val (I.convert_bound (I.lower X)))
-                   (proj_val (I.convert_bound (I.upper X))))
-            (Derive_n (toR_fun Xsqrt) n.+1).
-Proof.
-pose Dn := Derive_n sqrt.
-move=> [t Ht] Hbnd Hsign.
-admit. (* sqrt: monotonic Derive_n *)
+  case: gt0; rewrite Pol.size_rec1.
 Qed.
 
 Lemma sqrt_Rcontains : forall X x, X >: x -> I.sqrt prec X >: toR_fun Xsqrt x.
@@ -2397,120 +2345,6 @@ apply/contains_Xnan.
 by rewrite -Df; apply: I.sqrt_correct.
 Qed.
 
-Lemma i_validTM_Ztech_sqrt :
-  forall (F := I.sqrt prec) (P := TR.T_sqrt tt) (IP := T_sqrt prec),
-  validPoly Xsqrt P ->
-  validIPoly Xsqrt P IP ->
-  forall X : I.type,
-  ge0 X -> I.bounded X ->
-  forall (X0 : I.type) (n : nat), apart0 X0 ->
-  Interval_interval.subset (I.convert X0) (I.convert X) ->
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X)
-            {| approx := IP X0 n; error := Ztech_sqrt prec (IP X0 n) X0 X |} Xsqrt.
-Proof.
-move=> F P IP validPoly_ validIPoly_ X H0 Hbnd X0 n HX0 Hsubs Hnex.
-set err := Ztech_sqrt prec (IP X0 n) X0 X.
-have XNNan : I.convert X <> IInan.
-  move=> HX.
-  exact: bounded_IInan Hbnd _.
-have [t Ht] := Hnex. (* useful ? *)
-have [r' Hr'0] : not_empty (I.convert X0).
-  exact: contains_not_empty Ht.
-have Hr' : contains (I.convert X) (Xreal r').
-  exact: subset_contains Hsubs _ Hr'0.
-pose x' := Xreal r'.
-have Hdef : forall r : R, X >: r -> defined Xsqrt r.
-  move=> r Hr; rewrite /defined /Xsqrt.
-  rewrite negativeF //.
-  exact: ge0_correct H0.
-split=>//.
-  move=> x Hx; rewrite [defined _ _]Hdef //.
-  rewrite /= /err /Ztech_sqrt /=.
-  apply: I.join_correct; right.
-  have C1 : contains (I.convert (F X0)) (Xsqrt (Xreal r')) by exact: I.sqrt_correct.
-  case E0 : (Xsqrt (Xreal r')) => [|r'0].
-    rewrite I.sub_propagate_r //.
-    rewrite (IPoly_nai Hr'0) //.
-    by apply/definedPn.
-  have->: Xreal 0 = Xsub (Xreal r'0) (Xreal r'0) by simpl; f_equal; ring.
-  apply: I.sub_correct; rewrite E0 // in C1.
-  rewrite -{}E0 in C1 *.
-  suff->: Xsqrt (Xreal r') = Xreal (PolR.nth (P r' n) 0) by apply: IPoly_nth.
-  rewrite (Poly_nth0 (X := X)) ?Xreal_toR =>//; exact: Hdef.
-move=> x0 Hx0.
-exists (P x0 n); first by move=> k; apply: IPoly_nth.
-pose Idelta := fun X => I.sub prec (F X) (Pol.horner prec (IP X0 n) (I.sub prec X X0)).
-pose Rdelta0 := Rdelta Xsqrt P n x0.
-move=> x Hx.
-
-rewrite /err /Ztech_sqrt /=.
-set Delta := I.join (I.join _ _) _; rewrite -/(Rdelta Xsqrt P n x0 x) -/(Rdelta0 x).
-have [Hlower Hupper] := bounded_singleton_contains_lower_upper Hbnd.
-have [Hbl Hbu] := I.bounded_correct _ Hbnd.
-have [Hcl _] := I.lower_bounded_correct _ Hbl.
-have [Hcu _] := I.upper_bounded_correct _ Hbu.
-set (l := (proj_val (I.convert_bound (I.lower X)))) in *.
-set (u := (proj_val (I.convert_bound (I.upper X)))) in *.
-have {Hlower} Hlower :
-  Idelta (Ibnd2 (I.lower X)) >: Rdelta0 (proj_val (I.convert_bound (I.lower X))).
-  apply: R_sub_correct =>//.
-  - rewrite Hcl in Hlower.
-    exact: sqrt_Rcontains.
-  - apply: Pol.horner_correct.
-    exact: IPoly_nth.
-    apply: R_sub_correct =>//.
-    by rewrite Hcl in Hlower.
-have {Hupper} Hupper :
-  Idelta (Ibnd2 (I.upper X)) >: Rdelta0 (proj_val (I.convert_bound (I.upper X))).
-  apply: R_sub_correct =>//.
-  - rewrite Hcu in Hupper.
-    exact: sqrt_Rcontains.
-  - apply: Pol.horner_correct.
-    exact: IPoly_nth.
-    apply: R_sub_correct =>//.
-    by rewrite Hcu in Hupper.
-have HypX0 : Idelta X0 >: Rdelta0 x0.
-  apply: R_sub_correct =>//.
-  - exact: sqrt_Rcontains.
-  - apply: Pol.horner_correct.
-    exact: IPoly_nth.
-    exact: R_sub_correct.
-have {Hlower} Hlower : Delta >: Rdelta0 l.
-  by apply: I.join_correct; left; apply: I.join_correct; left.
-have {Hupper} Hupper : Delta >: Rdelta0 u.
-  by apply: I.join_correct; left; apply: I.join_correct; right.
-have H'x0 : X >: x0 by exact: (subset_contains (I.convert X0)).
-have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
-  apply: I.join_correct; right.
-  apply: R_sub_correct; first exact: sqrt_Rcontains.
-  rewrite Rminus_diag_eq //.
-  suff->: ((P x0 n).[0%R]) = PolR.nth (P x0 n) 0 by apply: IPoly_nth.
-  rewrite PolR.hornerE Poly_size big_nat_recl // pow_O Rmult_1_r.
-  rewrite big1 ?(Rplus_0_r, Rmult_1_r) //.
-  move=> i _.
-  by rewrite /= Rmult_0_l Rmult_0_r.
-have [||Hlow|Hup] := @intvl_lVu l u x0 x; try exact/intvlP.
-  have [|||H1|H2] := @Rmonot_contains Rdelta0 l x0 _ _ _ _ _ _ Hlow.
-  + apply: (proj1 (@Zumkeller_monot_rem _ _ _ _ _ _ x0 n Hbnd H'x0 _)) =>//.
-    admit. (* sqrt: FIXME *)
-    apply: Ztech_derive_sign_sqrt =>//.
-    by exists x0.
-    exact: intvl_l Hlow.
-    exact: intvl_u Hlow.
-  + exact: (@contains_intvl_trans (Rdelta0 l) (Rdelta0 x0)).
-  + exact: (@contains_intvl_trans (Rdelta0 x0) (Rdelta0 l)).
-have [|||H1|H2] := @Rmonot_contains Rdelta0 x0 u _ _ _ _ _ _ Hup.
-+ apply: (proj2 (@Zumkeller_monot_rem _ _ _ _ _ _ x0 n Hbnd H'x0 _)) =>//.
-  admit. (* sqrt: FIXME - idem *)
-  apply: Ztech_derive_sign_sqrt =>//.
-  by exists x0.
-  exact: intvl_l Hup.
-  exact: intvl_u Hup.
-+ exact: (@contains_intvl_trans (Rdelta0 x0) (Rdelta0 u)).
-+ exact: (@contains_intvl_trans (Rdelta0 u) (Rdelta0 x0)).
-Qed.
-
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2518,7 +2352,7 @@ Lemma TM_sqrt_correct X0 X n :
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_sqrt.
-case E1: gt0; last (case E2: ge0; first case E3: I.bounded ; first case E4 : apart0).
+case E1: gt0.
 
 apply i_validTM_Ztech with (TR.T_sqrt tt); last 2 first =>//.
 exact: I.sqrt_correct.
@@ -2553,69 +2387,6 @@ constructor.
     exact: Rlt_le.
   }
 
-simpl.
-apply i_validTM_Ztech_sqrt; last 2 first =>//.
-constructor.
-- by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex E1 E2 E3 E4} x n k Hdef H.
-    admit. (* sqrt: formula for Derive_n - again *)
-  }
-constructor.
-- by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
-- { move => {X0 X n Hsubset Hex E1 E2 E3 E4} X0 xi0 n Hx.
-    apply: Pol.rec1_correct =>//.
-    by move=> *;
-      repeat first [apply: R_div_correct
-                   |apply: R_mul_correct
-                   |apply: R_sub_correct
-                   |apply: I.fromZ_correct
-                   |apply: R_mul_correct
-                   |apply: I.fromZ_correct
-                   |apply: R_from_nat_correct
-                   ].
-    exact: R_sqrt_correct.
-  }
-- admit. (* sqrt: easy *)
-
-split =>//.
-by move=> *; apply/eqNaiP; rewrite I.nai_correct.
-by rewrite I.nai_correct.
-move=> x0 Hx0.
-exists (TR.T_sqrt tt x0 n).
-apply: Pol.rec1_correct.
-by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
-               |apply: I.fromZ_correct
-               |apply: R_mul_correct
-               |apply: I.fromZ_correct
-               |apply: R_from_nat_correct
-               ].
-exact: R_sqrt_correct.
-by rewrite I.nai_correct.
-
-(* again *)
-simpl.
-split =>//.
-by move=> *; apply/eqNaiP; rewrite I.nai_correct.
-by rewrite I.nai_correct.
-move=> x0 Hx0.
-exists (TR.T_sqrt tt x0 n).
-apply: Pol.rec1_correct.
-by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
-               |apply: I.fromZ_correct
-               |apply: R_mul_correct
-               |apply: I.fromZ_correct
-               |apply: R_from_nat_correct
-               ].
-exact: R_sqrt_correct.
-by rewrite I.nai_correct.
-
-(* again *)
 simpl.
 split =>//.
 by move=> *; apply/eqNaiP; rewrite I.nai_correct.
