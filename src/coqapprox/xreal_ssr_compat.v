@@ -93,6 +93,14 @@ Qed.
 Lemma zeroT r : (r = 0)%Re -> is_zero r = true.
 Proof. by move ->; rewrite is_zero_correct_zero. Qed.
 
+Lemma is_zero_opp x : is_zero (- x)%R = is_zero x.
+Proof.
+do 2![case: is_zero_spec] =>// A B; exfalso.
+rewrite -Ropp_0 in B; move/Ropp_eq_compat in B; rewrite !Ropp_involutive in B.
+by rewrite B in A.
+by rewrite A Ropp_0 in B.
+Qed.
+
 Lemma fact_zeroF i : is_zero (INR (fact i)) = false.
 Proof. by apply: zeroF=> Hri; apply: (fact_neq_0 i); apply: INR_eq. Qed.
 

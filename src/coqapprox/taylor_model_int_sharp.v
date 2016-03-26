@@ -2846,8 +2846,12 @@ constructor.
     exact: R_neg_correct.
   }
 - { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
-    rewrite /T_inv.
-    admit. (* inv: nai propagation *)
+    apply/eqNaiP/Pol.rec1_propagate =>//.
+    - move=> q m /eqNaiP Hqm; apply/eqNaiP/contains_Xnan; rewrite /inv_rec.
+      by rewrite I.div_propagate_l.
+    - apply/eqNaiP/contains_Xnan; move/definedPn: Dx =><-.
+      exact: I.inv_correct.
+    - by rewrite Pol.size_rec1.
   }
 - { move=> x Hx; rewrite /Xinv /defined zeroF //.
     exact: apart0_correct.
@@ -3076,45 +3080,6 @@ exact: ltn_leq_pred.
 Local Notation "a + b" := (Xadd a b).
 Local Notation "a - b" := (Xsub a b).
 
-Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
-Proof. by case: a; case b => * //=; f_equal; ring. Qed.
-
-Lemma definedPnV (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined (fun v => op (f v) (g v)) x ->
-  (forall x y, (* OK for +,-,* only *)
-    op (Xreal x) (Xreal y) = Xreal (proj_val (op (Xreal x) (Xreal y)))) ->
-  ~~ defined f x \/ ~~ defined g x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f; case: g.
-- by left.
-- by left.
-- by right.
-- by move=> a b; rewrite Hop.
-Qed.
-
-Lemma definedPnl (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined f x ->
-  (forall y, op Xnan y = Xnan) ->
-  ~~ defined (fun v => op (f v) (g v)) x.
-Proof.
-move=> Dx Hl; move: Dx; rewrite /defined.
-case: f.
-- by rewrite Hl.
-- done.
-Qed.
-
-Lemma definedPnr (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined g x ->
-  (forall x, op x Xnan = Xnan) ->
-  ~~ defined (fun v => op (f v) (g v)) x.
-Proof.
-move=> Dx Hr; move: Dx; rewrite /defined.
-case: g.
-- by rewrite Hr.
-- done.
-Qed.
-
 Lemma TM_add_correct_gen
   (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
   I.subset_ smallX0 (I.convert X) ->
@@ -3165,28 +3130,6 @@ Proof.
 move=> Hf Hg.
 case Hf => [Df _ H0 _].
 exact: TM_add_correct_gen.
-Qed.
-
-Lemma definedPnT (op : ExtendedR -> ExtendedR) f x :
-  ~~ defined (fun v => op (f v)) x ->
-  (forall x, op (Xreal x) = Xreal (proj_val (op (Xreal x)))) ->
-  ~~ defined f x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f.
-- done.
-- by move=> a; rewrite Hop.
-Qed.
-
-Lemma definedPnTE (op : ExtendedR -> ExtendedR) f x :
-  ~~ defined f x ->
-  (op Xnan = Xnan) ->
-  ~~ defined (fun v => op (f v)) x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f.
-- by rewrite Hop.
-- done.
 Qed.
 
 Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :

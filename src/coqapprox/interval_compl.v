@@ -126,6 +126,67 @@ Proof.
 by rewrite /defined =>->.
 Qed.
 
+Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
+Proof. by case: a; case b => * //=; f_equal; ring. Qed.
+
+Lemma definedPnV (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined (fun v => op (f v) (g v)) x ->
+  (forall x y, (* OK for +,-,* only *)
+    op (Xreal x) (Xreal y) = Xreal (proj_val (op (Xreal x) (Xreal y)))) ->
+  ~~ defined f x \/ ~~ defined g x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f; case: g.
+- by left.
+- by left.
+- by right.
+- by move=> a b; rewrite Hop.
+Qed.
+
+Lemma definedPnl (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined f x ->
+  (forall y, op Xnan y = Xnan) ->
+  ~~ defined (fun v => op (f v) (g v)) x.
+Proof.
+move=> Dx Hl; move: Dx; rewrite /defined.
+case: f.
+- by rewrite Hl.
+- done.
+Qed.
+
+Lemma definedPnr (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
+  ~~ defined g x ->
+  (forall x, op x Xnan = Xnan) ->
+  ~~ defined (fun v => op (f v) (g v)) x.
+Proof.
+move=> Dx Hr; move: Dx; rewrite /defined.
+case: g.
+- by rewrite Hr.
+- done.
+Qed.
+
+Lemma definedPnT (op : ExtendedR -> ExtendedR) f x :
+  ~~ defined (fun v => op (f v)) x ->
+  (forall x, op (Xreal x) = Xreal (proj_val (op (Xreal x)))) ->
+  ~~ defined f x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f.
+- done.
+- by move=> a; rewrite Hop.
+Qed.
+
+Lemma definedPnTE (op : ExtendedR -> ExtendedR) f x :
+  ~~ defined f x ->
+  (op Xnan = Xnan) ->
+  ~~ defined (fun v => op (f v)) x.
+Proof.
+move=> Dx Hop; move: Dx; rewrite /defined.
+case: f.
+- by rewrite Hop.
+- done.
+Qed.
+
 Lemma toXreal_nan (f : R -> R) :
   toXreal_fun f Xnan = Xnan.
 Proof. done. Qed.
