@@ -469,13 +469,8 @@ case: tf Hf {Hnil} => [|cf||tmf] Hf;
   case: tg Hg => [|cg||tmg] Hg /=;
   try (have {Hf} Hf := Hf Hne);
   try (have {Hg} Hg := Hg Hne);
-  admit; apply: TM_mul_correct =>//. (* mul_slow_correct
-(* . *)
-by rewrite [RHS]size_get_tm.
-  rewrite [RHS]size_get_tm.
-by rewrite not_nilE in Hnil.
-(* . *)
-case: tf Hf Hg {Hnil}; case: tg =>// *;
+  apply: TM_mul_correct =>//;
+  (* then *)
   try (apply: TM_any_correct;
     by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
   try (apply: TM_cst_correct_strong =>//;
@@ -483,16 +478,6 @@ case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
   try by auto 2.
-(* . *)
-case: tf Hf Hg {Hnil}; case: tg =>// *;
-  try (apply: TM_any_correct;
-    by [exists v|exact: Imid_subset|rewrite I.nai_correct]);
-  try (apply: TM_cst_correct_strong =>//;
-    by [exact: Imid_subset|exists (Xreal v)]);
-  try (apply: TM_var_correct_strong =>//;
-    by [exact: Imid_subset|exists (Xreal v)]);
-  by auto 2.
-*)
 Qed.
 
 Theorem mul_correct u (Y : I.type) tf tg f g :
