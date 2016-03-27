@@ -566,11 +566,7 @@ rewrite /div_slow.
 move=> Hne.
 have Hne' : not_empty (I.convert (Imid Y)) by apply not_empty_Imid.
 have [v Hv] := Hne'.
-admit; apply TM_div_correct=>//. (* div_slow_correct
-(* . *)
-by rewrite [RHS]size_get_tm.
-  by rewrite [RHS]size_get_tm.
-by rewrite not_nilE in Hnil.
+apply TM_div_correct=>//.
 (* . *)
 case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_any_correct;
@@ -589,7 +585,6 @@ case: tf Hf Hg {Hnil}; case: tg =>// *;
   try (apply: TM_var_correct_strong =>//;
     by [exact: Imid_subset|exists (Xreal v)]);
   by auto 2.
-*)
 Qed.
 
 Theorem div_correct u (Y : I.type) tf tg f g :
@@ -792,17 +787,15 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   apply not_empty_Imid in HneY.
   have [y Hy] := HneY; by exists y.
 - split; first by rewrite Hnan.
-  by rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp.
+  rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp //.
+  by move=> Y0 Y k; move: (Hsiz u.1 Y0 Y k); rewrite /tmsize =>->.
   move=> HneY; move/(_ HneY) in Hmain.
   have [Hdef Hzero Hsubset Htm] := Hmain.
   have Hne' := not_empty_Imid HneY.
   have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
-  + rewrite /tmsize.
-    rewrite /= /tmsize in Hnil.
-    admit; by case: Pol.size Hnil. (* FIXME *)
-  + move=> *; split; first exact: Hvalid.
-    by rewrite -/(tmsize _) Hsiz.
+  move=> *; split; first exact: Hvalid.
+  by rewrite -/(tmsize _) Hsiz.
 Qed.
 
 (*

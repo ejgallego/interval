@@ -1722,7 +1722,7 @@ Qed.
 
 End GenericProof.
 
-Lemma size_TM_cst c : Pol.size (approx (TM_cst c)) <= 1.
+Lemma size_TM_cst c : Pol.size (approx (TM_cst c)) = 1.
 Proof. by rewrite /TM_cst Pol.polyCE Pol.size_polyCons Pol.size_polyNil. Qed.
 
 Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
@@ -3329,7 +3329,7 @@ Qed.
 Lemma Xdiv_0_r x : Xdiv x (Xreal 0) = Xnan.
 Proof. by rewrite /Xdiv; case: x=>// r; rewrite zeroT. Qed.
 
-Let TM_div_mixed_r_aux0 M b X0 X f :
+Lemma TM_div_mixed_r_aux0 M b X0 X f :
   contains (I.convert b) (Xreal R0) ->
   i_validTM (I.convert X0) (I.convert X) M f (* hyp maybe too strong *) ->
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
@@ -3751,14 +3751,13 @@ Lemma size_TM_opp Mf :
 Proof. by rewrite /TM_opp /= Pol.size_opp. Qed.
 
 Lemma size_poly_horner_tm n p Mf X0 X :
-  Pol.size (approx (poly_horner_tm n p Mf X0 X)) = n.+1.
+  Pol.size (approx (poly_horner_tm n p Mf X0 X)) = (if 0 < Pol.size p then n else 0).+1.
 Proof.
-admit. (* size_poly_horner_tm
 rewrite /poly_horner_tm.
 elim/Pol.poly_ind: p =>[|a p IHp].
-  by rewrite Pol.fold_polyNil /TM_cst Pol.size_rec1.
-by rewrite Pol.fold_polyCons size_TM_add /TM_cst Pol.size_rec1 size_TM_mul maxnn.
-*)
+  by rewrite Pol.fold_polyNil Pol.size_polyNil size_TM_cst.
+by rewrite Pol.fold_polyCons Pol.size_polyCons size_TM_add size_TM_mul
+  size_TM_cst max1n.
 Qed.
 
 (* Attention!
@@ -3966,12 +3965,12 @@ Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
 Lemma TMset0_correct X0 X TMf f :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
-  forall nf, Pol.size (approx TMf) = nf.+1 ->
+  (* forall nf, Pol.size (approx TMf) = nf.+1 -> *)
   forall fi0, contains (I.convert X0) fi0 ->
   exists a0, i_validTM (Interval_interval.Ibnd fi0 fi0) (I.convert X)
   (TMset0 TMf I.zero) (fun x => f x - a0).
 Proof.
-move=> Ht [Hf0 Hf1 Hf2] nf Hnf.
+move=> Hne [Hnai Hzero Hsubs Hmain].
 move=> fi0 Hfi0.
 admit. (* TMset0
 have {Hf2} [alf [Hsize Hnth Herr]] := Hf2 fi0 Hfi0.
@@ -4053,25 +4052,31 @@ Definition dom_comp dg df f r :=
 Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
   f Xnan = Xnan ->
   not_empty (I.convert X0) ->
-  forall n, Pol.size (approx TMf) = n.+1 ->
+  forall n,
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   (forall Y0 Y k, I.subset_ (I.convert Y0) (I.convert Y) ->
     not_empty (I.convert Y0) ->
     i_validTM (I.convert Y0) (I.convert Y) (Tyg Y0 Y k) g
-    /\ Pol.size (approx (Tyg Y0 Y k)) = k.+1) ->
+    /\ 0 < Pol.size (approx (Tyg Y0 Y k))) ->
   i_validTM (I.convert X0) (I.convert X)
   (TM_comp Tyg TMf X0 X n) (fun xr => (g (f xr))).
 Proof.
-move=> Hnan Ht n Hn Hf Hg.
-have {Ht} /not_empty'E [t Ht] := Ht.
-case Hf => [H0 H1 H2].
-admit. (* TM_comp
+move=> Hnan [t Ht] n Hf Hg.
+have [Fnai Fzero Hsubs Fmain] := Hf.
 split=>//.
   move=> x Hx Dx.
-
+  apply/eqNaiP/contains_Xnan.
+  pose Y0 := Pol.nth (approx TMf) 0.
+  pose Y := (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)).
+  have [||[Gnai Gzero _ Gmain] Hsize] := Hg Y0 Y n _ _.
+  admit.
+  admit.
+  rewrite I.add_propagate_r //.
+  admit; apply/eqNaiP; apply: Gnai.
   rewrite /= (_ : (Xreal 0) = (Xreal 0 + Xreal 0)); last by rewrite /= Rplus_0_l.
 
-  have [pr [Hpr Hnth Herr]] := (H2 t Ht).
+  have [Q HQ Herr] := Fmain t Ht.
+  admit. admit. (* TM_comp
   have Hcp : Link.contains_pointwise _ _ := conj (esym Hpr) Hnth. (* FIXME *)
   have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
       Hg (tnth (approx TMf) 0)
@@ -4401,14 +4406,15 @@ Definition TM_inv_comp Mf X0 X (n : nat) := TM_comp TM_inv Mf X0 X n.
 Lemma TM_inv_comp_correct (X0 X : I.type) (TMf : rpa) f :
   f Xnan = Xnan ->
   not_empty (I.convert X0) ->
-  forall n, Pol.size (approx TMf) = n.+1 ->
+  forall n,
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X)
   (TM_inv_comp TMf X0 X n) (fun xr => Xinv (f xr)).
 Proof.
-move=> Hnan Ht n Hn Hf.
+move=> Hnan Ht n Hf.
 apply: TM_comp_correct=> //.
-have {Hf} [Hef H0 Hf] := Hf => a Y k Ha Ht'.
+have {Hf} [Hnai Hzero Hsubs Hmain] := Hf.
+move=> Y0 Y k HY HY0.
 split; first exact: TM_inv_correct.
 by rewrite size_TM_inv.
 Qed.
@@ -4419,25 +4425,23 @@ Definition TM_div Mf Mg X0 X n :=
 Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   g Xnan = Xnan->
   not_empty (I.convert X0) ->
-  n = Pol.size (approx TMf) ->
-  n = Pol.size (approx TMg) -> 0 < n ->
   i_validTM (I.convert X0) (I.convert X) TMf f ->
   i_validTM (I.convert X0) (I.convert X) TMg g ->
   i_validTM (I.convert X0) (I.convert X)
-  (TM_div TMf TMg X0 X n.-1) (fun xr => Xdiv (f xr) (g xr)).
+  (TM_div TMf TMg X0 X n) (fun xr => Xdiv (f xr) (g xr)).
 Proof.
-move=> Hnan Hex Hn1 Hn2 Hnpos Hf Hg.
+move=> Hnan Hne Hf Hg.
 apply: (TM_fun_eq (f := fun xr => Xmul (f xr) (Xinv (g xr)))).
   by move=> x; rewrite Xdiv_split.
 rewrite /TM_div.
 apply: TM_mul_correct =>//.
-apply TM_inv_comp_correct =>//.
-by rewrite -Hn2 (prednK Hnpos).
+exact: TM_inv_comp_correct.
 Qed.
 
 Lemma size_TM_comp (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) (n : nat) :
+  (forall Y0 Y k, 0 < Pol.size (approx (Tyg Y0 Y k))) ->
   Pol.size (approx (TM_comp Tyg TMf X0 X n)) = n.+1.
-Proof. by rewrite /= size_poly_horner_tm. Qed.
+Proof. by move=> Hsize; rewrite size_poly_horner_tm ifT // Hsize. Qed.
 
 End PrecArgument.
 
