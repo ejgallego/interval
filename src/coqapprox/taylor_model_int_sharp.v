@@ -2936,9 +2936,30 @@ constructor.
                    ];
       exact: (R_mask_correct (ln x0) Hx0 (R_ln_correct prec Hx0)).
   }
-- { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
-    rewrite /T_ln.
-    admit. (* ln: nai propagation *)
+- { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk; apply/eqNaiP.
+    apply: Pol.polyCons_propagate.
+    - apply/eqNaiP/contains_Xnan.
+      move/definedPn: Dx =><-.
+      exact: I.ln_correct.
+    - case: n Hk => [|n] Hk m; first by rewrite Pol.size_polyNil.
+      rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
+               size_falling_seq, size_behead, size_fact_seq) //.
+      move=> Hm.
+      apply: Pol.dotmuldiv_propagate;
+      rewrite ?(size_falling_seq, size_behead, size_fact_seq) ?Pol.size_rec1 //.
+      apply: Pol.rec1_propagate.
+      move=> q l Hq; apply/eqNaiP; rewrite I.power_int_propagate //.
+      rewrite I.mask_propagate_r //.
+      by apply/contains_Xnan; move/definedPn: Dx <-; apply: I.ln_correct.
+      apply/eqNaiP; rewrite I.power_int_propagate //.
+      rewrite I.mask_propagate_r //.
+      by apply/contains_Xnan; move/definedPn: Dx <-; apply: I.ln_correct.
+      by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
+               size_falling_seq, size_behead, size_fact_seq).
+    - rewrite Pol.size_polyCons.
+      case: n Hk => [|n] Hk; first by rewrite ltnS Pol.size_polyNil.
+      by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
+               size_falling_seq, size_behead, size_fact_seq).
   }
 - { move=> x Hx; rewrite /Xln /defined positiveT //.
     exact: gt0_correct.

@@ -1117,6 +1117,12 @@ Parameter rec1_propagate :
   (forall qi m, eqNai qi -> eqNai (Fi qi m)) ->
   eqNai ai ->
   forall n, poly_eqNai (rec1 Fi ai n).
+
+Parameter polyCons_propagate :
+  forall xi pi,
+  eqNai xi ->
+  poly_eqNai pi ->
+  poly_eqNai (polyCons xi pi).
 End PolyIntOps.
 
 (** Note that the implementation(s) of the previous signature will
@@ -1535,6 +1541,14 @@ rewrite nth_dotmuldiv Ha Hb !orbb ifF.
   apply/eqNaiP; rewrite I.mul_propagate_r //.
   apply/eqNaiP; exact: Hp.
 by rewrite leqNgt Hk.
+Qed.
+
+Lemma polyCons_propagate xi pi :
+  eqNai xi ->
+  poly_eqNai pi ->
+  poly_eqNai (polyCons xi pi).
+Proof.
+move=> Hxi Hpi [|k]; rewrite size_polyCons nth_polyCons // ltnS; exact: Hpi.
 Qed.
 
 End SeqPolyInt.
