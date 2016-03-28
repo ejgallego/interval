@@ -2522,7 +2522,14 @@ by move=> *;
                ].
     apply: R_inv_correct; exact: R_sqrt_correct.
   }
-- admit. (* invsqrt: nai propagation *)
+- move=> I r Ir /definedPn {X0 X n Hsubset Hex E1} Dx n k Hkn.
+  apply/eqNaiP; apply: Pol.rec1_propagate.
+  - move=> q m Hq; rewrite /invsqrt_rec.
+    apply/eqNaiP; rewrite I.div_propagate_l //.
+    rewrite I.mul_propagate_r //; exact:eqNaiP.
+  - apply/eqNaiP/contains_Xnan; rewrite -Dx.
+    exact/I.inv_correct/I.sqrt_correct.
+    by rewrite Pol.size_rec1.
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
