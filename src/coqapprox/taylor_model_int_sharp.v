@@ -921,12 +921,13 @@ Let Dn n := Derive_n f0 n.
 Hypothesis xf_Xnan : xf Xnan = Xnan.
 Hypothesis F_contains : I.extension xf F.
 
+Variables X : I.type.
+
 Class validPoly : Prop := ValidPoly {
   Poly_size : forall (x0 : R) n, PolR.size (P x0 n) = n.+1;
   Poly_nth :
     forall (x : R) n k,
-    def x ->
-    (* ex_derive_n f0 n x -> *)
+    X >: x ->
     k <= n ->
     PolR.nth (P x n) k = Rdiv (Dn k x) (INR (fact k)) }.
 
@@ -942,16 +943,11 @@ Class validIPoly : Prop := ValidIPoly {
 Context { validPoly_ : validPoly }.
 Context { validIPoly_ : validIPoly }.
 
-Variables X : I.type.
-
 Hypothesis Hdef : forall x, X >: x -> def x.
 Hypothesis Hder_n : forall n x, X >: x -> ex_derive_n f0 n x.
 
 Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
-Proof.
-move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //.
-exact: Hdef.
-Qed.
+Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //. Qed.
 
 Lemma Poly_size' Y n : Pol.size (IP Y n) = n.+1.
 Proof. by rewrite (IPoly_size Y (*dummy*)0) Poly_size. Qed.
@@ -1024,7 +1020,7 @@ exact: derivable_pt_lim_pow.
 Qed.
 
 Lemma bigXadd_P (m n : nat) (x0 s : R) :
-  def x0 ->
+  X >: x0 ->
   ex_derive_n f0 n x0 ->
   m <= n.+1 ->
   \big[Rplus/R0]_(0 <= i < m)
@@ -1041,7 +1037,7 @@ exact: leq_trans Hi Hmn.
 Qed.
 
 Lemma bigXadd'_P (m n : nat) (x0 s : R) :
-  def x0 ->
+  X >: x0 ->
   ex_derive_n f0 n x0 ->
   m <= n ->
   \big[Rplus/R0]_(0 <= i < m) (PolR.nth (P x0 n) i.+1 * INR i.+1 * s ^ i)%R =
@@ -1412,7 +1408,7 @@ case=>[Hpos|Hneg].
           case: k => [//|k]; rewrite -ex_derive_nSS.
           by apply: (Hder_n k.+2) =>//; apply: Hdef.
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
-        rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+        rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
         set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
         have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1430,7 +1426,7 @@ case=>[Hpos|Hneg].
           case: k => [//|k]; rewrite -ex_derive_nSS.
           by apply: (Hder_n k.+2) =>//; apply: Hdef.
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
-        rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+        rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
         set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
         have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1454,7 +1450,7 @@ case=>[Hpos|Hneg].
     case: k => [//|k]; rewrite -ex_derive_nSS.
     by apply: (Hder_n k.+2) =>//; apply: Hdef.
   rewrite /Rdelta' PolR.horner_derivE Poly_size.
-  rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+  rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
   set b := \big[Rplus/R0]_(_ <= i < _) _.
   set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
   have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1480,7 +1476,7 @@ split.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       by apply: (Hder_n k.+2) =>//; apply: Hdef.
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
-    rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+    rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
     set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
     have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1498,7 +1494,7 @@ split.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       by apply: (Hder_n k.+2) =>//; apply: Hdef.
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
-    rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+    rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
     set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
     have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1523,7 +1519,7 @@ have [|||c [H1 [H2 H3]]] := TL =>//.
   case: k => [//|k]; rewrite -ex_derive_nSS.
   by apply: (Hder_n k.+2) =>//; apply: Hdef.
 rewrite /Rdelta' PolR.horner_derivE Poly_size.
-rewrite bigXadd'_P //; last exact/Hder_n/intvlP; last exact: Hdef.
+rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
 set b := \big[Rplus/R0]_(_ <= i < _) _.
 set b2 := \big[Rplus/R0]_(_ <= i < _) _ in H2.
 have->: b = b2 by apply: eq_bigr => i _; rewrite -Derive_nS.
@@ -1553,7 +1549,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
-      exact/Hdef/intvlP.
+      exact/intvlP.
       case/(_ _ inGamma): Hmain =>->.
       exact: Rle_refl.
   - right; move=> x Hx.
@@ -1561,7 +1557,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
-      exact/Hdef/intvlP.
+      exact/intvlP.
       move/(_ _ inGamma) in Hmain.
       exact: proj2 Hmain.
   - left; move=> x Hx.
@@ -1569,7 +1565,7 @@ have Hstep : Rcst_sign
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
       exact/intvlP.
-      exact/Hdef/intvlP.
+      exact/intvlP.
       move/(_ _ inGamma) in Hmain.
       rewrite /proj_fun.
       exact: proj2 Hmain.
@@ -1918,7 +1914,7 @@ apply i_validTM_Ztech with (TR.T_exp tt); last 2 first =>//.
 exact: I.exp_correct.
 constructor.
 - by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex} x n k Hdef (*H*) Hk; rewrite toR_toXreal /PolR.nth.
+- { move=> {X0 n Hsubset Hex} x n k Hx Hk; rewrite toR_toXreal /PolR.nth.
     elim: k Hk => [|k IHk] Hk.
     - by rewrite (nth_rec1up_indep _ _ _ 0%R (m2 := 0)) //= Rdiv_1.
       rewrite (nth_rec1up_indep _ _ _ 0%R (m2 := k)) // in IHk; last exact: ltnW.
@@ -2077,14 +2073,14 @@ apply i_validTM_Ztech with (TR.T_atan tt); last 2 first =>//.
 exact: I.atan_correct.
 constructor.
 - by move=> ? ?; rewrite PolR.size_grec1.
-- { move=> {X0 X n Hsubset Hex} x n k Hdef (*Hder*) H;
+- { move=> {X0 n Hsubset Hex} x n k Hx H;
     rewrite /TR.T_atan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
     case: k H => [|k H]; first by rewrite /= ?Rdiv_1.
     rewrite last_grec1up // head_gloop1.
     rewrite [size _]/= subn1 [_.+1.-1]/=.
-    elim: k H x {Hdef (*Hder*)} =>[|k IHk] H x.
+    elim: k H x {Hx} =>[|k IHk] H x.
     + rewrite /= Rmult_0_l Rplus_0_l Rmult_1_r Rdiv_1.
       symmetry; apply: is_derive_unique; auto_derive =>//.
       by rewrite Rmult_1_r.
@@ -2200,35 +2196,39 @@ apply i_validTM_Ztech with (TR.T_tan tt); last 2 first =>//.
 exact: I.tan_correct.
 constructor.
 - by move=> ? ?; rewrite PolR.size_grec1.
-- { move=> {X0 X n Hsubset Hex E0} x n k Hdef (*Hder*) H;
+- { move=> {X0 n Hsubset Hex} x n k Hx H;
     rewrite /TR.T_tan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
     have->: Derive_n (toR_fun Xtan) k x = Derive_n tan k x.
-      move/def_tan in Hdef.
       apply: (@Derive_n_ext_loc _ tan).
+      have Hdef : cos x <> 0%R.
+        move/apart0_correct in E0.
+        by apply: E0; apply: R_cos_correct.
       eapply locally_open with
         (1 := open_comp cos (fun y => y <> 0%R)
           (fun y _ => continuous_cos y)
         (open_neq R0)) (3 := Hdef).
-      move=> {Hdef x} x Hdef.
+      move=> {Hdef Hx x} x Hdef.
       by rewrite toR_tan // def_tan.
     rewrite last_grec1up // head_gloop1.
     rewrite [size _]/= subn0.
-    elim: k H x Hdef =>[|k IHk] H x Hdef.
+    have Hdef : cos x <> 0%R.
+      move/apart0_correct in E0.
+      by apply: E0; apply: R_cos_correct.
+    elim: k H x {Hx} Hdef =>[|k IHk] H x Hdef.
     + by rewrite /= !Rsimpl.
     + move/ltnW in H; move/(_ H) in IHk.
       rewrite [INR]lock [PolR.lift]lock [fact]lock /= -!lock.
       set qk := iteri k
         (fun i c => PolR.div_mixed_r tt _ (INR (i + 0).+1)) (PolR.lift 1 PolR.one) in IHk *.
-      move/def_tan in Hdef.
       rewrite (@Derive_ext_loc _ (fun x => qk.[tan x] * INR (fact k))%R);
         first last.
         eapply locally_open with
           (1 := open_comp cos (fun y => y <> 0%R)
             (fun y _ => continuous_cos y)
           (open_neq 0%R)) (3 := Hdef).
-        move=> t /def_tan Hdef'; move/(_ t Hdef') in IHk.
+        move=> t Hdef'; move/(_ t Hdef') in IHk.
         simpl_R.
         move/(@Rmult_eq_compat_r r) in IHk.
         have Hr0 : r <> 0%R by rewrite -Hr; apply: INR_fact_neq_0.
@@ -2281,9 +2281,6 @@ constructor.
       exact: I.tan_correct.
     by rewrite Pol.size_grec1.
   }
-- move/apart0_correct in E0.
-  move=> x Hx; apply/def_tan; apply: E0.
-  exact: R_cos_correct.
 - move=> m x Hx; move/apart0_correct in E0.
   move/(_ (cos x) (R_cos_correct _ Hx)) in E0.
   eapply (@ex_derive_n_ext_loc tan); last exact: ex_derive_n_tan.
@@ -2363,7 +2360,7 @@ apply i_validTM_Ztech with (TR.T_sqrt tt); last 2 first =>//.
 exact: I.sqrt_correct.
 constructor.
 - by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex E1} x n k Hdef H.
+- { move=> {X0 n Hsubset Hex} x n k Hx H.
     admit. (* sqrt: formula for Derive_n *)
   }
 constructor.
@@ -2382,7 +2379,6 @@ constructor.
     exact: R_sqrt_correct.
   }
 - admit. (* sqrt: nai propagation *)
-- admit. (* sqrt: defined over X *)
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
@@ -2505,7 +2501,7 @@ apply i_validTM_Ztech with (TR.T_invsqrt tt); last 2 first =>//.
 move=> Y y Hy; apply: I.inv_correct; exact: I.sqrt_correct.
 constructor.
 - by move=> *; rewrite PolR.size_rec1.
-- { move=> {X0 X n Hsubset Hex E1} x n k Hdef H.
+- { move=> {X0 n Hsubset Hex} x n k Hx H.
     admit. (* invsqrt: formula for Derive_n *)
   }
 constructor.
@@ -2527,7 +2523,6 @@ by move=> *;
     apply: R_inv_correct; exact: R_sqrt_correct.
   }
 - admit. (* invsqrt: nai propagation *)
-- admit. (* invsqrt: defined over X *)
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
@@ -2699,6 +2694,36 @@ case: p => [|p|p]; last case: apart0;
   by rewrite (@Pol.size_dotmuldiv (n.+1)) ?(Pol.size_rec1, size_rec1up).
 Qed.
 
+Lemma def_power_int p x : (0 <= p)%Z \/ x <> R0 ->
+  defined (Xpower_int^~ p) x.
+Proof.
+case => [Hp|Hx].
+  rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
+  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0.
+rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
+by case: p =>//; rewrite zeroF.
+Qed.
+
+Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
+  powerRZ x p = toR_fun (Xpower_int^~ p) x.
+case => [Hp|Hx].
+  rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
+  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0.
+rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
+by case: p =>//; rewrite zeroF.
+Qed.
+
+Lemma toR_power_int_loc p x : defined (Xpower_int^~ p) x ->
+  locally x (fun t => powerRZ t p = toR_fun (Xpower_int^~ p) t).
+Proof.
+case: p => [|p|p] Hx.
+- eapply (locally_open (fun _ => True)) =>//; exact: open_true.
+- eapply (locally_open (fun _ => True)) =>//; exact: open_true.
+- eapply (@locally_open _ (fun x => x <> 0)%R) =>//; first exact: open_neq.
+  by move=> {x Hx} x Hx; rewrite /toR_fun /Xpower_int /proj_fun /= zeroF //.
+  by move: Hx; rewrite /defined /Xpower_int /proj_fun /=; case: is_zero_spec.
+Qed.
+
 Lemma TM_power_int_correct_aux (p : Z) X0 X n :
   (0 <= p)%Z \/ apart0 X ->
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -2716,20 +2741,97 @@ constructor.
 - by move=> {n} ? n;
     rewrite ?(@PolR.size_dotmuldiv n.+1, @Pol.size_dotmuldiv n.+1,
     Pol.size_rec1, size_rec1up, PolR.size_rec1) //.
-- { move=> x m k Hdef (*Hder*) Hk.
+- { move=> x m k Hx Hk.
     rewrite /TR.T_power_int PolR.nth_dotmuldiv ifF; last first.
       rewrite PolR.size_rec1.
       rewrite size_falling_seq size_fact_seq.
       by rewrite !orbb ltnNge Hk.
-    elim: k Hk => [|k IHk] Hk.
+    case: k Hk => [|k] Hk.
       simpl Derive_n; simpl INR; rewrite Rdiv_1.
       rewrite falling_seq_correct // fact_seq_correct //.
       rewrite big_mkord big_ord0.
       rewrite [PolR.nth _ _]nth_rec1up /= Rdiv_1 Rmult_1_l.
-      move: Hdef; rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-      by case: p {Hyp (*Hder*)} =>//; case: is_zero.
-    rewrite falling_seq_correct // fact_seq_correct //.
-    admit. (* power_int: formula for Derive_n *)
+      rewrite toR_power_int //.
+      by case: Hyp => *; by [left|right; exact: apart0_correct].
+    rewrite -(Derive_n_ext_loc _ _ k.+1 x (toR_power_int_loc _));
+      last by apply: def_power_int;
+      case: Hyp => *; by [left|right; exact: apart0_correct].
+    symmetry; apply: (Rmult_eq_reg_r (INR (fact k.+1))); last exact: INR_fact_neq_0.
+    rewrite {1}/Rdiv Rmult_assoc Rinv_l ?Rmult_1_r; last exact: INR_fact_neq_0.
+    clear - Hyp Hk Hx.
+    rewrite /powerRZ.
+    case: p Hyp Hx =>[|p|p] Hyp Hx.
+    - rewrite Derive_n_const.
+      rewrite /PolR.nth /PolR.rec1 nth_rec1up ifF; last first.
+        by apply: negbTE; rewrite ltnNge Hk.
+      rewrite iteriS /TR.pow_aux_rec ifF ?(Rmult_0_r, Rmult_0_l) //.
+      apply: negbTE; rewrite negb_or /=; apply/negP; move/Z.geb_le.
+      by change Z0 with (Z.of_nat O); move/Nat2Z.inj_le/leP; rewrite addn1.
+    - rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_pow _ _ _ _)); last first.
+        exact/ltP/Pos2Nat.is_pos.
+      rewrite falling_seq_correct // fact_seq_correct //.
+      have Hpow: PolR.nth (PolR.rec1
+        (TR.pow_aux_rec tt (Z.pos p) x) (x ^ Pos.to_nat p) m)%R k.+1 =
+        if (Z.of_nat (k + 1) <=? Z.pos p)%Z then (x ^ (Pos.to_nat p - k.+1))%R
+        else 0%R.
+        rewrite /PolR.nth /PolR.rec1 nth_rec1up.
+        rewrite ifF; last first.
+          by apply: negbTE; rewrite ltnNge Hk.
+        case: Z.leb_spec.
+          move=> /Zle_is_le_bool Hpk; rewrite iteriS /TR.pow_aux_rec Z.geb_leb Hpk.
+          rewrite orbT pow_powerRZ; congr powerRZ.
+          rewrite Nat2Z.inj_sub ?(positive_nat_Z, addn1) //.
+          apply/Nat2Z.inj_le; rewrite positive_nat_Z -addn1.
+          by move: Hpk; case: Z.leb_spec.
+        move=> Hpk; rewrite iteriS /TR.pow_aux_rec Z.geb_leb ifF //.
+        apply: negbTE; rewrite negb_or /=.
+        by rewrite -Z.ltb_antisym; move/Zlt_is_lt_bool in Hpk.
+      case: (Z.leb_spec (Z.of_nat (k + 1)) (Z.pos p)) => Hpk.
+        move/Zle_is_le_bool in Hpk.
+        rewrite Hpow Hpk.
+        rewrite /Rdiv; ring_simplify (*!*).
+        rewrite -INR_Z2R Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
+        rewrite Rmult_1_r Rmult_comm; congr Rmult.
+        rewrite (big_morph Z2R (id1 := R1) (op1 := Rmult)) //; last exact: Z2R_mult.
+        rewrite big_mkord; apply: eq_bigr => [[i Hi] _].
+        rewrite INR_Z2R.
+        rewrite Nat2Z.inj_sub ?(positive_nat_Z, addn1) //=.
+        apply/leP; rewrite ltnS in Hi.
+        apply: leq_trans Hi _.
+        move/Zle_is_le_bool in Hpk.
+        rewrite -positive_nat_Z in Hpk; move/Nat2Z.inj_le/leP in Hpk.
+        by apply: leq_trans _ Hpk; rewrite addn1.
+      rewrite [in LHS]big_ord_recr big_mkord [in RHS]big_ord_recr.
+      simpl (Rmul_monoid _ _).
+      have->: Pos.to_nat p - k = 0.
+        rewrite -positive_nat_Z addn1 in Hpk; move/Nat2Z.inj_lt/ltP in Hpk.
+        rewrite ltnS in Hpk.
+        by apply/eqP; rewrite subn_eq0.
+      rewrite !Rsimpl Hpow ifF ?Rsimpl //.
+      apply: negbTE.
+      by move/Zlt_is_lt_bool: Hpk; rewrite Z.ltb_antisym =>->.
+    - rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_inv_pow _ _ _ _ _)); first last.
+        case: Hyp; first case =>//.
+        by move/apart0_correct; apply.
+        exact/ltP/Pos2Nat.is_pos.
+      rewrite falling_seq_correct // fact_seq_correct //.
+      have Hpow: PolR.nth (PolR.rec1
+        (TR.pow_aux_rec tt (Z.neg p) x) (/ x ^ Pos.to_nat p) m)%R k.+1 =
+        (/ x ^ (Pos.to_nat p + k.+1))%R.
+        rewrite /PolR.nth /PolR.rec1 nth_rec1up.
+        rewrite ifF; last first.
+          by apply: negbTE; rewrite ltnNge Hk.
+        rewrite iteriS /TR.pow_aux_rec addn1 /= Pos.of_nat_succ.
+        by rewrite Pos2Nat.inj_add Nat2Pos.id.
+      rewrite Hpow.
+      rewrite /Rdiv; ring_simplify (*!*).
+      rewrite -INR_Z2R Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
+      rewrite Rmult_1_r Rmult_comm; congr Rmult.
+      rewrite (big_morph Z2R (id1 := R1) (op1 := Rmult)) //; last exact: Z2R_mult.
+      rewrite big_mkord; apply: eq_bigr => [[i Hi] _].
+      rewrite INR_Z2R -Z2R_opp; congr Z2R.
+      rewrite Nat2Z.inj_add positive_nat_Z.
+      by rewrite Z.opp_add_distr.
   }
 constructor.
 - by move=> {n} ? ? n;
@@ -2773,15 +2875,14 @@ constructor.
     move/definedPn: Dx <-.
     exact: I.power_int_correct.
   }
-- move=> x Hx.
-  rewrite /defined /Xpower_int.
-  have {Hyp} [H0 | H0] := Hyp.
-  by case: p H0 =>// p H0; move/Z.leb_le in H0.
-  case: p H0 =>// p H0.
-  rewrite zeroF //.
-  exact: apart0_correct.
 - move=> k x Hx.
-  admit. (* power_int : ex_derive_n *)
+  have [Hp|/(apart0_correct Hx) Nx] := Hyp.
+    apply: (ex_derive_n_ext_loc _ _ _ _ (@toR_power_int_loc p x _)).
+    by apply: def_power_int; left.
+    by apply: ex_derive_n_powerRZ; left.
+  apply: (ex_derive_n_ext_loc _ _ _ _ (@toR_power_int_loc p x _)).
+  by apply: def_power_int; right.
+  by apply: ex_derive_n_powerRZ; right.
 Qed.
 
 Lemma TM_power_int_correct (p : Z) X0 X n :
@@ -2850,9 +2951,6 @@ constructor.
     - apply/eqNaiP/contains_Xnan; move/definedPn: Dx =><-.
       exact: I.inv_correct.
     - by rewrite Pol.size_rec1.
-  }
-- { move=> x Hx; rewrite /Xinv /defined zeroF //.
-    exact: apart0_correct.
   }
 - { move=> {n} n x Hx.
     admit. (* inv: ex_derive_n *)
@@ -2958,9 +3056,6 @@ constructor.
       case: n Hk => [|n] Hk; first by rewrite ltnS Pol.size_polyNil.
       by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
                size_falling_seq, size_behead, size_fact_seq).
-  }
-- { move=> x Hx; rewrite /Xln /defined positiveT //.
-    exact: gt0_correct.
   }
 - { move=> {n} n x Hx.
     admit. (* ln: ex_derive_n *)
@@ -4063,20 +4158,21 @@ Lemma TM_comp_correct (X0 X : I.type) (Tyg : TM_type) (TMf : rpa) g f :
 Proof.
 move=> Hnan [t Ht] n Hf Hg.
 have [Fnai Fzero Hsubs Fmain] := Hf.
+admit. (* TM_comp
 split=>//.
   move=> x Hx Dx.
   apply/eqNaiP/contains_Xnan.
   pose Y0 := Pol.nth (approx TMf) 0.
   pose Y := (I.add prec (Bnd.ComputeBound prec (approx TMf) (I.sub prec X X0)) (error TMf)).
   have [||[Gnai Gzero _ Gmain] Hsize] := Hg Y0 Y n _ _.
-  admit.
-  admit.
+
   rewrite I.add_propagate_r //.
-  admit; apply/eqNaiP; apply: Gnai.
+
+  apply/eqNaiP; apply: Gnai.
   rewrite /= (_ : (Xreal 0) = (Xreal 0 + Xreal 0)); last by rewrite /= Rplus_0_l.
 
   have [Q HQ Herr] := Fmain t Ht.
-  admit. admit. (* TM_comp
+
   have Hcp : Link.contains_pointwise _ _ := conj (esym Hpr) Hnth. (* FIXME *)
   have [||[Hokg1 Hokg2 Hokg4] Hokg3] :=
       Hg (tnth (approx TMf) 0)

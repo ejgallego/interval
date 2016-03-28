@@ -233,8 +233,6 @@ End IntegralEstimation.
 (** The following support results deal with "iterated derivatives". *)
 (********************************************************************)
 
-Section Derive_n_elem_functions.
-
 Lemma Derive_nS f n :
   Derive_n f n.+1 = Derive_n (Derive f) n.
 Proof.
@@ -347,6 +345,21 @@ Qed.
    PUIS RENOMMER LES LEMMES EN [is_derive_n_*]
 *)
 
+Lemma is_derive_n_pow :
+  forall m, (0 < m)%N -> forall n x,
+  is_derive_n (fun x => x ^ m)%R n x
+  (\big[Rmult/1%R]_(i < n) INR (m - i) * x ^ (m - n))%R.
+Proof.
+move=> m Hm; help_is_derive_n_whole.
+- move=> x; rewrite big1 /= ?(addn0, subn0, Rmult_1_l) //.
+  by case.
+- auto_derive =>//.
+  by rewrite big_ord_recl big_ord0 /= subn0 subn1 /= Rmult_1_l Rmult_1_r.
+- auto_derive =>//.
+  rewrite [in RHS]big_ord_recr /= /Rdiv; rewrite Rmult_assoc; congr Rmult.
+  by rewrite Rmult_1_l !subnS.
+Qed.
+
 Lemma is_derive_n_inv_pow :
   forall m, (0 < m)%N -> forall n x, x <> 0 ->
   is_derive_n (fun x => / x ^ m)%R n x
@@ -368,6 +381,22 @@ move=> m Hm; help_is_derive_n.
   exact: pow_nonzero.
   apply: Rmult_neq0; exact: pow_nonzero.
   rewrite !addnS /=; ring.
+Qed.
+
+Lemma Zneg_not_ge0 p : (0 <= Z.neg p)%Z -> False.
+Proof. by have /Z.lt_nge := Zlt_neg_0 p. Qed.
+
+Lemma ex_derive_n_powerRZ m n x :
+  (0 <= m)%Z \/ x <> 0 ->
+  ex_derive_n (powerRZ^~ m) n x.
+Proof.
+rewrite /powerRZ; case: m => [|p|p].
+- case: n => [|n] _ //; exact: ex_derive_n_const.
+- move=> H; apply/ex_derive_n_is_derive_n/is_derive_n_pow.
+  exact/ltP/Pos2Nat.is_pos.
+- case=> [Hp|Hx]; first by move/Zneg_not_ge0 in Hp.
+  apply/ex_derive_n_is_derive_n/is_derive_n_inv_pow; last by [].
+  exact/ltP/Pos2Nat.is_pos.
 Qed.
 
 Lemma ex_derive_n_inv :
@@ -549,5 +578,3 @@ Lemma ex_derive_n_tan :
   forall n x, cos x <> 0 -> ex_derive_n tan n x.
 Proof.
 Admitted.
-
-End Derive_n_elem_functions.
