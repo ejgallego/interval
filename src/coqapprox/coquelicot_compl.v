@@ -163,7 +163,7 @@ Variables (V : CompleteNormedModule R_AbsRing) (g : R -> V) (a b c d : R).
 Lemma ex_RInt_Chasles_sub :
  a <= b -> b <= c -> c <= d -> ex_RInt g a d -> ex_RInt g b c.
 Proof.
-move=> leab lebc lecd hiad; apply: (ex_RInt_Chasles_1 _ _ _ d) => //. 
+move=> leab lebc lecd hiad; apply: (ex_RInt_Chasles_1 _ _ _ d) => //.
 by apply: (ex_RInt_Chasles_2 _ a) => //; split=> //; apply: (Rle_trans _ c).
 Qed.
 
@@ -179,7 +179,7 @@ Hypothesis ltab : ra < rb.
 
 Hypothesis fint : ex_RInt f ra rb.
 
-Lemma RInt_le_r (u : R) : 
+Lemma RInt_le_r (u : R) :
  (forall x : R, ra <= x <= rb -> f x <= u) -> RInt f ra rb / (rb - ra) <= u.
 Proof.
 move=> hfu; apply/Rle_div_l;first by apply: Rgt_minus.
@@ -193,7 +193,7 @@ split.
 - exact: (Rlt_le _ _ (proj2 Hx)).
 Qed.
 
-Lemma RInt_le_l (l : R) : 
+Lemma RInt_le_l (l : R) :
   (forall x : R, ra <= x <= rb -> l <= f x) -> l <= RInt f ra rb / (rb - ra).
 Proof.
 move=> hfl; apply/Rle_div_r; first by apply: Rgt_minus.
