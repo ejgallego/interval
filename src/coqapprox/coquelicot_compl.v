@@ -1,7 +1,7 @@
 Require Import Reals Psatz.
 Require Import Coquelicot.
 Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
-Require Import Rstruct Interval_missing reals_tac.
+Require Import Rstruct Interval_missing reals_tac poly_datatypes.
 
 Section MissingContinuity.
 
@@ -264,6 +264,13 @@ eexists.
 apply H.
 Qed.
 
+Lemma ex_derive_is_derive :
+  forall (f : R -> R) x l, is_derive f x l -> ex_derive f x.
+Proof.
+move=> f x l; rewrite /is_derive_n /ex_derive_n => H.
+eexists; exact: H.
+Qed.
+
 (*
 (* First attempt regarding automation: *)
 
@@ -297,46 +304,45 @@ Qed.
     See [is_derive_n_exp] or [is_derive_n_inv_pow] for usage examples.
 *)
 
-Ltac help_is_derive_n_whole :=
+Ltac help_is_derive_n_whole fresh_n fresh_x :=
   match goal with
   [ |- forall n x, is_derive_n ?f n x (@?D n x) ] =>
-  let n := fresh "n" in
-  let x := fresh "x" in
-  let IHn := fresh "IHn" in
+  let IHn := fresh "IH" fresh_n in
   case;
   [(*1: f is defined*) try done
-  |elim=> [/=|n IHn] x;
+  |elim=> [/=|fresh_n IHn] fresh_x;
   [(*2: f is derivable*) (*OPTIONAL: (try auto_derive); try done *)
-  |apply: (@is_derive_ext _ _ (D n.+1) (Derive_n f n.+1) x _);
+  |apply: (@is_derive_ext _ _ (D fresh_n.+1) (Derive_n f fresh_n.+1) fresh_x _);
   [let t := fresh "t" in
    by move=> t; rewrite (is_derive_n_unique _ _ _ _ (IHn t))
-  |(*3: the invariant holds*)]]]
+  |(*3: the invariant holds*)
+   clear IHn]]]
   end.
 
-Ltac help_is_derive_n :=
+Ltac help_is_derive_n fresh_n fresh_x :=
   match goal with
   [ |- forall n x, @?P x -> is_derive_n ?f n x (@?D n x) ] =>
-  let n := fresh "n" in
-  let x := fresh "x" in
-  let IHn := fresh "IHn" in
-  let Hx := fresh "Hx" in
+  let IHn := fresh "IH" fresh_n in
+  let Hx := fresh "H" fresh_x in
   case;
   [(*1: f is defined*) try done
-  |elim=> [/=|n IHn] x;
+  |elim=> [/=|fresh_n IHn] fresh_x;
   [(*2: f is derivable*) (*OPTIONAL: move=> Hx; auto_derive; try done *)
   |move=> Hx;
-   apply: (@is_derive_ext_alt (D n.+1) (Derive_n f n.+1) x (D n.+2) P Hx);
-   clear x Hx;
+   apply: (@is_derive_ext_alt
+     (D fresh_n.+1) (Derive_n f fresh_n.+1) x (D fresh_n.+2) P Hx);
+   clear fresh_x Hx;
   [(*3: P is open*)
   |let t := fresh "t" in
    let Ht := fresh "Ht" in
    by move=> t Ht; rewrite (is_derive_n_unique _ _ _ _ (IHn t Ht))
-  |(*4: the invariant holds*)]]]
+  |(*4: the invariant holds*)
+   clear IHn]]]
   end.
 
 Lemma is_derive_n_exp : forall n x, is_derive_n exp n x (exp x).
 Proof.
-help_is_derive_n_whole.
+help_is_derive_n_whole n x.
 - by auto_derive; last by rewrite Rmult_1_l.
 - by auto_derive; last by rewrite Rmult_1_l.
 Qed.
@@ -350,7 +356,7 @@ Lemma is_derive_n_pow :
   is_derive_n (fun x => x ^ m)%R n x
   (\big[Rmult/1%R]_(i < n) INR (m - i) * x ^ (m - n))%R.
 Proof.
-move=> m Hm; help_is_derive_n_whole.
+move=> m Hm; help_is_derive_n_whole n x.
 - move=> x; rewrite big1 /= ?(addn0, subn0, Rmult_1_l) //.
   by case.
 - auto_derive =>//.
@@ -365,7 +371,7 @@ Lemma is_derive_n_inv_pow :
   is_derive_n (fun x => / x ^ m)%R n x
   (\big[Rmult/1%R]_(i < n) - INR (m + i) / x ^ (m + n))%R.
 Proof.
-move=> m Hm; help_is_derive_n.
+move=> m Hm; help_is_derive_n n x.
 - move=> x Hx; rewrite big1 /= ?addn0; first by field; apply: pow_nonzero.
   by case.
 - move=> Hx; auto_derive; first by apply: pow_nonzero.
@@ -583,16 +589,89 @@ apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
 Qed.
 
+Definition is_derive_atan x :
+  is_derive atan x (/ (1 + x²)).
+Proof. exact/is_derive_Reals/derivable_pt_lim_atan. Qed.
+
+Import PolR.Notations.
+
+Lemma is_derive_n_atan n (x : R) :
+  let q n := iteri n
+    (fun i c => PolR.div_mixed_r tt (PolR.sub tt (PolR.add tt c^`() (PolR.lift 2 c^`()))
+      (PolR.mul_mixed tt (INR (i.+1).*2) (PolR.lift 1 c))) (INR i.+2))
+    PolR.one in
+  is_derive_n atan n x
+  (if n is n.+1 then PolR.horner tt (q n) x / (1 + x²) ^ (n.+1) * INR (fact n.+1)
+   else atan x)%R.
+Proof.
+move=> q; move: n x.
+help_is_derive_n_whole n x.
+- rewrite /Rdiv !Rsimpl.
+  have := is_derive_atan x; exact: is_derive_ext.
+- set Q := (1 + x * x)%R.
+  have HQ : Q <> 0%R by exact: Rsqr_plus1_neq0.
+  have HQ' : Q ^ n <> 0%R by exact: pow_nonzero.
+  have HQ'' : Q * Q ^ n <> 0%R.
+    rewrite Rmult_comm -(Rmult_0_l (1 + x * x)).
+    by apply:Rmult_neq_compat_r; try apply: pow_nonzero; exact: Rsqr_plus1_neq0.
+  auto_derive; first split.
+  + exact: PolR.ex_derive_horner.
+  + by split.
+  + rewrite Rmult_1_l PolR.Derive_horner [q n.+1]iteriS -/(q n).
+    rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
+    rewrite PolR.horner_mul_mixed !PolR.horner_lift.
+    rewrite -{1}[in RHS](Rmult_1_r (q n)^`().[x]) -Rmult_plus_distr_l.
+    have->: x ^ 2 = x² by simpl; rewrite Rmult_1_r.
+    rewrite pow_1 /Rdiv.
+    have H1 : (if n is _.+1 then (INR n + 1)%R else 1%R) = INR n.+1 by [].
+    rewrite H1.
+    rewrite !Rinv_mult_distr // -/pow -/Q.
+    have->: INR (fact n + (n * fact n))%coq_nat = INR (fact n.+1) by [].
+    rewrite [in RHS]fact_simpl mult_INR.
+    set A := (((q n)^`()).[x] * Q - INR (n.+1).*2 * ((q n).[x] * x)).
+    have->: (A * / INR n.+2 * (/ Q * (/ Q * / Q ^ n)) * (INR n.+2 * INR (fact n.+1)) =
+      A * (/ INR n.+2 * INR n.+2) * (/ Q * (/ Q * / Q ^ n)) * INR (fact n.+1))%R by ring.
+    rewrite Rinv_l; last exact: not_0_INR.
+    rewrite /A !Rsimpl. rewrite -mul2n [INR (2 * _)%N]mult_INR; simpl (INR 2).
+    field; by split.
+Qed.
+
 Definition is_derive_tan x :
   cos x <> 0%R -> is_derive tan x (tan x ^ 2 + 1)%R.
 Proof. now intros Hx; unfold tan; auto_derive; trivial; field_simplify. Qed.
 
-Lemma ex_derive_n_atan :
-  forall n (x : R), ex_derive_n atan n x.
+Lemma is_derive_n_tan n x :
+  cos x <> 0 ->
+  let q n := iteri n
+    (fun i c => PolR.div_mixed_r tt (PolR.add tt c^`() (PolR.lift 2 c^`())) (INR i.+1))
+    (PolR.lift 1 PolR.one) in
+  is_derive_n tan n x ((q n).[tan x] * INR (fact n)).
 Proof.
-Admitted.
-
-Lemma ex_derive_n_tan :
-  forall n x, cos x <> 0 -> ex_derive_n tan n x.
-Proof.
-Admitted.
+move=> Hx q; move: n x Hx.
+help_is_derive_n n x.
+- by move=> x Hx; rewrite /= !Rsimpl.
+- move=> Hx; auto_derive.
+  + by eapply ex_derive_is_derive; apply: is_derive_tan.
+  + rewrite !Rsimpl; rewrite (is_derive_unique _ _ _ (is_derive_tan _ Hx)).
+    ring.
+- exact: (open_comp cos (fun y => y <> 0%R)
+                    (fun y _ => continuous_cos y) (open_neq 0%R)).
+- move=> x Hx.
+  move En1 : n.+1 => n1.
+  (* Remember n.+1 as n1 to have a more tidy context after auto_derive *)
+  auto_derive; repeat split.
+  + apply: PolR.ex_derive_horner.
+  + by eapply ex_derive_is_derive; apply: is_derive_tan.
+  + rewrite Rmult_1_l.
+    rewrite (is_derive_unique _ _ _ (is_derive_tan _ Hx)).
+    rewrite PolR.Derive_horner [q n1.+1]iteriS -/(q n1).
+    rewrite PolR.horner_div_mixed_r PolR.horner_add.
+    rewrite !PolR.horner_lift.
+    rewrite fact_simpl mult_INR.
+    set A := (((q n1)^`()).[tan x] + ((q n1)^`()).[tan x] * tan x ^ 2).
+    rewrite /Rdiv.
+    have->: (A * / INR n1.+1 * (INR n1.+1 * INR (fact n1)) =
+             A * INR (fact n1) * (/ INR n1.+1 * INR n1.+1))%R by ring.
+    rewrite Rinv_l; last exact: not_0_INR.
+    rewrite /A; ring.
+Qed.

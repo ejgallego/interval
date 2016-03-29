@@ -2073,7 +2073,8 @@ apply i_validTM_Ztech with (TR.T_atan tt); last 2 first =>//.
 exact: I.atan_correct.
 constructor.
 - by move=> ? ?; rewrite PolR.size_grec1.
-- { move=> {X0 n Hsubset Hex} x n k Hx H;
+- { (* The proof of this goal might be shortened by reusing is_derive_n_atan *)
+    move=> {X0 n Hsubset Hex} x n k Hx H;
     rewrite /TR.T_atan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
@@ -2157,7 +2158,7 @@ constructor.
       exact: R_atan_correct.
   }
 - done.
-- by move=> *; apply: ex_derive_n_atan.
+- by move=> m x Hx; apply: ex_derive_n_is_derive_n (is_derive_n_atan m x).
 Qed.
 
 Definition TM_tan X0 X (n : nat) : rpa :=
@@ -2180,9 +2181,6 @@ by move=> x; split; rewrite /defined /Xtan /=; case E0: is_zero =>//;
   move: E0; case: is_zero_spec.
 Qed.
 
-Definition Rsimpl :=
-  (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
-
 Lemma TM_tan_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2196,7 +2194,8 @@ apply i_validTM_Ztech with (TR.T_tan tt); last 2 first =>//.
 exact: I.tan_correct.
 constructor.
 - by move=> ? ?; rewrite PolR.size_grec1.
-- { move=> {X0 n Hsubset Hex} x n k Hx H;
+- { (* The proof of this goal might be shortened by reusing is_derive_n_tan *)
+    move=> {X0 n Hsubset Hex} x n k Hx H;
     rewrite /TR.T_tan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
@@ -2282,7 +2281,8 @@ constructor.
   }
 - move=> m x Hx; move/apart0_correct in E0.
   move/(_ (cos x) (R_cos_correct _ Hx)) in E0.
-  eapply (@ex_derive_n_ext_loc tan); last exact: ex_derive_n_tan.
+  eapply (@ex_derive_n_ext_loc tan); last first.
+    exact: ex_derive_n_is_derive_n (is_derive_n_tan m x E0).
   eapply locally_open with
     (1 := open_comp cos (fun y => y <> 0%R)
       (fun y _ => continuous_cos y)

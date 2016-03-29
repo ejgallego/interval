@@ -1363,3 +1363,7 @@ field_simplify; trivial.
 now rewrite Heq.
 now apply Rmult_neq0.
 Qed.
+
+(** The following definition can be used by doing [rewrite !Rsimpl] *)
+Definition Rsimpl :=
+  (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
