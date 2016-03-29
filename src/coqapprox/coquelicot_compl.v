@@ -301,7 +301,7 @@ Qed.
     Then, we obtain 3 (resp. 4) subgoals that can be proved by relying
     on the [auto_derive] Coquelicot tactic.
 
-    See [is_derive_n_exp] or [is_derive_n_inv_pow] for usage examples.
+    See [is_derive_n_exp] or [is_derive_n_tan] for usage examples.
 *)
 
 Ltac help_is_derive_n_whole fresh_n fresh_x :=
