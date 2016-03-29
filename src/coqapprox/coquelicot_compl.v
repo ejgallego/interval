@@ -386,65 +386,40 @@ Qed.
 Lemma Zneg_not_ge0 p : (0 <= Z.neg p)%Z -> False.
 Proof. by have /Z.lt_nge := Zlt_neg_0 p. Qed.
 
+Lemma is_derive_n_powerRZ m n x :
+  (0 <= m)%Z \/ x <> 0 ->
+  is_derive_n (powerRZ^~ m) n x
+  (match m with
+   | Z0 => if n is O then 1%R else 0%R
+   | Z.pos p => \big[Rmult/1%R]_(i < n) INR (Pos.to_nat p - i) *
+                x ^ (Pos.to_nat p - n)
+   | Z.neg p => \big[Rmult/1%R]_(i < n) - INR (Pos.to_nat p + i) *
+                / x ^ (Pos.to_nat p + n)
+   end).
+Proof.
+move=> Hor.
+rewrite /powerRZ; case: m Hor => [|p|p] Hor.
+- case: n => [|n] //; exact: is_derive_n_const.
+- by apply: is_derive_n_pow; apply/ltP/Pos2Nat.is_pos.
+- apply: is_derive_n_inv_pow; first exact/ltP/Pos2Nat.is_pos.
+  by case: Hor; first by move/Zneg_not_ge0.
+Qed.
+
 Lemma ex_derive_n_powerRZ m n x :
   (0 <= m)%Z \/ x <> 0 ->
   ex_derive_n (powerRZ^~ m) n x.
 Proof.
-rewrite /powerRZ; case: m => [|p|p].
-- case: n => [|n] _ //; exact: ex_derive_n_const.
-- move=> H; apply/ex_derive_n_is_derive_n/is_derive_n_pow.
-  exact/ltP/Pos2Nat.is_pos.
-- case=> [Hp|Hx]; first by move/Zneg_not_ge0 in Hp.
-  apply/ex_derive_n_is_derive_n/is_derive_n_inv_pow; last by [].
-  exact/ltP/Pos2Nat.is_pos.
+by move=> Hor; eapply ex_derive_n_is_derive_n; eapply is_derive_n_powerRZ.
 Qed.
 
-Lemma ex_derive_n_inv :
-  forall n x, x <> 0 -> ex_derive_n Rinv n x.
+Lemma is_derive_n_Rpower n a x :
+  0 < x ->
+  is_derive_n (Rpower^~ a) n x
+  (\big[Rmult/1%R]_(i < n) (a - INR i) * Rpower x (a - INR n)).
 Proof.
-intros n x Hx.
-eapply ex_derive_n_is_derive_n.
-apply is_derive_n_ext with (f := fun t => /(t^1)).
-intros t.
-by rewrite /= Rmult_1_r.
-by apply is_derive_n_inv_pow.
-Qed.
-
-Lemma ex_derive_n_ln :
-  forall n x, 0 < x -> ex_derive_n ln n x.
-Proof.
-intros [|n] x Hx.
-exact I.
-eapply ex_derive_n_is_derive_n.
-apply is_derive_Sn.
-apply: locally_open x Hx.
-apply open_gt.
-move => /= x Hx.
-eexists.
-now apply is_derive_Reals, derivable_pt_lim_ln.
-apply is_derive_n_ext_loc with Rinv.
-apply: locally_open x Hx.
-apply open_gt.
-move => /= x Hx.
-apply sym_eq, is_derive_unique.
-now apply is_derive_Reals, derivable_pt_lim_ln.
-apply Derive_n_correct.
-apply ex_derive_n_inv.
-now apply Rgt_not_eq.
-Qed.
-
-Lemma ex_derive_n_power :
-  forall a n x, 0 < x -> ex_derive_n (Rpower ^~ a) n x.
-Proof.
-assert (forall n a, exists c, forall x, 0 < x -> is_derive_n (Rpower^~ a) n x (c * Rpower x (a - INR n))).
-induction n.
-exists R1.
-intros x _.
-by rewrite /= Rmult_1_l Rminus_0_r.
-intros a.
-destruct (IHn (a - 1)) as [c H].
-exists (c * a).
-intros x Hx.
+move: a x; elim: n => [|n IHn] a x Hx.
+  rewrite big_ord0.
+  by rewrite /= Rmult_1_l Rminus_0_r.
 apply is_derive_Sn.
 apply: locally_open x Hx.
 apply open_gt.
@@ -457,44 +432,90 @@ apply open_gt.
 move => /= x Hx.
 apply sym_eq, is_derive_unique.
 now apply is_derive_Reals, derivable_pt_lim_power.
-replace (c * a * Rpower x (a - INR n.+1)) with (a * (c * Rpower x (a - INR n.+1))) by ring.
+rewrite big_ord_recl; rewrite [INR ord0]/= Rminus_0_r Rmult_assoc.
 apply is_derive_n_scal_l.
 rewrite S_INR.
 replace (a - (INR n + 1)) with (a - 1 - INR n) by ring.
-now apply H.
-intros a n x Hx.
-destruct (H n a) as [c H'].
-eapply ex_derive_n_is_derive_n.
-now apply H'.
+rewrite (eq_bigr (P := xpredT) (fun i2 : 'I_n => a - 1 - INR i2)); last first.
+move=> [i Hi] _; rewrite plus_INR /=; ring.
+exact: IHn.
 Qed.
 
-Lemma ex_derive_n_sqrt :
-  forall n x, 0 < x -> ex_derive_n sqrt n x.
+Lemma ex_derive_n_Rpower a n x :
+  0 < x -> ex_derive_n (Rpower ^~ a) n x.
 Proof.
-intros n x Hx.
-apply ex_derive_n_ext_loc with (fun x => Rpower x (/2)).
-apply: locally_open x Hx.
-apply open_gt.
-exact Rpower_sqrt.
-now apply ex_derive_n_power.
+by move=> Hx; apply: ex_derive_n_is_derive_n (is_derive_n_Rpower n a x Hx).
 Qed.
 
-Lemma ex_derive_n_invsqrt :
-  forall n x, 0 < x -> ex_derive_n (fun x => / sqrt x) n x.
+Lemma is_derive_n_inv n x :
+  x <> 0 ->
+  is_derive_n Rinv n x
+  (\big[Rmult/1%R]_(i < n) - INR (1 + i) * / x ^ (1 + n))%R.
 Proof.
-intros n x Hx.
-apply ex_derive_n_ext_loc with (fun x => Rpower x (-/2)).
+move=> Hx.
+have := is_derive_n_powerRZ (-1) n x (or_intror Hx).
+apply: is_derive_n_ext.
+by move=> t; rewrite /= Rmult_1_r.
+Qed.
+
+Lemma is_derive_n_ln n x :
+  0 < x ->
+  is_derive_n ln n x
+  (match n with
+   | 0 => ln x
+   | n.+1 => (\big[Rmult/1%R]_(i < n) - INR (1 + i) * / x ^ (1 + n))%R
+   end).
+Proof.
+case: n => [|n] Hx; first done.
+apply is_derive_Sn.
 apply: locally_open x Hx.
 apply open_gt.
 move => /= x Hx.
-by rewrite Rpower_Ropp Rpower_sqrt.
-now apply ex_derive_n_power.
+eexists.
+now apply is_derive_Reals, derivable_pt_lim_ln.
+have := is_derive_n_inv n x (Rgt_not_eq _ _ Hx).
+apply: is_derive_n_ext_loc.
+apply: locally_open x Hx.
+apply open_gt.
+move => /= x Hx.
+apply sym_eq, is_derive_unique.
+now apply is_derive_Reals, derivable_pt_lim_ln.
 Qed.
 
-Lemma is_derive_2n_sin :
-  forall n x, is_derive_n sin (n + n) x ((-1)^n * sin x).
+Lemma is_derive_ln x :
+  0 < x -> is_derive ln x (/ x)%R.
+Proof. move=> H; exact/is_derive_Reals/derivable_pt_lim_ln. Qed.
+
+Lemma is_derive_n_sqrt n x :
+  0 < x ->
+  is_derive_n sqrt n x
+  (\big[Rmult/1%R]_(i < n) (/2 - INR i) * Rpower x (/2 - INR n)).
 Proof.
-induction n ; intros x.
+move=> Hx.
+have := is_derive_n_Rpower n (/2) x Hx.
+apply: is_derive_n_ext_loc.
+apply: locally_open x Hx.
+apply open_gt.
+exact Rpower_sqrt.
+Qed.
+
+Lemma is_derive_n_invsqrt n x :
+  0 < x ->
+  is_derive_n (fun t => / sqrt t) n x
+  (\big[Rmult/1%R]_(i < n) (-/2 - INR i) * Rpower x (-/2 - INR n)).
+Proof.
+move=> Hx.
+have := is_derive_n_Rpower n (-/2) x Hx.
+apply: is_derive_n_ext_loc.
+apply: locally_open x Hx.
+apply open_gt.
+by move=> x Hx; rewrite Rpower_Ropp Rpower_sqrt.
+Qed.
+
+Lemma is_derive_2n_sin n x :
+  is_derive_n sin (n + n) x ((-1)^n * sin x).
+Proof.
+elim: n x => [|n IHn] x.
 by rewrite /= Rmult_1_l.
 rewrite -addSnnS 2!addSn /=.
 apply is_derive_ext with (f := fun x => (-1)^n * cos x).
@@ -511,12 +532,11 @@ apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
 Qed.
 
-Lemma is_derive_n_sin :
-  forall n (x : R),
-    is_derive_n sin n x (if odd n then (-1)^n./2 * cos x
-                         else ((-1)^n./2 * sin x)).
+Lemma is_derive_n_sin n (x : R) :
+  is_derive_n sin n x (if odd n then (-1)^n./2 * cos x
+                       else ((-1)^n./2 * sin x)).
 Proof.
-move=> n x; rewrite -{1}(odd_double_half n); case: odd => /=.
+rewrite -{1}(odd_double_half n); case: odd => /=.
 2: rewrite -addnn; exact: is_derive_2n_sin.
 set n' := n./2.
 eapply is_derive_ext.
@@ -527,10 +547,10 @@ apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_sin.
 Qed.
 
-Lemma is_derive_2n_cos :
-  forall n x, is_derive_n cos (n + n) x ((-1)^n * cos x).
+Lemma is_derive_2n_cos n x :
+  is_derive_n cos (n + n) x ((-1)^n * cos x).
 Proof.
-induction n ; intros x.
+elim: n x => [|n IHn] x.
 by rewrite /= Rmult_1_l.
 rewrite -addSnnS 2!addSn /=.
 apply is_derive_ext with (f := fun x => (-1)^n * -sin x).
@@ -548,12 +568,11 @@ apply: is_derive_opp.
 apply is_derive_Reals, derivable_pt_lim_sin.
 Qed.
 
-Lemma is_derive_n_cos :
-  forall n (x : R),
-    is_derive_n cos n x (if odd n then (-1)^(n./2) * - sin x
-                         else ((-1)^(n./2) * cos x)).
+Lemma is_derive_n_cos n (x : R) :
+  is_derive_n cos n x (if odd n then (-1)^(n./2) * - sin x
+                       else ((-1)^(n./2) * cos x)).
 Proof.
-move=> n x; rewrite -{1}(odd_double_half n); case: odd => /=.
+rewrite -{1}(odd_double_half n); case: odd => /=.
 2: rewrite -addnn; exact: is_derive_2n_cos.
 set n' := n./2.
 eapply is_derive_ext.
@@ -563,7 +582,6 @@ rewrite -addnn; apply: is_derive_2n_cos.
 apply is_derive_scal.
 apply is_derive_Reals, derivable_pt_lim_cos.
 Qed.
-
 
 Definition is_derive_tan x :
   cos x <> 0%R -> is_derive tan x (tan x ^ 2 + 1)%R.
