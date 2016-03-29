@@ -1367,3 +1367,15 @@ Qed.
 (** The following definition can be used by doing [rewrite !Rsimpl] *)
 Definition Rsimpl :=
   (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
+
+(** Not used in CoqInterval, but potentially useful *)
+Lemma powerRZ_0_l (x : R) (p : Z) :
+  x = R0 -> (0 < p)%Z -> powerRZ x p = R0.
+Proof.
+intros Hx.
+destruct p as [|p|p]; intros Hp; try easy.
+unfold powerRZ.
+rewrite -> Hx, pow_ne_zero; trivial.
+destruct (Pos2Nat.is_succ p) as [n Hn].
+by rewrite Hn.
+Qed.

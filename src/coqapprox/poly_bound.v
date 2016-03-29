@@ -36,7 +36,6 @@ Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
 Require Import taylor_poly.
-Require Import derive_compl.
 Require Import basic_rec.
 
 Set Implicit Arguments.

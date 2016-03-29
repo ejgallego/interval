@@ -347,10 +347,6 @@ help_is_derive_n_whole n x.
 - by auto_derive; last by rewrite Rmult_1_l.
 Qed.
 
-(* TODO: Compléter à partir des anciennes preuves de derive_compl.v
-   PUIS RENOMMER LES LEMMES EN [is_derive_n_*]
-*)
-
 Lemma is_derive_n_pow :
   forall m, (0 < m)%N -> forall n x,
   is_derive_n (fun x => x ^ m)%R n x

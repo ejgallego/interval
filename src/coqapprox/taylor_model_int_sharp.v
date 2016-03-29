@@ -37,16 +37,18 @@ Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
 Require Import taylor_poly.
-Require Import derive_compl.
 Require Import basic_rec.
 Require Import poly_bound.
 Require Import coquelicot_compl integral_pol.
 
 (********************************************************************)
-(** This theory implements Taylor Models, with sharp remainders for
-univariate base functions, using the so-called Zumkeller's technique
-which is partly based on the standard enclosure of the Taylor/Lagrange
-remainder. *)
+(** This theory implements Taylor models with interval polynomials for
+    univariate real-valued functions. The implemented algorithms rely
+    on the so-called Zumkeller's technique, which allows one to obtain
+    sharp enclosures of the approximation error, when it detects that
+    the Taylor-Lagrange remainder of the elementary function at stake
+    is monotonic over the interval under study.
+*)
 (********************************************************************)
 
 Set Implicit Arguments.
@@ -68,9 +70,6 @@ Module TR := TaylorPoly FullR PolR.
 Module Import BndThm := PolyBoundThm I Pol Bnd.
 
 Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
-
-(* Module Bnd0 := PolyBoundHorner I Pol PolX Link.
-Module Bnd0Thm := PolyBoundThm I Pol PolX Link Bnd. *)
 
 (*
 Eval compute in contains (Interval_interval.Ibnd (Xreal 0) (Xreal 0)) (Xreal 0).
@@ -110,18 +109,23 @@ Ltac step_i i :=
 
 Notation rpa := (@rpa Pol.T I.type).
 
-Section TaylorModel.
-(** The presence of this section variable does not hinder any
-    sophisticated handling of the precision inside the functions
-    that are defined or called below. *)
+Section PrecArgument.
+(** For greater convenience, set the precision as a section variable.
+    Note that this will not hinder any dynamic-change of the precision
+    inside the functions that are defined or called below.
+*)
 Variable prec : I.precision.
+
+Section TaylorModel.
+
 Variable M : rpa.
 
 Variable Tcoeffs : I.type -> nat -> Pol.T.
 (** For complexity reasons, [Tcoeffs] must return more than one coefficient. *)
 
-(** The generic functions [TLrem]/[Ztech] are intended to ease the computation
-    of the interval remainder for basic functions. *)
+(** The generic functions [TLrem]/[Ztech] are intended to ease the
+    computation of the interval remainder for basic functions.
+*)
 Definition TLrem X0 X n :=
   let N := S n in
   let NthCoeff := Pol.nth (Tcoeffs X N) N in
@@ -158,12 +162,6 @@ Proof. by rewrite /Ztech andbC =>->. Qed.
 
 End TaylorModel.
 
-Section PrecArgument.
-(** The presence of this section variable does not hinder any
-    sophisticated handling of the precision inside the functions
-    that are defined or called below. *)
-Variable prec : I.precision.
-
 (** Note that Zumkeller's technique is not necessary for [TM_cst] & [TM_var]. *)
 Definition TM_cst c : rpa :=
   RPA (Pol.polyC c) (I.mask I.zero c).
@@ -174,19 +172,19 @@ Definition TM_var X0 :=
 Definition TM_exp X0 X (n : nat) : rpa :=
   (** Note that this let-in is essential in call-by-value context. *)
   let P := (T_exp prec X0 n) in
-  RPA P (Ztech prec (T_exp prec) P (I.exp prec) X0 X n).
+  RPA P (Ztech (T_exp prec) P (I.exp prec) X0 X n).
 
 Definition TM_sin X0 X (n : nat) : rpa :=
   let P := (T_sin prec X0 n) in
-  RPA P (Ztech prec (T_sin prec) P (I.sin prec) X0 X n).
+  RPA P (Ztech (T_sin prec) P (I.sin prec) X0 X n).
 
 Definition TM_cos X0 X (n : nat) : rpa :=
   let P := (T_cos prec X0 n) in
-  RPA P (Ztech prec (T_cos prec) P (I.cos prec) X0 X n).
+  RPA P (Ztech (T_cos prec) P (I.cos prec) X0 X n).
 
 Definition TM_atan X0 X (n : nat) : rpa :=
   let P := (T_atan prec X0 n) in
-  RPA P (Ztech prec (T_atan prec) P (I.atan prec) X0 X n).
+  RPA P (Ztech (T_atan prec) P (I.atan prec) X0 X n).
 
 Definition TM_add (Mf Mg : rpa) : rpa :=
   RPA (Pol.add prec (approx Mf) (approx Mg))
@@ -280,41 +278,6 @@ Qed.
 
 Definition ComputeBound (M : rpa) (X0 X : I.type) :=
   I.add prec (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)) (error M).
-
-(* FIXME: still used?
-
-Theorem ComputeBound_correct M (X0 X : I.type) f :
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
-  forall x, contains (I.convert X) x ->
-  contains (I.convert (ComputeBound M X0 X)) (f x).
-Proof.
-move/not_empty'E => [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
-have [q [Hsize Hcont Herr]] := Hmain _ Hx0.
-rewrite /ComputeBound.
-have := Herr x Hx.
-case E : (PolR.horner tt q (Xsub x x0)) =>[|r].
-  rewrite Xsub_Xnan_r.
-  move/contains_Xnan => Herr'.
-  have Haux :
-    contains (I.convert (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)))
-      (PolR.horner tt q (Xsub x x0)).
-  apply: Bnd.ComputeBound_correct =>//.
-  exact: I.sub_correct.
-  by rewrite (Iadd_Inan_propagate_r _ Haux).
-move=> Hr.
-have->: f x =
-  Xadd (PolR.horner tt q (Xsub x x0))
-  (Xsub (f x) (PolR.horner tt q (Xsub x x0))).
-  rewrite E /=.
-  by case: (f) =>[//|y]; simpl; congr Xreal; auto with real.
-apply: I.add_correct.
-  apply: Bnd.ComputeBound_correct.
-    now split. (* TODO: Improve? *)
-  exact: I.sub_correct.
-exact: Herr.
-Qed.
-*)
 
 Section TM_integral.
 
@@ -507,10 +470,8 @@ apply: ex_RInt_translation_sub.
 exact: Rpol_integrable.
 Qed.
 
-
-
-(*the following section is now concerned with computing just one integral *)
-(* from a to b, for the "interval" tactic *)
+(** the following section is now concerned with computing just one integral
+    from a to b, for the "interval" tactic *)
 Section NumericIntegration.
 
 Local Open Scope R_scope.
@@ -553,15 +514,6 @@ Lemma integralDifference2 p :
 Proof.
 by rewrite integralDifference; ring.
 Qed.
-
-(*
-With the new archi, this result is now given by Pol.primitive_correct:
-
-Lemma primitive_contains P q :
-P >:: q ->
-Pol.primitive prec I.zero P >:: PolR.primitive tt 0 q.
-Proof. by move=> ?; apply: Pol.primitive_correct =>//; apply: cont0. Qed.
-*)
 
 Lemma integralEnclosure_correct :
   i_validTM iX0 iX Mf xF ->
@@ -651,10 +603,6 @@ Qed.
 Definition TM_integral :=
 let R := TM_integral_poly in RPA R (TM_integral_error TM_integral_poly).
 
-(* Definition Xint (f : ExtendedR -> ExtendedR) x0 x1 :=
-  let f := toXreal_fun f in
-  *)
-
 Lemma TM_integral_correct (x0 : Rdefinitions.R) :
 contains iX0 (Xreal x0) ->
 i_validTM (I.convert X0) iX Mf xF ->
@@ -740,7 +688,7 @@ Qed.
 End TM_integral.
 
 Section Misc.
-(* Note/Erik: some of these lemmas might be moved in a better place *)
+(* Note: some of these lemmas might be moved in a better place *)
 
 Definition is_const (f : ExtendedR -> ExtendedR) (X c : I.type) : Prop :=
   exists2 y : ExtendedR, contains (I.convert c) y
@@ -907,7 +855,7 @@ Qed.
 End Misc.
 
 Section GenericProof.
-(** Generic proof for [TLrem]/[Ztech]. *)
+(** Generic proof for [TLrem] and [Ztech]. *)
 
 Variable xf : ExtendedR -> ExtendedR.
 Variable F : I.type -> I.type.
@@ -956,10 +904,10 @@ Theorem i_validTM_TLrem (X0 : I.type) n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (IP X0 n) (TLrem prec IP X0 X n)) xf.
+  (RPA (IP X0 n) (TLrem IP X0 X n)) xf.
 Proof.
 move=> Hsubs [t Ht].
-pose err := TLrem prec IP X0 X n.
+pose err := TLrem IP X0 X n.
 split=>//=.
 
 (* Nai *)
@@ -1607,19 +1555,17 @@ Theorem i_validTM_Ztech (X0 : I.type) n :
   I.subset_ (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
-  (RPA (IP X0 n) (Ztech prec IP (IP X0 n) F X0 X n)) xf.
+  (RPA (IP X0 n) (Ztech IP (IP X0 n) F X0 X n)) xf.
 Proof.
-move=> Hsubs tHt.
+move=> Hsubs Hne.
 case E1 : (isNNegOrNPos (Pol.nth (IP X n.+1) n.+1)); last first.
-  rewrite (ZtechE1 _ _ _ _ E1).
+  rewrite (ZtechE1 _ _ _ E1).
   exact: i_validTM_TLrem.
 case E2 : (I.bounded X); last first.
-  rewrite (ZtechE2 _ _ _ _ _ _ E2).
+  rewrite (ZtechE2 _ _ _ _ _ E2).
   exact: i_validTM_TLrem.
-have [t Ht] := tHt. (* TODO : useful ? *)
-set err := Ztech prec IP (IP X0 n) F X0 X n.
-have [r' Hr'0] : not_empty (I.convert X0).
-  exact: contains_not_empty Ht.
+set err := Ztech IP (IP X0 n) F X0 X n.
+have [r' Hr'0] := Hne.
 have Hr' : contains (I.convert X) (Xreal r').
   exact: subset_contains Hsubs _ Hr'0.
 pose x' := Xreal r'.
@@ -1762,14 +1708,13 @@ apply: TM_fun_eq; last apply: TM_cst_correct Hsubset Hne H1.
 move=> x Hx /=; by rewrite H2.
 Qed.
 
-(** Note/Erik: This definition could be simplified, removing parameter
-    [n], just like [TM_cst]... *)
+(** Return a dummy Taylor model of order [n] that contains every point of [Y] *)
 Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
   let pol := Pol.polyC (Imid Y) in
   {| approx := if n == 0 then pol
                else Pol.set_nth pol n Pol.Int.zero;
      error := I.mask (I.sub prec Y (Imid Y)) X
-  (* which might be replaced with [I.sub prec Y (Imid Y)] *)
+  (* might be replaced with [I.sub prec Y (Imid Y)] *)
   |}.
 
 Definition sizes := (Pol.size_polyNil, Pol.size_polyCons,
@@ -1968,9 +1913,8 @@ apply i_validTM_Ztech with (TR.T_sin tt); last 2 first =>//.
 exact: I.sin_correct.
 constructor.
 - by move=> x m; rewrite /TR.T_sin PolR.size_rec2.
-- move=> x m k Dx (*Hx*) Hk; rewrite /TR.T_sin toR_toXreal.
-  (*rewrite toR_toXreal in Hx.*)
-  rewrite /PolR.nth /PolR.rec2; clear - Hk (*Hx*).
+- move=> x m k Dx Hk; rewrite /TR.T_sin toR_toXreal.
+  rewrite /PolR.nth /PolR.rec2; clear - Hk.
   { move: k Hk; apply: nat_ind2.
     - by move=> _; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 0)) //= Rdiv_1.
     - move=> Hm; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 1)) //=.
@@ -2021,9 +1965,8 @@ apply i_validTM_Ztech with (TR.T_cos tt); last 2 first =>//.
 exact: I.cos_correct.
 constructor.
 - by move=> x m; rewrite /TR.T_cos PolR.size_rec2.
-- move=> x m k Dx (*Hx*) Hk; rewrite /TR.T_cos toR_toXreal.
-  (*rewrite toR_toXreal in Hx.*)
-  rewrite /PolR.nth /PolR.rec2; clear - Hk (*Hx*).
+- move=> x m k Dx Hk; rewrite /TR.T_cos toR_toXreal.
+  rewrite /PolR.nth /PolR.rec2; clear - Hk.
   { move: k Hk; apply: nat_ind2.
     - by move=> _; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 0)) //= Rdiv_1.
     - move=> Hm; rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := 1)) //=.
@@ -2165,7 +2108,7 @@ Definition TM_tan X0 X (n : nat) : rpa :=
   let P := (T_tan prec X0 n) in
   let ic := I.cos prec X in
   if apart0 ic
-  then RPA P (Ztech prec (T_tan prec) P (I.tan prec) X0 X n)
+  then RPA P (Ztech (T_tan prec) P (I.tan prec) X0 X n)
   else RPA P I.nai.
 
 Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
@@ -2326,7 +2269,7 @@ Definition TM_sqrt X0 X (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_sqrt prec X0 n) in
   if gt0 X
-  then RPA P (Ztech prec (T_sqrt prec) P (I.sqrt prec) X0 X n)
+  then RPA P (Ztech (T_sqrt prec) P (I.sqrt prec) X0 X n)
   else RPA P I.nai.
 
 Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
@@ -2441,75 +2384,13 @@ exact: R_sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
-(* TODO: Remove this comment
-
-apply TM_rec1_correct' with
-  (XDn := (fun (k : nat) (x : ExtendedR) =>
-    (\big[Xmul/Xreal 1]_(i < k) Xreal (/ 2 - INR i) * (Xsqrt x / x ^ k))%XR))
-  (XF_rec := TX.Rec.sqrt_rec tt)
-=>//.
-- by move=> x; apply: (nth_Xderive_pt_sqrt x).
-- by move=> x X1 HX1; apply: I.sqrt_correct.
-- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.sqrt_rec /TX.Rec.sqrt_rec.
-  by apply:I.div_correct=>//; apply: I.mul_correct =>//;
-   [apply: I.sub_correct; try apply: I.mul_correct | apply: I.mul_correct| ];
-   rewrite // /tnat INR_IZR_INZ -Z2R_IZR;
-   apply: I.fromZ_correct.
-move=> r k.
-have h2n0 : (2 <> 0)%Re.
-  move/Rlt_not_eq: Rlt_0_2 => // Hdiff Heq.
-  by rewrite Heq in Hdiff.
-rewrite /TX.Rec.sqrt_rec.
-set b1 := \big[Xmul/Xreal 1]_(i < k) _.
-set b2 := \big[Xmul/Xreal 1]_(i < k.+1) _.
-set s := (_ - _)%XR.
-have -> : b2 = (((Xreal (INR 1) - Xreal (INR 2) *
-                  Xreal (INR k))/Xreal (INR 2)) * b1)%XR.
-  rewrite /b2; rewrite big_ord_recr /= Xmul_comm.
-  congr Xmul.
-  by rewrite zeroF //; congr Xreal;field.
-rewrite !Xdiv_split -!(Xmul_assoc s).
-have -> : (s * Xinv (Xreal (INR 2)) * b1 = s * b1 *Xinv (Xreal (INR 2)))%XR.
-  by rewrite Xmul_comm -Xmul_assoc; congr Xmul; rewrite Xmul_comm.
-rewrite !Xmul_assoc;congr Xmul;congr Xmul.
-rewrite (Xmul_comm (Xinv (Xreal (INR 2)))) !Xmul_assoc; congr Xmul.
-case : r; first done.
-move=> r.
-case:(boolP (r == R0))=> /eqP r0.
-  rewrite r0; clear b1 b2 s; case: k.
-    rewrite /= (zeroF (R1_neq_R0)) Rinv_1 !Rmult_1_r !Xmul_1_l.
-    by rewrite Rmult_0_r is_zero_correct_zero.
-  move=> k; rewrite !Xpow_idem !Xpow_Xreal !pow_i; try apply/ltP => //=.
-  by rewrite /Xinv is_zero_correct_zero.
-have rk : forall k, (r ^ k)%Re <> R0.
-  by move=> *; apply: pow_nonzero.
-rewrite !Xmul_Xreal !Xpow_idem !Xpow_Xreal.
-set i:= (INR 2 * (r * INR k.+1))%Re.
-set fk1:= fact k.+1.
-rewrite /= (zeroF (rk k)).
-have : (INR 2 * r * INR k.+1)%Re <> R0.
-  apply: Rmult_integral_contrapositive; split.
-    by apply: Rmult_integral_contrapositive.
-  exact: not_0_INR.
-rewrite Rmult_assoc (zeroF (rk k.+1)).
-rewrite /i;move/zeroF ->.
-rewrite (zeroF (not_0_INR _ (fact_neq_0 k))).
-rewrite /fk1 (zeroF (not_0_INR _ (fact_neq_0 k.+1))).
-rewrite (zeroF h2n0) !Xmul_Xreal.
-congr Xreal.
-rewrite fact_simpl !mult_INR -(addn1 k) /=.
-field.
-by do !split =>//; apply: not_0_INR =>//; [apply: fact_neq_0 |rewrite addn1].
-Qed.
-*)
-
 Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
 
 Definition TM_invsqrt X0 X (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_invsqrt prec X0 n) in
   if gt0 X
-  then RPA P (Ztech prec (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
+  then RPA P (Ztech (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
   else RPA P I.nai.
 
 Lemma size_TM_invsqrt X0 X (n : nat) :
@@ -2627,86 +2508,6 @@ by apply: R_inv_correct; apply: R_sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
-(* TODO: Remove this comment
-
-apply TM_rec1_correct' with
-  (XDn := (fun (k : nat) (x : ExtendedR) =>
-    (\big[Xmul/Xreal 1]_(i < k) Xreal (-/2 - INR i)*(Xinv (Xsqrt x) / x^k))%XR))
-  (XF_rec := TX.Rec.invsqrt_rec tt)
-=>//.
-- by move=> x; apply: nth_Xderive_pt_invsqrt.
-- move=> x X1 HX1;rewrite /tinvsqrt.
-  by apply: I.inv_correct; apply: I.sqrt_correct.
-- move=> x0 x X1 X2 m HX1 HX2; rewrite /Rec.invsqrt_rec /TX.Rec.invsqrt_rec.
-  apply:I.div_correct; apply:I.mul_correct=> //;try Inc.
-    apply: I.neg_correct; apply:I.add_correct=> //; try Inc.
-    by apply:I.mul_correct; Inc.
-  by apply:I.mul_correct=>//; Inc.
-move=> r k.
-rewrite /TX.Rec.invsqrt_rec.
-have -> : (k.+1.-1) = k by [].
-set b := \big[Xmul/Xreal 1]_ _ _.
-rewrite Xmul_comm !Xdiv_split big_ord_recr /b {b} !Xmul_assoc; congr Xmul.
-rewrite 2!Xinv_Xmul_distr.
-case: r => // r.
-case: (boolP (is_negative r)); first by rewrite /=; move ->.
-move/negbTE=> rpos.
-have rge0: (0 <= r)%Re.
-  move:rpos; rewrite /is_negative.
-  case: (Rlt_bool_spec 0 r).
-    by move => rpos Hf; apply:Rcompare_not_Gt_inv; rewrite (Rcompare_Lt _ _ rpos).
-  case/Rle_lt_or_eq_dec; first by move/Rlt_bool_true ->.
-  by move -> => _; apply:Rle_refl.
-case:(boolP (r == R0))=> /eqP r0.
-  by rewrite r0 !Xpow_idem /Xpow_iter iter_nat_S Xinv_Xmul_distr /Xinv !is_zero_correct_zero !(Xmul_comm _ Xnan).
-rewrite /Xsqrt rpos.
-case: (boolP (sqrt r == R0)).
-  by move/eqP /(sqrt_eq_0 _ rge0) => re0; rewrite re0 in r0.
-move/eqP=> sqrtn0.
-have n_n0 i: INR i.+1 <> 0%Re by exact : not_0_INR.
-have Hfact n0:INR (fact n0) <> 0%Re by exact: (not_0_INR _ (fact_neq_0 n0)).
-have Hrk m : (r ^ m)%Re <> 0%Re by apply: pow_nonzero.
-have Rm0 x1 x2 := (Rmult_integral_contrapositive_currified x1 x2).
-rewrite -!Xinv_Xmul_distr !Xpow_idem !Xpow_Xreal !Xmul_Xreal.
-have H2rk: (INR 2 * (r * INR k.+1))%Re <> R0.
-  by apply: (Rm0);[| apply:(Rm0 r)]=>//; apply: not_0_INR.
-have Hrk2: (sqrt r * (r ^ k.+1 * INR (fact k.+1)))%Re <> R0.
- by apply:(Rm0) => //; apply: (Rm0).
-rewrite /Xinv !zeroF // !Xmul_Xreal; f_equal.
-rewrite fact_simpl !mult_INR (S_INR k) -tech_pow_Rmult /= -(S_INR k).
-by field; split =>//; split.
-
-Qed.
-*)
-
-(* TODO: remove this comment
-
-Lemma tnth_pow_aux_rec (p : Z) (x : ExtendedR) n k :
-  k <= n ->
-  PolR.tnth
-  (PolR.trec1 (TX.Rec.pow_aux_rec tt p x) (Xpower_int x p) n) k =
-  if Z.ltb p Z0 || Z.geb p (Z.of_nat k) then
-    Xpower_int x (p - Z.of_nat k)
-  else Xmask (Xreal 0) x.
-Proof.
-elim: k => [|k IHk] Hkn.
-  rewrite PolR.trec1_spec0 Z.sub_0_r.
-  rewrite ifT //.
-  by case: p.
-move/(_ (ltnW Hkn)) in IHk.
-move: IHk.
-by rewrite PolR.trec1_spec.
-Qed.
-
-Lemma powerRZ_0_l (x : R) (p : Z) :
-  x = R0 -> (p > 0)%Z -> powerRZ x p = R0.
-Proof.
-move=> Hx Hp.
-case: p Hp =>[|p|p] Hp; rewrite // /powerRZ.
-rewrite Hx pow_ne_zero //.
-zify; omega.
-Qed.
-
 Inductive Xpower_int_spec (x : ExtendedR) (p : Z) : ExtendedR -> Type :=
   | Powint_nan of x = Xnan :
     Xpower_int_spec x p Xnan
@@ -2714,9 +2515,9 @@ Inductive Xpower_int_spec (x : ExtendedR) (p : Z) : ExtendedR -> Type :=
     Xpower_int_spec x p Xnan
   | Powint_zero of x = Xreal 0 & (p = 0)%Z :
     Xpower_int_spec x p (Xreal 1)
-  | Powint_pos of x = Xreal 0 & (p > 0)%Z :
+  | Powint_pos of x = Xreal 0 & (0 < p)%Z :
     Xpower_int_spec x p (Xreal 0)
-  | Powint_nz (r : R) of x = Xreal r & (r <> R0) :
+  | Powint_nz (r : R) of x = Xreal r & (r <> 0%R) :
     Xpower_int_spec x p (Xreal (powerRZ r p)).
 
 Lemma Xpower_intP (x : ExtendedR) (p : Z) : Xpower_int_spec x p (Xpower_int x p).
@@ -2739,23 +2540,14 @@ case: (Z_dec p 0) =>[[Hp|Hp]|Hp].
   exact: Powint_nz.
 Qed.
 
-Lemma bigXmul_Xreal_i n (g : 'I_n -> R) :
-  \big[Xmul/Xreal 1]_(i < n) Xreal (g i) =
-  Xreal (\big[Rmult/R1]_(i < n) g i).
-Proof.
-elim: n g =>[g|n IHn g]; first by rewrite 2!big_ord0.
-by rewrite 2!big_ord_recr IHn.
-Qed.
-*)
-
 Definition TM_power_int (p : Z) X0 X (n : nat) :=
   let P := (T_power_int prec p X0 n) in
   if p is Z.neg _ then
     if apart0 X then
-      RPA P (Ztech prec (T_power_int prec p) P
+      RPA P (Ztech (T_power_int prec p) P
                    (fun x => I.power_int prec x p) X0 X n)
     else RPA P I.nai
-  else RPA P (Ztech prec (T_power_int prec p) P
+  else RPA P (Ztech (T_power_int prec p) P
                     (fun x => I.power_int prec x p) X0 X n).
 
 Lemma size_TM_power_int (p : Z) X0 X (n : nat) :
@@ -2769,11 +2561,8 @@ Qed.
 Lemma def_power_int p x : (0 <= p)%Z \/ x <> R0 ->
   defined (Xpower_int^~ p) x.
 Proof.
-case => [Hp|Hx].
-  rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0.
-rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-by case: p =>//; rewrite zeroF.
+rewrite /defined; case: Xpower_intP =>//.
+by case=>-> H; case; auto with real zarith.
 Qed.
 
 Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
@@ -2803,7 +2592,7 @@ Lemma TM_power_int_correct_aux (p : Z) X0 X n :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (let P := (T_power_int prec p X0 n) in
                                           RPA P (Ztech
-                                                   prec (T_power_int prec p) P
+                                                   (T_power_int prec p) P
                                                    (fun x => I.power_int prec x p)
                                                    X0 X n))
             (fun x => Xpower_int x p).
@@ -2988,7 +2777,7 @@ Qed.
 Definition TM_inv X0 X (n : nat) :=
   let P := (T_inv prec X0 n) in
   if apart0 X then
-    RPA P (Ztech prec (T_inv prec) P (I.inv prec) X0 X n)
+    RPA P (Ztech (T_inv prec) P (I.inv prec) X0 X n)
   else RPA P I.nai.
 
 Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
@@ -3079,26 +2868,10 @@ exact: R_inv_correct.
 by rewrite I.nai_correct.
 Qed.
 
-(*
-Lemma aux_tnth_ln (x : R) n k :
-  k < n ->
-  is_positive x ->
-  PolR.tnth
-  (PolR.trec1 (TX.Rec.pow_aux_rec tt (-1) (Xreal x))
-  (Xpower_int (Xreal x) (-1)) n.-1) k =
-  Xpower_int (Xreal x) (- Z.of_nat k.+1).
-Proof.
-move=> Hk Hx.
-rewrite tnth_pow_aux_rec; last by apply: ltn_leq_pred.
-rewrite orTb; repeat f_equal.
-by zify; auto with zarith.
-Qed.
-*)
-
 Definition TM_ln X0 X (n : nat) : rpa :=
   let P := (T_ln prec X0 n) in
   if gt0 X then
-    RPA P (Ztech prec (T_ln prec) P (I.ln prec) X0 X n)
+    RPA P (Ztech (T_ln prec) P (I.ln prec) X0 X n)
   else RPA P I.nai.
 
 Lemma size_TM_ln X0 X (n : nat) : Pol.size (approx (TM_ln X0 X n)) = n.+1.
@@ -3251,116 +3024,9 @@ apply: Pol.polyCons_correct; case: n =>[|n]/=; first exact: Pol.polyNil_correct.
 by rewrite I.nai_correct.
 Qed.
 
-(* TODO: remove this comment
-
-  (XDn :=
-    (fun k x => if k isn't k'.+1 then Xatan x else
-      if x is Xreal r then
-        Xreal (1 / (1 + x ^ 2))
-      else Xnan)%XR)); last by eexists; exact Ht.
-6: done.
-done.
-red=> x; simpl.
-apply nth_Xderive_pt_ln.
-apply: I.ln_correct.
-
-(* validXPoly *)
-instantiate (1 := TX.T_ln tt).
-split.
-move=> x [ |k]; rewrite /TX.T_ln !sizes ?PolR_tsize_dotmuldiv //.
-rewrite /T_ln /TX.T_ln.
-move=> x n' k Hk.
-rewrite PolR.tnth_polyCons; last first.
-  case: n' Hk =>[ |n']; first by rewrite ltnS leqn0; move/eqP->.
-  by rewrite ltnS => Hk; rewrite PolR_tsize_dotmuldiv.
-case: k Hk =>[//|k Hk]; first by rewrite Xdiv_1_r.
-rewrite ltnS in Hk.
-rewrite -(subnKC Hk) /= -addnE.
-have->: k + (n' - k.+1) = n'.-1 by rewrite -[in RHS](subnKC Hk) addSn.
-have->: k.+1 + (n' - k.+1) = n'.-1.+1 by rewrite -[in RHS](subnKC Hk) addSn.
-case: x =>[ |x] /=.
-rewrite PolR.tnth_dotmuldiv.
-case: k Hk =>[//|k Hk].
-rewrite PolR.trec1_spec0 XmulC //.
-rewrite PolR.trec1_spec.
-rewrite /TX.Rec.pow_aux_rec XmulC //.
-exact: ltn_leq_pred.
-rewrite PolR_tsize_dotmuldiv.
-exact: ltn_leq_pred.
-case: is_positive_spec=> Hx.
-rewrite /= zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite PolR.tnth_dotmuldiv; last first.
-rewrite PolR_tsize_dotmuldiv.
-exact: ltn_leq_pred.
-rewrite Rmult_1_r Xreal_Rinv; last first.
-rewrite zeroF; case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite aux_tnth_ln.
-rewrite [Xpower_int _ _]/=.
-rewrite zeroF; last by case: (is_positive_spec x) Hx =>//; auto with real.
-rewrite falling_seq_correct.
-rewrite nth_behead.
-rewrite fact_seq_correct.
-rewrite !Xdiv_split.
-rewrite !Xmul_assoc (Xmul_comm (Xinv _)).
-rewrite -!Xmul_assoc; congr Xmul.
-- rewrite [Z.sub]lock /= -lock; repeat f_equal.
-  rewrite big_mkord.
-  apply: (@big_ind2 _ _ (fun a b => IZR a = b)) =>//.
-  by move=> a b c d <- <-; rewrite mult_IZR.
-  move=> i _;   rewrite minus_IZR /=.
-  rewrite Pos.of_nat_succ P2R_INR Nat2Pos.id // S_INR -INR_IZR_INZ.
-  rewrite Ropp_plus_distr Rplus_comm.
-  by auto with real.
-- by repeat f_equal; rewrite INR_IZR_INZ; repeat f_equal.
-exact: ltn_leq_pred.
-exact: ltn_leq_pred.
-done.
-by rewrite /is_positive /Rlt_bool Rcompare_Lt.
-rewrite PolR.tnth_dotmuldiv; last first.
-by rewrite PolR_tsize_dotmuldiv; apply: ltn_leq_pred.
-simpl.
-case: is_zero =>//.
-elim: k Hk =>[ |k IHk] Hk; first by rewrite PolR.trec1_spec0 XmulC.
-rewrite PolR.trec1_spec //=; exact: ltn_leq_pred.
-
-(* validPoly *)
-split=> Y y m.
-rewrite /TX.T_ln /T_ln sizes.
-case: m =>[ |m]; first by rewrite !sizes.
-by rewrite !sizes !PolR_tsize_dotmuldiv !PolI_tsize_dotmuldiv.
-(* . *)
-move=> k Hy Hk.
-rewrite /TX.T_ln /T_ln.
-rewrite ?(PolR.tnth_polyCons, tnth_polyCons); first last.
-case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
-by move=> Hk; rewrite PolI_tsize_dotmuldiv.
-case: m Hk => [ |m]; first by rewrite ltnS leqn0; move/eqP->.
-by move=> Hk; rewrite PolR_tsize_dotmuldiv.
-case: k Hk =>[ |k] Hk.
-exact: I.ln_correct.
-rewrite ltnS in Hk.
-rewrite -(ltn_predK Hk).
-rewrite ?(PolR.tnth_dotmuldiv,tnth_dotmuldiv); first last.
-rewrite PolI_tsize_dotmuldiv; exact: ltn_leq_pred.
-rewrite PolR_tsize_dotmuldiv; exact: ltn_leq_pred.
-apply I.mul_correct.
-apply I.div_correct; rewrite -Z2R_IZR; exact: I.fromZ_correct.
-case: k Hk =>[ |k] Hk.
-rewrite trec1_spec0 // PolR.trec1_spec0 //.
-apply: I.power_int_correct.
-apply: I.mask_correct =>//.
-exact: I.ln_correct.
-rewrite trec1_spec // ?PolR.trec1_spec //.
-rewrite /Rec.pow_aux_rec /TX.Rec.pow_aux_rec.
-rewrite orTb.
-apply: I.power_int_correct.
-apply: I.mask_correct =>//.
-exact: I.ln_correct.
-exact: ltn_leq_pred.
-exact: ltn_leq_pred.
-*)
-
-(* **************************************************************** *)
+(******************************************************************************)
+(** The rest of the file is devoted to arithmetic operations on Taylor models *)
+(******************************************************************************)
 
 Local Notation "a + b" := (Xadd a b).
 Local Notation "a - b" := (Xsub a b).
@@ -3489,18 +3155,6 @@ apply: R_sub_correct.
 by have := Hf2 x Hx.
 by have := Hg2 x Hx.
 Qed.
-
-(* TO REMOVE
-
-Definition TM_mul_mixed (a : I.type) (M : rpa) (X0 X : I.type) : rpa :=
-  RPA (MapI.tpolymap (I.mul prec a) (approx M))
-      (I.add prec
-             (I.mul prec
-                    (I.sub prec a (Imid a)) (* will often be [0, 0] *)
-                    (horner prec (approx M) (I.sub prec X X0))
-             (* (ComputeBound M X0 X) *) )
-             (I.mul prec a (error M))).
-*)
 
 Definition TM_mul_mixed (a : I.type) (M : rpa) : rpa :=
   RPA (Pol.map (I.mul prec a) (approx M))
@@ -3723,25 +3377,6 @@ Definition mul_error prec n (f g : rpa) X0 X :=
 Definition TM_mul (Mf Mg : rpa) X0 X n : rpa :=
  RPA (Pol.mul_trunc prec n (approx Mf) (approx Mg))
      (mul_error prec n Mf Mg X0 X).
-
-(*
-Lemma horner_poly_nan k p x :
-  k < PolR.tsize p -> PolR.tnth p k = Xnan ->
-  PolR.horner tt p x = Xnan.
-Proof.
-move=> Hk Heq.
-elim/PolR.tpoly_ind: p k Hk Heq =>[|a p IHp] k Hk Heq.
-  by rewrite PolR.tsize_polyNil in Hk.
-rewrite PolR.tsize_polyCons in Hk.
-case ck: k => [|k']; rewrite ck in IHp Heq.
-  rewrite PolR.tnth_polyCons // in Heq.
-  by rewrite PolR.horner_polyCons Heq Xadd_comm.
-rewrite ck /= in Hk.
-rewrite -(addn1 k') -(addn1 (PolR.tsize p)) ltn_add2r in Hk.
-rewrite PolR.tnth_polyCons // in Heq.
-by rewrite PolR.horner_polyCons (IHp k').
-Qed.
-*)
 
 Lemma poly_mul n (a b : nat -> R) (x : R) :
   (forall i, n < i -> (a i = R0)/\ (b i = R0))->
@@ -4211,6 +3846,41 @@ move=> H Hnan H0 n Hn nf Hnf pr H1 H2.
 apply: (poly_horner_tm_correct_gen _ _ _ _ _ (n := n)) =>//.
   exact: subset_refl.
 by case: H0.
+Qed.
+*)
+
+(* TODO: Update/Remove
+
+Theorem ComputeBound_correct M (X0 X : I.type) f :
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) M f ->
+  forall x, contains (I.convert X) x ->
+  contains (I.convert (ComputeBound M X0 X)) (f x).
+Proof.
+move/not_empty'E => [x0 Hx0] [/= Hzero Hsubs Hmain] x Hx.
+have [q [Hsize Hcont Herr]] := Hmain _ Hx0.
+rewrite /ComputeBound.
+have := Herr x Hx.
+case E : (PolR.horner tt q (Xsub x x0)) =>[|r].
+  rewrite Xsub_Xnan_r.
+  move/contains_Xnan => Herr'.
+  have Haux :
+    contains (I.convert (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)))
+      (PolR.horner tt q (Xsub x x0)).
+  apply: Bnd.ComputeBound_correct =>//.
+  exact: I.sub_correct.
+  by rewrite (Iadd_Inan_propagate_r _ Haux).
+move=> Hr.
+have->: f x =
+  Xadd (PolR.horner tt q (Xsub x x0))
+  (Xsub (f x) (PolR.horner tt q (Xsub x x0))).
+  rewrite E /=.
+  by case: (f) =>[//|y]; simpl; congr Xreal; auto with real.
+apply: I.add_correct.
+  apply: Bnd.ComputeBound_correct.
+    now split. (* TODO: Improve? *)
+  exact: I.sub_correct.
+exact: Herr.
 Qed.
 *)
 
@@ -4712,6 +4382,8 @@ Proof. by move=> Hsize; rewrite size_poly_horner_tm ifT // Hsize. Qed.
 
 End PrecArgument.
 
+End TaylorModel.
+
 
 (* FIXME: Generalize TM_integral to handle "X1" and "Y1"
    FIXME: Finish the experiment below to define "TM_atan" using "TM_integral"
@@ -4774,5 +4446,3 @@ apply: I.atan_correct.
 exact: horner_correct.
 Qed.
 *)
-
-End TaylorModel.

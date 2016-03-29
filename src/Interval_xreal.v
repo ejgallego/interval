@@ -20,6 +20,7 @@ liability. See the COPYING file for more details.
 Require Import Reals.
 Require Import Bool.
 Require Import Interval_missing.
+Require Import ssreflect.
 
 Definition Rsign x := Rcompare x 0.
 
