@@ -2403,7 +2403,14 @@ constructor.
                    ].
     exact: R_sqrt_correct.
   }
-- admit. (* sqrt: nai propagation *)
+- move=> I r Ir /definedPn /= {E1 Hex Hsubset X X0 n}.
+  case: ifP=> // neg_r _ m k leqmk.
+  apply/eqNaiP; apply: Pol.rec1_propagate; last by rewrite Pol.size_rec1.
+  * move=> qi n Hq. rewrite /sqrt_rec. apply/eqNaiP.
+    rewrite I.div_propagate_l // I.mul_propagate_r //; exact:eqNaiP.
+  * apply/eqNaiP. apply/contains_Xnan.
+    suff <- : Xsqrt (Xreal r) = Xnan by apply: I.sqrt_correct.
+    by rewrite /= neg_r.
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
