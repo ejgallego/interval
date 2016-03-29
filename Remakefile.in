@@ -29,7 +29,6 @@ CAFILES = \
 	poly_bound.v \
 	poly_bound_quad.v \
 	poly_datatypes.v \
-	poly_inst_seq.v \
 	Rstruct.v \
 	reals_tac.v \
 	seq_compl.v \
