@@ -595,7 +595,7 @@ have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (i
 rewrite /Int'.TM.TMI.i_validTM /Int'.TM.TMI.Aux.eqNai.
 case: (Int'.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
   by case.
-move => l u [H1 H2 H3 H4].
+move => l u [H1 H0 H2 H3 H4].
 split => //.
 move => x0 Hx0.
 case: (H4 x0 Hx0) => {H4} [Q H4 H4'].

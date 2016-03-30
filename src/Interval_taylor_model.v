@@ -89,8 +89,8 @@ Definition tsize (t : T) : nat :=
 Definition get_tm (u : U) X (t : T) : rpa :=
   match t with
     | Dummy => TM_any u.1 I.nai X (* initially u.2 => preferably 0... *) 0
-    | Const c => TM_cst c
-    | Var => let X0 := Imid X in (TM_var X0)
+    | Const c => TM_cst X c
+    | Var => let X0 := Imid X in (TM_var X X0)
     | Tm tm => tm (* ignore u, X in this branch *)
   end.
 
@@ -248,7 +248,7 @@ have HneY: not_empty (I.convert Y).
 apply: not_emptyE.
 exists x; exact: subset_contains Hsubset _ _.
 move/(_ HneY): Htm.
-case => [Hdef Hzero _ Hmain].
+case => [Hdef Hnai Hzero _ Hmain].
 have [L1 L2] := I.midpoint_correct Y (not_empty'E HneY).
 set c0 := proj_val (I.convert_bound (I.midpoint Y)) in L1.
 have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
@@ -789,12 +789,11 @@ move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
   rewrite /not_nil /ft /fun_gen /tmsize size_TM_comp //.
   by move=> Y0 Y k; move: (Hsiz u.1 Y0 Y k); rewrite /tmsize =>->.
   move=> HneY; move/(_ HneY) in Hmain.
-  have [Hdef Hzero Hsubset Htm] := Hmain.
+  have [Hdef Hnai Hzero Hsubset Htm] := Hmain.
   have Hne' := not_empty_Imid HneY.
   have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
-  move=> *; split; first exact: Hvalid.
-  by rewrite -/(tmsize _) Hsiz.
+  move=> *; exact: Hvalid.
 Qed.
 
 (*
