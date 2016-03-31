@@ -2328,7 +2328,7 @@ constructor.
 - { move=> {X0 n Hsubset Hex} x n k Hx Hkn.
     rewrite (Derive_n_ext_loc _ sqrt); last first.
       apply: (locally_open (fun t => 0 < t)%R);
-        [exact: open_gt| |exact: gt0_correct].
+        [exact: open_gt| |exact: gt0_correct E1].
       by move=> y Hy; rewrite toR_sqrt //; apply: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
@@ -2447,7 +2447,7 @@ constructor.
 - { move=> {X0 n Hsubset Hex} x n k Hx Hkn.
     rewrite (Derive_n_ext_loc _ (fun t => / sqrt t)); last first.
       apply: (locally_open (fun t => 0 < t)%R);
-        [exact: open_gt| |exact: gt0_correct].
+        [exact: open_gt| |exact: gt0_correct E1].
       by move=> y Hy; rewrite toR_invsqrt //; apply: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
@@ -2589,9 +2589,10 @@ Qed.
 
 Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
   powerRZ x p = toR_fun (Xpower_int^~ p) x.
+Proof.
 case => [Hp|Hx].
   rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0.
+  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0 Hp.
 rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
 by case: p =>//; rewrite zeroF.
 Qed.
@@ -2637,9 +2638,9 @@ constructor.
       rewrite big_mkord big_ord0.
       rewrite [PolR.nth _ _]nth_rec1up /= Rdiv_1 Rmult_1_l.
       rewrite toR_power_int //.
-      by case: Hyp => *; by [left|right; exact: apart0_correct].
+      by case: Hyp => [Hyp|Hyp]; by [left|right; exact: apart0_correct Hyp].
     rewrite -(Derive_n_ext_loc _ _ k.+1 x (toR_power_int_loc _));
-      last by case: Hyp => *; by [left|right; exact: apart0_correct].
+      last by case: Hyp => [Hyp|Hyp]; by [left|right; exact: apart0_correct Hyp].
     symmetry; apply: (Rmult_eq_reg_r (INR (fact k.+1))); last exact: INR_fact_neq_0.
     rewrite {1}/Rdiv Rmult_assoc Rinv_l ?Rmult_1_r; last exact: INR_fact_neq_0.
     clear - Hyp Hk Hx.
@@ -2825,7 +2826,7 @@ constructor.
 - { move=> {X0 n Hsubset Hex} x n k Hx Hkn.
     rewrite (Derive_n_ext_loc _ Rinv); last first.
       apply: (locally_open (fun t => t <> 0)%R);
-        [exact: open_neq| |exact: apart0_correct].
+        [exact: open_neq| |exact: apart0_correct E0].
       by move=> y Hy; rewrite toR_inv.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
@@ -2933,7 +2934,7 @@ constructor.
 - { move=> {X0 n Hsubset Hex} x n k Hx Hkn.
     rewrite (Derive_n_ext_loc _ ln); last first.
       apply: (locally_open (fun t => 0 < t)%R);
-        [exact: open_gt| |exact: gt0_correct].
+        [exact: open_gt| |exact: gt0_correct E0].
       by move=> y Hy; rewrite toR_ln.
       rewrite /PolR.nth; case: k Hkn => [|k] Hkn; first by rewrite Rdiv_1.
       case: n Hkn => [|n] Hkn //.
