@@ -475,23 +475,6 @@ Definition interval_extension_2
   contains ix x -> contains iy y ->
   contains (fi ix iy) (f x y).
 
-
-(*
-Theorem compose_1_1_1 :
-  forall f g fi gi,
-  interval_extension_1_1 f fi ->
-  interval_extension_1_1 g gi ->
-  interval_extension_1_1 (fun x => g (f x)) (fun b => gi (fi b)).
-intros f g fi gi Hf Hg b x H.
-apply Hg.
-apply Hf.
-apply H.
-Qed.
-*)
-
-Definition proj_val x :=
-  match x with Xreal y => y | Xnan => R0 end.
-
 Module Type IntervalOps.
 
 Parameter bound_type : Type.

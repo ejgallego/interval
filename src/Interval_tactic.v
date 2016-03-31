@@ -602,8 +602,7 @@ case: (H4 x0 Hx0) => {H4} [Q H4 H4'].
 exists Q => //.
 move => x Hx.
 move: (H1 x Hx) (H4' x Hx) => {H1 H4'}.
-rewrite /Xmask /toXreal_fun /interval_compl.toR_fun
-  /Interval_xreal_derive.proj_fun /interval_compl.defined.
+rewrite /Xmask /toXreal_fun /interval_compl.toR_fun /proj_fun /interval_compl.defined.
 change (fun b0 : A.bound_proof => A.xreal_from_bp b0) with A.xreal_from_bp.
 set bx := A.Bproof x (I.bnd fa fb) Hx.
 rewrite -[_::map _ _]/(map _ (bx::_)).

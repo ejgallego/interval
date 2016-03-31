@@ -96,6 +96,12 @@ Inductive ExtendedR : Set :=
   | Xnan : ExtendedR
   | Xreal : R -> ExtendedR.
 
+Definition proj_val x :=
+  match x with Xreal y => y | Xnan => R0 end.
+
+Definition proj_fun v f x :=
+  match f (Xreal x) with Xreal y => y | Xnan => v end.
+
 (* useful to discriminate over an ExtendedR *)
 Definition notXnan (xR : ExtendedR) : Prop :=
   match xR with
