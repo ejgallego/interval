@@ -18,11 +18,11 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith.
-Require Import Reals.
-Require Import Coquelicot.
-Require Import NaryFunctions.
+Require Import ZArith Reals.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import Flocq.Core.Fcore.
+Require Import NaryFunctions.
 Require Import Interval_missing.
 Require Import Interval_interval.
 Require Import Interval_xreal.
@@ -31,7 +31,6 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
 Require Import Rstruct interval_compl nary_tuple basic_rec seq_compl.
 
 Set Implicit Arguments.
@@ -1080,7 +1079,7 @@ Parameter rec2_correct :
     fi0 >: f0 -> fi1 >: f1 ->
     rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
 Parameter grec1_correct :
-  forall (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n,
+  forall Fi (F : PolR.T -> nat -> PolR.T) Gi (G : PolR.T -> nat -> R) ai a si s n,
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
   (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
   ai >:: a ->
@@ -1442,7 +1441,7 @@ by apply: (rec2up_correct (Rel := fun r i => i >: r)); first exact: cont0.
 Qed.
 
 Lemma grec1_correct
-  (A := PolR.T) Fi (F : A -> nat -> A) Gi (G : A -> nat -> R) ai a si s n :
+  Fi (F : PolR.T -> nat -> PolR.T) Gi (G : PolR.T -> nat -> R) ai a si s n :
   (forall qi q m, qi >:: q -> Fi qi m >:: F q m) ->
   (forall qi q m, qi >:: q -> Gi qi m >: G q m) ->
   ai >:: a ->

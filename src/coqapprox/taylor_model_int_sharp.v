@@ -18,8 +18,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith Psatz reals_tac.
+Require Import ZArith Psatz Reals.
 Require Import Flocq.Core.Fcore_Raux.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
 Require Import Interval_definitions.
@@ -30,8 +32,8 @@ Require Import Interval_interval_float_full.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
-Require Import Rstruct Coquelicot.
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
+Require Import Rstruct.
+Require Import reals_tac.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
@@ -1942,7 +1944,7 @@ constructor.
     - move=> k Hk0 Hk1 Hm.
       rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k.+2)) // nth_rec2upSS'.
       rewrite /TR.sin_rec in Hk0 Hk1 *.
-      set F := (fun (a _ : FullR.T) (n : nat) => - a / (INR n * INR n.-1)) in Hk0 Hk1 *.
+      set F := (fun (a _ : FullR.T) (n : nat) => - a / (INR n * INR n.-1))%R in Hk0 Hk1 *.
       have Hkm : k <= m by do 2![apply: ltnW].
       move/(_ Hkm) in Hk0.
       rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k)) // in Hk0.
@@ -1994,7 +1996,7 @@ constructor.
     - move=> k Hk0 Hk1 Hm.
       rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k.+2)) // nth_rec2upSS'.
       rewrite /TR.cos_rec in Hk0 Hk1 *.
-      set F := (fun (a _ : FullR.T) (n : nat) => - a / (INR n * INR n.-1)) in Hk0 Hk1 *.
+      set F := (fun (a _ : FullR.T) (n : nat) => - a / (INR n * INR n.-1))%R in Hk0 Hk1 *.
       have Hkm : k <= m by do 2![apply: ltnW].
       move/(_ Hkm) in Hk0.
       rewrite (nth_rec2up_indep _ _ _ _ 0%R (m2 := k)) // in Hk0.
@@ -2077,7 +2079,7 @@ constructor.
       rewrite SuccNat2Pos.id_succ.
       rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
       (* Now, some reals' bookkeeping *)
-      suff->: forall x, x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2.
+      suff->: forall x, (x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2)%R.
       suff->: INR (k.+1).*2 = (2 * INR k.+1)%R.
       suff->: (((1 + x * x) ^ k.+1) ^ 2 = (1 + x * x) ^ k.+2 * (1 + x * x) ^ k)%R.
       suff->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R.

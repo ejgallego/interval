@@ -26,8 +26,8 @@ Require Import Interval_xreal_derive.
 Require Import Interval_interval.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
-Require Import MathComp.div Ssreflect.fintype MathComp.finfun MathComp.path MathComp.bigop.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
+Require Import mathcomp.ssreflect.div mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.ssreflect.path mathcomp.ssreflect.bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

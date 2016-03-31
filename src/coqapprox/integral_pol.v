@@ -1,5 +1,6 @@
-Require Import Coquelicot Reals Rstruct Rdefinitions Ring.
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq Ssreflect.fintype MathComp.bigop.
+Require Import Reals.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import poly_datatypes Rstruct.
 
 Import PolR.

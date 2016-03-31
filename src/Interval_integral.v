@@ -17,21 +17,20 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import List.
-Require Import Coquelicot.
+Require Import Reals List.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool.
 Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_float_ext.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Ssreflect.ssreflect Ssreflect.ssrfun Ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
 Require Import Interval_missing.
-Require Import Coquelicot coquelicot_compl.
+Require Import coquelicot_compl.
 Require Import Interval_generic.
-Require Import Interval.Interval_generic_proof.
+Require Import Interval_generic_proof.
 Require Import Interval_taylor_model.
 
 Require Import interval_compl.

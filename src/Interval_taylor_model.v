@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
-Require Import Coquelicot. (* FIXME: import less *)
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.bigop.
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -28,7 +28,6 @@ Require Import Interval_bigint_carrier.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
 Require Import interval_compl.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq MathComp.bigop.
 Require Import poly_datatypes.
 Require Import taylor_model_int_sharp.
 Require Import xreal_ssr_compat.

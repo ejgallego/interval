@@ -19,12 +19,11 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Reals Psatz.
-Require Import Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.bigop.
+Require Import Coquelicot.Coquelicot.
 Require Import Interval_missing.
 Require Import Interval_xreal.
-Require Import Interval_interval Interval_xreal_derive.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool Ssreflect.ssrfun Ssreflect.eqtype Ssreflect.ssrnat Ssreflect.seq.
-Require Import MathComp.div Ssreflect.fintype MathComp.finfun MathComp.path MathComp.bigop.
+Require Import Interval_interval.
 Require Import Rstruct xreal_ssr_compat taylor_thm.
 
 Set Implicit Arguments.

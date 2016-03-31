@@ -1,4 +1,4 @@
-Require Import Reals Coquelicot.
+Require Import Reals Coquelicot.Coquelicot.
 Require Import Interval_tactic.
 
 Lemma constant :

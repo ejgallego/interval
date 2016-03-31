@@ -17,12 +17,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import List.
-Require Import Coquelicot.
-Require Import Ssreflect.ssreflect Ssreflect.ssrbool.
+Require Import Reals List ZArith.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool.
 Require Import xreal_ssr_compat.
-Require Import ZArith.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -862,7 +860,7 @@ Ltac get_trivial_bounds l prec :=
       match x with
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
       | toR ?v =>
-        constr:(let f := v in let x := toR f in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)))
+        constr:(let f := v in let rf := toR f in A.Bproof x (I.bnd f f) (conj (Rle_refl rf) (Rle_refl rf)))
       end in
       match aux l prec with
       | ?m => constr:(cons i m)

@@ -17,15 +17,14 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Bool.
-Require Import Reals.
+Require Import Bool Reals.
+Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_float_sig.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
-Require Import Ssreflect.ssreflect.
 
 Inductive interval : Set :=
   | Inan : interval

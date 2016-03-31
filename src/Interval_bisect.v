@@ -17,11 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Bool.
-Require Import List.
-Require Import Reals.
-Require Import Coquelicot.
-Require Import Ssreflect.ssreflect.
+Require Import Bool Reals List.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_xreal_derive.

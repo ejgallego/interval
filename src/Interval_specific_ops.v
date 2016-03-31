@@ -1164,9 +1164,10 @@ replace (match (d ?= 0)%Z with
   by now case d.
 unfold div_aux.
 (* *)
-refine (let Hmd := mantissa_div_correct (match d with Zpos _ => mantissa_shl nx nd | _ => nx end) ny _ Vmy _ in _ Hmd).
+assert (Vmx': valid_mantissa (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)).
 destruct d as [|pd|pd] ; trivial.
 now apply (Hs' pd).
+assert (Hxy: (Zpos (MtoP ny) <= Zpos (MtoP (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)))%Z).
 apply Zlt_le_weak.
 apply (lt_Zdigits Carrier.radix).
 easy.
@@ -1186,8 +1187,8 @@ intros p0.
 unfold d.
 clear ; zify ; omega.
 (* *)
-try clearbody Hmd.
 clear Hs.
+generalize (mantissa_div_correct _ ny Vmx' Vmy Hxy).
 destruct (mantissa_div (match d with Zpos _ => mantissa_shl nx nd | _ => nx end) ny) as (nq, nl).
 assert (H: Zpos (MtoP (match d with Zpos _ => mantissa_shl nx nd | _ => nx end)) =
   match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end).

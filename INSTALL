@@ -3,7 +3,7 @@ Prerequisites
 
 You will need the Coq proof assistant (>= 8.4) with a Reals theory compiled
 in. You will also need the following libraries:
-- Ssreflect and Mathematical Components (http://ssr.msr-inria.inria.fr/)
+- Mathematical Components (>= 1.6, http://math-comp.github.io/math-comp/)
 - Flocq (>= 2.5, http://flocq.gforge.inria.fr/)
 - Coquelicot (http://coquelicot.saclay.inria.fr/)
 

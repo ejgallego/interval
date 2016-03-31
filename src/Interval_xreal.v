@@ -17,10 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import Bool.
+Require Import Reals Bool.
+Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
-Require Import ssreflect.
 
 Definition Rsign x := Rcompare x 0.
 
@@ -588,7 +587,6 @@ Definition Xmul_propagate := extension_propagate_2 _ _ Xmul_correct.
 Definition Xdiv_propagate := extension_propagate_2 _ _ Xdiv_correct.
 
 Section ExtensionOfFunctionsToXreal.
-Require Import Ssreflect.ssreflect.
 
 Variable (f : R -> R).
 

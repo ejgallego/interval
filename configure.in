@@ -1,4 +1,4 @@
-AC_INIT([Interval], [2.2.0],
+AC_INIT([Interval], [2.2.1],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 
@@ -52,11 +52,11 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Ssreflect])
 AS_IF(
-  [ echo "Require Import Ssreflect.ssreflect." > conftest.v
+  [ echo "Require Import mathcomp.ssreflect.ssreflect." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find the Ssreflect library (http://www.msr-inria.fr/projects/mathematical-components/)])])
+    AC_MSG_ERROR([ *** Unable to find library mathcomp.ssreflect >= 1.6 (http://math-comp.github.io/math-comp/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coquelicot])
@@ -66,15 +66,6 @@ AS_IF(
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library Coquelicot (http://coquelicot.saclay.inria.fr/)])])
-rm -f conftest.v conftest.vo conftest.err
-
-AC_MSG_CHECKING([for MathComp])
-AS_IF(
-  [ echo "Require Import MathComp.bigop." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
-  [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find the MathComp library (http://www.msr-inria.fr/projects/mathematical-components/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 if test "$libdir" = '${exec_prefix}/lib'; then

@@ -17,7 +17,6 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Coquelicot. (* FIXME: import less *)
 Require Import Reals.
 Require Import Interval_interval.
 Require Import Interval_xreal.
