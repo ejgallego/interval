@@ -4118,10 +4118,62 @@ admit. (* error M0 >: 0 *)
 (* Main *)
 move=> x0 Hx0.
 have HMg : i_validTM (I.convert a0) (I.convert BfMf) Mg g by exact: Hg.
-pose alpha0 := IImidpoint A0.
+pose alpha0 := Xreal (proj_val (IImidpoint A0)).
+have HM1' : i_validTM (I.convert X0) (I.convert X) M1 (fun x => f x - alpha0).
+  rewrite /M1 /TMset0.
+  have [Mfdef Mfnai Mfzero Mfsubs Mfmain] := Hf.
+  split ; try easy.
+  intros x Hx Hfx.
+  apply (Mfdef x Hx).
+  revert Hfx ; clear.
+  by unfold defined ; case f.
+  intros x1 Hx1.
+  destruct (Mfmain x1 Hx1) as [Q H1 H2].
+  exists (PolR.set_nth Q 0 (PolR.nth Q 0 - proj_val alpha0)%R).
+  intros k.
+  specialize (H1 k).
+  clear -H1 ne_A0.
+  rewrite Pol.nth_set_nth PolR.nth_set_nth.
+  unfold A0.
+  destruct k as [|k] ; simpl.
+  apply (I.sub_correct _ _ _ _ (Xreal _) H1).
+  exact: Pol.Aux.Xreal_Imid_contains.
+  exact H1.
+  intros x Hx.
+  specialize (H2 x Hx).
+  move: (Mfdef x Hx).
+  clear -H2.
+  case: definedP.
+  intros Hf _.
+  replace (toR_fun (fun x2 => f x2 - alpha0) x) with (toR_fun f x - proj_val alpha0)%R.
+  replace (PolR.set_nth Q 0 (PolR.nth Q 0 - proj_val alpha0)%R).[(x - x1)%R]
+    with (Q.[(x - x1)%Re] - proj_val alpha0)%R.
+  replace (toR_fun f x - proj_val alpha0 - (Q.[x - x1] - proj_val alpha0))%R
+    with (toR_fun f x - Q.[x - x1])%R by ring.
+  exact H2.
+  destruct Q as [|q0 Q].
+  by rewrite /= Rmult_0_l Rplus_0_l.
+  by rewrite /= /Rminus Rplus_assoc.
+  unfold toR_fun, proj_fun.
+  destruct (f (Xreal x)).
+  now elim Hf.
+  easy.
+  intros _.
+  unfold eqNai.
+  simpl.
+  case I.convert.
+  easy.
+  intros l u H.
+  now specialize (H (eq_refl true)).
 pose smallX0 := IIbnd (Xreal x0) (Xreal x0).
 have HM1 : i_validTM smallX0 (I.convert X) M1 (fun x => f x - alpha0).
-  admit. (* M1 is a valid TM *)
+  apply: i_validTM_subset_X0 HM1'.
+  unfold Interval_interval.subset, smallX0.
+  move: Hx0.
+  case I.convert.
+  easy.
+  intros l u.
+  exact: contains_le.
 have [M1def M1nai M1zero M1subs M1main] := HM1.
 have [ra0 Hra0] := ne_a0.
 have [Ga0 HGa0 HGa0'] := Gmain ra0 Hra0.
