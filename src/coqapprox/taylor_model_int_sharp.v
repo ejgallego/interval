@@ -4032,10 +4032,6 @@ Definition IImid xi := let m := IImidpoint xi in IIbnd m m.
 Lemma IImid_correct xi : I.convert (Imid xi) = IImid xi.
 Proof. by rewrite I.bnd_correct. Qed.
 
-Lemma Imid_Xnan xi : contains (I.convert (Imid xi)) Xnan <-> contains (I.convert xi) Xnan.
-admit. (* Imid_Xnan *)
-Qed.
-
 Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
   f Xnan = Xnan ->
   not_empty (I.convert X0) ->
@@ -4076,7 +4072,7 @@ have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
     rewrite /A0 in Hv.
     apply/contains_Xnan.
     apply: subset_contains nth0In _ _.
-    exact/Imid_Xnan.
+    by rewrite /Imid I.bnd_correct in Hv.
     rewrite /Bf.
   step_xr (Xadd (Xreal v) (Xreal 0)); last by rewrite Xadd_0_r.
   apply: I.add_correct =>//.
