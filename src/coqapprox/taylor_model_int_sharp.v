@@ -4060,9 +4060,6 @@ have ne_A0 : not_empty (I.convert A0).
 have ne_a0 : not_empty (I.convert a0).
   rewrite /a0.
   exact: not_empty_Imid.
-have nth0In : Interval_interval.subset
-  (I.convert (Pol.nth (approx Mf) 0)) (I.convert (error Mf)).
-  admit. (* nth0 *)
 have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
   rewrite /a0 /BfMf.
   apply: contains_subset.
@@ -4071,7 +4068,6 @@ have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
     apply/contains_Xnan; rewrite I.add_propagate_r //.
     rewrite /A0 in Hv.
     apply/contains_Xnan.
-    apply: subset_contains nth0In _ _.
     by rewrite /Imid I.bnd_correct in Hv.
     rewrite /Bf.
   step_xr (Xadd (Xreal v) (Xreal 0)); last by rewrite Xadd_0_r.
