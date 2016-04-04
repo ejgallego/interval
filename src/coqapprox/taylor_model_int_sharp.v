@@ -3803,96 +3803,69 @@ Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
   let M0 := TM_horner n (approx Mg) M1 X0 X in
   RPA (approx M0) (I.add prec (error M0) (error Mg)).
 
-(** REMARK: the TM is supposed not void *)
-
-(* Erik: Keep and update ?
-
-Lemma TMset0_correct X0 X TMf f :
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) TMf f ->
-  (* forall nf, Pol.size (approx TMf) = nf.+1 -> *)
-  forall x0, contains (I.convert X0) x0 ->
-  exists a0, i_validTM (Interval_interval.Ibnd x0 x0) (I.convert X)
-  (TMset0 TMf I.zero) (fun x => f x - a0).
+Lemma TMset0_correct (X0 X c0 : I.type) Mf f :
+  let: A0 := Pol.nth (approx Mf) 0 in
+  forall a0 alpha0,
+  not_empty (I.convert A0) ->
+  a0 >: alpha0 ->
+  i_validTM (I.convert X0) (I.convert X) Mf f ->
+  i_validTM (I.convert X0) (I.convert X) (TMset0 Mf (I.sub prec A0 a0))
+  (fun x : ExtendedR => f x - Xreal alpha0).
 Proof.
-move=> Hne [Hnai Hzero Hsubs Hmain].
-move=> fi0 Hfi0.
-
-have {Hf2} [alf [Hsize Hnth Herr]] := Hf2 fi0 Hfi0.
-exists (PolR.tnth alf 0).
-split=>//.
-  have H0 := subset_contains _ _ Hf1 _ Hfi0.
-  case cf: fi0 H0 Hf1 Hfi0 =>[|r];
-    case: (I.convert X0) =>[|l0 u0];
-     case: (I.convert X) =>[|l u] => H0 Hf1 Hfi0 //=.
-  have {H0} [H0a H0b] := H0; rewrite /le_lower /le_upper; split.
-    by case: l Hf1 H0a => [|rl] //=; psatzl R.
-  by case: u Hf1 H0b.
-move=> N fi0' Hfi0'.
-exists (PolR.tset_nth alf 0 (Xreal 0)).
-split.
-    rewrite /N /=.
-    rewrite PolR.tsize_set_nth ?tsize_set_nth //.
-    by rewrite Hsize Hnf.
-  move=> k Hk /=.
-  rewrite /N /= in Hk.
-  case ck : k => [|k'].
-    rewrite tnth_set_nth.
-    rewrite PolR.tnth_set_nth.
-    by rewrite I.zero_correct; split; auto with real.
-  rewrite tnth_set_nth =>//.
-  rewrite PolR.tnth_set_nth=>//.
-  apply: Hnth.
-  rewrite -ck; rewrite tsize_set_nth in Hk=> //.
-  suff<-: maxn 1 (tsize (approx TMf)) = tsize (approx TMf) by [].
-  by apply/maxn_idPr; rewrite Hnf.
-move=> x Hx /=.
-move/(_ x Hx) in Herr.
-rewrite PolR.is_horner Hsize Hnf in Herr.
-rewrite PolR.is_horner PolR.tsize_set_nth Hsize Hnf //.
-rewrite (appP idP maxn_idPr) //.
-rewrite big_ord_recl.
-rewrite big_ord_recl in Herr.
-rewrite /ord0 /= PolR.tnth_set_nth eqxx.
-case E: fi0 => [|r].
-  subst.
-  rewrite !Xsub_split in Herr.
-  rewrite /= [Xadd _ Xnan]Xadd_comm /= in Herr.
-  rewrite /Xpow /= in Herr.
-  rewrite /= [Xmul _ Xnan]Xmul_comm /= in Herr.
-  rewrite /= [Xadd _ Xnan]Xadd_comm /= in Herr.
-  by case: (I.convert (error TMf)) Hf0 Herr.
-have->: fi0' = (Xreal r).
-  rewrite /contains E in Hfi0'.
-  case: fi0' Hfi0' =>//.
-  move=> ? [? ?]; f_equal.
-  exact: Rle_antisym.
-rewrite -E.
-case xf : (x - fi0)%XR => [|xr].
-  rewrite /Xpow /= Xsub_split /= Xadd_comm /=.
-  by rewrite xf /Xpow Xmul_comm Xsub_split Xadd_comm /= in Herr.
-rewrite xf /(Xpow _ 0) /= Xmul_comm Xmul0 in Herr.
-simpl Xmul; rewrite Rmult_0_l Xadd0.
-have Hbig : \big[Xadd/Xreal 0]_(i < nf)
-    (PolR.tnth (PolR.tset_nth alf 0 (Xreal 0))
-    (bump 0 i) * Xreal xr ^ bump 0 i)%XR =
-    \big[Xadd/Xreal 0]_(i < nf) (PolR.tnth alf (bump 0 i) *
-    Xreal xr ^ bump 0 i)%XR.
-  apply: eq_bigr => i _ /=.
-  by rewrite PolR.tnth_set_nth.
-rewrite {}Hbig.
-suff <- : forall a b c : ExtendedR, (a - (b + c) = a - b - c)%XR by [].
-move=> a b c; case: a; case: b; case: c=> //=.
-by move=> *; f_equal; ring.
+  move=> a0 alpha0 ne_A0 in_a0 Hf.
+  rewrite /TMset0.
+  have [Mfdef Mfnai Mfzero Mfsubs Mfmain] := Hf.
+  split ; try easy.
+  intros x Hx Hfx.
+  apply (Mfdef x Hx).
+  revert Hfx ; clear.
+  by unfold defined ; case f.
+  intros x1 Hx1.
+  destruct (Mfmain x1 Hx1) as [Q H1 H2].
+  exists (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).
+  intros k.
+  specialize (H1 k).
+  clear - H1 ne_A0 in_a0.
+  rewrite Pol.nth_set_nth PolR.nth_set_nth.
+  destruct k as [|k] ; simpl.
+  by apply (I.sub_correct _ _ _ _ (Xreal _) H1).
+  exact H1.
+  intros x Hx.
+  specialize (H2 x Hx).
+  move: (Mfdef x Hx).
+  clear -H2.
+  case: definedP.
+  intros Hf _.
+  replace (toR_fun (fun x2 => f x2 - Xreal alpha0) x) with (toR_fun f x - alpha0)%R.
+  replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
+    with (Q.[(x - x1)%Re] - alpha0)%R.
+  replace (toR_fun f x - alpha0 - (Q.[x - x1] - alpha0))%R
+    with (toR_fun f x - Q.[x - x1])%R by ring.
+  exact H2.
+  destruct Q as [|q0 Q].
+  by rewrite /= Rmult_0_l Rplus_0_l.
+  by rewrite /= /Rminus Rplus_assoc.
+  unfold toR_fun, proj_fun.
+  destruct (f (Xreal x)).
+  now elim Hf.
+  easy.
+  intros _.
+  unfold eqNai.
+  simpl.
+  case I.convert.
+  easy.
+  intros l u H.
+  now specialize (H (eq_refl true)).
 Qed.
-*)
 
+(*
 Definition dom_comp dg df f r :=
   df r &&
   match f (Xreal r) with
   | Xnan => false
   | Xreal r => dg r
   end.
+*)
 
 Definition IImidpoint xi := I.convert_bound (I.midpoint xi).
 
@@ -3965,51 +3938,7 @@ have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f (Xreal x)).
   by rewrite -(Xreal_toR Df).
   case: (f) =>// r; simpl; congr Xreal; ring.
 have HM1' : i_validTM (I.convert X0) (I.convert X) M1 (fun x => f x - Xreal (alpha0)).
-  rewrite /M1 /TMset0.
-  have [Mfdef Mfnai Mfzero Mfsubs Mfmain] := Hf.
-  split ; try easy.
-  intros x Hx Hfx.
-  apply (Mfdef x Hx).
-  revert Hfx ; clear.
-  by unfold defined ; case f.
-  intros x1 Hx1.
-  destruct (Mfmain x1 Hx1) as [Q H1 H2].
-  exists (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).
-  intros k.
-  specialize (H1 k).
-  clear -H1 ne_A0.
-  rewrite Pol.nth_set_nth PolR.nth_set_nth.
-  unfold A0.
-  destruct k as [|k] ; simpl.
-  apply (I.sub_correct _ _ _ _ (Xreal _) H1).
-  exact: Xreal_Imid_contains.
-  exact H1.
-  intros x Hx.
-  specialize (H2 x Hx).
-  move: (Mfdef x Hx).
-  clear -H2.
-  case: definedP.
-  intros Hf _.
-  replace (toR_fun (fun x2 => f x2 - Xreal alpha0) x) with (toR_fun f x - alpha0)%R.
-  replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
-    with (Q.[(x - x1)%Re] - alpha0)%R.
-  replace (toR_fun f x - alpha0 - (Q.[x - x1] - alpha0))%R
-    with (toR_fun f x - Q.[x - x1])%R by ring.
-  exact H2.
-  destruct Q as [|q0 Q].
-  by rewrite /= Rmult_0_l Rplus_0_l.
-  by rewrite /= /Rminus Rplus_assoc.
-  unfold toR_fun, proj_fun.
-  destruct (f (Xreal x)).
-  now elim Hf.
-  easy.
-  intros _.
-  unfold eqNai.
-  simpl.
-  case I.convert.
-  easy.
-  intros l u H.
-  now specialize (H (eq_refl true)).
+  exact: TMset0_correct.
 split=>//=.
 (* Def *)
 - move=> x Hx /definedPn Dx.
