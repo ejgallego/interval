@@ -175,10 +175,8 @@ case: f.
 - done.
 Qed.
 
-Definition some_real : R. exact R0. Qed.
-
 Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
-  proj_fun some_real f x.
+  proj_fun R0 f x.
 
 Lemma Xreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
   defined f x ->
@@ -908,31 +906,6 @@ case cx0 : x0 Hs Hx0 => [|rx0].
 rewrite (_: Xreal 0 = Xreal rx0 - Xreal rx0)%XR;
   last by rewrite /= Rminus_diag_eq.
 by move=>*; apply: I.sub_correct=>//; apply: (subset_contains (I.convert X0)).
-Qed.
-
-Lemma Iadd_zero_subset_r a b :
-  (exists t, contains (I.convert a) t) ->
-  contains (I.convert b) (Xreal 0) ->
-  I.subset_ (I.convert a) (I.convert (I.add prec a b)).
-Proof.
-move=> Ht Hb0; apply: contains_subset =>// v Hav.
-move: {Hav} (I.add_correct prec a b v (Xreal 0) Hav Hb0).
-by case:v =>// r; rewrite /= Rplus_0_r.
-Qed.
-
-Lemma Iadd_Isub_aux b a B D :
-  contains (I.convert B) b ->
-  contains (I.convert D) (a - b)%XR ->
-  contains (I.convert (I.add prec B D)) a.
-Proof.
-move=> Hb Hd.
-case cb : b Hb=> [|rb].
-  move=> Hb; rewrite I.add_propagate_l => //=.
-  by case: (I.convert B) Hb.
-rewrite -cb => Hb; rewrite (_ : a = b + (a - b))%XR.
-  by apply: I.add_correct.
-rewrite cb; case: a Hd => //= r _.
-by congr Xreal; ring.
 Qed.
 
 End PrecArgument.

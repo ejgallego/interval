@@ -60,5 +60,3 @@ Proof. by rewrite -(size_Tuple t); case: (Ttoseq t)=>[|//] []. Qed.
 Definition Tnth t i := nth (Tnth_default t i) (Ttoseq t) i.
 
 End NaryTuple1.
-
-Definition cons_Tuple n T : T -> T ^ n -> T ^ n.+1 := @pair T (T ^ n).

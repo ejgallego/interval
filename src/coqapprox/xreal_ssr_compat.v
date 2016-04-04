@@ -51,31 +51,6 @@ Notation "x ^ n" := (Xpow x n) : XR_scope.
 
 Arguments Xpow x n : simpl nomatch.
 
-(* Erik: Xpow_iter, Xpow_idem, Xpow_Xreal may be removed
-  in favor of fun x n => Xpower_int x (Z_of_nat n), cf. FullXR.tpow *)
-
-Implicit Types n k : nat.
-Implicit Type r : R.
-Implicit Type X : interval.
-
-Definition Xpow_iter x n := iter_nat (Xmul x) n (Xmask (Xreal 1) x).
-
-(* "Transitional result" (may be removed in a later version) *)
-Lemma Xpow_idem x n : Xpow x n = Xpow_iter x n.
-Proof.
-elim: n =>[//|n IHn].
-rewrite /Xpow_iter iter_nat_S /= -/(Xpow_iter x n) -IHn.
-case: {IHn} x =>//= r.
-(* and similarly to the proof of FullXR.tpow_S *)
-case: n =>// n.
-by congr Xreal; rewrite tech_pow_Rmult; congr pow; rewrite Pos2Nat.inj_succ.
-Qed.
-
-Lemma Xpow_Xreal r n : Xpow_iter (Xreal r) n = Xreal (pow r n).
-Proof.
-by elim: n=>// n; rewrite /Xpow_iter iter_nat_S => /= ->.
-Qed.
-
 Lemma Xmul_Xreal a b : Xreal a * Xreal b = Xreal (a * b).
 Proof. by []. Qed.
 
@@ -123,12 +98,6 @@ Qed.
 Canonical Structure Xreal_eqMixin := EqMixin eqXP.
 Canonical Structure Xreal_eqType := Eval hnf in
   EqType ExtendedR Xreal_eqMixin.
-
-Lemma Xadd0 : left_id (Xreal 0%Re) Xadd.
-Proof. by case=> // r; rewrite /= Rplus_0_l. Qed.
-
-Lemma Xmul0 : left_id (Xreal 1%Re) Xmul.
-Proof. by case=> // r; rewrite /= Rmult_1_l. Qed.
 
 Local Open Scope XR_scope.
 

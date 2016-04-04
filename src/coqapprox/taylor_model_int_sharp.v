@@ -237,27 +237,6 @@ rewrite Xreal_sub Xreal_toR // -?Hfg // -?[f _]Xreal_toR //.
 by rewrite (@defined_ext f) ?Hfg.
 Qed.
 
-(** This simple result will be useful to prove the correctness of [TM_comp]. *)
-
-Lemma i_validTM_subset_X0 (X0 : I.type) (SX0 : interval) (X : I.type) f Mf :
-  I.subset_ SX0 (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) Mf f ->
-  i_validTM (SX0) (I.convert X) Mf f.
-Proof.
-red.
-move=> HSX0 [Hdef Hnai Hf0 Hsubs Hmain].
-split=>//; first exact: (subset_subset SX0 (I.convert X0)).
-move=> x0 Hx0.
-move/(_ x0 (subset_contains _ _ HSX0 _ Hx0)): Hmain.
-by case: (defined f x0).
-Qed.
-
-(* A similar definition is available with TM.eval in Interval_taylor_model.v...
-
-Definition ComputeBound (M : rpa) (X0 X : I.type) :=
-  I.add prec (Bnd.ComputeBound prec (approx M) (I.sub prec X X0)) (error M).
-*)
-
 Section TM_integral.
 
 Local Notation Isub := (I.sub prec).
@@ -3191,68 +3170,6 @@ Definition TM_mul (Mf Mg : rpa) X0 X n : rpa :=
  RPA (Pol.mul_trunc prec n (approx Mf) (approx Mg))
      (mul_error prec n Mf Mg X0 X).
 
-Lemma poly_mul n (a b : nat -> R) (x : R) :
-  (forall i, n < i -> (a i = R0)/\ (b i = R0))->
-  \big[Rplus/R0]_(k < (n + n).+1)
-    \big[Rplus/R0]_(i < k.+1) (a i * b (k - i)%N * x ^ k)%Re =
-  \big[Rplus/R0]_(i < n.+1)
-    \big[Rplus/R0]_(j < n.+1) (a i * b j * x ^ (i + j))%Re.
-Proof.
-move=> Habn.
-rewrite pair_big.
-rewrite (eq_bigr (fun (k : 'I_(n + n).+1)=>
-        \big[Rplus/0%Re]_(i < (n + n).+1 | i < k.+1)
-           (a i * b (k - i)%N * x ^ k)%Re)); last first.
-  move=> [k Hk0] _ /=.
-  pose F := (fun i => (a i * b (k - i)%N * x ^ k)%Re).
-  by apply:(@big_ord_widen R R0 Rplus _ (n + n).+1 F Hk0).
-rewrite pair_big_dep /=.
-set s := \big[Rplus/0%Re]_p _.
-rewrite (bigID (fun (p: 'I_(n+n).+1 * 'I_(n+n).+1) => p.2 < n+1)) /=.
-set t := \big[Rplus/0%Re]_(i | _) _.
-rewrite big1; last first.
-  move=> i /andP; case => _; rewrite - leqNgt; rewrite addn1 => Hi2.
-  by case:(Habn i.2 Hi2) => -> _; rewrite !Rmult_0_l.
-rewrite Rplus_0_r /t {t}.
-rewrite (bigID (fun (p: 'I_(n+n).+1 * 'I_(n+n).+1) => p.1- p.2 < n+1)) /=.
-set t := \big[Rplus/0%Re]_(i | _) _.
-rewrite big1; last first.
-  move=> i /andP; case => _; rewrite - leqNgt; rewrite addn1 => Hi2.
-  by case:(Habn (i.1 - i.2)%N Hi2) => _ ->; rewrite Rmult_0_r Rmult_0_l.
-rewrite Rplus_0_r /s {s}.
-have H : forall (i j : 'I_n.+1), (i + j)%N < (n + n).+1.
-  by move=>[i Hi][j Hj] /=; have := leq_add Hi Hj; rewrite !addSn !addnS ltnS.
-have H1 : forall i : 'I_n.+1, i < (n + n).+1.
-  move=> [i Hi] /=.
-  apply:(@leq_trans n.+1 i.+1 (n + n).+1 Hi).
-  by rewrite -addnS -{1}(addn0 n) ltn_add2l.
-pose h :=(fun (p:'I_n.+1 * 'I_n.+1)=>(Ordinal (H p.1 p.2),Ordinal (H1 p.1))).
-rewrite /t.
-have Hmin : forall i, minn i n < n.+1 by move=> i; rewrite ltnS geq_minr.
-have Hjmi i j : (i + j - i)%N = j by rewrite -{2}(addn0 i) subnDl subn0.
-pose h' := (fun (p : 'I_(n + n).+1 * 'I_(n + n).+1) =>
-             (Ordinal (Hmin p.2), Ordinal (Hmin (p.1 - p.2)%N))).
-have hh': forall i, h' (h i) = i.
-  move=> [[i Hi] [j Hj]]; apply/ pair_eqP; rewrite /h /h' /=.
-  apply/andP; split; apply/eqP; apply:ord_inj => /=.
-    by apply/minn_idPl; rewrite -ltnS.
-  by rewrite Hjmi; apply/minn_idPl; rewrite -ltnS.
-rewrite (reindex_onto h h')/=; last first.
-  move=>[[ i Hi] [j Hj]]=>/=.
-  case/andP; case/andP => Hji Hjn Himj.
-  apply/pair_eqP; rewrite /h /h' /=.
-  have minjn k : k < n + 1 -> minn k n = k.
-    by move=> Hjm; apply/minn_idPl; rewrite -ltnS -(addn1 n).
-  by apply/andP;split;
-   apply/eqP; apply:ord_inj=> /=; rewrite !minjn ?subnKC.
-apply:eq_big=> i.
-  rewrite hh' eqxx /= andbT.
-  case: i => [[i Hi] [j Hj]] /=.
-  rewrite addn1 Hi andbT /= Hjmi Hj.
-  by rewrite -addnS -{1}(addn0 i) ltn_add2l.
-by do !case/andP=> *; rewrite Hjmi.
-Qed.
-
 Lemma Xreal_inj : injective Xreal.
 Proof. by move=> x y []. Qed.
 
@@ -3500,6 +3417,7 @@ by apply/negP => /eqP K; rewrite K leqnn in Hk.
 Qed.
 
 Lemma horner_pad pi pr x : pi >:: pr -> pr.[x] = (pad pi pr).[x].
+Proof.
 move=> Hp.
 rewrite !(@PolR.hornerE_wide (maxn (Pol.size pi) (PolR.size pr))) -?size_pad;
   rewrite ?(leq_maxl, leq_maxr) //.
@@ -3511,16 +3429,6 @@ case: ifP => [Hi| /negbT Hi].
 rewrite -ltnNge in Hi; rewrite /= ifF //.
 by apply/negbTE; rewrite neq_ltn Hi.
 Qed.
-
-(* not used
-
-Definition toXreal_fun_mask
-  (f : R -> R) (f0 : ExtendedR -> ExtendedR) (x : ExtendedR) :=
-  match x with
-  | Xnan => Xnan
-  | Xreal r => Xmask (Xreal (f r)) (f0 x)
-  end.
-*)
 
 Lemma TM_horner_correct (X0 X : I.type) Mf f pi pr n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -3633,8 +3541,6 @@ Proof.
   now specialize (H (eq_refl true)).
 Qed.
 
-Definition IImidpoint xi := I.convert_bound (I.midpoint xi).
-
 Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
   f Xnan = Xnan ->
   not_empty (I.convert X0) ->
@@ -3661,7 +3567,7 @@ have ne_A0 : not_empty (I.convert A0).
   have [t Ht] := Hne.
   have [q hq1 hq2] := Fmain t Ht.
   by eexists; eapply hq1.
-pose alpha0 := proj_val (IImidpoint A0).
+pose alpha0 := proj_val (I.convert_bound (I.midpoint A0)).
 have in_a0 : a0 >: alpha0.
   exact: Xreal_Imid_contains.
 have ne_a0 : not_empty (I.convert a0).
