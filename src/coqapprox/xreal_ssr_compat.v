@@ -51,7 +51,7 @@ Notation "x ^ n" := (Xpow x n) : XR_scope.
 
 Arguments Xpow x n : simpl nomatch.
 
-(* Erik: Xpow_iter, Xpow_idem, Xpow_Xreal, Xpow_Xnan may be removed
+(* Erik: Xpow_iter, Xpow_idem, Xpow_Xreal may be removed
   in favor of fun x n => Xpower_int x (Z_of_nat n), cf. FullXR.tpow *)
 
 Implicit Types n k : nat.
@@ -72,11 +72,6 @@ by congr Xreal; rewrite tech_pow_Rmult; congr pow; rewrite Pos2Nat.inj_succ.
 Qed.
 
 Lemma Xpow_Xreal r n : Xpow_iter (Xreal r) n = Xreal (pow r n).
-Proof.
-by elim: n=>// n; rewrite /Xpow_iter iter_nat_S => /= ->.
-Qed.
-
-Lemma Xpow_Xnan n : Xpow_iter Xnan n = Xnan.
 Proof.
 by elim: n=>// n; rewrite /Xpow_iter iter_nat_S => /= ->.
 Qed.

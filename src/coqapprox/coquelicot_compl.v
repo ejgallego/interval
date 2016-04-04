@@ -355,9 +355,6 @@ move=> m Hm; help_is_derive_n n x.
   rewrite !addnS /=; ring.
 Qed.
 
-Lemma Zneg_not_ge0 p : (0 <= Z.neg p)%Z -> False.
-Proof. by have /Z.lt_nge := Zlt_neg_0 p. Qed.
-
 Lemma is_derive_n_powerRZ m n x :
   (0 <= m)%Z \/ x <> 0 ->
   is_derive_n (powerRZ^~ m) n x
@@ -374,7 +371,7 @@ rewrite /powerRZ; case: m Hor => [|p|p] Hor.
 - case: n => [|n] //; exact: is_derive_n_const.
 - by apply: is_derive_n_pow; apply/ltP/Pos2Nat.is_pos.
 - apply: is_derive_n_inv_pow; first exact/ltP/Pos2Nat.is_pos.
-  by case: Hor; first by move/Zneg_not_ge0.
+  by case: Hor; first by case.
 Qed.
 
 Lemma ex_derive_n_powerRZ m n x :

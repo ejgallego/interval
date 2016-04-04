@@ -606,7 +606,7 @@ Ltac exactN f := let g :=
   eval lazy zeta beta iota
             delta[nuncurry ncurry Ttoseq nprod_to_list napply_discard
                   slideN slideN_aux cons_Tuple snd' rev' catrev'
-                  loopN recNdown recNup Tofseq nprod_of_list f]
+                  loopN recNdown recNup f]
   in f in let h :=
   eval lazy beta delta[hide_let] in g
   in exact h.

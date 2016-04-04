@@ -157,13 +157,6 @@ case: (leqP n0 i) => Hi; last by rewrite nth_take.
 by rewrite nth_default // size_take; case: ltnP=>// H'; apply: leq_trans H' Hi.
 Qed.
 
-Lemma eq_foldr (T0 T1 T2 : Type)
-  (f0 : T1 -> T0 -> T0)
-  (g : T2 -> T0 -> T0) (ftog : T1 -> T2) :
-  (forall x y, f0 x y = g (ftog x) y) ->
-  forall s x0, foldr f0 x0 s = foldr g x0 (map ftog s).
-Proof. by move=> Hfg; elim=> [//| a l IHl] x0 /=; rewrite IHl Hfg. Qed.
-
 (** Generic results to be instantiated for polynomials' opp, add, sub, mul... *)
 
 Section map_proof.

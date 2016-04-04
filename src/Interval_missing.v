@@ -106,24 +106,6 @@ apply Rle_trans with r2 ; assumption.
 exact H.
 Qed.
 
-Lemma Rmin_best :
-  forall r1 r2 r,
-  (r <= r1)%R -> (r <= r2)%R -> (r <= Rmin r1 r2)%R.
-Proof.
-intros.
-unfold Rmin.
-now case (Rle_dec r1 r2).
-Qed.
-
-Lemma Rmax_best :
-  forall r1 r2 r,
-  (r1 <= r)%R -> (r2 <= r)%R -> (Rmax r1 r2 <= r)%R.
-Proof.
-intros.
-unfold Rmax.
-now case (Rle_dec r1 r2).
-Qed.
-
 Lemma Rle_Rinv_pos :
   forall x y : R,
   (0 < x)%R -> (x <= y)%R -> (/y <= /x)%R.

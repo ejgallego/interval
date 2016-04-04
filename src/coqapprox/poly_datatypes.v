@@ -88,10 +88,6 @@ Parameter Inline atan : U -> T -> T.
 Parameter Inline tan : U -> T -> T.
 End FullOps.
 
-Module Type ExactFullOps.
-Include FullOps with Definition U := unit.
-End ExactFullOps.
-
 Module FullInt (I : IntervalOps) <: FullOps.
 Definition U := I.precision.
 Definition T := I.type.
@@ -130,7 +126,6 @@ Parameter sub : U -> T -> T -> T.
 Parameter mul : U -> T -> T -> T.
 
 Parameter toSeq : T -> seq C.T.
-Parameter mkPoly : seq C.T -> T.
 Parameter nth : T -> nat -> C.T.
 Parameter size : T -> nat.
 Parameter rec1 : (C.T -> nat -> C.T) -> C.T -> nat -> T.
@@ -159,18 +154,13 @@ Parameter dotmuldiv : U -> seq Z -> seq Z -> T -> T.
 Parameter primitive : U -> C.T -> T -> T.
 
 (* specifications of toSeq *)
-Parameter toSeq_nil : toSeq zero = [::].
-Parameter mkPoly_toSeq : forall p, mkPoly (toSeq p) = p.
-Parameter toSeq_mkPoly : forall s, toSeq (mkPoly s) = s.
 Parameter horner_seq : forall u p x, horner u p x =
   C.mask (foldr (fun a b => C.add u (C.mul u b x) a) C.zero (toSeq p)) x.
 Parameter nth_toSeq : forall p n, nth p n = seq.nth (C.zero) (toSeq p) n.
 
 Parameter polyCE : forall c, polyC c = polyCons c polyNil.
 Parameter polyXE : polyX = lift 1 one.
-Parameter size_polyX : size polyX = 2.
 Parameter oneE : one = polyC C.one.
-Parameter zeroE : zero = polyNil.
 
 Parameter poly_ind : forall (f : T -> Type),
   f polyNil ->
@@ -273,7 +263,7 @@ Parameter nth_tail : forall n p k, nth (tail n p) k = nth p (n + k).
 
 End PolyOps.
 
-Module FullR <: ExactFullOps.
+Module FullR <: FullOps.
 Definition U := unit.
 Local Notation "--> e" := (fun _ : U => e).
 Definition T := R.
@@ -501,16 +491,6 @@ Lemma size_tail p k : size (tail k p) = size p - k.
 Proof. by rewrite /size /tail size_drop. Qed.
 
 Definition toSeq (p : T) := p.
-Definition mkPoly (s : seq C.T) := (s : T).
-
-Lemma mkPoly_toSeq p : mkPoly (toSeq p) = p.
-Proof. by []. Qed.
-
-Lemma toSeq_mkPoly s : toSeq (mkPoly s) = s.
-Proof. by []. Qed.
-
-Lemma toSeq_nil : toSeq zero = [::].
-Proof. by []. Qed.
 
 Lemma horner_seq u p x :
   horner u p x = C.mask (foldr (fun a b => C.add u (C.mul u b x) a)
@@ -553,14 +533,6 @@ Lemma polyXE : polyX = lift 1 one.
 Proof. done. Qed.
 
 Lemma oneE : one = polyC C.one.
-Proof. done. Qed.
-
-Lemma zeroE : zero = polyNil.
-Proof. done. Qed.
-
-(* TODO/Erik: Remove polyNil and only speak of zero *)
-
-Lemma size_polyX : size polyX = 2.
 Proof. done. Qed.
 
 Lemma nth_mul u p q k :
@@ -898,26 +870,6 @@ apply: eq_bigr => i _.
 by rewrite nth_div_mixed_r -Rmult_assoc; congr Rmult; rewrite Rmult_comm.
 Qed.
 
-(*
-Lemma mul_coeffE p1 p2 k : mul_coeff tt p1 p2 k =
-         \big[Rplus/0%R]_(i < k.+1) Rmult (PolR.nth p1 (k - i)) (PolR.nth p2 i).
-Proof.
-rewrite BigOp.bigopE /reducebig /mul_coeff.
-have {1} ->: (iota 0 k.+1) = (rev (rev (iota 0 k.+1))) by rewrite revK.
-rewrite foldl_rev.
-apply: sym_eq; set f0 := (fun _ => _); set g0 := (fun _ => _).
-rewrite (@eq_foldr _ _ _ _ g0 (fun (i: 'I_k.+1) => k -(val i))); first last.
-  by move=> x y; rewrite /f0 /g0 sub_ordK.
-rewrite /index_enum /= -enumT map_comp.
-have->: (seq.map (nat_of_ord (n:=k.+1)) (enum 'I_k.+1)) = iota 0 k.+1.
-  by rewrite -val_ord_enum enumT unlock //=.
-congr foldr; rewrite /= -map_cons.
-change (0 :: iota 1 k) with (iota 0 k.+1).
-by rewrite rev_iota.
-Qed.
-
-*)
-
 Lemma nth_primitive (p : T) (c : R) (k : nat) :
   nth (primitive tt c p) k = if size p < k then 0%R
                         else int_coeff tt p c k.
@@ -1197,23 +1149,6 @@ apply (@map2_correct R I.type) =>//.
 - by move=> *; apply: R_sub_correct.
 Qed.
 
-Lemma bigop_resize pi p f :
-  pi >:: p ->
-  \big[Rplus/0%R]_(0 <= i < PolR.size p) (PolR.nth p i * f i)%R =
-  \big[Rplus/0%R]_(0 <= i < size pi) (PolR.nth p i * f i)%R.
-Proof.
-move=> Hp.
-case: (leqP (PolR.size p) (size pi)) => Hsz.
-  rewrite [LHS](big_nat_leq_idx _ (m := size pi)) //.
-  by move=> i /andP[_i i_]; rewrite PolR.nth_default // Rmult_0_l.
-rewrite [RHS](big_nat_leq_idx _ (m := PolR.size p)) //; first exact: ltnW.
-move=> i /andP[_i i_]; move/(_ i): Hp.
-rewrite nth_default //; move/only0 ->.
-by rewrite Rmult_0_l.
-Qed.
-
-Arguments bigop_resize [pi p f] _.
-
 Lemma mul_coeff_correct u pi qi p q :
   pi >:: p -> qi >:: q ->
   forall k : nat, mul_coeff u pi qi k >: PolR.mul_coeff tt p q k.
@@ -1321,7 +1256,6 @@ apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 Qed.
 
 Lemma deriv_correct u pi p : pi >:: p -> deriv u pi >:: PolR.deriv tt p.
-
 Proof.
 move=> Hpi; rewrite /deriv /PolR.deriv /deriv_loop /PolR.deriv_loop.
 apply: (seq_foldri_correct (Rel := fun v t => t >: v)) =>//.

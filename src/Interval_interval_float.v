@@ -546,7 +546,7 @@ now rewrite X.
 rewrite F.max_correct.
 rewrite X, X0.
 simpl.
-now apply Rmax_best.
+now apply Rmax_lub.
 (* . *)
 xreal_tac xu.
 exact Hy2.
@@ -555,7 +555,7 @@ now rewrite X.
 rewrite F.min_correct.
 rewrite X, X0.
 simpl.
-now apply Rmin_best.
+now apply Rmin_glb.
 Qed.
 
 Definition bounded_prop xi :=

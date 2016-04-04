@@ -1932,7 +1932,7 @@ constructor.
                      | apply: not_0_INR
                      | apply: pow_nonzero
                      | apply: Rsqr_plus1_neq0].
-      * by rewrite !pow_S pow_O Rmult_1_r.
+      * by rewrite /= Rmult_1_r.
       * by rewrite -pow_mult multE muln2 -pow_add plusE addSnnS -addnn.
       * by rewrite -mul2n -multE mult_INR.
       * clear; move=> x; apply: Rdiv_eq_reg.
@@ -2387,7 +2387,7 @@ Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
 Proof.
 case => [Hp|Hx].
   rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
-  by case: p Hp =>// p Hp; exfalso; apply: Zneg_not_ge0 Hp.
+  by case: p Hp =>// p [].
 rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /defined /=.
 by case: p =>//; rewrite zeroF.
 Qed.
@@ -2401,7 +2401,7 @@ case: p => [|p|p] Hx.
 - eapply (@locally_open _ (fun x => x <> 0)%R) =>//; first exact: open_neq.
   by move=> {x Hx} x Hx; rewrite /toR_fun /Xpower_int /proj_fun /= zeroF //.
   move: Hx; rewrite /defined /Xpower_int /proj_fun /=; case =>//.
-  by move/Zneg_not_ge0.
+  by case.
 Qed.
 
 Lemma TM_power_int_correct_aux (p : Z) X0 X n :
@@ -2636,7 +2636,7 @@ constructor.
       simpl (Rmul_monoid _).
       rewrite /Rdiv !Rmult_assoc; congr Rmult.
       rewrite fact_simpl mult_INR.
-      rewrite !add1n [in RHS]pow_S /Rdiv.
+      rewrite !add1n -[(x ^ k.+2)%R]/(x * x ^ k.+1)%R.
       set Xk1 := (x ^ k.+1)%R.
       set k_ := INR (fact k).
       set k1 := INR k.+1.

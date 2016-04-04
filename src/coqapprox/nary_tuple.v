@@ -31,13 +31,11 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Arguments nprod_to_list [A n] _.
-Arguments nprod_of_list [A] _.
 Arguments nuncurry [A B n] _ _.
 Arguments ncurry [A B n] _.
 Arguments napply_discard _ [B] _ _.
 
 Definition Ttoseq := nprod_to_list.
-Definition Tofseq := nprod_of_list.
 
 Section NaryTuple.
 

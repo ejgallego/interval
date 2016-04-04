@@ -18,8 +18,8 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import Psatz.
+Require Import Reals Psatz.
+Require Import Coquelicot.
 Require Import Interval_missing.
 
 Local Open Scope R_scope.
@@ -74,23 +74,13 @@ Notation Tterm n x0 x := (Tcoeff n x0 * (x - x0)^n) (only parsing).
 
 Notation Tsum n x0 x := (sum_f_R0 (fun i => Tterm i x0 x) n) (only parsing).
 
-Lemma continuity_pt_eq (f g : R -> R) :
-  (forall x : R, f x = g x) ->
-  forall x, continuity_pt f x -> continuity_pt g x.
-Proof.
-intros Hfg x Hcf eps He.
-destruct (Hcf eps He) as [alp [Ha1 Ha2]].
-exists alp; split; [easy|intros y Hy].
-now do 2 rewrite <-Hfg; apply Ha2.
-Qed.
-
 Lemma continuity_pt_sum (f : nat -> R -> R) (x : R) :
   (forall k, (k <= n)%nat -> continuity_pt (f k) x) ->
   continuity_pt
   (fun y => (sum_f_R0 (fun n => f n y) n)) x.
 Proof.
 elim n.
-  now intro Hf; simpl; apply continuity_pt_eq with (f O); trivial; apply Hf.
+  now intro Hf; simpl; apply continuity_pt_ext with (f O); trivial; apply Hf.
 intros n' IHn Hf; simpl; apply continuity_pt_plus.
   apply IHn; intros k Hk; apply Hf; omega.
 now apply Hf.
