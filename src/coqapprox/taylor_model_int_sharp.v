@@ -213,35 +213,6 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
       error M >: toR_fun xf x - (PolR.horner tt Q (x - x0))%R].
 (** Otherwise, we could replace [toR_fun xf x] with [proj_val (xf (Xreal x))] *)
 
-Definition restriction (dom : R -> bool) (xf : ExtendedR -> ExtendedR) (x : ExtendedR) :=
-  match x, xf x with
-  | Xnan, _ | _, Xnan => Xnan
-  | Xreal x, Xreal y => if dom x then Xreal y else Xnan
-  end.
-
-Lemma defined_restrictionW dom xf x :
-  defined (restriction dom xf) x -> defined xf x.
-Proof. by rewrite /defined /=; case: xf. Qed.
-
-Lemma defined_restriction dom xf x :
-  defined (restriction dom xf) x = defined xf x && dom x.
-Proof. by rewrite /defined /=; case: xf =>//; case: dom. Qed.
-
-Lemma Xreal_toR_restr (dom : R -> bool) xf x :
-  defined xf x -> dom x -> Xreal (toR_fun (restriction dom xf) x) = xf (Xreal x).
-Proof.
-move=> H H'; rewrite Xreal_toR; last by rewrite defined_restriction; apply/andP.
-by rewrite /restriction H'; tac_def1 xf.
-Qed.
-
-Lemma toR_restr_toXreal (dom : R -> bool) f x :
-  toR_fun (restriction dom (toXreal_fun f)) x =
-  if dom x then f x else (* dummy *) some_real.
-Proof.
-rewrite /toR_fun /restriction /proj_fun /=.
-by case Dx : (dom x).
-Qed.
-
 Lemma TM_fun_eq f g X0 X TMf :
   (forall x, contains X (Xreal x) -> f (Xreal x) = g (Xreal x)) ->
   i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
@@ -721,15 +692,6 @@ apply: is_const_ext.
 move=> x _; exact: Hmain.
 Qed.
 
-Lemma contains_IIbnd (a b x : ExtendedR) (X : interval) :
-  contains X a -> contains X b -> contains (IIbnd a b) x ->
-  contains X x.
-Proof.
-case: X =>[//|l u]; rewrite /contains.
-by case: x =>[|x]; case: l =>[|l]; case: u =>[|u]; case: a =>[|a]; case: b =>[|b]//;
-  psatzl R.
-Qed.
-
 Lemma Rdiv_pos_compat (x y : R) :
   (0 <= x -> 0 < y -> 0 <= x / y)%Re.
 Proof.
@@ -738,10 +700,6 @@ rewrite /Rdiv -(@Rmult_0_l (/ y)).
 apply: Rmult_le_compat_r =>//.
 by left; apply: Rinv_0_lt_compat.
 Qed.
-
-Lemma Rlt_neq (x y : R) :
-  (x < y -> x <> y)%Re.
-Proof. by move=> Hxy Keq; rewrite Keq in Hxy; apply: (Rlt_irrefl _ Hxy). Qed.
 
 Lemma Rlt_neq_sym (x y : R) :
   (x < y -> y <> x)%Re.
@@ -775,88 +733,6 @@ rewrite <- (Rinv_r y); last by apply Rlt_neq_sym.
 rewrite (Rmult_comm y) -Rmult_assoc.
 apply: Rmult_le_compat_r =>//.
 by left.
-Qed.
-
-Lemma Rdiv_twice (x y z : R) :
-  y <> R0 -> z <> R0 -> (x / (y / z) = (x / y) * z)%Re.
-Proof. by move=> Zy Zz; field; split. Qed.
-
-Lemma Imask_IInan_r (Y X : I.type) :
-  not_empty (I.convert Y) ->
-  I.convert X = IInan -> I.convert (I.mask Y X) = IInan.
-Proof.
-move=> [v Hv] HX.
-apply contains_Xnan.
-have->: Xnan = Xmask (Xreal v) Xnan by [].
-apply: I.mask_correct =>//.
-by rewrite HX.
-Qed.
-
-Lemma Imask_IInan_l (Y X : I.type) :
-  not_empty (I.convert X) ->
-  I.convert Y = IInan -> I.convert (I.mask Y X) = IInan.
-Proof.
-move=> [v Hv] HX.
-apply contains_Xnan.
-have->: Xnan = Xmask Xnan (Xreal v) by [].
-apply: I.mask_correct =>//.
-by rewrite HX.
-Qed.
-
-Lemma anti_subset (X Y : interval) :
-  I.subset_ X Y -> I.subset_ Y X -> X = Y.
-Proof.
-case: X; case: Y =>// a b c d.
-case: a=>[|a]; case: b=>[|b]; case: c=>[|c]; case: d=>[|d] //= [H1 H2] [H3 H4];
-  rewrite /le_lower /le_upper /Xneg in H1 H2 H3 H4; intuition;
-  f_equal; by auto with real.
-Qed.
-
-Lemma Imask_contains (Y X : I.type) (y : ExtendedR) :
-  not_empty (I.convert X) ->
-  contains (I.convert Y) y -> contains (I.convert (I.mask Y X)) y.
-Proof.
-move=> [v Hv] Hy.
-have->: y = Xmask y (Xreal v) by [].
-exact: I.mask_correct.
-Qed.
-
-Lemma Xreal_Rinv r :
-  is_zero r = false ->
-  Xreal (/ r) = Xpower_int (Xreal r) (-1).
-Proof. by move=> Hr; rewrite /Xpower_int Hr /= Rmult_1_r. Qed.
-
-Lemma Xsub_0_r (x : ExtendedR) : Xsub x (Xreal 0) = x.
-Proof. by case: x =>//= r; rewrite Rminus_0_r. Qed.
-
-Lemma Rdiv_1_r (x : R) : (x / 1 = x)%Re.
-Proof. by rewrite /Rdiv Rinv_1 Rmult_1_r. Qed.
-
-Lemma Xdiv_1_r (x : ExtendedR) : (x / Xreal 1 = x)%XR.
-Proof.
-by case: x; f_equal =>//= r; rewrite zeroF; discrR; rewrite Rdiv_1_r.
-Qed.
-
-Definition is_not_empty X : bool :=
-  match Xlower X, Xupper X with
-  | Xnan, _ | _ , Xnan => true
-  | Xreal l, Xreal u => Rle_bool l u
-  end.
-
-Lemma not_emptyP X : reflect (not_empty X) (is_not_empty X).
-Proof.
-apply: introP; rewrite /is_not_empty /not_empty; case: X => [|[|l][|u]]//=;
-  move=> H.
-by exists R0; split.
-by exists R0; split.
-by exists u; split; try apply: Rle_refl.
-by exists l; split; try apply: Rle_refl.
-exists l; split; try exact: Rle_refl.
-by case: Rle_bool_spec H.
-move=> [v Hv].
-have Hlu := Rle_trans _ _ _ (proj1 Hv) (proj2 Hv).
-case: Rle_bool_spec H =>//.
-by move/Rlt_not_le.
 Qed.
 
 End Misc.
@@ -903,9 +779,6 @@ Hypothesis Hder_n : forall n x, X >: x -> ex_derive_n f0 n x.
 
 Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
 Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //. Qed.
-
-Lemma Poly_size' Y n : Pol.size (IP Y n) = n.+1.
-Proof. by rewrite (IPoly_size Y (*dummy*)0) Poly_size. Qed.
 
 Theorem i_validTM_TLrem (X0 : I.type) n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -964,36 +837,6 @@ Definition Rdelta (n : nat) (x0 x : R) :=
 (** We now define the derivative of [Rdelta n x0] *)
 Definition Rdelta' (n : nat) (x0 x : R) :=
   (Dn 1 x - (PolR.deriv tt (P x0 n)).[x - x0])%R.
-
-Lemma derivable_pt_lim_pow_sub (r s : R) (n : nat) :
-  derivable_pt_lim (fun x : R => (x - s) ^ n)%Re r (INR n * (r - s) ^ n.-1)%Re.
-Proof.
-have->: let expr := (INR n * (r - s) ^ n.-1)%Re in expr = (expr * 1)%Re.
-  by rewrite /= Rmult_1_r.
-apply: (derivable_pt_lim_comp (fun x => x - s)%Re (pow^~n) r).
-  have->: R1 = Rminus R1 R0 by ring.
-  apply: derivable_pt_lim_minus.
-    exact: derivable_pt_lim_id.
-  exact: derivable_pt_lim_const.
-exact: derivable_pt_lim_pow.
-Qed.
-
-Lemma bigXadd_P (m n : nat) (x0 s : R) :
-  X >: x0 ->
-  ex_derive_n f0 n x0 ->
-  m <= n.+1 ->
-  \big[Rplus/R0]_(0 <= i < m)
-    (PolR.nth (P x0 n) i * s ^ i)%R =
-  \big[Rplus/R0]_(0 <= i < m)
-    ((Dn i x0) / INR (fact i) * s ^ i)%R.
-Proof.
-move=> H0 Hxi0 Hmn; rewrite !big_mkord.
-elim/big_ind2: _ =>[//|x1 x2 y1 y2 Hx Hy|i _]; first by rewrite Hx // Hy.
-rewrite Poly_nth //.
-case: i => [i Hi] /=.
-rewrite -ltnS.
-exact: leq_trans Hi Hmn.
-Qed.
 
 Lemma bigXadd'_P (m n : nat) (x0 s : R) :
   X >: x0 ->
@@ -2300,17 +2143,6 @@ by rewrite /TM_sqrt;
   case: gt0; rewrite Pol.size_rec1.
 Qed.
 
-Lemma sqrt_Rcontains : forall X x, X >: x -> I.sqrt prec X >: toR_fun Xsqrt x.
-Proof.
-move=> X x Hx.
-pose xf := Xsqrt.
-case Df: (defined xf x); first by rewrite Xreal_toR //; apply: I.sqrt_correct.
-suff->: I.convert (I.sqrt prec X) = IInan by [].
-move/definedPf in Df.
-apply/contains_Xnan.
-by rewrite -Df; apply: I.sqrt_correct.
-Qed.
-
 Lemma toR_sqrt x : (0 <= x)%R -> sqrt x = toR_fun Xsqrt x.
 Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt negativeF. Qed.
 
@@ -2532,38 +2364,6 @@ by apply: R_inv_correct; apply: R_sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
-Inductive Xpower_int_spec (x : ExtendedR) (p : Z) : ExtendedR -> Type :=
-  | Powint_nan of x = Xnan :
-    Xpower_int_spec x p Xnan
-  | Powint_neg of x = Xreal 0 & (p < 0)%Z :
-    Xpower_int_spec x p Xnan
-  | Powint_zero of x = Xreal 0 & (p = 0)%Z :
-    Xpower_int_spec x p (Xreal 1)
-  | Powint_pos of x = Xreal 0 & (0 < p)%Z :
-    Xpower_int_spec x p (Xreal 0)
-  | Powint_nz (r : R) of x = Xreal r & (r <> 0%R) :
-    Xpower_int_spec x p (Xreal (powerRZ r p)).
-
-Lemma Xpower_intP (x : ExtendedR) (p : Z) : Xpower_int_spec x p (Xpower_int x p).
-Proof.
-case: x=>/=; first exact: Powint_nan.
-move=> r.
-case: (Req_EM_T r R0) =>[Hr|Hr].
-case: (Z_dec p 0) =>[[Hp|Hp]|Hp].
-- rewrite Hr zeroT //.
-  case: p Hp =>//.
-  move=> *; exact: Powint_neg.
-- case: p Hp =>//; move=> *.
-  rewrite Hr pow_ne_zero; last by zify; omega.
-  exact: Powint_pos.
-- case: p Hp =>//; move=> *; apply: Powint_zero; by rewrite // Hr.
-- case: p =>//; move=> *.
-  by rewrite -(powerRZ_O r); apply: Powint_nz.
-  exact: Powint_nz.
-  rewrite zeroF //.
-  exact: Powint_nz.
-Qed.
-
 Definition TM_power_int (p : Z) X0 X (n : nat) :=
   let P := (T_power_int prec p X0 n) in
   if p is Z.neg _ then
@@ -2580,13 +2380,6 @@ Proof.
 rewrite /TM_power_int.
 case: p => [|p|p]; last case: apart0;
   by rewrite (@Pol.size_dotmuldiv (n.+1)) ?(Pol.size_rec1, size_rec1up).
-Qed.
-
-Lemma def_power_int p x : (0 <= p)%Z \/ x <> R0 ->
-  defined (Xpower_int^~ p) x.
-Proof.
-rewrite /defined; case: Xpower_intP =>//.
-by case=>-> H; case; auto with real zarith.
 Qed.
 
 Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
@@ -3279,9 +3072,6 @@ split=>//.
   by rewrite Hy2.
 Qed.
 
-Lemma Xdiv_0_r x : Xdiv x (Xreal 0) = Xnan.
-Proof. by rewrite /Xdiv; case: x=>// r; rewrite zeroT. Qed.
-
 Lemma TM_div_mixed_r_aux0 M b X0 X f :
   contains (I.convert b) (Xreal R0) ->
   i_validTM (I.convert X0) (I.convert X) M f (* hyp maybe too strong *) ->
@@ -3303,21 +3093,6 @@ exists (PolR.map (Rdiv^~ 0)%R Q) =>/=.
 apply: Pol.map_correct =>//; first by rewrite /Rdiv Rmult_0_l.
 move=> *; exact: R_div_correct.
 by move=> x Hx; move/contains_Xnan: Lem ->.
-Qed.
-
-Lemma not_empty_Imid_ex2 (X : I.type) :
-  not_empty (I.convert X) ->
-  exists2 y : R, contains (I.convert (Imid X)) (Xreal y)
-                 & contains (I.convert X) (Xreal y).
-Proof.
-move=> H; move: (H) => [x Hx].
-have [H1 H2] := I.midpoint_correct X (ex_intro _ (Xreal x) Hx).
-suff [[|z] Hz1 Hz2] : exists2 z : ExtendedR,
-  contains (I.convert (Imid X)) z & contains (I.convert X) z.
-  exists R0; rewrite (proj1 (contains_Xnan _) Hz1) // || rewrite (proj1 (contains_Xnan _) Hz2) //.
-  by exists z.
-exists (I.convert_bound (I.midpoint X)) =>//.
-exact: Imid_contains.
 Qed.
 
 Lemma TM_div_mixed_r_correct M b X0 X f (y : R) :
@@ -4020,19 +3795,7 @@ by move=> *; f_equal; ring.
 Qed.
 *)
 
-Definition dom_comp dg df f r :=
-  df r &&
-  match f (Xreal r) with
-  | Xnan => false
-  | Xreal r => dg r
-  end.
-
 Definition IImidpoint xi := I.convert_bound (I.midpoint xi).
-
-Definition IImid xi := let m := IImidpoint xi in IIbnd m m.
-
-Lemma IImid_correct xi : I.convert (Imid xi) = IImid xi.
-Proof. by rewrite I.bnd_correct. Qed.
 
 Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
   f Xnan = Xnan ->

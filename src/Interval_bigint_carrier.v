@@ -150,7 +150,6 @@ Definition mantissa_zero_correct := refl_equal Z0.
 Definition ZtoM_correct := BigZ.spec_of_Z.
 Definition ZtoE_correct := BigZ.spec_of_Z.
 Definition exponent_neg_correct := BigZ.spec_opp.
-Definition exponent_abs_correct := BigZ.spec_abs.
 Definition exponent_add_correct := BigZ.spec_add.
 Definition exponent_sub_correct := BigZ.spec_sub.
 

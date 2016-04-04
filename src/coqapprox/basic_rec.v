@@ -43,12 +43,6 @@ Ltac iomega_le := (repeat move/leP=>?); iomega.
 
 Notation nth_defaults := set_nth_default. (* for backward compatibility *)
 
-Lemma head_dflt T (d1 d2 : T) (s : seq T) : 0 < size s -> head d1 s = head d2 s.
-Proof. by case: s. Qed.
-
-Lemma last_dflt T (d1 d2 : T) (s : seq T) : 0 < size s -> last d1 s = last d2 s.
-Proof. by case: s. Qed.
-
 Lemma behead_rcons (T : Type) (s : seq T) (x : T) :
   s <> [::] -> behead (rcons s x) = rcons (behead s) x.
 Proof. by case: s. Qed.
@@ -89,13 +83,6 @@ Definition rec1down n := loop1 n 1 a0 [:: a0].
 
 Definition rec1up n := rev (rec1down n).
 
-Lemma loop1SE n p a s :
-  loop1 n.+1 p a s = let c := F a p in loop1 n p.+1 c (c :: s).
-Proof. done. Qed.
-
-Lemma loop1E p a s : loop1 0 p a s = s.
-Proof. done. Qed.
-
 Lemma size_loop1 n p a s : size (loop1 n p a s) = n + size s.
 Proof. by elim: n p a s => [//|n IHn] *; rewrite IHn addSnnS. Qed.
 
@@ -128,19 +115,6 @@ Qed.
 Lemma head_rec1downS n :
   head d (rec1down n.+1) = F (head d (rec1down n)) n.+1.
 Proof. by rewrite head_loop1S ?addn1. Qed.
-
-Theorem head_rec1down_loop1 n :
-  head d (rec1down n) = head d (loop1 n 1 a0 [:: a0]).
-Proof. done. Qed.
-
-(*
-Let co k := nth d (rec1up k) k.
-Let co' k := last d (rec1up k).
-*)
-
-Lemma nth_rec1downS k :
-  nth d (rec1down k.+1) 0 = F (nth d (rec1down k) 0) k.+1.
-Proof. by rewrite !nth0 head_rec1downS. Qed.
 
 Lemma nth_rec1up_last k : nth d (rec1up k) k = last d (rec1up k).
 Proof. by rewrite (last_nth d) size_rec1up. Qed.
@@ -237,31 +211,10 @@ elim: n=> [//|n IH].
 by rewrite /rec1down; have [c ->] := loop1S_ex n 1 a0 [:: a0].
 Qed.
 
-Lemma rec1down_co0' n: last d (rec1down n) = a0.
-Proof. by rewrite (last_nth d) size_rec1down; apply: rec1down_co0. Qed.
-
 Lemma rec1up_co0 n : nth d (rec1up n) 0 = a0.
 Proof. by rewrite nth_rev size_rec1down // subn1 rec1down_co0. Qed.
 
-Lemma rec1up_co0' n : head d (rec1up n) = a0.
-Proof. by rewrite -(nth0 d); apply: rec1up_co0. Qed.
-
 End Defix1.
-
-Section Test1.
-
-Let n_rec (a0 : nat) (n : nat) := n.
-(** Eval compute in rec1up n_rec 17 5. *)
-
-Let fact_rec a n := (a * n)%N.
-Let fact n := rec1up fact_rec 1%N n.
-(** Eval compute in fact 8. *)
-
-Let factz_rec a n := (a * (Z_of_nat n))%Z.
-Definition factz n := rec1up factz_rec 1%Z n.
-(** Eval compute in factz 100. *)
-
-End Test1.
 
 Section GenDefix1.
 
@@ -305,14 +258,6 @@ Qed.
 
 Definition grec1up n := rev (grec1down n).
 
-Lemma gloop1SE n p a s :
-  gloop1 n.+1 p a s =
-  let r := G a p in let c := F a p.+1 in gloop1 n p.+1 c (r :: s).
-Proof. done. Qed.
-
-Lemma gloop1E p a s : gloop1 0 p a s = s.
-Proof. done. Qed.
-
 Lemma size_gloop1 n p a s : size (gloop1 n p a s) = n + size s.
 Proof. by elim: n p a s => [//|n IHn] *; rewrite IHn addSnnS. Qed.
 
@@ -332,21 +277,10 @@ Qed.
 Lemma size_grec1up n : size (grec1up n) = n.+1.
 Proof. by rewrite size_rev size_grec1down. Qed.
 
-Theorem grec1down_init n :
-  n < size init ->
-  grec1down n = rev (take n.+1 init).
-Proof. by rewrite /grec1down -subn_eq0; move/eqP ->. Qed.
-
 Theorem grec1up_init n :
   n < size init ->
   grec1up n = take n.+1 init.
 Proof. by rewrite /grec1up /grec1down -subn_eq0; move/eqP ->; rewrite revK. Qed.
-
-Theorem head_grec1down (d : T) (n : nat) :
-  size init <= n ->
-  head d (grec1down n) =
-  head d (gloop1 (n - size init).+1 (size init) a0 (rev init)).
-Proof. by move=> Hn; rewrite /grec1down subSn. Qed.
 
 Theorem last_grec1up (d : T) (n : nat) :
   size init <= n ->
@@ -488,13 +422,6 @@ Definition rec2down n :=
 
 Definition rec2up n := rev (rec2down n).
 
-Lemma loop2SE n p a b s :
-  loop2 n.+1 p a b s = let c := F a b p in loop2 n p.+1 b c (c :: s).
-Proof. done. Qed.
-
-Lemma loop2E p a b s : loop2 0 p a b s = s.
-Proof. done. Qed.
-
 Lemma size_loop2 n p a b s : size (loop2 n p a b s) = n + size s.
 Proof. by elim: n p a b s => [//|n IHn] *; rewrite IHn !addSnnS. Qed.
 
@@ -520,14 +447,6 @@ Lemma head_rec2downSS n :
   F (hb d (rec2down n.+1)) (head d (rec2down n.+1)) n.+2.
 Proof. by case: n => [//|n]; rewrite head_loop2S ?addn2. Qed.
 
-Lemma head_rec2down_loop2 n :
-  head d (rec2down n.+1) = head d (loop2 n 2 a0 a1 [:: a1; a0]).
-Proof. done. Qed.
-
-Lemma head_rec2down0 :
-  head d (rec2down 0) = a0.
-Proof. done. Qed.
-
 Lemma behead_loop2 n s a b p : behead (loop2 n.+1 p a b s) = loop2 n p a b s.
 Proof. by elim: n s a b p => [//|n IHn] s a b p; rewrite IHn. Qed.
 
@@ -544,48 +463,16 @@ Theorem last_rec2up k :
   last d (rec2up k.+1) = head d (loop2 k 2 a0 a1 [:: a1; a0]).
 Proof. by rewrite /rec2up /rec2down last_rev. Qed.
 
-Lemma nth_rec2downSS k :
-  nth d (rec2down k.+2) 0 =
-  F (nth d (rec2down k.+1) 1) (nth d (rec2down k.+1) 0) k.+2.
-Proof. by rewrite !nth0 !nth1 head_rec2downSS. Qed.
-
 Lemma nth_rec2downSS' k :
   nth d (rec2down k.+2) 0 =
   F (nth d (rec2down k) 0) (nth d (rec2down k.+1) 0) k.+2.
 Proof. by rewrite !nth0 -[rec2down k]behead_rec2down head_rec2downSS. Qed.
-
-Lemma nth_rec2upSS k :
-  nth d (rec2up k.+2) k.+2 =
-  F (nth d (rec2up k.+1) k) (nth d (rec2up k.+1) k.+1) k.+2.
-Proof.
-by rewrite /rec2up !nth_rev ?size_rec2down // !subnn subSnn nth_rec2downSS.
-Qed.
 
 Lemma nth_rec2upSS' k :
   nth d (rec2up k.+2) k.+2 =
   F (nth d (rec2up k) k) (nth d (rec2up k.+1) k.+1) k.+2.
 Proof.
 by rewrite /rec2up !nth_rev ?size_rec2down // !subnn nth_rec2downSS'.
-Qed.
-
-Lemma loop2S_ex n p a b s :
-  exists c, loop2 n.+1 p a b s = c :: (loop2 n p a b s).
-Proof.
-elim: n p a b s => [|n IH] p a b s.
-  simpl.
-  by exists (F a b p).
-remember (S n) as n'; simpl.
-case: (IH p.+1 b (F a b p) (F a b p :: s))=> [c Hc].
-rewrite Hc {}Heqn' /=.
-by exists c.
-Qed.
-
-Lemma behead_rec2down_again n :
-  behead (rec2down n.+1) = rec2down n.
-Proof.
-case: n => [//|n]; rewrite /rec2down.
-case: (loop2S_ex n 2 a0 a1 [:: a1; a0])=> [c Hc].
-by rewrite Hc.
 Qed.
 
 Lemma nth_rec2downD d1 p q n :
@@ -641,37 +528,6 @@ rewrite !size_rec2down /= !subSS.
 exact: nth_rec2down_indep.
 Qed.
 
-(** For the base case *)
-
-Lemma rec2down_co0 n : nth d (rec2down n) n = a0.
-Proof.
-elim: n => [//|n IH].
-case: n IH=> [//|n IH].
-rewrite /rec2down.
-have [c Hc] := loop2S_ex n 2 a0 a1 [:: a1; a0].
-by rewrite Hc.
-Qed.
-
-Lemma rec2up_co0 n : nth d (rec2up n) 0 = a0.
-Proof.
-rewrite nth_rev.
-  by rewrite size_rec2down subn1 /= rec2down_co0.
-by rewrite size_rec2down.
-Qed.
-
-Lemma rec2down_co1 n : nth d (rec2down n.+1) n = a1.
-Proof.
-elim: n => [//|n IH]; case: n IH=> [//|n IH]; rewrite /rec2down.
-by have [c ->] := loop2S_ex n.+1 2 a0 a1 [:: a1; a0].
-Qed.
-
-Lemma rec2up_co1 n : nth d (rec2up n.+1) 1 = a1.
-Proof.
-rewrite nth_rev.
-  by rewrite size_rec2down subn2 /= rec2down_co1.
-by rewrite size_rec2down.
-Qed.
-
 End Defix2.
 
 Section Test2.
@@ -695,12 +551,6 @@ Fixpoint catrev' T (s1 s2 : seq T) {struct s1} : seq T :=
   | x :: s1' => catrev' s1' (x :: s2)
   end.
 Definition rev' {T} (s : seq T) := nosimpl (catrev' s [::]).
-
-Lemma rev'E T : @rev' T =1 @rev T.
-Proof.
-rewrite /rev' /rev.
-move=> s; elim: s [::] =>[//|x s IHs] s' /=; by rewrite IHs.
-Qed.
 
 Definition hide_let (A B : Type) (a : A) (v : A -> B) := let x := a in v x.
 
@@ -743,272 +593,9 @@ Definition recNdown n :=
     then (nuncurry (loopN n'.+1 N) init (rev' (Ttoseq init)))
     else rev (take n.+1 (Ttoseq init)).
 
-Lemma recNdownE (n : nat) :
-  recNdown n =
-  if n>=N
-    then (nuncurry (loopN (n-N).+1 N) init (rev (Ttoseq init)))
-    else rev (take n.+1 (Ttoseq init)).
-Proof.
-rewrite /recNdown; case: (leqP N n) => H; first by rewrite rev'E subSn.
-by move: H; rewrite -subn_eq0; move/eqP->.
-Qed.
-
 Definition recNup n := rev (recNdown n).
 
-Lemma nuncurry_const (B : Type) (b : B) (n : nat) (d : T ^ n) :
-  (nuncurry (napply_discard T b n) d) = b.
-Proof. by elim: n d =>[//|n IHn] [d0 d]; rewrite /= IHn. Qed.
-
-Lemma nuncurry_ncurry (A B : Type) (n : nat) (f : A ^ n -> B) (x : A ^ n) :
-  nuncurry (ncurry f) x = f x.
-Proof. by elim: n f x =>[f[]//|n IHn f x]; case: x=>[x0 x]; rewrite /= IHn. Qed.
-
-Lemma loopNE (n p : nat) t s :
-  nuncurry (loopN n.+1 p) t s = let c := F1 t p in
-  nuncurry (loopN n p.+1) (slideN t c) (c :: s).
-Proof. by rewrite nuncurry_ncurry. Qed.
-
-Lemma size_loopN (n p : nat) t s :
-  size (nuncurry (loopN n p) t s) = n + size s.
-Proof.
-elim: n p t s => [//|n IHn] p t s; first by rewrite /= nuncurry_const.
-by rewrite nuncurry_ncurry IHn addSnnS.
-Qed.
-
-Lemma size_recNdown n : size (recNdown n) = n.+1.
-Proof.
-rewrite /recNdown.
-case E: (n.+1 - N) =>[|k].
-  rewrite size_rev size_take size_Tuple.
-  move/eqP: E; rewrite subn_eq0 leq_eqVlt.
-  case/orP; last by move->.
-  move/eqP->; rewrite ifF //.
-  by rewrite ltnn.
-rewrite nuncurry_ncurry size_loopN /= -addSnnS -E rev'E size_rev size_Tuple.
-by rewrite subnK // ltnW // -subn_gt0 E.
-Qed.
-
-Lemma size_recNup n : size (recNup n) = n.+1.
-Proof. by rewrite size_rev size_recNdown. Qed.
-
 End DefixN.
-
-Theorem recNdown_init (T : Type) (N : nat)
-  (init : T ^ N) (F : T ^^ N --> (nat -> T)) (F1 := nuncurry F) (n : nat) :
-  n < N ->
-  recNdown init F n = rev (take n.+1 (Ttoseq init)).
-Proof. by rewrite /recNdown -subn_eq0; move/eqP ->. Qed.
-
-Theorem recNup_init (T : Type) (N : nat)
-  (init : T ^ N) (F : T ^^ N --> (nat -> T)) (F1 := nuncurry F) (n : nat) :
-  n < N ->
-  recNup init F n = take n.+1 (Ttoseq init).
-Proof.
-Proof. by rewrite /recNup /recNdown -subn_eq0; move/eqP ->; rewrite revK. Qed.
-
-Lemma Ttoseq_slideN_aux (m : nat) (T : Type) (t : T ^ m) (c : T) :
-  Ttoseq (slideN_aux c t) = rcons (Ttoseq t) c.
-Proof.
-elim: m t c =>[//|m IHm] t c.
-case: t; fold nprod; move=> a t /=.
-case E: (slideN_aux c t)=>[a' t']; fold nprod in t'.
-by rewrite -IHm; congr cons; rewrite E.
-Qed.
-
-Lemma Ttoseq_slideN (m : nat) (T : Type) (t : T ^ m) (c : T) :
-  Ttoseq (slideN t c) = behead (rcons (Ttoseq t) c).
-Proof. by rewrite -Ttoseq_slideN_aux /slideN; case: slideN_aux. Qed.
-
-Lemma loopNS_ex (T : Type) (m : nat)
-  (F : T ^^ m --> (nat -> T)) (F1 := nuncurry F)
-  (n p : nat) (t : T ^ m) (s : seq T) :
-  exists c, nuncurry (loopN F n.+1 p) t s = c :: (nuncurry (loopN F n p) t s).
-Proof.
-elim: n p t s => [|n IH] p t s.
-  by exists (F1 t p); rewrite nuncurry_ncurry /hide_let !nuncurry_const.
-move En' : (S n) => n'; rewrite nuncurry_ncurry /hide_let.
-case: (IH p.+1 (slideN t (F1 t p)) (F1 t p :: s))=> [c Hc].
-by exists c; rewrite -{}En' Hc nuncurry_ncurry.
-Qed.
-
-(* Erik: We could also provide a lemma behead_loopN *)
-
-Lemma behead_recNdown (T : Type) (m : nat)
-  (init : T ^ m) (F : T ^^ m --> (nat -> T)) (F1 := nuncurry F) (n : nat) :
-  behead (recNdown init F n.+1) = recNdown init F n.
-Proof.
-pose s := rev (Ttoseq init).
-rewrite !recNdownE.
-case: (leqP m n) => H.
-  rewrite leqW // subSn //.
-  have [c Hc] := loopNS_ex F (n - m).+1 m init s.
-  by rewrite /= Hc /= nuncurry_ncurry /hide_let /=.
-rewrite leq_eqVlt in H; case/orP: H; [move/eqP|] => H.
-  rewrite -{4}H subnn /= ifT H //.
-  rewrite nuncurry_ncurry /hide_let /= nuncurry_const /=.
-  by rewrite take_oversize ?size_Tuple.
-rewrite ifF 1?leqNgt ?H //.
-by rewrite behead_rev_take // size_Tuple.
-Qed.
-
-Lemma nth_recNdownD (T : Type) (m : nat)
-  (init : T ^ m) (F : T ^^ m --> (nat -> T))
-  (d1 : T) (p q n : nat) :
-  nth d1 (recNdown init F (p+q+n)) (p+q) = nth d1 (recNdown init F (p+n)) p.
-Proof.
-elim: q=> [|q IHq]; first by rewrite addn0.
-rewrite !addnS addSn -nth_behead behead_recNdown; exact: IHq.
-Qed.
-
-Lemma nth_recNdownD_dflt2 (T : Type) (m : nat)
-  (init : T ^ m) (F : T ^^ m --> (nat -> T))
-  (d1 d2 : T) (p q n : nat) :
-  nth d1 (recNdown init F (p+q+n)) (p+q) = nth d2 (recNdown init F (p+n)) p.
-Proof.
-rewrite nth_recNdownD (nth_defaults d1 d2) // size_recNdown -addSn.
-exact: ltn_addr.
-Qed.
-
-Section ProofN.
-
-Variables (T : Type) (N : nat)
-  (init : T ^ N) (F : T ^^ N --> (nat -> T)).
-
-Theorem nth_recNdown_indep (d1 d2 : T) (m1 m2 n : nat) :
-  n <= m1 -> n <= m2 ->
-  nth d1 (recNdown init F m1) (m1 - n) = nth d2 (recNdown init F m2) (m2 - n).
-Proof.
-move=> h1 h2.
-have h1' := subnKC h1; have h2' := subnKC h2.
-case: (ltngtP m1 m2)=> Hm.
-- set p := m1 - n in h1' *.
-  rewrite -h1' addnC.
-  pose q := m2 - m1.
-  have Hpq : m2 - n = p + q.
-    rewrite /p /q in h2' *.
-    by rewrite addnC addnBA // subnK // ltnW.
-  rewrite Hpq.
-  have->: m2 = p + q + n.
-    by rewrite -Hpq subnK.
-  symmetry; exact: nth_recNdownD_dflt2.
-- set p := m2 - n in h2' *.
-  rewrite -h2' addnC.
-  pose q := m1 - m2.
-  have Hpq : m1 - n = p + q.
-    rewrite /p /q in h2' *.
-    by rewrite addnC addnBA // subnK // ltnW.
-  rewrite Hpq.
-  have->: m1 = p + q + n.
-    by rewrite -Hpq subnK.
-  exact: nth_recNdownD_dflt2.
-- rewrite Hm (nth_defaults d1 d2) // size_recNdown.
-  exact: leq_ltn_trans (@leq_subr n m2) _.
-Qed.
-
-Theorem nth_recNup_indep (d1 d2 : T) (m1 m2 n : nat) :
-  n <= m1 -> n <= m2 ->
-  nth d1 (recNup init F m1) n = nth d2 (recNup init F m2) n.
-Proof.
-move=> h1 h2; rewrite !nth_rev; try by rewrite size_recNdown.
-rewrite !size_recNdown !subSS; exact: nth_recNdown_indep.
-Qed.
-
-Lemma slideN_lastN (d : T) (t : T ^ N) (c : T) :
-  slideN t c = lastN d N (rev (c :: rev (Ttoseq t))).
-Proof.
-apply: Ttoseq_inj; rewrite Ttoseq_slideN.
-rewrite Ttoseq_lastN_drop size_rev /= size_rev size_Tuple //.
-rewrite subSn // subnn drop1 take_oversize -rev_rcons revK //.
-by rewrite size_behead size_rcons size_Tuple.
-Qed.
-
-Lemma head_loopN (d : T) (n p : nat) (s : seq T) :
-  init = lastN d N (rev s) ->
-  size s >= N ->
-  head d (nuncurry (loopN F n.+1 p) init s) =
-  nuncurry F
-    (lastN d N
-      (rev (nuncurry (loopN F n p) init s)))
-    (p+n).
-Proof.
-elim: n {1 5}n p init (erefl (p+n)) s =>[|n IHn] m q t Hqm s Ht Hs.
-  rewrite /= /hide_let !nuncurry_ncurry !nuncurry_const /=.
-  by rewrite Hqm Ht addn0.
-rewrite Hqm.
-move En1: n.+1 => n2.
-rewrite /= /hide_let !nuncurry_ncurry.
-set t' := slideN t _.
-rewrite -En1 -addSnnS (IHn n)//.
-- by rewrite /= /hide_let !nuncurry_ncurry.
-- rewrite /t' (slideN_lastN d) {2}Ht Ttoseq_lastN_rev ?size_rev // !revK.
-  apply: eq_from_Tnth => i; have Hi := ltn_ord i.
-  rewrite !(Tnth_nth d) !Ttoseq_lastN_drop; first last.
-  + rewrite size_rev /= size_take.
-    by case: ltnP =>[//|]; move=> _; apply: leq_trans Hs _.
-  + by rewrite size_rev /=; apply: leq_trans Hs _.
-  rewrite !nth_take // !nth_drop // !rev_cons !nth_rcons.
-  rewrite !size_rcons !size_rev !size_take_minn (minn_idPl Hs).
-  have->: N.+1 - N + i = i.+1 by rewrite subSn ?subnn.
-  have H1: size s - ((size s).+1 - N + i) = N - i.+1.
-    rewrite subSn // addSnnS addnC addnBA // addnC -subnBA // subKn //.
-    apply: leq_trans _ Hs; exact: leq_subr.
-  rewrite -subn_gt0 -[in RHS]subn_gt0 H1.
-  case: ltnP => H0.
-    rewrite !nth_rev ?nth_take.
-    - by rewrite size_take_minn (minn_idPl Hs) [in RHS]subnS H1 subnS.
-    - rewrite size_take_minn (minn_idPl Hs) subnS.
-      apply: leq_ltn_trans (@leq_pred _) _.
-      rewrite subnSK //; exact: leq_subr.
-    - by rewrite -subn_gt0 H1.
-    by rewrite size_take_minn (minn_idPl Hs) -subn_gt0.
-  have Htr : i < size s by apply: leq_trans Hi Hs.
-  case: i Hi H1 H0 Htr =>/= i _ Hi H1 H0 Htr.
-  case E : (i.+1 == N); [rewrite ifT|rewrite ifF] =>//.
-    apply/eqP; move/eqP: E <-.
-    rewrite subSn ?addSn // addnC addnBA // addnC subnS -subnBA //.
-    rewrite subnn subn0 prednK //; exact: leq_ltn_trans _ Htr.
-  apply/eqP; move/eqP in E.
-  move=> Keq; apply: E.
-  rewrite addnC addnBA 1?ltnW // addnC addSnnS -addnBA in Keq.
-    rewrite -{2}[size s]addn0 in Keq.
-    move/eqP: Keq; rewrite eqn_add2l; move/eqP; rewrite -{2}[N]addn0 => <-.
-    by rewrite subnKC // -subn_eq0 -leqn0.
-  by rewrite -subn_eq0 -leqn0.
-by rewrite /= ltnW.
-Qed.
-
-End ProofN.
-
-Section ProofN'.
-
-Theorem recNdown_correct T (N : nat) (init : T ^ N) (F : T ^^ N --> (nat -> T))
-  (d : T) (n : nat) :
-  N <= n ->
-  head d (recNdown init F n) =
-  nuncurry F (lastN d N (rev (recNdown init F n.-1))) n.
-Proof.
-case: N init F =>[//|N'] init' F'.
-  rewrite /recNdown /loopN head_loopN //= rev'E revK; exact: Tuple0.
-move=> H.
-rewrite /recNdown !take_oversize; first last.
-- by rewrite size_Tuple leqW.
-- by rewrite size_Tuple; apply: leq_trans _ (leqSpred n).
-rewrite (ltn_predK H) !subSn // ?leqW //.
-rewrite head_loopN 1?addnC ?addSn ?(subnK H) rev'E //; first last.
-- by rewrite size_rev size_Tuple.
-- by rewrite revK lastN_Ttoseq.
-apply (f_equal (fun v => nuncurry F' (lastN d N'.+1 (rev v)) n)).
-case: (n - N'.+1) =>[|//]; by rewrite nuncurry_const.
-Qed.
-
-Theorem recNup_correct T (N : nat) (init : T ^ N) (F : T ^^ N --> (nat -> T))
-  (d : T) (n : nat) :
-  N <= n ->
-  last d (recNup init F n) =
-  nuncurry F (lastN d N (recNup init F n.-1)) n.
-Proof. by move=> H; rewrite -recNdown_correct // /recNup last_rev. Qed.
-
-End ProofN'.
 
 Arguments recNup [T] _ _ _ _.
 Arguments recNdown [T] _ _ _ _.
@@ -1023,39 +610,6 @@ Ltac exactN f := let g :=
   in f in let h :=
   eval lazy beta delta[hide_let] in g
   in exact h.
-
-Section TestN.
-
-Let F (a b : Z) (_ : nat) := (a + b)%Z.
-Let Fib2 n := rec2up F 0%Z 1%Z n.
-(*
-Eval vm_compute in Fib2 0.
-Eval vm_compute in Fib2 10.
-*)
-
-Let FibN := recNup 2 [Tuple 0%Z; 1%Z] F.
-Let FibNc := ncurry (recNup 2) 0%Z 1%Z F.
-Let FibNs := recNup 2 [Tuple of [:: 0%Z; 1%Z]] F.
-(*
-Eval vm_compute in FibN 0.
-Eval vm_compute in FibN 10.
-Eval vm_compute in FibNc 0.
-Eval vm_compute in FibNc 10.
-Eval vm_compute in FibNs 0.
-Eval vm_compute in FibNs 10.
-*)
-
-Let FibN' : nat -> seq Z. exactN FibN. Defined.
-Let FibNc' : nat -> seq Z. exactN FibNc. Defined.
-Let FibNs' : nat -> seq Z. exactN FibNs. Defined.
-(*
-Print FibN'. Print FibNc'. Print FibNs'.
-Time Eval compute in (fun _ => true) (last Z0 (Fib2 1000)).
-Time Eval compute in (fun _ => true) (last Z0 (FibN' 1000)).
-*)
-
-End TestN.
-
 
 Section RecZ.
 

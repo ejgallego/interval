@@ -113,23 +113,6 @@ Definition subset xi yi :=
   | _, _ => false
   end.
 
-Definition overlap xi yi :=
-  match xi, yi with
-  | Ibnd xl xu, Ibnd yl yu =>
-    match F.cmp xl yl with
-    | Xund =>
-      match F.real xl, F.real yl with
-      | false, true => match F.cmp xu yl with Xlt => false | _ => true end
-      | true, false => match F.cmp yu xl with Xlt => false | _ => true end
-      | _, _ => true
-      end
-    | Xlt => match F.cmp xu yl with Xlt => false | _ => true end
-    | _ => match F.cmp yu xl with Xlt => false | _ => true end
-    end
-  | Inan, _ => true
-  | _, Inan => true
-  end.
-
 Definition join xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
@@ -480,21 +463,6 @@ now rewrite F.nan_correct.
 easy.
 Qed.
 
-Lemma Fcmp_le_mixed :
-  forall xl yu,
-  F.cmp xl yu <> Xgt -> le_mixed (F.toX xl) (F.toX yu).
-Proof.
-intros.
-rewrite F.cmp_correct in H.
-xreal_tac yu.
-xreal_tac xl.
-refine (Rnot_lt_le _ _ _).
-intro H0.
-simpl in H.
-elim H.
-now rewrite Rcompare_Gt.
-Qed.
-
 Theorem subset_correct :
   forall xi yi : type,
   subset xi yi = true -> Interval_interval.subset (convert xi) (convert yi).
@@ -534,22 +502,6 @@ destruct (Rcompare_spec xur yur) ; intros.
 now left.
 now right.
 easy.
-Qed.
-
-Lemma Xmin_Rle : forall a b c,
-  Xreal c = Xmin (Xreal a) (Xreal b) -> (c <= a /\ c <= b)%R.
-Proof.
-unfold Xmin; intros a b c H.
-injection H; intros H'; rewrite H'.
-now split; [apply Rmin_l|apply Rmin_r].
-Qed.
-
-Lemma Xmax_Rle : forall a b c,
-  Xreal c = Xmax (Xreal a) (Xreal b) -> (a <= c /\ b <= c)%R.
-Proof.
-unfold Xmax; intros a b c H.
-injection H; intros H'; rewrite H'.
-now split; [apply Rmax_l|apply Rmax_r].
 Qed.
 
 Lemma join_correct :
@@ -1219,48 +1171,6 @@ split ;
   try apply Ropp_le_contravar ; assumption.
 Qed.
 
-Lemma is_zero_float :
-  forall r s m e,
-  is_zero (FtoR r s m e) = false.
-Proof.
-intros.
-destruct (is_zero_spec (FtoR r s m e)).
-destruct s.
-elim Rlt_not_eq with (2 := H).
-apply FtoR_Rneg.
-elim Rgt_not_eq with (2 := H).
-apply FtoR_Rpos.
-apply refl_equal.
-Qed.
-
-Lemma is_positive_float :
-  forall r s m e,
-  is_positive (FtoR r s m e) = negb s.
-Proof.
-intros.
-destruct (is_positive_spec (FtoR r s m e)) ;
-  destruct s ; try apply refl_equal.
-elim Rlt_not_ge with (1 := H).
-left.
-apply FtoR_Rneg.
-elim Rgt_not_le with (2 := H).
-apply FtoR_Rpos.
-Qed.
-
-Lemma is_negative_float :
-  forall r s m e,
-  is_negative (FtoR r s m e) = s.
-Proof.
-intros.
-destruct (is_negative_spec (FtoR r s m e)) ;
-  destruct s ; try apply refl_equal.
-elim Rlt_not_ge with (1 := H).
-left.
-apply FtoR_Rpos.
-elim Rgt_not_le with (2 := H).
-apply FtoR_Rneg.
-Qed.
-
 Theorem sqrt_correct :
   forall prec, extension Xsqrt (sqrt prec).
 Proof.
@@ -1671,19 +1581,6 @@ intros ru Hu rl Hl.
 case Rcompare_spec ; simpl ; intros H1 ;
   case Rcompare_spec ; simpl ; intros H2 ;
     try apply Hz ; eapply Hd ; eassumption.
-Qed.
-
-Theorem sqr_ge_0' :
-  forall prec xi, (0 <= proj_val (F.toX (lower (sqr prec xi))))%R.
-Proof.
-intros prec [|xl xu].
-simpl.
-rewrite F.nan_correct.
-apply Rle_refl.
-refine (_ (sqr_ge_0 prec (Ibnd xl xu) _)).
-2: discriminate.
-simpl.
-now case F.toX.
 Qed.
 
 Lemma Fpower_pos_up_correct :

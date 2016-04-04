@@ -44,22 +44,6 @@ now rewrite Z2R_mult.
 now intros p.
 Qed.
 
-Lemma Zpos_not_R0 :
-  forall n,
-  Z2R (Zpos n) <> R0.
-Proof.
-intros n.
-now apply (Z2R_neq _ 0).
-Qed.
-
-Lemma Zpos_Rpos :
-  forall n,
-  (0 < Z2R (Zpos n))%R.
-Proof.
-intros n.
-now apply (Z2R_lt 0 _).
-Qed.
-
 Lemma FtoR_Rpos :
   forall beta m e,
   (0 < FtoR beta false m e)%R.
@@ -554,33 +538,13 @@ Definition xround beta mode prec x :=
   end.
 
 Instance zpos_gt_0 : forall prec, Prec_gt_0 (Zpos prec).
+Proof.
 easy.
 Qed.
 
 Instance valid_rnd_of_mode : forall mode, Valid_rnd (rnd_of_mode mode).
+Proof.
 destruct mode ; simpl ; auto with typeclass_instances.
-Qed.
-
-Lemma round_monotone :
-  forall beta mode prec x y,
-  match Xcmp (xround beta mode prec x) (xround beta mode prec y) with
-  | Xeq => True
-  | c => Xcmp x y = c
-  end.
-Proof with auto with typeclass_instances.
-intros beta mode prec [|x] [|y] ; try easy.
-simpl.
-case Rcompare_spec ; intros H1 ; try exact I ;
-  case Rcompare_spec ; try easy ; intros H2 ;
-  elim Rlt_not_le with (1 := H1) ; clear -H2.
-rewrite H2.
-apply Rle_refl.
-apply round_le...
-now apply Rlt_le.
-apply round_le...
-now apply Rlt_le.
-rewrite H2.
-apply Rle_refl.
 Qed.
 
 Definition normalize beta prec m e :=

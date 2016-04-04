@@ -93,17 +93,6 @@ Qed.
 Lemma zeroT r : (r = 0)%Re -> is_zero r = true.
 Proof. by move ->; rewrite is_zero_correct_zero. Qed.
 
-Lemma is_zero_opp x : is_zero (- x)%R = is_zero x.
-Proof.
-do 2![case: is_zero_spec] =>// A B; exfalso.
-rewrite -Ropp_0 in B; move/Ropp_eq_compat in B; rewrite !Ropp_involutive in B.
-by rewrite B in A.
-by rewrite A Ropp_0 in B.
-Qed.
-
-Lemma fact_zeroF i : is_zero (INR (fact i)) = false.
-Proof. by apply: zeroF=> Hri; apply: (fact_neq_0 i); apply: INR_eq. Qed.
-
 Lemma positiveT x : (0 < x)%Re -> is_positive x = true.
 Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
 
@@ -140,92 +129,13 @@ Canonical Structure Xreal_eqMixin := EqMixin eqXP.
 Canonical Structure Xreal_eqType := Eval hnf in
   EqType ExtendedR Xreal_eqMixin.
 
-Lemma Xreal_irrelevance (x y : ExtendedR) (E E' : x = y) : E = E'.
-Proof. exact: eq_irrelevance. Qed.
-
-Lemma XaddA : associative Xadd.
-Proof. by move=> *; rewrite Xadd_assoc. Qed.
-
-Lemma XaddC : commutative Xadd.
-Proof. by move=> *; rewrite Xadd_comm. Qed.
-
 Lemma Xadd0 : left_id (Xreal 0%Re) Xadd.
 Proof. by case=> // r; rewrite /= Rplus_0_l. Qed.
-
-Lemma X0add : right_id (Xreal 0%Re) Xadd.
-Proof. by case=> // r; rewrite /= Rplus_0_r. Qed.
-
-Lemma XmulA : associative Xmul.
-Proof. by move=> *; rewrite Xmul_assoc. Qed.
 
 Lemma Xmul0 : left_id (Xreal 1%Re) Xmul.
 Proof. by case=> // r; rewrite /= Rmult_1_l. Qed.
 
-Lemma X0mul : right_id (Xreal 1%Re) Xmul.
-Proof. by case=> // r; rewrite /= Rmult_1_r. Qed.
-
-Lemma left_distr_Xmul_Xadd : left_distributive Xmul Xadd.
-Proof. by case=> [|x]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
-
-Lemma right_distr_Rmult_Rplus : right_distributive Xmul Xadd.
-Proof. by case=> [|x]; case=> [|ry]; case=> [|rz] //=; congr Xreal; ring. Qed.
-
-Lemma XmulC : commutative Xmul.
-Proof. by move=> *; rewrite Xmul_comm. Qed.
-
-(*
-Import Monoid.
-Canonical Xadd_monoid := Law XaddA Xadd0 X0add.
-Canonical Xadd_comoid := ComLaw XaddC.
-
-Canonical Xmul_monoid := Law XmulA Xmul0 X0mul.
-Canonical Xmul_comoid := ComLaw XmulC.
-*)
-
-Lemma ordinal1 : all_equal_to (ord0 : 'I_1).
-Proof. by case=> m Hm; apply: ord_inj; apply/eqP; rewrite -leqn0. Qed.
-
 Local Open Scope XR_scope.
-
-Lemma Xderive_pt_Xpow n (f : ExtendedR -> ExtendedR) (f' x : ExtendedR) :
-  Xderive_pt f x f' ->
-  Xderive_pt (fun x0 : ExtendedR => (f x0) ^ n) x
- ((Xreal (INR n)) * (f x) ^ n.-1 * f').
-Proof.
-move=> Hf; xtotal.
-  by move: X0; rewrite Xpow_idem Xpow_Xreal.
-move=> v.
-apply (derivable_pt_lim_eq_locally
-  (Ranalysis1.comp ((fun n r => pow r n) n) (proj_fun v f))).
-  apply: locally_true_imp (derivable_imp_defined_any _ _ _ _ X Hf).
-  move=> x [w Hw].
-  by rewrite /Ranalysis1.comp /proj_fun Hw Xpow_idem Xpow_Xreal.
-apply: derivable_pt_lim_comp=>//; rewrite /proj_fun X.
-have Heq : (r1 ^ Peano.pred n = r4)%Re.
-  by rewrite Xpow_idem Xpow_Xreal in X2; case: X2 =><-.
-by rewrite -Heq; apply: (derivable_pt_lim_pow r1 n).
-Qed.
-
-Lemma Xderive_pt_mulXmask r x :
-  Xderive_pt
-  (fun x0 => ((Xreal r) * Xmask (Xreal 1) x0)%XR) x
-  (Xmask (Xreal 0) x).
-Proof.
-case Cx: x => [|rx] //.
-rewrite /Xderive_pt /(Xmask (Xreal 0)) /= => v.
-by rewrite /proj_fun /=; apply: derivable_pt_lim_const.
-Qed.
-
-(* Erik: This lemma should not be used, put all lemmas in Xreal form instead *)
-Lemma not_Xnan_Xreal_fun T F :
-  (forall i : T, F i <> Xnan) ->
-  exists g, forall i : T, F i = Xreal (g i).
-Proof.
-move=> HF.
-exists (fun (i : T) => match (F i) with | Xnan => R0 | Xreal ri => ri end).
-move=> i.
-by case: (F i) (HF i).
-Qed.
 
 Lemma sum_f_to_big n (f : nat -> R) :
   sum_f_R0 f n = \big[Rplus/0%R]_(0 <= i < n.+1) f i.
@@ -237,9 +147,3 @@ Qed.
 Lemma contains_Xnan (X : interval) :
   contains X Xnan <-> X = Interval_interval.Inan.
 Proof. by case: X. Qed.
-
-Lemma Xsub_Xadd_distr (a b c : ExtendedR) : (a - (b + c) = a - b - c)%XR.
-Proof. by case: a; case: b; case: c =>// a b c /=; congr Xreal; ring. Qed.
-
-Lemma Xinv_1 : Xinv (Xreal 1%Re)= Xreal 1%Re.
-Proof. by rewrite /= zeroF ?Rinv_1 //; apply: R1_neq_R0. Qed.

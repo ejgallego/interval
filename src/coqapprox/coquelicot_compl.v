@@ -146,29 +146,6 @@ Qed.
 
 End MissingContinuity.
 
-Section MissingIntegrability.
-
-Lemma ex_RInt_Rabs f a b : ex_RInt f a b -> ex_RInt (fun x => Rabs (f x)) a b.
-move => Hintfx.
-by apply: ex_RInt_norm.
-Qed.
-
-End MissingIntegrability.
-
-
-Section Integrability.
-
-Variables (V : CompleteNormedModule R_AbsRing) (g : R -> V) (a b c d : R).
-
-Lemma ex_RInt_Chasles_sub :
- a <= b -> b <= c -> c <= d -> ex_RInt g a d -> ex_RInt g b c.
-Proof.
-move=> leab lebc lecd hiad; apply: (ex_RInt_Chasles_1 _ _ _ d) => //.
-by apply: (ex_RInt_Chasles_2 _ a) => //; split=> //; apply: (Rle_trans _ c).
-Qed.
-
-End Integrability.
-
 (* Below : a couple of helper lemmas about maj/min of integrals *)
 (* We should probably also add the more general case of ra <= rb *)
 Section IntegralEstimation.
@@ -245,13 +222,6 @@ Lemma ex_derive_nSS f n :
 Proof.
 case: n => [//|n].
 by rewrite /ex_derive_n Derive_nS.
-Qed.
-
-Lemma is_derive_nSS f n l :
-  is_derive_n f n.+2 l = is_derive_n (Derive f) n.+1 l.
-Proof.
-case: n => [//|n].
-by rewrite /is_derive_n Derive_nS.
 Qed.
 
 Lemma ex_derive_n_is_derive_n :
@@ -441,12 +411,6 @@ replace (a - (INR n + 1)) with (a - 1 - INR n) by ring.
 rewrite (eq_bigr (P := xpredT) (fun i2 : 'I_n => a - 1 - INR i2)); last first.
 move=> [i Hi] _; rewrite plus_INR /=; ring.
 exact: IHn.
-Qed.
-
-Lemma ex_derive_n_Rpower a n x :
-  0 < x -> ex_derive_n (Rpower ^~ a) n x.
-Proof.
-by move=> Hx; apply: ex_derive_n_is_derive_n (is_derive_n_Rpower n a x Hx).
 Qed.
 
 Lemma is_derive_n_inv n x :

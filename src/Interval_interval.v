@@ -18,7 +18,6 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Bool Reals.
-Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -59,6 +58,7 @@ Definition contains i v :=
 
 Lemma contains_connected :
   forall xi, connected (fun x => contains xi (Xreal x)).
+Proof.
 intros [|l u] a b Ha Hb x Hx.
 exact I.
 split.
@@ -83,17 +83,10 @@ Definition le_upper x y :=
 Definition le_lower x y :=
   le_upper (Xneg y) (Xneg x).
 
-(* There are probably more instances missing. *)
-
-Lemma le_lower_refl (r : R) : le_lower (Xreal r) (Xreal r).
-Proof. by rewrite /=; apply: Rle_refl. Qed.
-
-Lemma le_upper_refl (r : R) : le_upper (Xreal r) (Xreal r).
-Proof. by rewrite /=; apply: Rle_refl. Qed.
-
 Lemma le_upper_trans :
   forall x y z,
   le_upper x y -> le_upper y z -> le_upper x z.
+Proof.
 intros x y z.
 case z.
 split.
@@ -113,6 +106,7 @@ Qed.
 Lemma le_lower_trans :
   forall x y z,
   le_lower x y -> le_lower y z -> le_lower x z.
+Proof.
 unfold le_lower.
 intros.
 eapply le_upper_trans ; eassumption.
@@ -122,6 +116,7 @@ Lemma contains_le :
   forall xl xu v,
   contains (Ibnd xl xu) v ->
   le_lower xl v /\ le_upper v xu.
+Proof.
 intros xl xu v.
 case v.
 intro.
@@ -140,6 +135,7 @@ Lemma le_contains :
   forall xl xu v,
   le_lower xl (Xreal v) -> le_upper (Xreal v) xu ->
   contains (Ibnd xl xu) (Xreal v).
+Proof.
 intros xl xu v.
 case xl.
 intros _ Hu.
@@ -164,6 +160,7 @@ Theorem subset_contains :
   forall v,
   contains xi v ->
   contains yi v.
+Proof.
 intros xi yi.
 case yi.
 intros _ v _.
@@ -189,23 +186,12 @@ Qed.
 Definition domain P b :=
   forall x, contains b x -> P x.
 
-Theorem subset_domain :
-  forall P yi,
-  domain P yi ->
-  forall xi,
-  subset xi yi ->
-  domain P xi.
-intros P yi Hp xi Hx x H.
-apply Hp.
-apply subset_contains with (1 := Hx).
-exact H.
-Qed.
-
 Theorem subset_subset :
   forall xi yi zi,
   subset xi yi ->
   subset yi zi ->
   subset xi zi.
+Proof.
 intros xi yi zi.
 case zi.
 case xi ; intros ; exact I.
@@ -231,6 +217,7 @@ Theorem bisect :
   domain P (Ibnd xl xm) ->
   domain P (Ibnd xm xu) ->
   domain P (Ibnd xl xu).
+Proof.
 intros P xl xm xu Hl Hu [|x] H.
 elim H.
 case_eq xm ; intros.
@@ -253,49 +240,12 @@ auto with real.
 exact (proj2 (contains_le _ _ _ H)).
 Qed.
 
-Definition le_mixed x y :=
-  match y with
-  | Xnan => True
-  | Xreal yr =>
-    match x with
-    | Xnan => True
-    | Xreal xr => Rle xr yr
-    end
-  end.
-
-Lemma le_mixed_lower :
-  forall xl yr,
-  le_mixed xl (Xreal yr) -> le_lower xl (Xreal yr).
-intros [|xr] yr H.
-exact H.
-exact (Ropp_le_contravar _ _ H).
-Qed.
-
-Lemma le_mixed_upper :
-  forall xr yu,
-  le_mixed (Xreal xr) yu -> le_upper (Xreal xr) yu.
-intros xr [|yr] H ; exact H.
-Qed.
-
 Definition not_empty xi :=
   exists v, contains xi (Xreal v).
 
-Lemma le_mixed_not_empty :
-  forall x y, le_mixed x y ->
-  not_empty (Ibnd x y).
-intros [|xr] [|yr] Hl.
-exists R0. now split.
-exists yr. repeat split.
-apply Rle_refl.
-exists xr. repeat split.
-apply Rle_refl.
-exists xr. split.
-apply Rle_refl.
-exact Hl.
-Qed.
-
 Lemma contains_minf_not_empty :
   forall xu, not_empty (Ibnd Xnan xu).
+Proof.
 intros [|xr].
 exists R0. now split.
 exists xr. repeat split.
@@ -304,6 +254,7 @@ Qed.
 
 Lemma contains_pinf_not_empty :
   forall xl, not_empty (Ibnd xl Xnan).
+Proof.
 intros [|xr].
 exists R0. now split.
 exists xr. repeat split.
@@ -312,6 +263,7 @@ Qed.
 
 Lemma contains_not_empty :
   forall x xi, contains xi x -> not_empty xi.
+Proof.
 intros x [|[u _|l [_|u]]].
 intros _.
 exists R0.
@@ -330,6 +282,7 @@ Lemma contains_lower :
   forall l u x,
   contains (Ibnd (Xreal l) u) x ->
   contains (Ibnd (Xreal l) u) (Xreal l).
+Proof.
 intros.
 split.
 apply Rle_refl.
@@ -344,6 +297,7 @@ Lemma contains_upper :
   forall l u x,
   contains (Ibnd l (Xreal u)) x ->
   contains (Ibnd l (Xreal u)) (Xreal u).
+Proof.
 intros.
 split.
 destruct x as [|x].
@@ -353,126 +307,6 @@ exact I.
 apply Rle_trans with (1 := proj1 H) (2 := proj2 H).
 apply Rle_refl.
 Qed.
-
-(*
-Lemma contains_not_empty_2 :
-  forall xi x, contains xi x ->
- (exists v, forall y, contains xi y -> y = Xreal v) \/
- (exists u, exists v, (u < v)%R /\ subset (Ibnd (Xreal u) (Xreal v)) xi).
-intros [|[u|l [|u]]] x H.
-(* NaI *)
-right.
-exists R0.
-exists R1.
-exact (conj Rlt_0_1 I).
-(* (-inf,?] *)
-right.
-destruct (contains_minf_not_empty u) as (v, Hv).
-exists (v + -1)%R.
-exists v.
-split.
-pattern v at 2 ; replace v with (v + -1 + 1)%R by ring.
-apply Rlt_plus_1.
-exact Hv.
-(* [l,+inf) *)
-right.
-destruct (contains_pinf_not_empty (Xreal l)) as (v, Hv).
-exists v.
-exists (v + 1)%R.
-split.
-apply Rlt_plus_1.
-split.
-exact (Ropp_le_contravar _ _ (proj1 Hv)).
-exact I.
-(* [l,u] *)
-destruct (contains_not_empty _ _ H) as (w, Hw).
-destruct (Rle_lt_or_eq_dec _ _ (Rle_trans _ _ _ (proj1 Hw) (proj2 Hw))) as [Hr|Hr].
-clear -Hr.
-right.
-exists l.
-exists u.
-split.
-exact Hr.
-split ; exact (Rle_refl _).
-left.
-exists l.
-intros [|y] Hy.
-elim Hy.
-apply f_equal.
-apply Rle_antisym.
-rewrite <- Hr in Hy.
-exact (proj2 Hy).
-exact (proj1 Hy).
-Qed.
-*)
-
-Definition overlap xi yi :=
-  match xi, yi with
-  | Ibnd xl xu, Ibnd yl yu =>
-    (le_lower xl yl /\ le_mixed yl xu /\ le_mixed yl yu) \/
-    (le_lower yl xl /\ le_mixed xl yu /\ le_mixed xl xu)
-  | Ibnd xl xu, Inan => le_mixed xl xu
-  | Inan, Ibnd yl yu => le_mixed yl yu
-  | Inan, Inan => True
-  end.
-
-Lemma overlap_contains_aux :
-  forall xl xu yl yu,
-  le_lower xl yl -> le_mixed yl xu -> le_mixed yl yu ->
-  exists v, contains (Ibnd xl xu) (Xreal v) /\ contains (Ibnd yl yu) (Xreal v).
-intros xl xu yl yu Ho1 Ho2 Ho3.
-destruct yl as [|yr].
-destruct xl. 2: elim Ho1.
-destruct xu as [|xr].
-destruct (contains_minf_not_empty yu) as (yr, Hy).
-exists yr.
-split ; [ now split | exact Hy ].
-destruct yu as [|yr].
-exists xr. repeat split.
-apply Rle_refl.
-exists (Rmin xr yr).
-repeat split.
-apply Rmin_l.
-apply Rmin_r.
-exists yr.
-split.
-apply le_contains.
-exact Ho1.
-exact Ho2.
-split.
-apply Rle_refl.
-exact Ho3.
-Qed.
-
-Theorem overlap_contains :
-  forall xi yi,
-  overlap xi yi ->
-  exists v,
-  contains xi (Xreal v) /\ contains yi (Xreal v).
-intros [|xl xu] [|yl yu] Ho.
-exists R0. now split.
-destruct (le_mixed_not_empty _ _ Ho) as (v, Hv).
-exists v. now split.
-destruct (le_mixed_not_empty _ _ Ho) as (v, Hv).
-exists v. now split.
-destruct Ho as [(Ho1,(Ho2,Ho3))|(Ho1,(Ho2,Ho3))].
-exact (overlap_contains_aux _ _ _ _ Ho1 Ho2 Ho3).
-destruct (overlap_contains_aux _ _ _ _ Ho1 Ho2 Ho3) as (v, (H1, H2)).
-exists v. split ; assumption.
-Qed.
-
-Definition interval_extension
-  (f : ExtendedR -> ExtendedR)
-  (fi : interval -> interval) :=
-  forall b : interval, forall x : ExtendedR,
-  contains b x -> contains (fi b) (f x).
-
-Definition interval_extension_2
-  (f : ExtendedR -> ExtendedR -> ExtendedR)
-  (fi : interval -> interval -> interval) :=
-  forall ix iy : interval, forall x y : ExtendedR,
-  contains ix x -> contains iy y ->
-  contains (fi ix iy) (f x y).
 
 Module Type IntervalOps.
 
@@ -497,7 +331,6 @@ Parameter nai_correct :
 Notation subset_ := subset.
 
 Parameter subset : type -> type -> bool.
-Parameter overlap : type -> type -> bool.
 
 Parameter subset_correct :
   forall xi yi : type,
@@ -652,20 +485,6 @@ Parameter fromZ : Z -> type.
 Parameter fromZ_correct :
   forall v, contains (convert (fromZ v)) (Xreal (Z2R v)).
 
-(* v1
-Definition propagate fi :=
-  forall x, contains (convert x) Xnan -> contains (convert (fi x)) Xnan.
-*)
-(* v2
-Definition propagate fi := forall x, fi x = mask (fi x) x.
-*)
-
-(* v3
-Definition propagate fi := fi nai = nai.
-Definition propagate_l fi := forall xi : type, fi nai xi = nai.
-Definition propagate_r fi := forall xi : type, fi xi nai = nai.
-*)
-
 Definition propagate fi :=
   forall xi, convert xi = Inan -> convert (fi xi) = Inan.
 Definition propagate_l fi :=
@@ -679,12 +498,6 @@ Parameter neg_propagate : propagate neg.
 Parameter inv_propagate : forall prec, propagate (inv prec).
 Parameter sqr_propagate : forall prec, propagate (sqr prec).
 Parameter sqrt_propagate : forall prec, propagate (sqrt prec).
-Parameter cos_propagate : forall prec, propagate (cos prec).
-Parameter sin_propagate : forall prec, propagate (sin prec).
-Parameter tan_propagate : forall prec, propagate (tan prec).
-Parameter atan_propagate : forall prec, propagate (atan prec).
-Parameter exp_propagate : forall prec, propagate (exp prec).
-Parameter ln_propagate : forall prec, propagate (ln prec).
 Parameter power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
 Parameter add_propagate_l : forall prec, propagate_l (add prec).
 Parameter sub_propagate_l : forall prec, propagate_l (sub prec).

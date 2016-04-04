@@ -58,16 +58,6 @@ apply Rle_refl.
 now destruct F.toX.
 Qed.
 
-Lemma contains_convert_bnd_r (a b : F.type) : F.real b ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX b).
-Proof.
-rewrite F.real_correct /toR /I.convert /=.
-case: F.toX => //= r _ H.
-split.
-now destruct F.toX.
-apply Rle_refl.
-Qed.
-
 Lemma contains_convert_bnd (a b : F.type) r :  F.real a -> F.real b ->
   toR a <= r <= toR b -> contains (I.convert (I.bnd a b)) (Xreal r).
 Proof.
@@ -512,14 +502,6 @@ case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [
   + by apply: integral_float_absolute_correct.
   + by apply: Hcorrect.
   + by apply: integral_float_absolute_correct.
-Qed.
-
-Lemma real_correct' :
-  forall a, F.real a -> F.toX a = Xreal (toR a).
-Proof.
-intros a.
-rewrite F.real_correct /toR.
-now destruct F.toX.
 Qed.
 
 Lemma Fle_Rle u0 l1 :

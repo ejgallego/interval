@@ -61,19 +61,6 @@ Parameter ComputeBound_propagate :
   forall u pi,
   I.propagate (ComputeBound u pi).
 
-(*
-Lemma ComputeBound_correct' :
-  forall u p px,
-  Link.contains_pointwise p px ->
-  I.extension (toXreal_fun (PolR.horner tt px)) (ComputeBound u p).
-Proof.
-move=> u p px H.
-apply: R_extension_correct.
-by apply: ComputeBound_correct.
-by apply: ComputeBound_propagate.
-Qed.
-*)
-
 End PolyBound.
 
 Module PolyBoundThm

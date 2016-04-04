@@ -142,39 +142,6 @@ intros.
 now case (mantissa_sign x).
 Qed.
 
-(*
-Lemma mantissa_sign_correct_zero :
-  mantissa_sign mantissa_zero = Mzero.
-generalize (mantissa_sign_correct mantissa_zero).
-rewrite mantissa_zero_correct.
-case (mantissa_sign mantissa_zero).
-trivial.
-intros s m.
-case s ; intros (H1, _) ; try discriminate H1.
-Qed.
-
-Lemma mantissa_sign_correct_pos :
-  forall p, valid_mantissa p ->
-  exists q,
-  valid_mantissa q /\ MtoP p = MtoP q /\
-  mantissa_sign (mantissa_pos p) = Mnumber false q.
-intros.
-generalize (mantissa_sign_correct (mantissa_pos p)).
-rewrite mantissa_pos_correct ; [idtac | exact H].
-case (mantissa_sign (mantissa_pos p)).
-intro H0. discriminate H0.
-intros s m.
-case s ; intros (H1, H2) ; try discriminate H1.
-exists m.
-split.
-exact H2.
-split.
-inversion H1.
-apply refl_equal.
-apply refl_equal.
-Qed.
-*)
-
 Definition float_aux s m e : type :=
   Float ((if s : bool then mantissa_neg else mantissa_pos) m) e.
 
@@ -1265,10 +1232,6 @@ Qed.
 (*
  * sqrt
  *)
-
-Definition sqrt_aux2 mode prec m e :=
-  let (s, pos) := mantissa_sqrt m in
-  round_aux mode prec false s e pos.
 
 Definition sqrt mode prec (f : type) :=
   match f with

@@ -91,13 +91,6 @@ congr (_ + _); first by rewrite /= Rmult_1_r.
 by apply: eq_big_nat => i Hi; rewrite Interval_missing.pow_powerRZ.
 Qed.
 
-Lemma ex_derive_powerRZ x n:  ex_derive (powerRZ^~ (Z.of_nat n)) x.
-Proof.
-apply: (ex_derive_ext (fun x => x ^ n) _) => [t|].
-  by rewrite Interval_missing.pow_powerRZ.
-apply: ex_derive_pow; exact: ex_derive_id.
-Qed.
-
 Lemma Rpol_derive p (c : R) (x : R) : Derive (horner tt (primitive tt c p)) x = horner tt p x.
 Proof.
 have derMonom : forall k : (* ordinal_finType (size p), *) nat,

@@ -717,19 +717,6 @@ Definition diff_operations A (ops : @operations A) :=
     end)
    (fun x => match x with (vx, _) => sign ops vx end).
 
-Lemma Xderive_eq :
-  forall g g' f f',
- (forall x, f x = g x) ->
- (forall x, f' x = g' x) ->
-  Xderive g g' ->
-  Xderive f f'.
-Proof.
-intros.
-apply Xderive_eq_fun with (1 := H).
-apply Xderive_eq_diff with (1 := H0).
-exact H1.
-Qed.
-
 Lemma unary_diff_correct :
   forall o f d x,
   Xderive_pt f x d ->

@@ -70,10 +70,6 @@ Definition U := (I.precision * nat)%type.
 (** ** Auxiliary material *)
 
 Definition isDummy (t : T) : bool := if t is Dummy then true else false.
-(* Definition isConst (t : T) : bool := if t is Const _ then true else false. *)
-Definition isTm (t : T) : bool := if t is Tm _ then true else false.
-
-Definition unat (u : U) (n : nat) := (u.1, n).
 
 Definition tmsize (tm : rpa) := Pol.size (approx tm).
 
@@ -104,9 +100,6 @@ Definition not_nil (tf : T) : bool :=
     | Var => true
     | Tm tm => tmsize tm != 0
   end.
-
-Lemma not_nilFP (t : T) : not_nil t = false <-> tsize t = 0.
-Proof. by split; case: t =>// tm; rewrite /not_nil /=; case: tmsize. Qed.
 
 Lemma not_nilE (t : T) : (not_nil t) = (0 < tsize t).
 Proof. by apply/idP/idP; case: t =>//= tm; rewrite lt0n //; move/negP. Qed.
@@ -159,15 +152,6 @@ case: tf =>[|c||tm]; rewrite /approximates //; case => Hnan ? H; split=>//=.
   apply: TM_var_correct_strong=>//.
     exact: Imid_subset.
   by move/not_empty_Imid: Hne.
-Qed.
-
-Lemma contains_pointwise_helper0 pol p n :
-  Pol.size pol <= n -> Pol.contains_pointwise pol p ->
-  PolR.nth p n = 0%R.
-Proof.
-rewrite /Pol.contains_pointwise => Hpol.
-move/(_ n); rewrite Pol.nth_default // I.zero_correct /=.
-case => A B; exact: Rle_antisym.
 Qed.
 
 (** ** Main definitions and correctness claims *)
@@ -266,7 +250,7 @@ move: x Hx =>[|x Hx].
 move/(_ x) in Hdelta.
 have->: f (Xreal x) = Xadd (Xreal (PolR.horner tt qx (Rminus x c0)))
   (Xsub (f (Xreal x)) (Xreal (PolR.horner tt qx (Rminus x c0)))).
-case Efx : (f (Xreal x)) => [|r]; first by rewrite XaddC.
+case Efx : (f (Xreal x)) => [|r]; first by rewrite Xadd_comm.
 simpl.
 by congr Xreal; auto with real.
 apply I.add_correct =>//.
@@ -516,9 +500,8 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
-(* apply: TM_fun_eq (fun x _ => XmulC (g (Xreal x)) (f (Xreal x))) _. *)
 apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
-by move=> *; exact: XmulC.
+by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
 apply: TM_var_correct_strong =>//.
@@ -532,7 +515,7 @@ split=>//; first by rewrite Hnan1.
 red=>Hne.
 have Hdf := H1 Hne.
 apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
-by move=> *; exact: XmulC.
+by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
 exact: not_empty_Imid.
 Qed.

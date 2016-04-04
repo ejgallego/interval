@@ -56,12 +56,6 @@ CoFixpoint constant_generator_aux gen n :=
 Definition constant_generator gen :=
   constant_generator_aux gen 1.
 
-Definition Z2Zp x :=
-  match x with
-  | Zpos p => x
-  | _ => Z0
-  end.
-
 Definition Z2nat x :=
   match x with
   | Zpos p => nat_of_P p
@@ -3421,93 +3415,4 @@ Time Eval vm_compute in (A.tan_fast 50%Z (Float 3619%Z (-8)%Z)).
 Time Eval vm_compute in (A.sin_fast 50%Z (Float 201%Z (-8)%Z)).
 Time Eval vm_compute in (A.ln_fast 50%Z (Float 1%Z 20009%Z)).
 Time Eval vm_compute in (A.ln_fast 50%Z (Float 1125899906842623%Z (-50)%Z)).
-*)
-
-(*
-Module Transcendental (F : FloatOps).
-
-Definition try_round mode prec x e :=
-  let l := F.sub mode prec x e in
-  let u := F.add mode prec x e in
-  match F.cmp l u with
-  | Xeq => Some l
-  | _ => None
-  end.
-
-Lemma try_round_correct :
-  forall mode prec x e r,
-  Xcmp (Xabs (Xsub (FtoX (F.toF x)) r)) (FtoX (F.toF e)) = Xlt ->
-  match try_round mode prec x e with
-  | Some f => FtoX (F.toF f) = FtoX (round F.radix mode (F.prec prec) r)
-  | None => True
-  end.
-intros mode prec x e r H.
-unfold try_round.
-case_eq (F.cmp (F.sub mode prec x e) (F.add mode prec x e)) ; trivial.
-rewrite F.cmp_correct.
-rewrite Fcmp_correct.
-rewrite F.sub_correct.
-rewrite Fsub_correct.
-rewrite F.add_correct.
-rewrite Fadd_correct.
-generalize H. clear H.
-case r ; case (FtoX (F.toF x)) ; case (FtoX (F.toF e)) ;
-  try (intros ; discriminate).
-clear.
-intros e x r.
-unfold Xsub, Xadd, Xabs.
-repeat rewrite round_correct_real.
-unfold Xcmp.
-generalize (Rcompare_correct (Rabs (x - r)) e).
-case (Rcompare (Rabs (x - r)) e) ; intros He H ;
-  try discriminate H ; clear H.
-set (l := round_real F.radix mode (F.prec prec) (x - e)).
-set (u := round_real F.radix mode (F.prec prec) (x + e)).
-generalize (Rcompare_correct l u).
-case (Rcompare l u) ; intros Hlu H ;
-  try discriminate H ; clear H.
-apply f_equal.
-set (s := round_real F.radix mode (F.prec prec) r).
-destruct (Rtotal_order l s) as [H|[H|H]].
-2: trivial.
-(* l < round r *)
-assert (Xcmp (FtoX (round F.radix mode (F.prec prec) (Xreal (x + e))))
-             (FtoX (round F.radix mode (F.prec prec) (Xreal r))) = Xlt).
-repeat rewrite round_correct_real.
-simpl.
-fold u s.
-rewrite <- Hlu.
-rewrite Rcompare_correct_lt with (1 := H).
-apply refl_equal.
-generalize (round_monotone F.radix mode (F.prec prec) (Xreal (x + e)) (Xreal r)).
-rewrite H0. clear H H0.
-simpl.
-rewrite Rcompare_correct_gt.
-intro. discriminate.
-destruct (Rabs_def2 _ _ He) as (_, H).
-apply Rplus_lt_reg_r with (-e - r)%R.
-replace (-e - r + r)%R with (-e)%R. 2: ring.
-replace (-e - r + (x + e))%R with (x - r)%R. 2: ring.
-exact H.
-(* l > round r *)
-assert (Xcmp (FtoX (round F.radix mode (F.prec prec) (Xreal (x - e))))
-             (FtoX (round F.radix mode (F.prec prec) (Xreal r))) = Xgt).
-repeat rewrite round_correct_real.
-simpl.
-fold l s.
-rewrite Rcompare_correct_gt with (1 := H).
-apply refl_equal.
-generalize (round_monotone F.radix mode (F.prec prec) (Xreal (x - e)) (Xreal r)).
-rewrite H0. clear H H0.
-simpl.
-rewrite Rcompare_correct_lt.
-intro. discriminate.
-destruct (Rabs_def2 _ _ He) as (H, _).
-apply Rplus_lt_reg_r with (e - r)%R.
-replace (e - r + (x - e))%R with (x - r)%R. 2: ring.
-replace (e - r + r)%R with e. 2: ring.
-exact H.
-Qed.
-
-End Transcendental.
 *)

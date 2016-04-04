@@ -21,8 +21,6 @@ Require Import Reals Bool.
 Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 
-Definition Rsign x := Rcompare x 0.
-
 Definition is_zero x := Req_bool x 0.
 Definition is_positive x := Rlt_bool 0 x.
 Definition is_negative x := Rlt_bool x 0.
@@ -46,46 +44,6 @@ Proof.
 intros x.
 exact (Rlt_bool_spec x 0).
 Qed.
-
-Section is_pos_is_neg_missing.
-
-Local Open Scope R_scope.
-
-Lemma is_positive_positive x :
-  (is_positive x = true) -> x > 0.
-move => Hpos.
-have H1 :=(is_positive_spec x).
-rewrite Hpos in H1.
-by inversion H1.
-Qed.
-
-Lemma is_positive_negative x :
-  (is_positive x = false) -> x <= 0.
-move => Hnpos.
-have H1 :=(is_positive_spec x).
-rewrite Hnpos in H1.
-by inversion H1.
-Qed.
-
-Lemma is_negative_negative x :
-  (is_negative x = true) -> x < 0.
-move => Hneg.
-have H1 :=(is_negative_spec x).
-rewrite Hneg in H1.
-by inversion H1.
-Qed.
-
-Lemma is_negative_positive x :
-  (is_negative x = false) -> x >= 0.
-move => Hneg.
-have H1 :=(is_negative_spec x).
-rewrite Hneg in H1.
-inversion H1.
-exact: Rle_ge.
-Qed.
-
-End is_pos_is_neg_missing.
-
 
 (*
  * Extended reals
@@ -121,19 +79,6 @@ Definition Xcmp x y :=
   | _, _ => Xund
   end.
 
-Lemma Xcmp_rev x y:
-  Xcmp y x = match Xcmp x y with
-    | Xeq => Xeq
-    | Xlt => Xgt
-    | Xgt => Xlt
-    | Xund => Xund end.
-Proof.
-case x; case y; try trivial.
-intros rx ry.
-unfold Xcmp.
-now rewrite Rcompare_sym; case: (Rcompare ry rx).
-Qed.
-
 Definition extension f fx := forall x,
   match fx x, x with
   | Xnan, _ => True
@@ -157,6 +102,7 @@ Definition propagate_2 f :=
 Lemma extension_propagate :
   forall f fx,
   extension f fx -> propagate fx.
+Proof.
 intros f fx H.
 generalize (H Xnan).
 unfold propagate.
@@ -166,6 +112,7 @@ Qed.
 Lemma extension_propagate_2 :
   forall f fx,
   extension_2 f fx -> propagate_2 fx.
+Proof.
 intros f fx H.
 split ; intros x.
 generalize (H Xnan x).
@@ -181,10 +128,6 @@ Definition Xneg x :=
   | Xnan => Xnan
   end.
 
-Lemma Xneg_correct : extension Ropp Xneg.
-now intros [|x].
-Qed.
-
 Lemma Xneg_involutive :
   forall x, Xneg (Xneg x) = x.
 Proof.
@@ -199,23 +142,11 @@ Definition Xinv x :=
   | _ => Xnan
   end.
 
-Lemma Xinv_correct : extension Rinv Xinv.
-intros [|x] ; try split.
-unfold Xinv.
-now case (is_zero x).
-Qed.
-
 Definition Xsqrt x :=
   match x with
   | Xreal u => if is_negative u then Xnan else Xreal (sqrt u)
   | Xnan => Xnan
   end.
-
-Lemma Xsqrt_correct : extension sqrt Xsqrt.
-intros [|x] ; try split.
-unfold Xsqrt.
-now case (is_negative x).
-Qed.
 
 Definition Xabs x :=
   match x with
@@ -229,10 +160,6 @@ Definition Xadd x y :=
   | _, _ => Xnan
   end.
 
-Lemma Xadd_correct : extension_2 Rplus Xadd.
-now intros [|x] [|y].
-Qed.
-
 Definition Xsub x y :=
   match x, y with
   | Xreal u, Xreal v => Xreal (u - v)
@@ -240,6 +167,7 @@ Definition Xsub x y :=
   end.
 
 Lemma Xsub_correct : extension_2 Rminus Xsub.
+Proof.
 now intros [|x] [|y].
 Qed.
 
@@ -250,6 +178,7 @@ Definition Xmul x y :=
   end.
 
 Lemma Xmul_correct : extension_2 Rmult Xmul.
+Proof.
 now intros [|x] [|y].
 Qed.
 
@@ -258,12 +187,6 @@ Definition Xdiv x y :=
   | Xreal u, Xreal v => if is_zero v then Xnan else Xreal (u / v)
   | _, _ => Xnan
   end.
-
-Lemma Xdiv_correct : extension_2 Rdiv Xdiv.
-intros [|x] [|y] ; try split.
-unfold Xdiv.
-now case (is_zero y).
-Qed.
 
 Definition Xmin x y :=
   match x, y with
@@ -279,11 +202,13 @@ Definition Xmax x y :=
 
 Lemma Xsub_split :
   forall x y, Xsub x y = Xadd x (Xneg y).
+Proof.
 now intros [|x] [|y].
 Qed.
 
 Lemma Xdiv_split :
   forall x y, Xdiv x y = Xmul x (Xinv y).
+Proof.
 intros [|x] [|y] ; try split.
 simpl.
 now case (is_zero y).
@@ -350,24 +275,17 @@ Qed.
 Lemma Xadd_comm :
   forall x y,
   Xadd x y = Xadd y x.
+Proof.
 intros [|x] [|y] ; try split.
 simpl.
 apply f_equal.
 apply Rplus_comm.
 Qed.
 
-Lemma Xadd_assoc :
-  forall x y z,
-  Xadd (Xadd x y) z = Xadd x (Xadd y z).
-intros [|x] [|y] [|z] ; try split.
-simpl.
-apply f_equal.
-apply Rplus_assoc.
-Qed.
-
 Lemma Xadd_0_l :
   forall x,
   Xadd (Xreal 0) x = x.
+Proof.
 intros [|x] ; try split.
 simpl.
 apply f_equal.
@@ -377,6 +295,7 @@ Qed.
 Lemma Xadd_0_r :
   forall x,
   Xadd x (Xreal 0) = x.
+Proof.
 intros [|x] ; try split.
 simpl.
 apply f_equal.
@@ -386,6 +305,7 @@ Qed.
 Lemma Xmul_comm :
   forall x y,
   Xmul x y = Xmul y x.
+Proof.
 intros [|x] [|y] ; try split.
 simpl.
 apply f_equal.
@@ -395,6 +315,7 @@ Qed.
 Lemma Xmul_assoc :
   forall x y z,
   Xmul (Xmul x y) z = Xmul x (Xmul y z).
+Proof.
 intros [|x] [|y] [|z] ; try split.
 simpl.
 apply f_equal.
@@ -404,6 +325,7 @@ Qed.
 Lemma Xmul_1_l :
   forall x,
   Xmul (Xreal 1) x = x.
+Proof.
 intros [|x] ; try split.
 simpl.
 apply f_equal.
@@ -413,6 +335,7 @@ Qed.
 Lemma Xmul_1_r :
   forall x,
   Xmul x (Xreal 1) = x.
+Proof.
 intros [|x] ; try split.
 simpl.
 apply f_equal.
@@ -422,6 +345,7 @@ Qed.
 Lemma Xmul_Xadd_distr_r :
   forall x y z,
   Xmul (Xadd x y) z = Xadd (Xmul x z) (Xmul y z).
+Proof.
 intros [|x] [|y] [|z] ; try split.
 simpl.
 apply f_equal.
@@ -431,6 +355,7 @@ Qed.
 Lemma Xmul_Xneg_distr_l :
   forall x y,
   Xmul (Xneg x) y = Xneg (Xmul x y).
+Proof.
 intros [|x] [|y] ; try split.
 simpl.
 apply f_equal.
@@ -440,6 +365,7 @@ Qed.
 Lemma Xmul_Xneg_distr_r :
   forall x y,
   Xmul x (Xneg y) = Xneg (Xmul x y).
+Proof.
 intros [|x] [|y] ; try split.
 simpl.
 apply f_equal.
@@ -449,6 +375,7 @@ Qed.
 Lemma Xinv_Xmul_distr :
   forall x y,
   Xinv (Xmul x y) = Xmul (Xinv x) (Xinv y).
+Proof.
 intros [|x] [|y] ; try split ; simpl.
 now destruct (is_zero_spec x).
 destruct (is_zero_spec x).
@@ -475,47 +402,22 @@ Definition Xmask x y :=
   | Xnan => Xnan
   end.
 
-Lemma Xmask_Xfun :
-  forall f, propagate f ->
-  forall x,
-  Xmask (f x) x = f x.
-intros f H [|x].
-rewrite H.
-apply refl_equal.
-apply refl_equal.
-Qed.
-
-Lemma Xmask_Xfun_l :
-  forall f, propagate_2 f ->
-  forall x y,
-  Xmask (f x y) x = f x y.
-intros f H [|x] y.
-rewrite (proj1 H).
-apply refl_equal.
-apply refl_equal.
-Qed.
-
 Lemma Xmask_Xfun_r :
   forall f, propagate_2 f ->
   forall x y,
   Xmask (f x y) y = f x y.
+Proof.
 intros f H x [|y].
 rewrite (proj2 H).
 apply refl_equal.
 apply refl_equal.
 Qed.
 
-Lemma Xfun_Xmask :
-  forall f, propagate f ->
-  forall x z,
-  f (Xmask x z) = Xmask (f x) z.
-now intros f H x [|z].
-Qed.
-
 Lemma Xfun_Xmask_l :
   forall f, propagate_2 f ->
   forall x y z,
   f (Xmask x z) y = Xmask (f x y) z.
+Proof.
 intros f H x y [|z].
 now rewrite (proj1 H).
 apply refl_equal.
@@ -525,26 +427,16 @@ Lemma Xfun_Xmask_r :
   forall f, propagate_2 f ->
   forall x y z,
   f x (Xmask y z) = Xmask (f x y) z.
+Proof.
 intros f H x y [|z].
 now rewrite (proj2 H).
 apply refl_equal.
 Qed.
 
-Lemma Xmask_identity :
-  forall x,
-  Xmask x x = x.
-intros [|x] ; now split.
-Qed.
-
-Lemma Xmask_idempot :
-  forall x y,
-  Xmask (Xmask x y) y = Xmask x y.
-intros [|x] [|y] ; now split.
-Qed.
-
 Lemma Xmul_Xinv :
   forall x,
   Xmul x (Xinv x) = Xmask (Xreal 1) (Xinv x).
+Proof.
 intros [|x] ; try split.
 simpl.
 destruct (is_zero_spec x).
@@ -554,37 +446,19 @@ apply f_equal.
 now apply Rinv_r.
 Qed.
 
-Lemma Xadd_Xneg :
+Lemma Xdiv_0_r :
   forall x,
-  Xadd x (Xneg x) = Xmask (Xreal 0) x.
-intros [|x] ; try split.
+  Xdiv x (Xreal 0) = Xnan.
+Proof.
+intros [|x] ; try easy.
 simpl.
-apply f_equal.
-apply Rplus_opp_r.
+case is_zero_spec ; try easy.
+intros H.
+now elim H.
 Qed.
 
-Lemma Xmul_0_l :
-  forall x,
-  Xmul (Xreal 0) x = Xmask (Xreal 0) x.
-intros [|x] ; try split.
-simpl.
-apply f_equal.
-apply Rmult_0_l.
-Qed.
-
-Lemma Xmul_0_r :
-  forall x,
-  Xmul x (Xreal 0) = Xmask (Xreal 0) x.
-intros [|x] ; try split.
-simpl.
-apply f_equal.
-apply Rmult_0_r.
-Qed.
-
-Definition Xadd_propagate := extension_propagate_2 _ _ Xadd_correct.
 Definition Xsub_propagate := extension_propagate_2 _ _ Xsub_correct.
 Definition Xmul_propagate := extension_propagate_2 _ _ Xmul_correct.
-Definition Xdiv_propagate := extension_propagate_2 _ _ Xdiv_correct.
 
 Section ExtensionOfFunctionsToXreal.
 

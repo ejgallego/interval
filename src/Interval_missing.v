@@ -51,6 +51,7 @@ Qed.
 Lemma Rmult_le_compat_neg_r :
   forall r r1 r2 : R,
   (r <= 0)%R -> (r1 <= r2)%R -> (r2 * r <= r1 * r)%R.
+Proof.
 intros.
 rewrite (Rmult_comm r2).
 rewrite (Rmult_comm r1).
@@ -62,6 +63,7 @@ Qed.
 Lemma Rmult_eq_compat_r :
   forall r r1 r2 : R,
   r1 = r2 -> (r1 * r)%R = (r2 * r)%R.
+Proof.
 intros.
 rewrite (Rmult_comm r1).
 rewrite (Rmult_comm r2).
@@ -72,6 +74,7 @@ Qed.
 Lemma Rmult_eq_reg_r :
   forall r r1 r2 : R,
   (r1 * r)%R = (r2 * r)%R -> r <> 0%R -> r1 = r2.
+Proof.
 intros.
 apply Rmult_eq_reg_l with (2 := H0).
 do 2 rewrite (Rmult_comm r).
@@ -87,6 +90,7 @@ Proof. now apply Rgt_not_eq; apply Rlt_gt; apply Rsqr_plus1_pos. Qed.
 Lemma Rmin_Rle :
   forall r1 r2 r,
   (Rmin r1 r2 <= r)%R <-> (r1 <= r)%R \/ (r2 <= r)%R.
+Proof.
 intros.
 unfold Rmin.
 split.
@@ -105,6 +109,7 @@ Qed.
 Lemma Rmin_best :
   forall r1 r2 r,
   (r <= r1)%R -> (r <= r2)%R -> (r <= Rmin r1 r2)%R.
+Proof.
 intros.
 unfold Rmin.
 now case (Rle_dec r1 r2).
@@ -113,6 +118,7 @@ Qed.
 Lemma Rmax_best :
   forall r1 r2 r,
   (r1 <= r)%R -> (r2 <= r)%R -> (Rmax r1 r2 <= r)%R.
+Proof.
 intros.
 unfold Rmax.
 now case (Rle_dec r1 r2).
@@ -121,6 +127,7 @@ Qed.
 Lemma Rle_Rinv_pos :
   forall x y : R,
   (0 < x)%R -> (x <= y)%R -> (/y <= /x)%R.
+Proof.
 intros.
 apply Rle_Rinv.
 exact H.
@@ -131,6 +138,7 @@ Qed.
 Lemma Rle_Rinv_neg :
   forall x y : R,
   (y < 0)%R -> (x <= y)%R -> (/y <= /x)%R.
+Proof.
 intros.
 apply Ropp_le_cancel.
 repeat rewrite Ropp_inv_permute.
@@ -150,12 +158,14 @@ Qed.
 Lemma Rmult_le_pos_pos :
   forall x y : R,
   (0 <= x)%R -> (0 <= y)%R -> (0 <= x * y)%R.
+Proof.
 exact Rmult_le_pos.
 Qed.
 
 Lemma Rmult_le_pos_neg :
   forall x y : R,
   (0 <= x)%R -> (y <= 0)%R -> (x * y <= 0)%R.
+Proof.
 intros.
 rewrite <- (Rmult_0_r x).
 apply Rmult_le_compat_l ; assumption.
@@ -164,6 +174,7 @@ Qed.
 Lemma Rmult_le_neg_pos :
   forall x y : R,
   (x <= 0)%R -> (0 <= y)%R -> (x * y <= 0)%R.
+Proof.
 intros.
 rewrite <- (Rmult_0_l y).
 apply Rmult_le_compat_r ; assumption.
@@ -172,24 +183,10 @@ Qed.
 Lemma Rmult_le_neg_neg :
   forall x y : R,
   (x <= 0)%R -> (y <= 0)%R -> (0 <= x * y)%R.
+Proof.
 intros.
 rewrite <- (Rmult_0_r x).
 apply Rmult_le_compat_neg_l ; assumption.
-Qed.
-
-Lemma Zpower_pos_powerRZ :
-  forall n m,
-  IZR (Zpower_pos n m) = powerRZ (IZR n) (Zpos m).
-intros.
-rewrite Zpower_pos_nat.
-simpl.
-induction (nat_of_P m).
-apply refl_equal.
-unfold Zpower_nat.
-simpl.
-rewrite mult_IZR.
-apply Rmult_eq_compat_l.
-exact IHn0.
 Qed.
 
 Lemma pow_powerRZ (r : R) (n : nat) :
@@ -199,57 +196,11 @@ induction n; [easy|simpl].
 now rewrite SuccNat2Pos.id_succ.
 Qed.
 
-Definition Zlt_0_Zpower_pos := Zpower_pos_gt_0.
-
-Lemma Zlt_0_Zpower :
-  forall a b, (0 < a)%Z -> (0 <= b)%Z ->
-  (0 < Zpower a b)%Z.
-intros a b H.
-case b ; intros ; simpl.
-exact (refl_equal _).
-apply Zlt_0_Zpower_pos.
-exact H.
-elim H0.
-exact (refl_equal _).
-Qed.
-
-Lemma Zpower_le_exp_compat :
-  forall u a b,
-  Zlt 0 u -> Zle a b ->
-  (u^a <= u^b)%Z.
-intros until 1.
-unfold Zpower.
-case b ; case a ; intros ;
-  try discriminate ;
-  try ( elim H0 ; split ; fail ).
-apply (Zlt_le_succ 0).
-exact (Zlt_0_Zpower u (Zpos p) H H0).
-change (Zpower u (Zpos p) <= Zpower u (Zpos p0))%Z.
-cutrewrite (Zpos p0 = Zpos p + (Zpos p0 - Zpos p))%Z.
-assert (0 <= Zpos p0 - Zpos p)%Z.
-apply Zle_minus_le_0.
-exact H0.
-assert (0 <= Zpos p)%Z.
-apply Zlt_le_weak.
-apply Zgt_lt.
-apply Zgt_pos_0.
-rewrite Zpower_exp ; [ idtac | exact (Zle_ge _ _ H2) | exact (Zle_ge _ _ H1) ].
-pattern (u ^ Zpos p)%Z at 1 ; rewrite <- Zmult_1_r.
-apply Zmult_le_compat_l.
-apply (Zlt_le_succ 0).
-exact (Zlt_0_Zpower _ _ H H1).
-apply Zlt_le_weak.
-apply (Zlt_0_Zpower _ _ H H2).
-ring.
-apply Zlt_le_weak.
-apply Zlt_0_Zpower_pos.
-exact H.
-Qed.
-
 Lemma Rabs_def1_le :
   forall x a,
   (x <= a)%R -> (-a <= x)%R ->
   (Rabs x <= a)%R.
+Proof.
 intros.
 case (Rcase_abs x) ; intros.
 rewrite (Rabs_left _ r).
@@ -264,6 +215,7 @@ Lemma Rabs_def2_le :
   forall x a,
   (Rabs x <= a)%R ->
   (-a <= x <= a)%R.
+Proof.
 intros x a H.
 assert (0 <= a)%R.
 apply Rle_trans with (2 := H).
@@ -292,6 +244,7 @@ Theorem derivable_pt_lim_eq :
  (forall x, f x = g x) ->
   forall x l,
   derivable_pt_lim f x l -> derivable_pt_lim g x l.
+Proof.
 intros f g H x l.
 unfold derivable_pt_lim.
 intros.
@@ -310,6 +263,7 @@ Theorem derivable_pt_lim_eq_locally :
   forall f g x l,
   locally_true x (fun v => f v = g v) ->
   derivable_pt_lim f x l -> derivable_pt_lim g x l.
+Proof.
 intros f g x l (delta1, (Hd, Heq)) Hf eps Heps.
 destruct (Hf eps Heps) as (delta2, H0).
 clear Hf.
@@ -340,6 +294,7 @@ Theorem locally_true_and :
   locally_true x P ->
   locally_true x Q ->
   locally_true x (fun x => P x /\ Q x).
+Proof.
 intros P Q x HP HQ.
 destruct HP as (e1, (He1, H3)).
 destruct HQ as (e2, (He2, H4)).
@@ -362,6 +317,7 @@ Theorem locally_true_imp :
   forall x,
   locally_true x P ->
   locally_true x Q.
+Proof.
 intros P Q H x (d, (Hd, H0)).
 exists d.
 split.
@@ -377,6 +333,7 @@ Theorem continuity_pt_lt :
   (f x < y)%R ->
   continuity_pt f x ->
   locally_true x (fun u => (f u < y)%R).
+Proof.
 intros.
 assert (0 < y - f x)%R.
 apply Rplus_lt_reg_l with (f x).
@@ -418,6 +375,7 @@ Theorem continuity_pt_gt :
   (y < f x)%R ->
   continuity_pt f x ->
   locally_true x (fun u => (y < f u)%R).
+Proof.
 intros.
 generalize (Ropp_lt_contravar _ _ H).
 clear H. intro H.
@@ -437,6 +395,7 @@ Theorem continuity_pt_ne :
   f x <> y ->
   continuity_pt f x ->
   locally_true x (fun u => f u <> y).
+Proof.
 intros.
 destruct (Rdichotomy _ _ H) as [H1|H1].
 destruct (continuity_pt_lt _ _ _ H1 H0) as (delta, (Hdelta, H2)).
@@ -459,6 +418,7 @@ Theorem derivable_pt_lim_tan :
   forall x,
   (cos x <> 0)%R ->
   derivable_pt_lim tan x (1 + Rsqr (tan x))%R.
+Proof.
 intros x Hx.
 change (derivable_pt_lim (sin/cos) x (1 + Rsqr (tan x))%R).
 replace (1 + Rsqr (tan x))%R with ((cos x * cos x - (-sin x) * sin x) / Rsqr (cos x))%R.
@@ -485,36 +445,15 @@ Definition connected (P : R -> Prop) :=
   forall x y, P x -> P y ->
   forall z, (x <= z <= y)%R -> P z.
 
-Definition singleton x y :=
-  match Req_EM_T x y with
-  | left _ => True
-  | right _ => False
-  end.
-
-Definition union P Q (x : R) :=
-  P x \/ Q x.
-
 Definition intersection P Q (x : R) :=
   P x /\ Q x.
-
-Definition hull P x :=
-  exists u, exists v, P u /\ P v /\ (u <= x <= v)%R.
-
-Lemma hull_connected :
-  forall P, connected (hull P).
-intros P a b (ua, (_, (Hua, (_, (Ha, _))))) (_, (vb, (_, (Hvb, (_, Hb))))) c Hc.
-exists ua.
-exists vb.
-refine (conj Hua (conj Hvb (conj _ _))).
-exact (Rle_trans _ _ _ Ha (proj1 Hc)).
-exact (Rle_trans _ _ _ (proj2 Hc) Hb).
-Qed.
 
 Theorem derivable_pos_imp_increasing :
   forall f f' dom,
   connected dom ->
  (forall x, dom x -> derivable_pt_lim f x (f' x) /\ (0 <= f' x)%R) ->
   forall u v, dom u -> dom v -> (u <= v)%R -> (f u <= f v)%R.
+Proof.
 intros f f' dom Hdom Hd u v Hu Hv [Huv|Huv].
 assert (forall w, (u <= w <= v)%R -> derivable_pt_lim f w (f' w)).
 intros w Hw.
@@ -542,6 +481,7 @@ Theorem derivable_neg_imp_decreasing :
   connected dom ->
  (forall x, dom x -> derivable_pt_lim f x (f' x) /\ (f' x <= 0)%R) ->
   forall u v, dom u -> dom v -> (u <= v)%R -> (f v <= f u)%R.
+Proof.
 intros f f' dom Hdom Hd u v Hu Hv Huv.
 apply Ropp_le_cancel.
 refine (derivable_pos_imp_increasing (opp_fct f) (opp_fct f') _ Hdom _ _ _ Hu Hv Huv).
@@ -551,36 +491,6 @@ split.
 apply derivable_pt_lim_opp with (1 := H1).
 rewrite <- Ropp_0.
 apply Ropp_le_contravar with (1 := H2).
-Qed.
-
-Theorem derivable_zero_imp_constant :
-  forall f dom,
-  connected dom ->
- (forall x, dom x -> derivable_pt_lim f x R0) ->
-  forall u v, dom u -> dom v -> (f u = f v)%R.
-intros f dom Hdom Hd.
-(* generic case *)
-assert (forall u v, dom u -> dom v -> (u <= v)%R -> f u = f v).
-intros u v Hu Hv Huv.
-apply Rle_antisym.
-apply (derivable_pos_imp_increasing f (fct_cte R0)) with (1 := Hdom) ; try assumption.
-intros.
-split.
-now apply Hd.
-apply Rle_refl.
-apply (derivable_neg_imp_decreasing f (fct_cte R0)) with (1 := Hdom) ; try assumption.
-intros.
-split.
-now apply Hd.
-apply Rle_refl.
-(* . *)
-intros u v Hu Hv.
-destruct (Rle_or_lt u v) as [Huv|Huv].
-now apply H.
-generalize (Rlt_le _ _ Huv).
-intros Huv2.
-apply sym_eq.
-now apply H.
 Qed.
 
 Lemma even_or_odd :
@@ -1342,15 +1252,6 @@ Proof.
 now rewrite INR_IZR_INZ, <-Z2R_IZR.
 Qed.
 
-Theorem Rneq_lt r1 r2 : r1 <> r2 -> (r1 < r2 \/ r2 < r1)%R.
-Proof.
-intros H.
-destruct (Rtotal_order r1 r2) as [H'|[H'|H']].
-now left.
-now elim H.
-now right.
-Qed.
-
 (** Define a shorter name *)
 Notation Rmult_neq0 := Rmult_integral_contrapositive_currified.
 
@@ -1367,15 +1268,3 @@ Qed.
 (** The following definition can be used by doing [rewrite !Rsimpl] *)
 Definition Rsimpl :=
   (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
-
-(** Not used in CoqInterval, but potentially useful *)
-Lemma powerRZ_0_l (x : R) (p : Z) :
-  x = R0 -> (0 < p)%Z -> powerRZ x p = R0.
-Proof.
-intros Hx.
-destruct p as [|p|p]; intros Hp; try easy.
-unfold powerRZ.
-rewrite -> Hx, pow_ne_zero; trivial.
-destruct (Pos2Nat.is_succ p) as [n Hn].
-by rewrite Hn.
-Qed.

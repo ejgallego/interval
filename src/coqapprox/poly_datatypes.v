@@ -90,12 +90,6 @@ End FullOps.
 
 Module Type ExactFullOps.
 Include FullOps with Definition U := unit.
-Parameter maskE : forall c x, mask c x = c.
-Definition pow x n := (power_int tt x (Z_of_nat n)).
-Parameter pow_0 : forall x, pow x 0 = one.
-Parameter pow_S : forall x n, pow x n.+1 = mul tt x (pow x n).
-Parameter pow_opp :
-  forall x n, x <> zero -> power_int tt x (-n) = inv tt (power_int tt x n).
 End ExactFullOps.
 
 Module FullInt (I : IntervalOps) <: FullOps.
@@ -304,25 +298,6 @@ Definition invsqrt := --> fun x => (Rinv (sqrt tt x)).
 Definition mask : T -> T -> T := fun c _ => c.
 Definition tan := --> tan.
 Definition atan := --> atan.
-
-Lemma maskE c x : mask c x = c.
-Proof. done. Qed.
-
-Definition pow x n := (power_int tt x (Z_of_nat n)).
-
-Lemma pow_0 x : pow x 0 = one.
-Proof. done. Qed.
-
-Lemma pow_S x n : pow x n.+1 = mul tt x (pow x n).
-Proof. by move=> *; rewrite /pow /power_int -!Interval_missing.pow_powerRZ. Qed.
-
-Lemma pow_opp x n :
-  x <> zero -> power_int tt x (-n) = inv tt (power_int tt x n).
-Proof.
-case: n=> [||p H] //=; auto with real.
-rewrite /inv ?Rinv_involutive //; exact: pow_nonzero.
-Qed.
-
 End FullR.
 
 Module SeqPoly (C : PowDivOps) <: PolyOps C.
@@ -365,15 +340,6 @@ Definition mul_tail n p q :=
 
 Definition mul p q :=
   mkseq (mul_coeff p q) (size p + size q).-1.
-
-(* Old definitions
-
-Fixpoint horner' (p : T) (x : C.T) :=
-  match p with
-    | [::] => C.tzero
-    | c :: p' => C.tadd u (C.tmul u (thorner' p' x) x) c
-  end.
-*)
 
 Definition rec1 := @rec1up C.T.
 Definition rec2 := @rec2up C.T.
@@ -842,37 +808,12 @@ Qed.
 Lemma horner0 p x : (forall n, nth p n = 0%R) -> p.[x] = 0%R.
 Proof. by move=> Hp; rewrite hornerE big1 // =>[i _]; rewrite Hp Rmult_0_l. Qed.
 
-Lemma horner_size0 p x : size p = 0 -> p.[x] = 0%R.
-Proof. by move=> Hp; rewrite horner0 // => n; rewrite nth_default // Hp. Qed.
-
 Lemma mul_coeff0l p q : size p = 0 -> forall n, mul_coeff tt p q n = 0%R.
 Proof.
 move=> Hp n; rewrite mul_coeffE.
 rewrite big_mkord big1 // => [i Hi].
 rewrite (@nth_default p); by [rewrite Rmult_0_l|rewrite Hp].
 Qed.
-
-Lemma mul_coeff0r p q : size q = 0 -> forall n, mul_coeff tt p q n = 0%R.
-Proof.
-move=> Hq n; rewrite mul_coeffE.
-rewrite big_mkord big1 // => [i Hi].
-rewrite (@nth_default q); by [rewrite Rmult_0_r|rewrite Hq].
-Qed.
-
-Lemma horner_mul0l p q x : size p = 0 -> horner tt (mul tt p q) x = 0%R.
-Proof.
-move=> Hp; apply/horner0 => n; rewrite nth_mul; case: ifP => [//|_].
-exact: mul_coeff0l.
-Qed.
-
-Lemma horner_mul0r p q x : size q = 0 -> horner tt (mul tt p q) x = 0%R.
-Proof.
-move=> Hp; apply/horner0 => n; rewrite nth_mul; case: ifP => [//|_].
-exact: mul_coeff0r.
-Qed.
-
-Lemma horner_coef0 p : p.[0%R] = nth p 0.
-Proof. by elim: p => [//|c p IHp] /=; rewrite Rmult_0_r Rplus_0_l. Qed.
 
 Lemma nth_mulCl c p q i :
   nth (mul tt (c :: p) q) i.+1 =

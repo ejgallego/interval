@@ -50,46 +50,6 @@ Module Import Bnd := PolyBoundHorner I Pol.
 
 Module Import Aux := IntervalAux I.
 
-(** FIXME: lemma copied from taylor_model_int_sharp.v *)
-Lemma copy_Xdiv_0_r x : Xdiv x (Xreal 0) = Xnan.
-Proof. by rewrite /Xdiv; case: x=>// r; rewrite zeroT. Qed.
-
-(*
-(** FIXME: lemma copied from taylor_model_int_sharp.v *)
-Lemma copy_teval_contains u fi fx :
-  Link.contains_pointwise fi fx ->
-  R_extension (PolR.teval tt fx) (teval u fi).
-Proof.
-move=> Hfifx X x Hx.
-elim/PolR.tpoly_ind: fx fi Hfifx => [|a b IH]; elim/tpoly_ind.
-- rewrite PolR.teval_polyNil teval_polyNil.
-  change (Xreal 0) with (Xmask (Xreal 0) (Xreal x)).
-  by move=> *; apply: I.mask_correct =>//;
-    rewrite I.zero_correct; split; auto with real.
-- clear; move=> c p _ [K1 K2].
-  by rewrite tsize_polyCons PolR.tsize_polyNil in K1.
-- clear; move=> [K1 K2].
-  by rewrite PolR.tsize_polyCons tsize_polyNil in K1.
-move=> d p _ [K1 K2].
-rewrite PolR.teval_polyCons teval_polyCons.
-apply: R_add_correct =>//.
-  apply: R_mul_correct =>//.
-  apply: IH.
-  rewrite tsize_polyCons in K2.
-  split.
-    rewrite tsize_polyCons PolR.tsize_polyCons in K1.
-    by case: K1.
-  move=> k Hk.
-  move/(_ k.+1 Hk) in K2.
-  rewrite PolR.tnth_polyCons ?tnth_polyCons // in K2.
-  rewrite tsize_polyCons PolR.tsize_polyCons in K1.
-  by case: K1 =><-.
-rewrite tsize_polyCons in K2.
-move/(_ 0 erefl) in K2.
-by rewrite tnth_polyCons ?PolR.tnth_polyCons in K2.
-Qed.
-*)
-
 Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
   if 3 <= Pol.size pol then
     let a := Pol.nth pol in
@@ -174,7 +134,7 @@ have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   set d := I.div prec _ _.
   suff->: I.convert d = IInan by [].
   apply -> contains_Xnan.
-  rewrite -(copy_Xdiv_0_r (Xsqr (Xreal a1))).
+  rewrite -(Xdiv_0_r (Xsqr (Xreal a1))).
   apply: I.div_correct =>//.
   apply: I.sqr_correct.
   by apply: Hnth; rewrite Hi3.
@@ -183,7 +143,7 @@ suff->: s1 = Rmult x3 s2.
   have->: Rmult a0 x0 = a0 by simpl; rewrite /x0 powerRZ_O Rmult_1_r.
   rewrite -!Rplus_assoc /Rminus; congr Rplus.
   rewrite /Rsqr /x1 /x2; change 1%Z with (Z.of_nat 1); change 2%Z with (Z.of_nat 2).
-  rewrite /FullR.pow /=; field.
+  rewrite /=; field.
   split =>//.
 by rewrite -Rplus_assoc in H4.
 rewrite /s1 /s2 /x3; clear.

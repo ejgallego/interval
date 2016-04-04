@@ -709,24 +709,6 @@ elim Rle_not_lt with (1 := Hx).
 now apply Rlt_le_trans with xlr.
 Qed.
 
-Lemma cos_propagate : forall prec, I.propagate (cos prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma sin_propagate : forall prec, I.propagate (sin prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma tan_propagate : forall prec, I.propagate (tan prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma atan_propagate : forall prec, I.propagate (atan prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma exp_propagate : forall prec, I.propagate (exp prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma ln_propagate : forall prec, I.propagate (ln prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
 Include I.
 
 End FloatIntervalFull.

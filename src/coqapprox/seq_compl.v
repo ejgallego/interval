@@ -28,43 +28,6 @@ Unset Printing Implicit Defensive.
 
 Section NatCompl.
 
-Lemma nat_ind_gen (P : nat -> Prop) :
-  (forall x, (forall y, (y < x)%N -> P y) -> P x) -> (forall x, P x).
-Proof.
-move=> H x.
-suff [H1 H2] : P x /\ (forall y, (y < x)%N -> P y) by done.
-elim: x =>[|x [Hx IH]]; first by split; [apply: H|] => y Hy.
-split; [apply: H|]=> y; rewrite ltnS => Hy; case: (leqP x y) => Hxy.
-- suff<-: x = y by done. by apply: anti_leq; rewrite Hxy Hy.
-- exact: IH.
-- suff<-: x = y by done. by apply: anti_leq; rewrite Hxy Hy.
-- exact: IH.
-Qed.
-
-Lemma predn_leq (m n : nat) : m <= n -> m.-1 <= n.-1.
-Proof. by case: m n =>[//|m] [//|n]; rewrite ltnS. Qed.
-
-Lemma ltn_subr (m n p : nat) : m < n -> n - p.+1 < n.
-Proof.
-rewrite subnS => Hn.
-case Ek: (n-p)=>[//|k] /=; first exact: leq_trans _ Hn.
-apply: leq_trans (leq_trans _ (_ : k.+1 <= n - p)) (_ : n - p <= n);
-  by [ |rewrite Ek|rewrite leq_subr].
-Qed.
-
-Lemma minnl (m n : nat) : m <= n -> minn m n = m.
-Proof.
-move=> Hmn; rewrite /minn; case: ltnP =>// Hnm.
-by apply/eqP; rewrite eqn_leq Hmn Hnm.
-Qed.
-
-Lemma minnr (m n : nat) : n <= m -> minn m n = n.
-Proof.
-move=> Hnm; rewrite /minn; case: ltnP =>// Hmn; exfalso.
-have: n < n by exact: leq_ltn_trans Hnm Hmn.
-by rewrite ltnn.
-Qed.
-
 Lemma leq_subnK: forall m n : nat, n <= (n - m) + m.
 Proof. elim=> [|n IHn] m; first by rewrite addn0 subn0.
 rewrite subnS -addSnnS.
@@ -83,9 +46,6 @@ move=> Hmnp.
 - have Hnp : n <= p by exact: leq_trans (leq_addl _ _) Hmnp.
 - move: Hmnp; rewrite -!subn_eq0 subnBA //.
 Qed.
-
-Lemma leq_ltnN m n : m <= n < m = false.
-Proof. by apply/andP=> [[_n n_]]; have := leq_trans n_ _n; rewrite ltnn. Qed.
 
 Lemma ltn_leqN m n : m < n <= m = false.
 Proof. by apply/andP=> [[_n n_]]; have:= leq_ltn_trans n_ _n; rewrite ltnn. Qed.
@@ -129,37 +89,14 @@ End bigops.
 Section Head_Last.
 Variables (T : Type) (d : T).
 
-Lemma head_cons : forall s, s <> [::] -> s = head d s :: behead s.
-Proof. by case. Qed.
-
 Definition hb s := head d (behead s).
-
-Lemma nth1 : forall s, nth d s 1 = hb s.
-Proof. by move=> s; rewrite /hb -nth0 nth_behead. Qed.
 
 Lemma nth_behead s n : nth d (behead s) n = nth d s n.+1.
 Proof. by case: s =>//; rewrite /= nth_nil. Qed.
 
 Lemma last_rev : forall s, last d (rev s) = head d s.
 Proof. by elim=> [//|s IHs]; rewrite rev_cons last_rcons. Qed.
-
-Definition rmlast (l : seq T) := (belast (head d l) (behead l)).
 End Head_Last.
-
-Lemma rmlast_cons T (d e f : T) (s : seq T) :
-  s <> [::] -> rmlast e (f :: s) = f :: rmlast d s.
-Proof. by case: s. Qed.
-
-Section Take.
-Variable (T : Type).
-
-Lemma size_take_minn (n : nat) (s : seq T) : size (take n s) = minn n (size s).
-Proof.
-rewrite size_take.
-case: ltnP =>Hn; symmetry; by [apply/minn_idPl; exact: ltnW | apply/minn_idPr].
-Qed.
-
-End Take.
 
 Lemma nth_map_dflt (C : Type) (x0 : C) (f : C -> C) (n : nat) (s : seq C) :
   nth x0 (map f s) n = if size s <= n then x0 else f (nth x0 s n).
@@ -219,27 +156,6 @@ Proof.
 case: (leqP n0 i) => Hi; last by rewrite nth_take.
 by rewrite nth_default // size_take; case: ltnP=>// H'; apply: leq_trans H' Hi.
 Qed.
-
-Section Fold.
-(* Erik: is this still used in the library ? *)
-Variables (A B : Type) (f : A -> B).
-
-Lemma foldr_cons (r : seq A) (s : seq B) :
-  foldr (fun x acc => f x :: acc) s r = map f r ++ s.
-Proof. by elim: r => [//|x r' IHr]; rewrite /= -IHr. Qed.
-
-Corollary foldr_cons0 (r : seq A) :
-  foldr (fun x acc => f x :: acc) [::] r = map f r.
-Proof. by rewrite foldr_cons cats0. Qed.
-
-Lemma foldl_cons (r : seq A) (s : seq B) :
-  foldl (fun acc x => f x :: acc) s r = (catrev (map f r) s).
-Proof. by elim: r s => [//|a r' IHr] s; rewrite /= -IHr. Qed.
-
-Corollary foldl_cons0 (r : seq A) :
-  foldl (fun acc x => f x :: acc) [::] r = rev (map f r).
-Proof. by rewrite foldl_cons. Qed.
-End Fold.
 
 Lemma eq_foldr (T0 T1 T2 : Type)
   (f0 : T1 -> T0 -> T0)
@@ -365,26 +281,7 @@ elim: sv st Hs => [ | xv sv IH1] st Hs /=.
     apply: IH1.
     move=> k; by move/(_ k.+1): Hs.
 Qed.
-(*
-Lemma foldr_correct A fv ft (s : seq A) :
-  (forall a v t, Rel v t -> Rel (fv a v) (ft a t)) ->
-  Rel (foldr fv dv s) (foldr ft dt s).
-Proof.
-move=> Hf.
-elim: s => [ | a s IHs]; first exact: H0.
-apply: Hf.
-exact: IHs.
-Qed.
-Lemma foldl_correct A fv ft (s : seq A) :
-  (forall a v t, Rel v t -> Rel (fv v a) (ft t a)) ->
-  Rel (foldl fv dv s) (foldl ft dt s).
-Proof.
-move=> Hf.
-rewrite -(revK s) !foldl_rev.
-apply: foldr_correct.
-exact: Hf.
-Qed.
-*)
+
 End fold_proof.
 
 Section Foldri.
