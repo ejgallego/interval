@@ -19,7 +19,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals Psatz.
-Require Import Coquelicot.
+Require Import Coquelicot.Coquelicot.
 Require Import Interval_missing.
 
 Local Open Scope R_scope.
