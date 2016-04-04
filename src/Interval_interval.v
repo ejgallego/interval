@@ -162,25 +162,16 @@ Theorem subset_contains :
   contains yi v.
 Proof.
 intros xi yi.
-case yi.
-intros _ v _.
-exact I.
-intros yl yu.
-case xi.
-intros H v _.
-elim H.
-intros xl xu Hx v.
-case v.
-intro H.
-elim H.
-intros r H.
+destruct yi as [|yl yu].
+easy.
+destruct xi as [|xl xu].
+easy.
+intros [H1 H2] [|v] Hv.
+easy.
+apply contains_le in Hv.
 apply le_contains.
-apply le_lower_trans with xl.
-exact (proj1 Hx).
-exact (proj1 (contains_le _ _ _ H)).
-apply le_upper_trans with xu.
-exact (proj2 (contains_le _ _ _ H)).
-exact (proj2 Hx).
+now apply le_lower_trans with (1 := H1).
+now apply le_upper_trans with (2 := H2).
 Qed.
 
 Definition domain P b :=
