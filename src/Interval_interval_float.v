@@ -136,7 +136,8 @@ Definition meet xi yi :=
       | true, true => F.min xu yu
       end in
     Ibnd l u
-  | _, _ => Inan
+  | Inan, _ => yi
+  | _, Inan => xi
   end.
 
 Definition mask xi yi : type :=

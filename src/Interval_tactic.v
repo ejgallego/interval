@@ -178,29 +178,11 @@ Lemma contains_bound_lr :
   contains (I.convert (I.meet (I.upper_extent (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai)) (I.lower_extent (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai)))) (Xreal x).
 Proof.
 intros x prec proga boundsa na progb boundsb nb [Hx1 Hx2].
-generalize (contains_eval prec proga boundsa na).
-case (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai).
-easy.
-simpl.
-intros l _ [Hl _].
-generalize (contains_eval prec progb boundsb nb).
-case (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai).
-easy.
-simpl.
-intros _ u [_ Hu].
-rewrite 3!F.real_correct.
-rewrite F.nan_correct.
-split.
-case_eq (F.toX l).
-intros _.
-now rewrite F.nan_correct.
-intros lr Hlr.
-rewrite Hlr in Hl.
-rewrite Hlr.
-now apply Rle_trans with (2 := Hx1).
-destruct (F.toX u) as [|ur].
-exact I.
-now apply Rle_trans with (1 := Hx2).
+apply I.meet_correct.
+apply I.upper_extent_correct with (2 := Hx1).
+apply contains_eval.
+apply I.lower_extent_correct with (2 := Hx2).
+apply contains_eval.
 Qed.
 
 Lemma contains_bound_lr' :

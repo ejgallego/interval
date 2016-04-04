@@ -740,11 +740,8 @@ Definition taylor_integral :=
 Definition taylor_integral_naive_intersection :=
   let temp := IntTac.naive_integral_float prec iF a b in
   match temp with
-    | Inan => Inan
-    | temp => match taylor_integral with
-                | Inan => temp
-                | x => I.meet x temp
-              end
+  | Inan => Inan
+  | _ => I.meet temp taylor_integral
   end.
 
 Lemma taylor_integral_correct :
@@ -768,12 +765,10 @@ Proof.
 rewrite /taylor_integral_naive_intersection.
 set tmp := (IntTac.naive_integral_float _ _ _ _).
 case Ht : tmp => [| l u] => // .
-set int := Xreal _.
-case Hti : (taylor_integral) => [| l1 u1]; rewrite -Ht.
-- by apply: IntTac.naive_integral_float_correct.
-- rewrite -Hti; apply: (I.meet_correct taylor_integral tmp).
-  apply: taylor_integral_correct.
-  by apply: IntTac.naive_integral_float_correct.
+apply I.meet_correct.
+rewrite -Ht.
+exact: IntTac.naive_integral_float_correct.
+exact: taylor_integral_correct.
 Qed.
 
 End DepthZeroPol.
