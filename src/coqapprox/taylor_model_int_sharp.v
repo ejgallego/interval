@@ -3745,21 +3745,19 @@ Definition toXreal_fun_mask
   end.
 *)
 
-Lemma TM_horner_correct (* (smallX0 : interval) *) (X0 X : I.type) Mf f pi pr n :
-  (* I.subset_ smallX0 (I.convert X0) -> *)
+Lemma TM_horner_correct (X0 X : I.type) Mf f pi pr n :
   I.subset_ (I.convert X0) (I.convert X) ->
-  let: smallX0 := I.convert X0 in
-  not_empty smallX0 ->
+  not_empty (I.convert X0) ->
   f Xnan = Xnan ->
-  i_validTM smallX0 (I.convert X) Mf f ->
+  i_validTM (I.convert X0) (I.convert X) Mf f ->
   pi >:: pr ->
-  i_validTM smallX0 (I.convert X) (TM_horner n pi Mf X0 X)
+  i_validTM (I.convert X0) (I.convert X) (TM_horner n pi Mf X0 X)
   (toXreal_fun (fun x : R => pr.[(toR_fun f x)%Re])).
 Proof.
-move=> (* Hsmall *) Hsubs0 /= Hne Hnan [Fdef Fnai Fzero Fsubs Fmain] Hp.
+move=> Hsubs0 /= Hne Hnan [Fdef Fnai Fzero Fsubs Fmain] Hp.
 have Ht : not_empty (I.convert X0).
   case Hne => t Hts'.
-  exists t; done || exact: (subset_contains smallX0).
+  by exists t.
 wlog Hsize : pi pr Hp / Pol.size pi = PolR.size pr => [Hwlog|].
   apply: (@TM_fun_eq (toXreal_fun
     (fun x : R => (pad pi pr).[toR_fun f x]))).
@@ -3893,6 +3891,8 @@ set BfMf := I.add prec Bf (error Mf).
 set Mg := TMg a0 (I.add prec Bf (error Mf)) n.
 set M1 := TMset0 Mf (I.sub prec A0 a0).
 set M0 := TM_horner n (approx Mg) M1 X0 X.
+
+(* Preliminary facts *)
 have [Fdef Fnai Fzero Hsubs Fmain] := Hf.
 have ne_A0 : not_empty (I.convert A0).
   have [t Ht] := Hne.
@@ -3937,8 +3937,9 @@ have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f (Xreal x)).
   have Df : defined f x. by apply: contraT => K; rewrite -Ef; apply: Fdef K.
   by rewrite -(Xreal_toR Df).
   case: (f) =>// r; simpl; congr Xreal; ring.
-have HM1' : i_validTM (I.convert X0) (I.convert X) M1 (fun x => f x - Xreal (alpha0)).
+have HM1 : i_validTM (I.convert X0) (I.convert X) M1 (fun x => f x - Xreal (alpha0)).
   exact: TMset0_correct.
+
 split=>//=.
 (* Def *)
 - move=> x Hx /definedPn Dx.
@@ -3952,9 +3953,11 @@ split=>//=.
   apply/eqNaiP; apply: (@Gdef r); last by apply/definedPn.
   rewrite -Efx //.
   exact: inBfMf.
+
 (* Nai *)
 - move=> HX; rewrite I.add_propagate_r // Gnai //.
   by rewrite I.add_propagate_r // Fnai.
+
 (* Zero *)
 rewrite /M0 /Mg /Bf.
 step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
@@ -3963,22 +3966,14 @@ have [a Ha] := ne_a0.
 have [Q HQ1 HQ2] := Gmain a Ha.
 have [F HF1 HF2] := Fmain t Ht.
 apply: I.add_correct =>//.
-have HH := @TM_horner_correct
-  X0 X M1 _ (approx Mg) Q n (* (subset_refl _) *) Hsubs Hne _ HM1' HQ1.
+have HH := @TM_horner_correct X0 X M1 _ (approx Mg) Q n Hsubs Hne _ HM1 HQ1.
 rewrite Hnan /= in HH; move/(_ erefl) in HH.
 by have [_ _ Hzero _ _] := HH.
+
 (* Main *)
 move=> x0 Hx0.
 have HMg : i_validTM (I.convert a0) (I.convert BfMf) Mg g by exact: Hg.
-pose smallX0 := IIbnd (Xreal x0) (Xreal x0).
-have HM1 : i_validTM smallX0 (I.convert X) M1 (fun x => f x - Xreal alpha0).
-  apply: i_validTM_subset_X0 HM1'.
-  unfold Interval_interval.subset, smallX0.
-  move: Hx0.
-  case I.convert.
-  easy.
-  intros l u.
-  exact: contains_le.
+(* now we need not [pose smallX0 := IIbnd (Xreal x0) (Xreal x0).] anymore... *)
 have [M1def M1nai M1zero M1subs M1main] := HM1.
 have [Ga0 HGa0 HGa0'] := Gmain alpha0 in_a0.
 pose f0 := (fun x : ExtendedR => f x - Xreal alpha0).
@@ -3988,7 +3983,7 @@ have HM0 : i_validTM (I.convert X0) (I.convert X) M0
   apply: TM_horner_correct =>//.
   by rewrite /f0 Hnan.
 have [M0def M0nai M0zero M0subs M0main] := HM0.
-have [|Q0 HQ0 HQ0'] := M0main x0. by rewrite /smallX0; red; auto with real.
+have [Q0 HQ0 HQ0'] := M0main x0 Hx0.
 exists Q0 =>//.
 move=> x Hx.
 case Enai: (eqNai (I.add prec (error M0) (error Mg))).
@@ -4009,7 +4004,6 @@ pose intermed :=
   Xreal (toR_fun (toXreal_fun (fun x1 : R => Ga0.[(toR_fun f0 x1)%R])) x).
 step_xr ((intermed - Xreal Q0.[(x - x0)%R]) + (g (f (Xreal x)) - intermed))%XR;
   last by rewrite /intermed -(Xreal_toR DefOKgf) /=; congr Xreal; ring.
-
 apply: I.add_correct; rewrite /intermed. exact: HQ0'.
 case Efx: (f (Xreal x)) => [|r].
   step_xi IInan =>//.
