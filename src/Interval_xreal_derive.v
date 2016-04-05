@@ -256,7 +256,7 @@ Ltac xtotal_aux :=
   end.
 
 Ltac xtotal :=
-  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xpower_int, Xmask in * ;
+  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xpower_int, Xmask, Xlift2, Xlift, Xbind2, Xbind in * ;
   repeat xtotal_aux.
 
 Theorem Xderive_pt_add :
@@ -423,13 +423,13 @@ apply derivable_pt_lim_eq with (div_fct (fct_cte 1) (proj_fun v f)).
 intro x.
 unfold div_fct, fct_cte, Rdiv.
 apply Rmult_1_l.
-replace (- (r0 / (r1 * r1)))%R with ((0 * proj_fun v f r - r0 * fct_cte 1 r) / Rsqr (proj_fun v f r))%R.
+replace (- (r0 / Rsqr r1))%R with ((0 * proj_fun v f r - r0 * fct_cte 1 r) / Rsqr (proj_fun v f r))%R.
 apply (derivable_pt_lim_div (fct_cte 1)).
 apply derivable_pt_lim_const.
 apply Hf.
 unfold proj_fun.
 now rewrite X.
-unfold proj_fun, fct_cte, Rsqr.
+unfold proj_fun, fct_cte.
 rewrite X.
 now field.
 Qed.
@@ -676,7 +676,7 @@ apply lt_O_nat_of_P.
 case (f x).
 easy.
 intros r.
-unfold Xpower_int.
+unfold Xpower_int, Xbind.
 case_eq (Zpred (Zpos n))%Z.
 intros H.
 replace (nat_of_P n) with 1.

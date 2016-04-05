@@ -563,7 +563,7 @@ let R := TM_integral_poly in RPA R (TM_integral_error TM_integral_poly).
 Lemma TM_integral_correct (x0 : Rdefinitions.R) :
 contains iX0 (Xreal x0) ->
 i_validTM (I.convert X0) iX Mf xF ->
-i_validTM (I.convert X0) iX TM_integral (toXreal_fun (RInt f x0)).
+i_validTM (I.convert X0) iX TM_integral (Xlift (RInt f x0)).
 Proof.
 move => Hx0X0 [Hdef Hnai ErrMf0 HX0X HPol] /= ; split =>//.
     rewrite /TM_integral /TM_integral_error /= /iX => H.
@@ -1185,7 +1185,7 @@ case=>[Hpos|Hneg].
         have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
         have H'x0 : X >: x0 by exact/intvlP.
         have TL :=
-          @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+          @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
         have [|||c [H1 [H2 H3]]] := TL =>//.
           move=> k t Ht; rewrite toR_toXreal.
           case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -1203,7 +1203,7 @@ case=>[Hpos|Hneg].
         have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
         have H'x0 : X >: x0 by exact/intvlP.
         have TL :=
-          @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+          @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
         have [|||c [H1 [H2 H3]]] := TL =>//.
           move=> k t Ht; rewrite toR_toXreal.
           case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -1227,7 +1227,7 @@ case=>[Hpos|Hneg].
   have H'x : X >: x by exact/intvlP/(intvl_trans Hx0 Hu Hx).
   have H'x0 : X >: x0 by exact/intvlP.
   have TL :=
-    @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+    @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
   have [|||c [H1 [H2 H3]]] := TL =>//.
     move=> k t Ht; rewrite toR_toXreal.
     case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -1253,7 +1253,7 @@ split.
     have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
     have H'x0 : X >: x0 by exact/intvlP.
     have TL :=
-      @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+      @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
     have [|||c [H1 [H2 H3]]] := TL =>//.
       move=> k t Ht; rewrite toR_toXreal.
       case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -1271,7 +1271,7 @@ split.
     have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
     have H'x0 : X >: x0 by exact/intvlP.
     have TL :=
-      @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+      @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
     have [|||c [H1 [H2 H3]]] := TL =>//.
       move=> k t Ht; rewrite toR_toXreal.
       case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -1296,7 +1296,7 @@ move=> x Hx.
 have H'x : X >: x by exact/intvlP/(intvl_trans Hx0 Hu Hx).
 have H'x0 : X >: x0 by exact/intvlP.
 have TL :=
-  @ITaylor_Lagrange (toXreal_fun (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+  @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
 have [|||c [H1 [H2 H3]]] := TL =>//.
   move=> k t Ht; rewrite toR_toXreal.
   case: k => [//|k]; rewrite -ex_derive_nSS.
@@ -2119,7 +2119,7 @@ by rewrite /TM_sqrt;
 Qed.
 
 Lemma toR_sqrt x : (0 <= x)%R -> sqrt x = toR_fun Xsqrt x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt negativeF. Qed.
+Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt /Xbind negativeF. Qed.
 
 Lemma TM_sqrt_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -2188,7 +2188,7 @@ constructor.
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc sqrt).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt /toR_fun /proj_fun negativeF //.
+      simpl=> y Hy; rewrite /Xsqrt /Xbind /toR_fun /proj_fun negativeF //.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_sqrt n x E1).
   }
@@ -2234,7 +2234,7 @@ Ltac Inc :=
 Lemma toR_invsqrt x : (0 < x)%R -> / sqrt x = toR_fun (fun t => Xinv (Xsqrt t)) x.
 Proof.
 move=> Hx.
-rewrite /toR_fun /proj_fun /Xinv /Xsqrt negativeF; last exact: Rlt_le.
+rewrite /toR_fun /proj_fun /Xinv /Xsqrt /Xbind negativeF; last exact: Rlt_le.
 rewrite zeroF //.
 exact/Rgt_not_eq/sqrt_lt_R0.
 Qed.
@@ -2310,7 +2310,7 @@ by move=> *;
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc (fun t => / sqrt t)).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt /Xinv /toR_fun /proj_fun negativeF ?zeroF //.
+      simpl=> y Hy; rewrite /Xsqrt /Xinv /Xbind /toR_fun /proj_fun negativeF ?zeroF //.
       apply: Rgt_not_eq; exact: sqrt_lt_R0.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_invsqrt n x E1).
@@ -2519,7 +2519,7 @@ constructor.
     rewrite /pow_aux_rec ifT.
     apply/eqNaiP/contains_Xnan.
     have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
-    move: Dx; rewrite /defined /Xpower_int.
+    move: Dx; rewrite /defined /Xpower_int /Xbind.
     by case Ep: p =>//; case: is_zero =>//; case: m.
     exact: I.power_int_correct.
     match goal with |- is_true ?a => rewrite -(negbK a) negb_or end.
@@ -2578,7 +2578,7 @@ Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
 Proof. by rewrite /TM_inv; case: apart0 =>/=; rewrite Pol.size_rec1. Qed.
 
 Lemma toR_inv x : (x <> 0)%R -> Rinv x = toR_fun Xinv x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xinv zeroF. Qed.
+Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xinv /Xbind zeroF. Qed.
 
 Lemma TM_inv_correct X0 X n :
   I.subset_ (I.convert X0) (I.convert X) ->
@@ -2676,7 +2676,7 @@ by rewrite /TM_ln; case: gt0; case: n => [|n] /=; rewrite !sizes
 Qed.
 
 Lemma toR_ln x : (0 < x)%R -> ln x = toR_fun Xln x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xln positiveT. Qed.
+Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xln /Xbind positiveT. Qed.
 
 Lemma powerRZ_opp x n :
   x <> 0%R -> powerRZ x (- n) = / (powerRZ x n).
@@ -3430,15 +3430,14 @@ Lemma TM_horner_correct (X0 X : I.type) Mf f pi pr n :
   i_validTM (I.convert X0) (I.convert X) Mf f ->
   pi >:: pr ->
   i_validTM (I.convert X0) (I.convert X) (TM_horner n pi Mf X0 X)
-  (toXreal_fun (fun x : R => pr.[(toR_fun f x)%Re])).
+  (Xlift (fun x : R => pr.[(toR_fun f x)%Re])).
 Proof.
 move=> Hsubs0 /= Hne Hnan [Fdef Fnai Fzero Fsubs Fmain] Hp.
 have Ht : not_empty (I.convert X0).
   case Hne => t Hts'.
   by exists t.
 wlog Hsize : pi pr Hp / Pol.size pi = PolR.size pr => [Hwlog|].
-  apply: (@TM_fun_eq (toXreal_fun
-    (fun x : R => (pad pi pr).[toR_fun f x]))).
+  apply: (@TM_fun_eq (Xlift (fun x : R => (pad pi pr).[toR_fun f x]))).
   by move=> x Hx; rewrite /= [in RHS](@horner_pad pi).
   apply: Hwlog.
   exact: pad_correct.
@@ -3453,7 +3452,7 @@ elim/PolR.poly_ind: pr pi Hp Hsize => [|ar pr IHpr] pi Hp Hsize;
 + by rewrite sizes in Hsize.
 + rewrite /= /TM_horner Pol.fold_polyCons.
   apply: (@TM_fun_eq (fun x : ExtendedR => Xmask (Xreal ar) x +
-    toXreal_fun (fun r : R => pr.[toR_fun f r]) x * toXreal_fun (toR_fun f) x)%XR).
+    Xlift (fun r : R => pr.[toR_fun f r]) x * Xlift (toR_fun f) x)%XR).
     move=> x Hx /=.
     congr Xreal; ring.
   apply: TM_add_correct.
@@ -3639,8 +3638,7 @@ have HMg : i_validTM (I.convert a0) (I.convert BfMf) Mg g by exact: Hg.
 have [M1def M1nai M1zero M1subs M1main] := HM1.
 have [Ga0 HGa0 HGa0'] := Gmain alpha0 in_a0.
 pose f0 := (fun x : ExtendedR => f x - Xreal alpha0).
-have HM0 : i_validTM (I.convert X0) (I.convert X) M0
-  (toXreal_fun (fun r => Ga0.[(toR_fun f0 r)%R])).
+have HM0 : i_validTM (I.convert X0) (I.convert X) M0 (Xlift (fun r => Ga0.[(toR_fun f0 r)%R])).
   rewrite /M0.
   apply: TM_horner_correct =>//.
   by rewrite /f0 Hnan.
@@ -3662,8 +3660,7 @@ have DefOKgf : defined (fun xr : ExtendedR => g (f xr)) x.
   apply/eqNaiP; rewrite I.add_propagate_r //.
   apply/Gnai/contains_Xnan.
   rewrite -Efx; exact: inBfMf.
-pose intermed :=
-  Xreal (toR_fun (toXreal_fun (fun x1 : R => Ga0.[(toR_fun f0 x1)%R])) x).
+pose intermed := Xreal (toR_fun (Xlift (fun x1 : R => Ga0.[(toR_fun f0 x1)%R])) x).
 step_xr ((intermed - Xreal Q0.[(x - x0)%R]) + (g (f (Xreal x)) - intermed))%XR;
   last by rewrite /intermed -(Xreal_toR DefOKgf) /=; congr Xreal; ring.
 apply: I.add_correct; rewrite /intermed. exact: HQ0'.

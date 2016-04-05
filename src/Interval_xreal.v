@@ -122,11 +122,35 @@ case (fx x Xnan) ; try split.
 case x ; now intros.
 Qed.
 
-Definition Xneg x :=
+Definition Xbind f x :=
   match x with
-  | Xreal u => Xreal (-u)
+  | Xreal x => f x
   | Xnan => Xnan
   end.
+
+Definition Xbind2 f x y :=
+  match x, y with
+  | Xreal x, Xreal y => f x y
+  | _, _ => Xnan
+  end.
+
+Definition Xlift f := Xbind (fun x => Xreal (f x)).
+
+Definition Xlift2 f := Xbind2 (fun x y => Xreal (f x y)).
+
+Lemma Xlift2_correct :
+  forall f, extension_2 f (Xlift2 f).
+Proof.
+now intros f [|x] [|y].
+Qed.
+
+Lemma Xlift2_nan_r :
+  forall f x, Xlift2 f x Xnan = Xnan.
+Proof.
+now intros f [|x].
+Qed.
+
+Definition Xneg := Xlift Ropp.
 
 Lemma Xneg_involutive :
   forall x, Xneg (Xneg x) = x.
@@ -136,69 +160,23 @@ easy.
 apply (f_equal Xreal), Ropp_involutive.
 Qed.
 
-Definition Xinv x :=
-  match x with
-  | Xreal u => if is_zero u then Xnan else Xreal (/ u)
-  | _ => Xnan
-  end.
+Definition Xinv := Xbind (fun x => if is_zero x then Xnan else Xreal (/ x)).
 
-Definition Xsqrt x :=
-  match x with
-  | Xreal u => if is_negative u then Xnan else Xreal (sqrt u)
-  | Xnan => Xnan
-  end.
+Definition Xsqrt := Xbind (fun x => if is_negative x then Xnan else Xreal (sqrt x)).
 
-Definition Xabs x :=
-  match x with
-  | Xreal u => Xreal (Rabs u)
-  | Xnan => Xnan
-  end.
+Definition Xabs := Xlift Rabs.
 
-Definition Xadd x y :=
-  match x, y with
-  | Xreal u, Xreal v => Xreal (u + v)
-  | _, _ => Xnan
-  end.
+Definition Xadd := Xlift2 Rplus.
 
-Definition Xsub x y :=
-  match x, y with
-  | Xreal u, Xreal v => Xreal (u - v)
-  | _, _ => Xnan
-  end.
+Definition Xsub := Xlift2 Rminus.
 
-Lemma Xsub_correct : extension_2 Rminus Xsub.
-Proof.
-now intros [|x] [|y].
-Qed.
+Definition Xmul := Xlift2 Rmult.
 
-Definition Xmul x y :=
-  match x, y with
-  | Xreal u, Xreal v => Xreal (u * v)
-  | _, _ => Xnan
-  end.
+Definition Xdiv := Xbind2 (fun x y => if is_zero y then Xnan else Xreal (x / y)).
 
-Lemma Xmul_correct : extension_2 Rmult Xmul.
-Proof.
-now intros [|x] [|y].
-Qed.
+Definition Xmin := Xlift2 Rmin.
 
-Definition Xdiv x y :=
-  match x, y with
-  | Xreal u, Xreal v => if is_zero v then Xnan else Xreal (u / v)
-  | _, _ => Xnan
-  end.
-
-Definition Xmin x y :=
-  match x, y with
-  | Xreal u, Xreal v => Xreal (Rmin u v)
-  | _, _ => Xnan
-  end.
-
-Definition Xmax x y :=
-  match x, y with
-  | Xreal u, Xreal v => Xreal (Rmax u v)
-  | _, _ => Xnan
-  end.
+Definition Xmax := Xlift2 Rmax.
 
 Lemma Xsub_split :
   forall x y, Xsub x y = Xadd x (Xneg y).
@@ -214,57 +192,32 @@ simpl.
 now case (is_zero y).
 Qed.
 
-Definition Xsqr x := Xmul x x.
+Definition Xsqr := Xlift Rsqr.
 
-Definition Xcos x :=
-  match x with
-  | Xreal u => Xreal (cos u)
-  | Xnan => Xnan
-  end.
+Definition Xcos := Xlift cos.
 
-Definition Xsin x :=
-  match x with
-  | Xreal u => Xreal (sin u)
-  | Xnan => Xnan
-  end.
+Definition Xsin := Xlift sin.
 
-Definition Xtan x :=
-  Xdiv (Xsin x) (Xcos x).
+Definition Xtan x := Xdiv (Xsin x) (Xcos x).
 
-Definition Xatan x :=
-  match x with
-  | Xreal u => Xreal (atan u)
-  | Xnan => Xnan
-  end.
+Definition Xatan := Xlift atan.
 
-Definition Xexp x :=
-  match x with
-  | Xreal u => Xreal (exp u)
-  | Xnan => Xnan
-  end.
+Definition Xexp := Xlift exp.
 
-Definition Xln x :=
-  match x with
-  | Xreal u => if is_positive u then Xreal (ln u) else Xnan
-  | Xnan => Xnan
-  end.
+Definition Xln := Xbind (fun x => if is_positive x then Xreal (ln x) else Xnan).
 
-Definition Xpower_int x n :=
-  match x with
-  | Xreal u =>
-    match n with
-    | 0%Z => Xreal 1%R
-    | Zpos p => Xreal (pow u (nat_of_P p))
-    | Zneg p => if is_zero u then Xnan else Xreal (Rinv (pow u (nat_of_P p)))
-    end
-  | Xnan => Xnan
-  end.
+Definition Xpower_int x n := Xbind (fun x =>
+  match n with
+  | 0%Z => Xreal 1%R
+  | Zpos p => Xreal (pow x (nat_of_P p))
+  | Zneg p => if is_zero x then Xnan else Xreal (Rinv (pow x (nat_of_P p)))
+  end) x.
 
 Lemma Xpower_int_correct :
   forall n, extension (fun x => powerRZ x n) (fun x => Xpower_int x n).
 Proof.
 intros [|n|n] [|x] ; try split.
-unfold Xpower_int.
+unfold Xpower_int, Xbind.
 now case (is_zero x).
 Qed.
 
@@ -402,37 +355,6 @@ Definition Xmask x y :=
   | Xnan => Xnan
   end.
 
-Lemma Xmask_Xfun_r :
-  forall f, propagate_2 f ->
-  forall x y,
-  Xmask (f x y) y = f x y.
-Proof.
-intros f H x [|y].
-rewrite (proj2 H).
-apply refl_equal.
-apply refl_equal.
-Qed.
-
-Lemma Xfun_Xmask_l :
-  forall f, propagate_2 f ->
-  forall x y z,
-  f (Xmask x z) y = Xmask (f x y) z.
-Proof.
-intros f H x y [|z].
-now rewrite (proj1 H).
-apply refl_equal.
-Qed.
-
-Lemma Xfun_Xmask_r :
-  forall f, propagate_2 f ->
-  forall x y z,
-  f x (Xmask y z) = Xmask (f x y) z.
-Proof.
-intros f H x y [|z].
-now rewrite (proj2 H).
-apply refl_equal.
-Qed.
-
 Lemma Xmul_Xinv :
   forall x,
   Xmul x (Xinv x) = Xmask (Xreal 1) (Xinv x).
@@ -456,20 +378,3 @@ case is_zero_spec ; try easy.
 intros H.
 now elim H.
 Qed.
-
-Definition Xsub_propagate := extension_propagate_2 _ _ Xsub_correct.
-Definition Xmul_propagate := extension_propagate_2 _ _ Xmul_correct.
-
-Section ExtensionOfFunctionsToXreal.
-
-Variable (f : R -> R).
-
-Definition toXreal_fun : ExtendedR -> ExtendedR :=
-  fun x => match x with Xnan => Xnan | Xreal r => Xreal (f r) end.
-
-(* Interval_xreal.extension should be boolean *)
-
-Lemma toXreal_fun_correct : extension f toXreal_fun.
-Proof. by case. Qed.
-
-End ExtensionOfFunctionsToXreal.

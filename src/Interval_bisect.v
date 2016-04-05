@@ -186,7 +186,8 @@ rewrite Xmul_Xneg_distr_r.
 apply f_equal.
 rewrite Xdiv_split.
 apply f_equal.
-unfold Xsqr.
+assert (forall x, Xsqr x = Xmul x x) by now intros [|x].
+rewrite 2!H.
 apply sym_eq.
 apply Xinv_Xmul_distr.
 Qed.
@@ -200,17 +201,15 @@ repeat rewrite Xdiv_split.
 rewrite Xinv_Xmul_distr.
 repeat rewrite <- Xmul_assoc.
 apply (f_equal (fun x => Xmul x (Xinv v))).
-pattern u' at 1 ; rewrite <- Xmul_1_r.
-pattern (Xmul (Xmul v' u) (Xinv v)) ; rewrite <- Xmask_Xfun_r with (1 := Xmul_propagate).
-rewrite -> Xfun_Xmask_r with (1 := Xsub_propagate).
-rewrite <- Xfun_Xmask_l with (1 := Xsub_propagate).
-rewrite <- Xfun_Xmask_r with (1 := Xmul_propagate).
-rewrite <- Xmul_Xinv.
-repeat rewrite Xsub_split.
-rewrite <- Xmul_assoc.
-rewrite <- Xmul_Xneg_distr_l.
-apply sym_eq.
-apply Xmul_Xadd_distr_r.
+rewrite 2!Xsub_split.
+rewrite Xadd_comm.
+set (w := Xmul v' u).
+rewrite Xmul_Xadd_distr_r.
+rewrite Xmul_assoc Xmul_Xinv.
+destruct (Xinv v) as [|z].
+by rewrite /= /Xmul 2!Xlift2_nan_r.
+rewrite /= Xmul_1_r Xmul_Xneg_distr_l.
+apply Xadd_comm.
 Qed.
 
 Lemma xreal_to_real :
@@ -240,10 +239,10 @@ rewrite H.
 destruct o ; try easy ; simpl.
 now case (is_zero b).
 now case (is_negative b).
-unfold Xtan, Xdiv, Xsin, Xcos.
+unfold Xtan, Xdiv, Xsin, Xcos, Xbind2, Xlift, Xbind.
 now case (is_zero (cos b)).
 now case (is_positive b).
-fold (Xpower_int (Xreal b) n0).
+change (match Xpower_int (Xreal b) n0 with Xnan => True | Xreal z => z = powerRZ b n0 end).
 generalize (Xpower_int_correct n0 (Xreal b)).
 now case Xpower_int.
 (* binary *)
@@ -281,7 +280,7 @@ split.
 case: unop HnotXnan => //=.
 - by case is_zero.
 - by case is_negative.
-- rewrite /Xtan /tan /Xdiv /Xcos /Xsin.
+- rewrite /Xtan /tan /Xdiv /Xcos /Xsin /Xbind2 /Xlift /Xbind.
   by case is_zero.
 - by case is_positive.
 - case => [||p] // .
@@ -302,7 +301,7 @@ case: unop HnotXnan => /=.
   apply: continuous_comp => //.
   apply: continuous_tan => Ha.
     move: HnotXnan.
-    by rewrite /Xtan /Xsin /Xcos /Xdiv Ha is_zero_correct_zero.
+    by rewrite /Xtan /Xsin /Xcos /Xdiv /Xbind2 /Xlift /Xbind Ha is_zero_correct_zero.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
 - move => HnotXnan.
@@ -513,7 +512,7 @@ case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
   move => HnotXnan [] // Heq1 Hconta1 [] // Heq2 Hconta2.
   split => // .
   + move: HnotXnan.
-    rewrite /binary /ext_operations /Xdiv.
+    rewrite /binary /ext_operations /Xdiv /Xbind2.
     case: (is_zero b2) => // .
     by inversion Heq1; inversion Heq2.
   + apply: continuous_mult => // .
@@ -731,8 +730,11 @@ rewrite is_zero_correct_zero.
 now apply Xderive_pt_abs.
 rewrite rewrite_inv_diff.
 now apply Xderive_pt_inv.
-unfold Xsqr.
-now apply Xderive_pt_mul.
+eapply Xderive_pt_eq_fun.
+2: now apply Xderive_pt_mul.
+intros y.
+simpl.
+now case f.
 now apply Xderive_pt_sqrt.
 now apply Xderive_pt_cos.
 now apply Xderive_pt_sin.

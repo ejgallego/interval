@@ -149,13 +149,6 @@ Variable prec : F.precision.
 
 Variables (f : R -> R) (iF : I.type -> I.type).
 
-(* This is a std monadic operation. Does it exist somewhere in the libs? *)
-Let g := toXreal_fun f.
-
-(* g is a restriction of f as an extendedR function. *)
-Let Hfgext := toXreal_fun_correct f.
-
-
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
 
 Section OrderOne.
@@ -185,7 +178,7 @@ case elu: (iF (I.bnd a b)) => // [l u].
 set ra := toR a; set rb := toR b; fold ra rb in Hintegrable, ha, hb, Hleab.
 set Iab := RInt _ _ _.
 case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
-  + have -> : Xreal Iab = Xmul (g (Xreal ra)) (Xsub (Xreal rb) (Xreal ra)).
+  + have -> : Xreal Iab = Xmul (Xlift f (Xreal ra)) (Xsub (Xreal rb) (Xreal ra)).
       rewrite /Iab Heqab /= RInt_point; congr Xreal; ring.
     apply: I.mul_correct; last by apply: I.sub_correct; exact: thin_correct_toR.
     rewrite -elu; apply: HiFIntExt;  move/F_realP: ha<-.
@@ -197,7 +190,7 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
     - rewrite -[Xreal (rb - ra)]/(Xsub (Xreal rb) (Xreal ra)). (* 1 *)
       apply: I.sub_correct; exact: thin_correct_toR.
       (* try and show l * (b - a) <= int <= u * (b - a) instead *)
-    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(g (Xreal x)).
+    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(Xlift f (Xreal x)).
       apply: HiFIntExt; apply: contains_convert_bnd=> //; case: hx; split; exact: Rlt_le.
 Qed.
 
@@ -586,7 +579,7 @@ have Hjoina : contains (I.convert (I.join ia ib)) (Xreal a).
 have Hjoinb : contains (I.convert (I.join ia ib)) (Xreal b).
   by apply: I.join_correct; right.
 case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
-  + have -> : Xreal Iab = Xmul (g (Xreal a)) (Xsub (Xreal b) (Xreal a)).
+  + have -> : Xreal Iab = Xmul (Xlift f (Xreal a)) (Xsub (Xreal b) (Xreal a)).
       rewrite /Iab Heqab /= RInt_point; congr Xreal; ring.
     apply: I.mul_correct; last by apply: I.sub_correct.
     by rewrite -elu; apply: HiFIntExt.
@@ -597,7 +590,7 @@ case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
     - rewrite -[Xreal (b - a)]/(Xsub (Xreal b) (Xreal a)). (* 1 *)
       by apply: I.sub_correct.
       (* try and show l * (b - a) <= int <= u * (b - a) instead *)
-    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(g (Xreal x)).
+    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(Xlift f (Xreal x)).
       apply: HiFIntExt.
       + apply (contains_connected _ a b) => // .
         split.
@@ -700,10 +693,6 @@ Variable prec : F.precision.
 
 Variables (f : R -> R) (iF : I.type -> I.type).
 
-Let g := toXreal_fun f.
-
-Let Hfgext := toXreal_fun_correct f.
-
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
 
 Variable Mf : TM.TMI.rpa.
@@ -712,7 +701,7 @@ Definition X0 := I.bnd (I.midpoint X) (I.midpoint X).
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
 
-Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf g.
+Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf (Xlift f).
 
 Variables (a b : F.type).
 
@@ -750,7 +739,7 @@ Lemma taylor_integral_correct :
     (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral.
-apply: (@TM.TMI.integralEnclosure_correct prec X0 X (toXreal_fun f) Mf (toR (I.midpoint X))) => //.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (Xlift f) Mf (toR (I.midpoint X))) => //.
 rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
 split ; apply Rle_refl.
 eexists.

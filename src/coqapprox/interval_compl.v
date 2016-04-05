@@ -181,7 +181,7 @@ Lemma Xreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
 Proof. by rewrite /toR_fun /proj_fun /defined; case: f. Qed.
 
 Lemma toR_toXreal (f : R -> R) :
-  toR_fun (toXreal_fun f) = f.
+  toR_fun (Xlift f) = f.
 Proof. done. Qed.
 
 Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
@@ -222,7 +222,7 @@ Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
 Proof. done. Qed.
 
 Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
-Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
+Proof. by move=> H; rewrite /Xdiv /Xbind2 zeroF. Qed.
 
 (**************************************************************)
 (** Some support results relating inequalities and [contains] *)
@@ -685,7 +685,7 @@ Lemma R_tan_correct : forall prec, R_extension tan (I.tan prec).
 Proof.
 intros prec xi x.
 move/(I.tan_correct prec).
-unfold Xtan, Xsin, Xcos, Xdiv.
+unfold Xtan, Xsin, Xcos, Xdiv, Xbind2, Xlift, Xbind.
 case is_zero => //.
 now case I.convert.
 Qed.

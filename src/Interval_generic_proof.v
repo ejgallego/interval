@@ -866,7 +866,7 @@ Lemma Fadd_slow_aux1_correct :
   Xadd (FtoX (@Float beta sx mx e)) (FtoX (@Float beta sy my e)).
 Proof.
 intros.
-unfold Xadd, FtoX.
+simpl Xadd.
 unfold Fadd_slow_aux1.
 change (Zpos mx + Zneg my)%Z with (Zpos mx - Zpos my)%Z.
 case_eq (eqb sx sy) ; intro H.

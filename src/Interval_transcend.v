@@ -410,7 +410,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   easy.
   intros pl Hpl'.
   rewrite Hsl''.
-  unfold Xmul, Xdiv, xround.
+  simpl.
   case is_zero_spec.
   intros H'.
   exfalso.
@@ -438,7 +438,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   case_eq (F.toX su).
   easy.
   intros sur Hsu'.
-  unfold Xmul, Xdiv, xround.
+  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
   case is_zero_spec.
   easy.
   intros _.
@@ -698,7 +698,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, xround.
+  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -1242,7 +1242,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   easy.
   intros pl Hpl'.
   rewrite Hxl.
-  unfold Xmul, Xdiv, xround.
+  simpl.
   case is_zero_spec.
   easy.
   intros _.
@@ -1268,7 +1268,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   case_eq (F.toX xu).
   easy.
   intros xur Hxu'.
-  unfold Xmul, Xdiv, xround.
+  simpl.
   case is_zero_spec.
   easy.
   intros _.
@@ -1890,7 +1890,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, xround.
+  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -2089,6 +2089,7 @@ apply I.fromZ_correct.
 simpl.
 apply f_equal.
 rewrite cos_2a_cos.
+unfold Rsqr.
 ring.
 (* - sin *)
 rewrite sin_2a.
@@ -2443,7 +2444,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, xround.
+  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -2816,7 +2817,7 @@ case le_spec.
     elim Zc.
     apply Rmult_0_l.
     simpl.
-    replace (1 / (cos (toR x) * cos (toR x)) - 1)%R with (Rsqr (sin (toR x) / cos (toR x))).
+    replace (1 / (Rsqr (cos (toR x))) - 1)%R with (Rsqr (sin (toR x) / cos (toR x))).
     case is_negative_spec ; intros H.
     elim Rlt_not_le with (1 := H).
     apply Rle_0_sqr.
