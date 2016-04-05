@@ -33,7 +33,6 @@ Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import reals_tac.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.
 Require Import interval_compl.
@@ -1882,11 +1881,8 @@ constructor.
         (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
         first last.
         move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
-        simpl_R.
-        apply: (@Rmult_eq_reg_r ri0); first rewrite -IHk // Rmult_assoc Hri0; try lra.
-        by rewrite -Hr0; apply: INR_fact_neq_0.
-        apply: Rinv_r_neq0 (Hri0 _).
-        by rewrite -Hr0; apply: INR_fact_neq_0.
+        rewrite IHk /Rdiv Rmult_assoc Rinv_l ?Rmult_1_r //.
+        exact: INR_fact_neq_0.
       clear IHk.
       rewrite PolR.horner_div_mixed_r PolR.horner_sub PolR.horner_add.
       rewrite PolR.horner_mul_mixed !PolR.horner_lift Derive_scal_l.
@@ -2017,11 +2013,8 @@ constructor.
             (fun y _ => continuous_cos y)
           (open_neq 0%R)) (3 := Hdef).
         move=> t Hdef'; move/(_ t Hdef') in IHk.
-        simpl_R.
-        move/(@Rmult_eq_compat_r r) in IHk.
-        have Hr0 : r <> 0%R by rewrite -Hr; apply: INR_fact_neq_0.
-        rewrite Rmult_assoc [Rmult ri r]Rmult_comm Hri // Rsimpl in IHk.
-        by simpl Derive_n in IHk; rewrite -{}IHk.
+        rewrite IHk /Rdiv Rmult_assoc Rinv_l ?Rmult_1_r //.
+        exact: INR_fact_neq_0.
       clear IHk.
       rewrite PolR.horner_div_mixed_r.
       rewrite PolR.horner_add addn0.

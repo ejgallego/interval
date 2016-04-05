@@ -896,35 +896,6 @@ apply: fun_gen_correct =>//.
 - exact: TM_sin_correct.
 Qed.
 
-(*
-OLD CODE
-
-Definition TM_tan_slow prec X0 X n :=
-  TM_div prec (TM_sin prec X0 X n) (TM_cos prec X0 X n) X0 X n.
-
-Definition tan := Eval hnf in fun_gen I.tan TM_tan_slow.
-
-Theorem tan_correct :
-  forall u (Y : I.type) tf f,
-  approximates Y tf f ->
-  approximates Y (tan u Y tf) (fun x => Xtan (f x)).
-Proof.
-apply: fun_gen_correct =>//.
-exact: I.tan_correct.
-by move=> *; rewrite /tmsize size_TM_mul. (* TODO : refactor *)
-move=> prec X0 X n Hsubset [x Hx].
-rewrite /TM_tan_slow; change n with (n.+1.-1); apply: TM_div_correct =>//.
-(* OK since Xtan := fun x : ExtendedR => Xdiv (Xsin x) (Xcos x) *)
-eexists; exact Hx.
-by rewrite PolI.tsize_trec2. (* TODO : refactor *)
-by rewrite PolI.tsize_trec2. (* TODO : refactor *)
-apply: TM_sin_correct =>//.
-eexists; exact Hx.
-apply: TM_cos_correct =>//.
-eexists; exact Hx.
-Qed.
-*)
-
 Definition tan := Eval hnf in fun_gen I.tan TM_tan.
 
 Theorem tan_correct :
@@ -937,30 +908,6 @@ apply: fun_gen_correct =>//.
 - exact: size_TM_tan.
 - exact: TM_tan_correct.
 Qed.
-
-(*
-OLD CODE
-
-Definition atan (u : U) (X : I.type) (t : T) : T :=
-(* this is a very naive definition, ideally we should rely on TM_atan *)
-  Tm (TM_any u.1 (I.atan u.1 (eval u t X X)) X u.2).
-
-Theorem atan_correct :
-  forall u (Y : I.type) tf f,
-  approximates Y tf f ->
-  approximates Y (atan u Y tf) (fun x => Xatan (f x)).
-Proof.
-move=> u Y tf f [Hnan Hnil Hmain].
-split=>//; first by rewrite Hnan.
-by rewrite /= /tmsize size_TM_any.
-move=> Hne; apply: TM_any_correct.
-exact: not_empty_Imid.
-exact: Imid_subset.
-move=> x Hx.
-apply: I.atan_correct.
-exact: eval_correct.
-Qed.
-*)
 
 Definition atan := Eval hnf in fun_gen I.atan TM_atan.
 
@@ -992,9 +939,6 @@ Proof.
 move=> p u Y tf f Hf.
 have [Hnan Hnil Hmain] := Hf.
 have [Hp|Hp] := Z.eq_dec p 1%Z.
-(* . *)
-(* rewrite Hp.
-apply (@approximates_ext (fun x => Xmask (Xreal 1) (f x)))=>//. *)
 (* . *)
 rewrite Hp.
 apply (@approximates_ext f)=>//.
