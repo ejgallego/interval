@@ -1405,8 +1405,8 @@ have Hr' : contains (I.convert X) (Xreal r').
   exact: subset_contains Hsubs _ Hr'0.
 pose x' := Xreal r'.
 have XNNan : I.convert X <> IInan.
-  move=> HX.
-  exact: bounded_IInan E2 _.
+  apply I.bounded_correct in E2.
+  now rewrite (proj2 (I.lower_bounded_correct _ _)).
 have Hder : forall r : R, X >: r -> def r.
   move=> r Hr.
   rewrite -[def _]negbK; apply/negP => Kr.

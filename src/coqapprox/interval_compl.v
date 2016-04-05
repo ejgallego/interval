@@ -464,15 +464,6 @@ move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
 by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
 Qed.
 
-Lemma bounded_IInan (X : I.type) :
-  I.bounded X = true -> I.convert X <> IInan.
-Proof.
-move=> HX.
-have [H1 H2] := I.bounded_correct X HX.
-have [] := I.lower_bounded_correct X H1.
-by rewrite /I.bounded_prop; case I.convert.
-Qed.
-
 Lemma bounded_contains_lower (x : ExtendedR) (X : I.type) :
   I.bounded X = true -> contains (I.convert X) x ->
   contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.lower X)))).
