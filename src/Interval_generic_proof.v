@@ -1119,25 +1119,11 @@ Lemma is_zero_correct_float :
   is_zero (FtoR beta s m e) = false.
 Proof.
 intros beta s m e.
-destruct (is_zero_spec (FtoR beta s m e)).
-destruct s.
-refine (False_ind _ (Rlt_not_eq _ _ _ H)).
-apply FtoR_Rneg.
-refine (False_ind _ (Rgt_not_eq _ _ _ H)).
-apply FtoR_Rpos.
-apply refl_equal.
-Qed.
-
-Lemma FtoR_conversion_pos :
-  forall beta m e,
-  Fcore_defs.F2R (Fcore_defs.Float beta (Zpos m) e) = FtoR beta false m e.
-Proof.
-intros beta m e.
-unfold FtoR.
-destruct e.
-apply Rmult_1_r.
-now rewrite Z2R_mult.
-easy.
+rewrite FtoR_split.
+case is_zero_spec ; try easy.
+intros H.
+apply F2R_eq_0_reg in H.
+now destruct s.
 Qed.
 
 Theorem Fdiv_correct :
@@ -1169,7 +1155,7 @@ apply Rinv_0_lt_compat.
 apply FtoR_Rpos.
 rewrite normalize_identity.
 rewrite convert_location_bij.
-now rewrite 2!FtoR_conversion_pos in H4.
+now rewrite 2!FtoR_split.
 now rewrite <- digits_conversion.
 rewrite 4!FtoR_split.
 assert (F2R (Fcore_defs.Float beta (Zpos my) ey) <> R0).
@@ -1229,7 +1215,7 @@ apply sqrt_lt_R0.
 apply FtoR_Rpos.
 rewrite normalize_identity.
 rewrite convert_location_bij.
-now rewrite FtoR_conversion_pos in H4.
+now rewrite FtoR_split.
 now rewrite <- digits_conversion.
 destruct (Fcalc_bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).

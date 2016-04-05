@@ -1229,18 +1229,6 @@ apply Rle_trans with (1 := H) (2 := Hxu).
 exact Hxu.
 Qed.
 
-Lemma Xmin_swap_nan : forall x, Xmin x Xnan = Xnan.
-Proof.
-intros x.
-case x ; intros ; apply refl_equal.
-Qed.
-
-Lemma Xmax_swap_nan : forall x, Xmax x Xnan = Xnan.
-Proof.
-intros x.
-case x ; intros ; apply refl_equal.
-Qed.
-
 Ltac clear_complex_aux :=
   match goal with
   | H: Rle _ _ |- _ =>
@@ -1335,8 +1323,6 @@ do 4 rewrite F.mul_correct.
 do 4 rewrite Fmul_correct.
 do 4 xreal_tac2 ;
   unfold Xmul ;
-  try rewrite Xmin_swap_nan ;
-  try rewrite Xmax_swap_nan ;
   try ( split ; simpl ; exact I ).
 unfold xround.
 simpl.
