@@ -221,46 +221,8 @@ Proof. done. Qed.
 Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
 Proof. done. Qed.
 
-Lemma Xreal_sqr x : Xreal (x ²) = Xsqr (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_power_int x n :
-  x <> 0%R \/ (n >= 0)%Z -> Xreal (powerRZ x n) = Xpower_int (Xreal x) n.
-Proof.
-case: n => [//|//|n].
-case=> [Hx|Hn]; by [rewrite /= zeroF | exfalso; auto with zarith].
-Qed.
-
 Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
 Proof. by move=> H; rewrite /Xdiv zeroF. Qed.
-
-Lemma Xreal_inv y : y <> 0%R -> Xreal (/ y) = Xinv (Xreal y).
-Proof. by move=> H; rewrite /Xinv zeroF. Qed.
-
-Lemma Xreal_sqrt x : (0 <= x)%R -> Xreal (sqrt x) = Xsqrt (Xreal x).
-Proof.
-move=> H; rewrite /Xsqrt ifF //.
-case: is_negative_spec =>//.
-by move/Rle_not_lt in H.
-Qed.
-
-Lemma Xreal_cos x : Xreal (cos x) = Xcos (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_sin x : Xreal (sin x) = Xsin (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_tan x : cos x <> 0%R -> Xreal (tan x) = Xtan (Xreal x).
-Proof. by move=> H; rewrite Xreal_div. Qed.
-
-Lemma Xreal_atan x : Xreal (atan x) = Xatan (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_exp x : Xreal (exp x) = Xexp (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_ln x : (0 < x)%R -> Xreal (ln x) = Xln (Xreal x).
-Proof. by move=> H; rewrite /Xln positiveT. Qed.
 
 (**************************************************************)
 (** Some support results relating inequalities and [contains] *)
@@ -669,46 +631,35 @@ Definition R_extension_2 f fi :=
 Lemma R_div_correct (prec : I.precision) :
   R_extension_2 Rdiv (I.div prec).
 Proof.
-move=> ix iy x y Hx Hy.
-case: (is_zero_spec y) (Hy) => H; last first.
-  rewrite Xreal_div //.
-  exact: I.div_correct.
-suff->: I.convert (I.div prec ix iy) = IInan by [].
-apply contains_Xnan.
-have->: Xnan = (Xdiv (Xreal x) (Xreal 0)) by simpl; rewrite zeroT.
-apply: I.div_correct =>//.
-by rewrite -H.
+intros xi yi x y Hx Hy.
+move: (I.div_correct prec _ _ _ _ Hx Hy) => /=.
+case is_zero => //.
+now case I.convert.
 Qed.
 
 Lemma R_neg_correct : R_extension Ropp I.neg.
-Proof. move=> *; rewrite Xreal_neg; exact: I.neg_correct. Qed.
+Proof. intros xi x. exact: I.neg_correct. Qed.
 
 Lemma R_sub_correct prec : R_extension_2 Rminus (I.sub prec).
-Proof. move=> *; rewrite Xreal_sub; exact: I.sub_correct. Qed.
+Proof. intros xi yi x y. exact: I.sub_correct. Qed.
 
 Lemma R_add_correct prec : R_extension_2 Rplus (I.add prec).
-Proof. move=> *; rewrite Xreal_add; exact: I.add_correct. Qed.
+Proof. intros xi yi x y. exact: I.add_correct. Qed.
 
 Lemma R_mul_correct prec : R_extension_2 Rmult (I.mul prec).
-Proof. move=> *; rewrite Xreal_mul; exact: I.mul_correct. Qed.
+Proof. intros xi yi x y. exact: I.mul_correct. Qed.
 
 Lemma R_sqr_correct prec : R_extension Rsqr (I.sqr prec).
-Proof. move=> *; rewrite Xreal_sqr; exact: I.sqr_correct. Qed.
+Proof. intros xi x. exact: I.sqr_correct. Qed.
 
 Lemma R_power_int_correct prec (n : Z) :
   R_extension (powerRZ ^~ n) (I.power_int prec ^~ n).
 Proof.
-move=> ix x Hx.
-case: (is_zero_spec x) (Hx) => H; last first.
-  rewrite Xreal_power_int //; last by left.
-  exact: I.power_int_correct.
-case: (Z_lt_le_dec n 0) => Hn.
-  suff->: I.convert (I.power_int prec ix n) = IInan by [].
-  apply contains_Xnan.
-  suff->: Xnan = (Xpower_int (Xreal x) n) by exact: I.power_int_correct.
-  by simpl; case: n Hn =>//; rewrite zeroT.
-rewrite Xreal_power_int; last by right; auto with zarith.
-exact: I.power_int_correct.
+intros xi x.
+move/(I.power_int_correct prec n) => /=.
+case: n => // n.
+case is_zero => //.
+now case I.convert.
 Qed.
 
 Lemma R_from_nat_correct :
@@ -719,60 +670,47 @@ Proof. move=> b n; rewrite INR_Z2R; exact: I.fromZ_correct. Qed.
 
 Lemma R_inv_correct : forall prec, R_extension Rinv (I.inv prec).
 Proof.
-move=> prec ix x Hx.
-case: (is_zero_spec x) => H; last first.
-  rewrite Xreal_inv //.
-  exact: I.inv_correct.
-suff->: I.convert (I.inv prec ix) = IInan by [].
-apply/contains_Xnan.
-have->: Xnan = (Xinv (Xreal x)) by simpl; rewrite zeroT.
-exact: I.inv_correct.
+intros prec xi x.
+move/(I.inv_correct prec) => /=.
+case is_zero => //.
+now case I.convert.
 Qed.
 
 Lemma R_sqrt_correct : forall prec, R_extension sqrt (I.sqrt prec).
-move=> prec ix x Hx.
-case: (is_negative_spec x) => H; last first.
-  rewrite Xreal_sqrt //.
-  exact: I.sqrt_correct.
-suff->: I.convert (I.sqrt prec ix) = IInan by [].
-apply/contains_Xnan.
-have->: Xnan = (Xsqrt (Xreal x)) by simpl; rewrite negativeT.
-exact: I.sqrt_correct.
+Proof.
+intros prec xi x.
+move/(I.sqrt_correct prec) => /=.
+case is_negative => //.
+now case I.convert.
 Qed.
 
 Lemma R_cos_correct : forall prec, R_extension cos (I.cos prec).
-Proof. red=> *; rewrite Xreal_cos; exact: I.cos_correct. Qed.
+Proof. intros prec xi x. exact: I.cos_correct. Qed.
 
 Lemma R_sin_correct : forall prec, R_extension sin (I.sin prec).
-Proof. red=> *; rewrite Xreal_sin; exact: I.sin_correct. Qed.
+Proof. intros prec xi x. exact: I.sin_correct. Qed.
 
 Lemma R_tan_correct : forall prec, R_extension tan (I.tan prec).
-move=> prec ix x Hx.
-case: (is_zero_spec (cos x)) => H; last first.
-  rewrite Xreal_tan //.
-  exact: I.tan_correct.
-suff->: I.convert (I.tan prec ix) = IInan by [].
-apply/contains_Xnan.
-have->: Xnan = (Xtan (Xreal x)) by rewrite /Xtan /= zeroT.
-exact: I.tan_correct.
+Proof.
+intros prec xi x.
+move/(I.tan_correct prec).
+unfold Xtan, Xsin, Xcos, Xdiv.
+case is_zero => //.
+now case I.convert.
 Qed.
 
 Lemma R_atan_correct : forall prec, R_extension atan (I.atan prec).
-Proof. red=> *; rewrite Xreal_atan; exact: I.atan_correct. Qed.
+Proof. intros prec xi x Hx. exact: I.atan_correct Hx. Qed.
 
 Lemma R_exp_correct : forall prec, R_extension exp (I.exp prec).
-Proof. red=> *; rewrite Xreal_exp; exact: I.exp_correct. Qed.
+Proof. intros prec xi x Hx. exact: I.exp_correct Hx. Qed.
 
 Lemma R_ln_correct : forall prec, R_extension ln (I.ln prec).
 Proof.
-move=> prec ix x Hx.
-case: (is_positive_spec x) => H.
-  rewrite Xreal_ln //.
-  exact: I.ln_correct.
-suff->: I.convert (I.ln prec ix) = IInan by [].
-apply/contains_Xnan.
-have->: Xnan = (Xln (Xreal x)) by simpl; rewrite positiveF.
-exact: I.ln_correct.
+intros prec xi x.
+move/(I.ln_correct prec) => /=.
+case is_positive => //.
+now case I.convert.
 Qed.
 
 Lemma R_mask_correct : R_extension_2 (fun c x => c) I.mask.
