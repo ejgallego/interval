@@ -150,7 +150,7 @@ rewrite /s1 /s2 /x3; clear.
 rewrite Rmult_comm.
 rewrite big_mkord big_distrl.
 apply: eq_bigr=> i _.
-(* rewrite PolR.nth_tail. *) rewrite /PolR.tail /PolR.nth nth_drop.
+rewrite /PolR.tail /PolR.nth nth_drop.
 (* some bookkeeping about powers *)
 change 3%Z with (Z.of_nat 3); rewrite -!pow_powerRZ.
 rewrite /= !Rmult_assoc; f_equal; ring.

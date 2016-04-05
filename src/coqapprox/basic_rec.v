@@ -22,7 +22,7 @@ Require Import ZArith.
 Require Import Rfunctions. (* for fact_simpl *)
 Require Import NaryFunctions.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop mathcomp.ssreflect.tuple.
-Require Import seq_compl nary_tuple.
+Require Import seq_compl.
 
 (*
 This library defines polymorphic definitions rec1up (resp. rec2up) that
@@ -323,7 +323,7 @@ rewrite leq_eqVlt in H; case/orP: H; [move/eqP|] => H.
   rewrite -H subnn /= ifT H //.
   by rewrite take_oversize.
 rewrite ifF 1?leqNgt ?H //.
-by rewrite behead_rev_take // size_Tuple.
+by rewrite behead_rev_take.
 Qed.
 
 Lemma nth_grec1downD d1 p q n:

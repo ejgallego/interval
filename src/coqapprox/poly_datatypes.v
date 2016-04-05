@@ -31,7 +31,7 @@ Require Import Interval_specific_ops.
 Require Import Interval_float_sig.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
-Require Import Rstruct interval_compl nary_tuple basic_rec seq_compl.
+Require Import Rstruct interval_compl basic_rec seq_compl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -213,53 +213,6 @@ Parameter nth_default : forall p n, size p <= n -> nth p n = C.zero.
 
 (* FIXME: Is the following mandatory? *)
 Parameter set_nth_nth : forall p n, n < size p -> set_nth p n (nth p n) = p.
-
-(*
-Parameter recN :
-  forall N : nat, C.T ^ N -> C.T ^^ N --> (nat -> C.T) -> nat -> T.
-Parameter lastN : C.T -> forall N : nat, T -> C.T ^ N.
-
-Parameter rec1_spec0 :
-  forall (F : C.T -> nat -> C.T) F0 n,
-  tnth (trec1 F F0 n) 0 = F0.
-Parameter rec1_spec :
-  forall (F : C.T -> nat -> C.T) F0 p k, k < p ->
-  tnth (trec1 F F0 p) k.+1 = F (tnth (trec1 F F0 k) k) k.+1.
-
-Parameter rec2_spec0 :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
-  tnth (trec2 F F0 F1 n) 0 = F0.
-
-Parameter rec2_spec1 :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 n,
-  tnth (trec2 F F0 F1 n.+1) 1 = F1.
-Parameter rec2_spec :
-  forall (F : C.T -> C.T -> nat -> C.T) F0 F1 p k, k.+1 < p ->
-  tnth (trec2 F F0 F1 p) k.+2 =
-  F (tnth (trec2 F F0 F1 k) k) (tnth (trec2 F F0 F1 k.+1) k.+1) k.+2.
-
-Parameter recN_spec0 :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-  (d : C.T),
-  k <= n -> k < N -> tnth (trecN L0 F n) k = nth d (Ttoseq L0) k.
-
-Parameter lastN_spec :
-  forall (d := C.tzero) N (p : T) (i : 'I_N),
-  Tnth (tlastN d N p) i = tnth p (tsize p - N + val i).
-
-Parameter recN_spec :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-         (d : C.T),
-  k <= n -> k >= N ->
-  tnth (trecN L0 F n) k =
-  (nuncurry F) (tlastN d N (trecN L0 F k.-1)) k.
-Parameter size_trecN :
-  forall (N : nat) (L0 : C.T ^ N) (F : C.T ^^ N --> (nat -> C.T)) (n k : nat)
-         (d : C.T),
-  tsize (trecN L0 F n) = n.+1.
-*)
-
-Parameter nth_tail : forall n p k, nth (tail n p) k = nth p (n + k).
 
 End PolyOps.
 
@@ -519,9 +472,6 @@ Lemma size_primitive (c : C.T) (p : T): size (primitive c p) = (size p).+1.
 Proof. by rewrite /size /= size_mkseq. Qed.
 
 End precSection.
-
-Lemma nth_tail n p k : nth (tail n p) k = nth p (n + k).
-Proof (nth_drop n _ p k).
 
 Lemma size_map f p : size (map f p) = size p.
 Proof (size_map f p).

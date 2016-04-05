@@ -25,7 +25,6 @@ FILES = \
 CAFILES = \
 	basic_rec.v \
 	interval_compl.v \
-	nary_tuple.v \
 	poly_bound.v \
 	poly_bound_quad.v \
 	poly_datatypes.v \
