@@ -427,9 +427,6 @@ Definition connected (P : R -> Prop) :=
   forall x y, P x -> P y ->
   forall z, (x <= z <= y)%R -> P z.
 
-Definition intersection P Q (x : R) :=
-  P x /\ Q x.
-
 Theorem derivable_pos_imp_increasing :
   forall f f' dom,
   connected dom ->

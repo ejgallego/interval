@@ -58,12 +58,9 @@ destruct a as [|a]; destruct b as [|b]; destruct c as [|c];
     * now apply Rle_trans with (1 := proj2 Hc) (2 := proj2 Hb).
 Qed.
 
-Notation IIbnd := Interval_interval.Ibnd (only parsing).
 Notation IInan := Interval_interval.Inan (only parsing).
 
-Local Notation subset_ := Interval_interval.subset (only parsing).
-
-Lemma subset_refl : forall x, subset_ x x.
+Lemma subset_refl : forall x, subset x x.
 Proof.
 case => [|l u] =>//=; rewrite /le_lower /le_upper; split.
   by case (-l)%XR => //; apply Rle_refl.
@@ -73,11 +70,11 @@ Qed.
 Lemma contains_subset (X Y : interval) :
   (exists t, contains X t) ->
   (forall v : ExtendedR, contains X v -> contains Y v) ->
-  subset_ X Y.
+  subset X Y.
 Proof.
 case: X =>[|l u]; case: Y =>[|L U] //; first by move=>_ /(_ Xnan); apply.
 move=>[t Ht] Hmain.
-have {t Ht} [r Hr] : exists r : R, contains (IIbnd l u) (Xreal r).
+have {t Ht} [r Hr] : exists r : R, contains (Ibnd l u) (Xreal r).
   exact: contains_not_empty Ht.
 have H'r := Hmain _ Hr; split; move: Hmain Hr H'r.
   case: L=>[//|L]; case: l=>[|l] Hmain Hr H'r; first exfalso.
@@ -514,36 +511,6 @@ have [] := I.lower_bounded_correct X H1.
 by rewrite /I.bounded_prop; case I.convert.
 Qed.
 
-Lemma bounded_IIbnd (X : I.type) :
-  I.bounded X = true -> I.convert X =
-  IIbnd (I.convert_bound (I.lower X)) (I.convert_bound (I.upper X)).
-Proof.
-move=> HX.
-have [H1 H2] := I.bounded_correct X HX.
-have [] := I.lower_bounded_correct X H1.
-by rewrite /I.bounded_prop; case I.convert.
-Qed.
-
-Lemma bounded_Ilower (X : I.type) :
-  I.bounded X = true -> I.convert_bound (I.lower X) =
-  Xreal (proj_val (I.convert_bound (I.lower X))).
-Proof.
-move=> HX.
-have [H1 H2] := I.bounded_correct X HX.
-have [] := I.lower_bounded_correct X H1.
-by rewrite /I.bounded_prop; case I.convert.
-Qed.
-
-Lemma bounded_Iupper (X : I.type) :
-  I.bounded X = true -> I.convert_bound (I.upper X) =
-  Xreal (proj_val (I.convert_bound (I.upper X))).
-Proof.
-move=> HX.
-have [H1 H2] := I.bounded_correct X HX.
-have [] := I.upper_bounded_correct X H2.
-by rewrite /I.bounded_prop; case I.convert.
-Qed.
-
 Lemma bounded_contains_lower (x : ExtendedR) (X : I.type) :
   I.bounded X = true -> contains (I.convert X) x ->
   contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.lower X)))).
@@ -602,47 +569,26 @@ Lemma intvlP X :
    intvl (proj_val (I.convert_bound (I.lower X)))
          (proj_val (I.convert_bound (I.upper X))) x).
 Proof.
-move=> HX x.
-split.
-- rewrite bounded_IIbnd // => H.
-  by rewrite bounded_Ilower // bounded_Iupper in H.
-- move=> H; rewrite bounded_IIbnd //.
-  by rewrite bounded_Ilower // bounded_Iupper.
+move/I.bounded_correct => [/I.lower_bounded_correct [Hl H] /I.upper_bounded_correct [Hu _]] x.
+by rewrite H Hl Hu.
 Qed.
 
-Lemma Iupper_Xreal (X : I.type) (r : R) :
-  I.convert_bound (I.upper X) = Xreal r -> I.convert X <> IInan.
-Proof. by rewrite I.upper_correct; case: (I.convert X). Qed.
-
-Lemma Ilower_Xreal (X : I.type) (r : R) :
-  I.convert_bound (I.lower X) = Xreal r -> I.convert X <> IInan.
-Proof. by rewrite I.lower_correct; case: (I.convert X). Qed.
-
-Lemma upper_le (X : I.type) (x : ExtendedR (*sic*)) :
+Lemma upper_le (X : I.type) x :
   contains (I.convert X) x -> le_upper x (I.convert_bound (I.upper X)).
 Proof.
-rewrite /le_upper; case E : I.convert_bound => [//|r] H.
-have E' := Iupper_Xreal E.
-case: x H => [|r'] H.
-  by apply: E'; apply -> contains_Xnan.
-case E2: (I.convert X) E' =>[//|l u] _.
-rewrite E2 in H.
-rewrite I.upper_correct E2 /= in E.
-by move: H; rewrite /contains; case=> _; rewrite E.
+rewrite I.upper_correct.
+case (I.convert X) => // l u /=.
+case: x => // x [Hl Hu] //.
 Qed.
 
-Lemma lower_le (X : I.type) (x : ExtendedR (*sic*)) :
+Lemma lower_le (X : I.type) x :
   contains (I.convert X) x -> le_lower (I.convert_bound (I.lower X)) x.
 Proof.
-rewrite /le_lower; case E : I.convert_bound => [//|r] H.
-have E' := Ilower_Xreal E.
-case: x H => [|r'] H.
-  by apply: E'; apply -> contains_Xnan.
-case E2: (I.convert X) E' =>[//|l u] _.
-rewrite E2 in H.
-rewrite I.lower_correct E2 /= in E.
-move: H; rewrite /contains; case=> H _; rewrite E in H.
-by simpl; psatzl R.
+rewrite I.lower_correct.
+case (I.convert X) => // l u /=.
+case: x => // x [Hl Hu].
+case: l Hl => // l Hl /=.
+now apply Ropp_le_contravar.
 Qed.
 
 (*******************************************************)
