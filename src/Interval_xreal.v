@@ -93,35 +93,6 @@ Definition extension_2 f fx := forall x y,
   | _, _, _ => False
   end.
 
-Definition propagate f :=
-  f Xnan = Xnan.
-
-Definition propagate_2 f :=
-  (forall x, f Xnan x = Xnan) /\ (forall x, f x Xnan = Xnan).
-
-Lemma extension_propagate :
-  forall f fx,
-  extension f fx -> propagate fx.
-Proof.
-intros f fx H.
-generalize (H Xnan).
-unfold propagate.
-case (fx Xnan) ; now intros.
-Qed.
-
-Lemma extension_propagate_2 :
-  forall f fx,
-  extension_2 f fx -> propagate_2 fx.
-Proof.
-intros f fx H.
-split ; intros x.
-generalize (H Xnan x).
-case (fx Xnan x) ; now intros.
-generalize (H x Xnan).
-case (fx x Xnan) ; try split.
-case x ; now intros.
-Qed.
-
 Definition Xbind f x :=
   match x with
   | Xreal x => f x
@@ -137,12 +108,6 @@ Definition Xbind2 f x y :=
 Definition Xlift f := Xbind (fun x => Xreal (f x)).
 
 Definition Xlift2 f := Xbind2 (fun x y => Xreal (f x y)).
-
-Lemma Xlift2_correct :
-  forall f, extension_2 f (Xlift2 f).
-Proof.
-now intros f [|x] [|y].
-Qed.
 
 Lemma Xlift2_nan_r :
   forall f x, Xlift2 f x Xnan = Xnan.

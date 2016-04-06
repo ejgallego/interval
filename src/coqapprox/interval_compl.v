@@ -36,10 +36,6 @@ Local Open Scope nat_scope.
 (** Additional support results on extended reals and/or interval arithmetic *)
 (****************************************************************************)
 
-Lemma Xsub_Xnan_r x :
-  Xsub x Xnan = Xnan.
-Proof. by case: x. Qed.
-
 Lemma contains_trans (X : interval) (a b c : ExtendedR) :
   contains X a -> contains X b -> contains (Interval_interval.Ibnd a b) c ->
   contains X c.
@@ -123,6 +119,7 @@ by exists r.
 Qed.
 
 Lemma not_empty'E xi : not_empty xi -> not_empty' xi.
+Proof.
 case=>[r Hr]; by exists (Xreal r).
 Qed.
 
@@ -141,9 +138,6 @@ Proof. done. Qed.
 
 Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
 Proof. done. Qed.
-
-Lemma Xreal_div x y : y <> 0%R -> Xreal (x / y) = Xdiv (Xreal x) (Xreal y).
-Proof. by move=> H; rewrite /Xdiv /Xbind2 zeroF. Qed.
 
 (**************************************************************)
 (** Some support results relating inequalities and [contains] *)
@@ -624,15 +618,6 @@ exact: I.mask_correct.
 Qed.
 
 Arguments R_mask_correct [ix iy x] y _ _.
-
-Lemma extension_propagate (f : R -> R) fi fx :
-  extension f fx -> I.extension fx fi -> I.propagate fi.
-Proof.
-move=> Hfx Hfi x /contains_Xnan Hx.
-apply/contains_Xnan.
-suff->: Xnan = fx Xnan by exact: Hfi.
-by move: (Hfx Xnan); case: (fx).
-Qed.
 
 Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
 Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
