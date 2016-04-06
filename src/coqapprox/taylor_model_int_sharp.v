@@ -196,8 +196,7 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     forall x0, contains X0 (Xreal x0) ->
     exists2 Q, approx M >:: Q
     & forall x, contains X (Xreal x) ->
-      error M >: toR_fun xf x - (PolR.horner tt Q (x - x0))%R].
-(** Otherwise, we could replace [toR_fun xf x] with [proj_val (xf (Xreal x))] *)
+      error M >: proj_val (xf (Xreal x)) - (PolR.horner tt Q (x - x0))%R].
 
 Lemma TM_fun_eq f g X0 X TMf :
   (forall x, contains X (Xreal x) -> f (Xreal x) = g (Xreal x)) ->
@@ -561,7 +560,6 @@ case: (HPol (x1) HX0x1) => [p1 Hcontains1 H31 {HPol}].
 exists (PolR.primitive tt 0 p1).
 - by apply: Pol.primitive_correct; first exact: cont0.
 - move => x hxX.
-  rewrite toR_toXreal.
   have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
  + apply: RInt_Chasles; first apply: f_int => // .
       by apply: subset_contains HX0x1 => // .
@@ -1510,7 +1508,6 @@ exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
   by move=> x Hx; rewrite I.mask_propagate_r.
 exists (PolR.polyC c); first exact: Pol.polyC_correct.
 move=> x Hx /=.
-rewrite Xreal_sub Xreal_toR //=.
 rewrite Rmult_0_l Rplus_0_l Rminus_diag_eq //.
 change (Xreal 0) with (Xmask (Xmask (Xreal 0) (Xreal t)) (Xreal c)).
 repeat apply: I.mask_correct =>//.
@@ -1612,9 +1609,8 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
     rewrite I.mask_propagate_l // I.sub_propagate_l //.
     apply/contains_Xnan.
     rewrite -Efx; exact: Hf.
-  rewrite Xreal_sub Xreal_toR //.
-  2: by rewrite Efx.
   step_xr (Xmask ((f (Xreal x) - Xreal (pol'.[(x - x0)%Re]))%XR) (Xreal x))=>//.
+  2: by rewrite /= Efx.
   apply: I.mask_correct =>//.
   apply: I.sub_correct; first exact: Hf.
   rewrite /pol' /pol0; case: ifP => H.
@@ -1657,7 +1653,7 @@ move=> x0 Hx0 /=.
 exists (PolR.set_nth PolR.polyX 0 x0).
   apply: Pol.set_nth_correct =>//.
   exact: Pol.polyX_correct.
-move=> x Hx /=; rewrite Xreal_sub Xreal_toR //=.
+move=> x Hx /=.
 rewrite Rmult_0_l Rplus_0_l Rmult_1_l.
 step_xr (Xmask (Xreal 0) (Xreal x)).
   apply: I.mask_correct =>//; exact: cont0.
@@ -2882,21 +2878,12 @@ move/(_ x0 Hx0) in Hmain.
 have [Q H1 H2] := Hmain.
 exists (PolR.opp Q); first exact: Pol.opp_correct.
 move=> x Hx.
-specialize (HL x Hx).
-move/(_ x Hx) in H2.
 rewrite PolR.horner_opp.
-set g := Xreal (toR_fun _ _ - - _)%R.
-case E0: (I.convert (I.neg (error TMf))) => [|zl zu] //.
-rewrite -E0.
-suff->: g = Xreal (Ropp ((toR_fun f x) - (Q.[(x - x0)%Re]))%R) by exact: R_neg_correct.
-rewrite /g !(Xreal_sub, Xreal_toR, Xreal_neg) //.
-by rewrite !(Xsub_split, Xneg_involutive, Xneg_Xadd).
-intro H.
-rewrite H E0 in HL.
-now discriminate HL.
-intro H.
-rewrite H E0 in HL.
-now discriminate HL.
+case Efx: (f (Xreal x)) (H2 x Hx) => [|fx] /=.
+rewrite /Rminus 2!Rplus_0_l.
+exact: R_neg_correct.
+replace (- fx - - Q.[x - x0])%R with (-(fx - Q.[x - x0]))%R by ring.
+exact: R_neg_correct.
 Qed.
 
 Lemma TM_sub_correct (X0 X : interval (*I.type?*)) (TMf TMg : rpa) f g :
@@ -2929,13 +2916,14 @@ set pfx := pf.[_]; set pgx := pg.[_].
 case Ef: f => [|fx]. by move => ->.
 case Eg: g => [|gx]. by move => ->.
 intros _.
-unfold Xsub, Xlift2, Xbind2.
+rewrite /Xsub /Xlift2 /Xbind2 /proj_val.
 replace (fx - gx - (pfx - pgx))%R with ((fx - pfx) - (gx - pgx))%R by ring.
 rewrite 3!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
-rewrite -(@Xreal_toR f x) ?Ef // -(@Xreal_toR g x) ?Eg //=.
-apply: R_sub_correct.
-exact: Hf2.
-exact: Hg2.
+apply: I.sub_correct.
+move: (Hf2 x Hx).
+by rewrite Ef.
+move: (Hg2 x Hx).
+by rewrite Eg.
 Qed.
 
 Definition TM_mul_mixed (a : I.type) (M : rpa) : rpa :=
@@ -2981,11 +2969,10 @@ exists (PolR.map (Rmult y) q).
   rewrite PolR.horner_mul_mixed.
   case Dx: (f (Xreal x)) => [|fx].
   by rewrite I.mul_propagate_r // (Hdef x Hx Dx).
-  set g := Xreal (toR_fun _ _ - _)%R.
-  suff->: g = Xreal (Rmult y (toR_fun f x - (q.[(x - x0)]))%R).
-    exact: R_mul_correct.
-  rewrite /g !(Xreal_mul, Xreal_sub, Xreal_toR, Xreal_neg) Dx //=.
-  congr Xreal; ring.
+  rewrite /Xmul /Xlift2 /Xbind2 /proj_val.
+  replace (y * fx - y * q.[x - x0])%R with (y * (fx - q.[x - x0]))%R by ring.
+  rewrite Dx in H2.
+  exact: R_mul_correct.
 Qed.
 
 Lemma TM_mul_mixed_nai a M f X0 X :
@@ -3080,13 +3067,10 @@ exists (PolR.map (Rdiv ^~ y) q).
   case Df: (f (Xreal x)) => [|fx].
   by rewrite I.div_propagate_l // (Hdef x Hx).
   clear - H2 Hy Hy0 Df Hdef Hx.
-  set sub2 := Xreal (Rminus _ _).
-  set sub1 := Xreal (Rminus _ _) in H2.
-  suff->: sub2 = Xdiv sub1 (Xreal y) by exact: I.div_correct.
-  rewrite /sub1 /sub2 !(Xreal_sub, Xreal_toR) Df //= zeroF //.
-  rewrite PolR.horner_div_mixed_r -Xreal_sub.
-  apply f_equal.
-  now field.
+  rewrite PolR.horner_div_mixed_r /Xdiv /Xbind2 zeroF // /proj_val.
+  rewrite Df in H2.
+  replace (fx / y - q.[x - x0] / y)%R with ((fx - q.[x - x0]) / y)%R by now field.
+  exact: R_div_correct.
 Qed.
 
 Lemma TM_div_mixed_r_nai M b f X0 X :
@@ -3208,7 +3192,7 @@ have [pg Hg1 Hg2] := Hg0.
 exists (PolR.mul_trunc tt n pf pg); first exact: Pol.mul_trunc_correct.
 
 move=> x Hx.
-case Dx: (Xmul (f (Xreal x)) (g (Xreal x))).
+case Dx: (Xmul (f (Xreal x)) (g (Xreal x))) => [|mfg].
   step_xi IInan =>//; rewrite /mul_error; do 3![rewrite I.add_propagate_r //].
   case Ef: (f (Xreal x)) Dx => [|fx].
     rewrite I.mul_propagate_l //; exact: Fdef Ef.
@@ -3216,9 +3200,9 @@ case Dx: (Xmul (f (Xreal x)) (g (Xreal x))).
     rewrite I.mul_propagate_r //; exact: Gdef Eg.
 move/(_ x Hx) in Hf2; move/(_ x Hx) in Hg2.
 step_r ((PolR.mul_tail tt n pf pg).[x - x0] * (x - x0)^n.+1 +
-  (((toR_fun f x - pf.[x - x0]) * pg.[x - x0] +
-  ((toR_fun g x - pg.[x - x0]) * pf.[x - x0] +
-  (toR_fun f x - pf.[x - x0]) * (toR_fun g x - pg.[x - x0])))))%R.
+  (((proj_val (f (Xreal x)) - pf.[x - x0]) * pg.[x - x0] +
+  ((proj_val (g (Xreal x)) - pg.[x - x0]) * pf.[x - x0] +
+  (proj_val (f (Xreal x)) - pf.[x - x0]) * (proj_val (g (Xreal x)) - pg.[x - x0])))))%R.
   apply: R_add_correct.
     apply: R_mul_correct.
       apply: Bnd.ComputeBound_correct.
@@ -3253,19 +3237,18 @@ rewrite (eq_big_nat _ _ (F2 := fun i =>
   by case/andP: Hi; case: leqP.
 rewrite -(big_addn 0 _ n.+1 predT (fun i =>
   PolR.mul_coeff tt pf pg i * (x - x0) ^ i)%R).
-set e := ((_ f x - sf) * sg + ((_ g x - sg) * sf + (_ f x - sf) * (_ g x - sg)))%R.
+set e := ((proj_val _ - sf) * sg + ((_ - sg) * sf + (_ - sf) * (_ - sg)))%R.
 rewrite Rplus_comm.
-have->: e = ((toR_fun (fun xr => (f xr * g xr))%XR x) - sf * sg)%R.
+have->: e = (proj_val (f (Xreal x) * g (Xreal x))%XR - sf * sg)%R.
 (* begin flip-flop *)
-apply/Xreal_inj.
-rewrite ![in RHS](Xreal_sub, Xreal_mul, Xreal_toR) //.
-rewrite -![in RHS](Xreal_sub, Xreal_mul, Xreal_toR) // /e.
-congr Xreal; ring.
-intro H. by rewrite Xmul_comm H in Dx.
-intro H. by rewrite H in Dx.
-intro H. by rewrite H in Dx.
+rewrite /e.
+case: (f (Xreal x)) Dx => [|fx] //.
+case: (g (Xreal x)) => [|gx] //.
+intros _.
+rewrite /=.
+ring.
 (* end flip-flop *)
-rewrite Rplus_assoc; congr Rplus.
+rewrite Rplus_assoc -Dx; congr Rplus.
 rewrite {}/e {}/sf {}/sg.
 rewrite !PolR.hornerE.
 
@@ -3495,16 +3478,15 @@ Proof.
   case Df: (f (Xreal x)) => [|fx].
   by move ->.
   intros _.
-  replace (toR_fun (fun x2 => f x2 - Xreal alpha0) x) with (toR_fun f x - alpha0)%R.
+  rewrite /Xsub /Xlift2 /Xbind2 /proj_val.
   replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
     with (Q.[(x - x1)%Re] - alpha0)%R.
-  replace (toR_fun f x - alpha0 - (Q.[x - x1] - alpha0))%R
-    with (toR_fun f x - Q.[x - x1])%R by ring.
-  exact H2.
+  replace (fx - alpha0 - (Q.[x - x1] - alpha0))%R
+    with (fx - Q.[x - x1])%R by ring.
+  by rewrite Df in H2.
   destruct Q as [|q0 Q].
   by rewrite /= Rmult_0_l Rplus_0_l.
   by rewrite /= /Rminus Rplus_assoc.
-  by rewrite /toR_fun /proj_fun Df.
 Qed.
 
 Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
@@ -3632,6 +3614,7 @@ case Egfx: (g (Xreal fx)) => [|gfx].
   rewrite -Efx; exact: inBfMf.
 rewrite -Xreal_sub.
 pose intermed := toR_fun (Xlift (fun x1 : R => Ga0.[(toR_fun f0 x1)%R])) x.
+rewrite /proj_val.
 replace (gfx - Q0.[(x - x0)%R])%R with
   (intermed - Q0.[(x - x0)%R] + (gfx - intermed))%R by ring.
 apply: R_add_correct.
