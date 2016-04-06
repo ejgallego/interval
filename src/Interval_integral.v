@@ -701,7 +701,7 @@ Definition X0 := I.bnd (I.midpoint X) (I.midpoint X).
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
 
-Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf (Xlift f).
+Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf (fun x => Xreal (f x)).
 
 Variables (a b : F.type).
 
@@ -739,7 +739,7 @@ Lemma taylor_integral_correct :
     (Xreal (RInt f (toR a) (toR b))).
 Proof.
 rewrite /taylor_integral.
-apply: (@TM.TMI.integralEnclosure_correct prec X0 X (Xlift f) Mf (toR (I.midpoint X))) => //.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (toR (I.midpoint X))) => //.
 rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
 split ; apply Rle_refl.
 eexists.

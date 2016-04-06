@@ -118,7 +118,7 @@ Definition approximates (X : I.type) (tf : T) (f:ExtendedR->ExtendedR) : Prop :=
         f (Xreal x) = Xreal x
       | Tm tm =>
         not_empty (I.convert X) ->
-        i_validTM (I.convert X0) (I.convert X) tm f
+        i_validTM (I.convert X0) (I.convert X) tm (fun x => f (Xreal x))
     end].
 
 Theorem approximates_ext f g xi t :
@@ -260,7 +260,7 @@ case Efx: (f (Xreal x)) => [|fx].
 apply/contains_Xnan.
 apply: Hdef Efx.
 exact: (subset_contains _ _ Hsubset).
-rewrite /toR_fun /proj_fun Efx in Hdelta.
+rewrite Efx in Hdelta.
 apply: Hdelta.
 exact: (subset_contains _ _ Hsubset).
 Qed.
@@ -500,7 +500,7 @@ have [Hnan1 Hnil1 H1] := Hf;
 have [Hnan2 Hnil2 H2] := Hg;
 split=>//; first by rewrite Hnan1.
 red=>Hne.
-apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
+apply: (@TM_fun_eq (fun x => g (Xreal x) * f (Xreal x))%XR _) =>//.
 by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -514,7 +514,7 @@ split=>//; first by rewrite Hnan1.
   by rewrite /= /tmsize size_TM_mul_mixed.
 red=>Hne.
 have Hdf := H1 Hne.
-apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
+apply: (@TM_fun_eq (fun x => g (Xreal x) * f (Xreal x))%XR _) =>//.
 by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
 exact: not_empty_Imid.
@@ -687,7 +687,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     have [[z Hz]|H] := not_empty_dec (I.convert Y);
     by exists (Xreal y); [| move=> x Hx; rewrite Habs // Hy2].
 - byp Habs Hmain.
-- move=> Hne; apply: (@TM_fun_eq f).
+- move=> Hne; apply: (@TM_fun_eq (fun x => f (Xreal x))).
   byp Habs Hmain.
   exact: Hmain.
 - have [[|y] Hy1 Hy2] := Hmain;
@@ -697,7 +697,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
     exists (Xneg (Xreal y));
     by [exact: I.neg_correct | move=> x Hx; rewrite Habs // Hy2].
 - red=> Hne.
-  apply: (@TM_fun_eq (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq (fun x => Xneg (f (Xreal x)))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   apply: TM_var_correct_strong =>//.
@@ -705,7 +705,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply Imid_contains in Hne.
   apply: not_emptyE; by eexists; apply Hne.
 - red=> Hne.
-  apply: (@TM_fun_eq (fun x => Xneg (f x))).
+  apply: (@TM_fun_eq (fun x => Xneg (f (Xreal x)))).
   move=> *; symmetry; exact: Habs.
   apply: TM_opp_correct.
   exact: Hmain.
@@ -738,10 +738,9 @@ Definition fun_gen
 Lemma fun_gen_correct
   (fi : I.precision -> I.type -> I.type)
   (ftm : I.precision -> TM_type)
-  (fx : ExtendedR -> ExtendedR)
+  (fx : R -> ExtendedR)
   (ft := fun_gen fi ftm) :
-  fx Xnan = Xnan ->
-  (forall prec : I.precision, I.extension fx (fi prec)) ->
+  (forall prec : I.precision, I.extension (Xbind fx) (fi prec)) ->
   (forall prec X0 X n, tmsize (ftm prec X0 X n) = n.+1) ->
   (forall prec X0 X n,
     subset (I.convert X0) (I.convert X) ->
@@ -749,13 +748,13 @@ Lemma fun_gen_correct
     i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
   forall (u : U) (X : I.type) (tf : T) (f : ExtendedR -> ExtendedR),
   approximates X tf f ->
-  approximates X (ft u X tf) (fun x => fx (f x)).
+  approximates X (ft u X tf) (fun x => Xbind fx (f x)).
 Proof.
-move=> Hpro Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
-- by apply: dummy_correct; rewrite Hnan Hpro.
+move=> Hext Hsiz Hvalid u X [|c| |tm] f [Hnan Hnil Hmain].
+- by apply: dummy_correct; rewrite Hnan.
 - split; [by rewrite Hnan|done|simpl].
   have [y Hy1 Hy2] := Hmain.
-  exists (fx y); first exact: Hext.
+  exists (Xbind fx y); first exact: Hext.
   by move=> x Hx; rewrite Hy2.
 - split=>//; first by rewrite Hnan.
   by rewrite /not_nil /ft /fun_gen /= Hsiz.
@@ -934,7 +933,7 @@ Definition power_int p := Eval cbv delta[fun_gen] beta in
 Theorem power_int_correct :
   forall (p : Z) u (Y : I.type) tf f,
   approximates Y tf f ->
-  approximates Y (power_int p u Y tf) (fun x => Xpower_int (f x) p).
+  approximates Y (power_int p u Y tf) (fun x => Xbind (fun y => Xpower_int (Xreal y) p) (f x)).
 Proof.
 move=> p u Y tf f Hf.
 have [Hnan Hnil Hmain] := Hf.
@@ -950,7 +949,7 @@ case: p Hp =>[|p'|p']=>//; (try case: p'=>[p''|p''|]) =>// H;
 apply: (fun_gen_correct
   (fi := fun prec x => I.power_int prec x _)
   (ftm := fun prec => TM_power_int prec _)
-  (fx := fun x => Xpower_int x _)) =>//;
+  (fx := fun x => Xpower_int (Xreal x) _)) =>//;
 try (by move=> *; apply: I.power_int_correct);
 try (by move=> *; rewrite /tmsize size_TM_power_int);
 by move=> *; apply: TM_power_int_correct.

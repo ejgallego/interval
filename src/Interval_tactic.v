@@ -564,8 +564,9 @@ apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   by apply (contains_eval_arg prec prog bounds 0).
 rewrite /f.
 have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (iF' (I.bnd fa fb))
-    (fun x => nth 0 (eval_ext prog (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan)).
-  apply A.TaylorValuator.TM.get_tm_correct.
+    (fun x => nth 0 (eval_ext prog (Xreal x :: map (fun b => Xmask (A.xreal_from_bp b) (Xreal x)) bounds)) Xnan)).
+  have H := (@A.TaylorValuator.TM.get_tm_correct _ _ _ (fun x => nth 0 (eval_ext prog (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan) _).
+  apply H.
   apply: A.TaylorValuator.eval_correct_aux.
   exists (Int.EF.toR fa).
   split.

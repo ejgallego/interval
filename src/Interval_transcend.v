@@ -2828,7 +2828,7 @@ case le_spec.
     now field.
   simpl Xdiv in H.
   generalize (I.sign_large_correct c).
-  unfold Xtan.
+  unfold Xtan, Xbind.
   simpl Xdiv.
   destruct s ; try easy ; case I.sign_large ; try easy ; intros Hc'.
   revert H.
@@ -2903,7 +2903,7 @@ rewrite F.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
-simpl.
+simpl Xcmp.
 case Rcompare_spec ; intros H.
 (* neg *)
 rewrite <- (Xneg_involutive (Xtan _)).
@@ -2925,9 +2925,7 @@ rewrite cos_neg.
 case is_zero_spec.
 easy.
 intros _.
-unfold Rdiv.
-simpl.
-now rewrite sin_neg, Ropp_mult_distr_l_reverse.
+now rewrite tan_neg.
 (* zero *)
 simpl.
 rewrite H, F.zero_correct.
@@ -2937,8 +2935,7 @@ case is_zero_spec.
 rewrite cos_0.
 apply R1_neq_R0.
 intros _.
-unfold Rdiv.
-rewrite sin_0, Rmult_0_l.
+rewrite tan_0.
 split ; apply Rle_refl.
 (* pos *)
 replace r with (toR x).

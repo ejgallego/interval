@@ -163,7 +163,7 @@ Definition Xcos := Xlift cos.
 
 Definition Xsin := Xlift sin.
 
-Definition Xtan x := Xdiv (Xsin x) (Xcos x).
+Definition Xtan := Xbind (fun x => if is_zero (cos x) then Xnan else Xreal (tan x)).
 
 Definition Xatan := Xlift atan.
 
