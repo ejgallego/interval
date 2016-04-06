@@ -192,7 +192,7 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     forall x : R, contains X (Xreal x) -> xf (Xreal x) = Xnan -> I.convert (error M) = IInan,
     X = IInan -> I.convert (error M) = IInan,
     contains (I.convert (error M)) (Xreal 0),
-    I.subset_ X0 X &
+    subset X0 X &
     forall x0, contains X0 (Xreal x0) ->
     exists2 Q, approx M >:: Q
     & forall x, contains X (Xreal x) ->
@@ -746,7 +746,7 @@ Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
 Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //. Qed.
 
 Theorem i_validTM_TLrem (X0 : I.type) n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (TLrem IP X0 X n)) xf.
@@ -1370,7 +1370,7 @@ by case I.convert.
 Qed.
 
 Theorem i_validTM_Ztech (X0 : I.type) n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (Ztech IP (IP X0 n) F X0 X n)) xf.
@@ -1485,7 +1485,7 @@ Lemma size_TM_cst X c : Pol.size (approx (TM_cst X c)) = 1.
 Proof. by rewrite /TM_cst Pol.polyCE Pol.size_polyCons Pol.size_polyNil. Qed.
 
 Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   contains (I.convert ci) c ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) (Xmask c).
@@ -1519,7 +1519,7 @@ exact: subset_contains Hsubset _ _.
 Qed.
 
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : ExtendedR -> ExtendedR) :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   is_const f X ci ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) f.
@@ -1552,7 +1552,7 @@ Qed.
 
 Theorem TM_any_correct
   (Y X0 X : I.type) (n : nat) (f : ExtendedR->ExtendedR) :
-  not_empty (I.convert X0) -> I.subset_ (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) -> subset (I.convert X0) (I.convert X) ->
   (forall x : R, contains (I.convert X) (Xreal x) ->
     contains (I.convert Y) (f (Xreal x))) ->
   i_validTM (I.convert X0) (I.convert X) (TM_any Y X n) f.
@@ -1642,7 +1642,7 @@ by rewrite Pol.size_polyCons Pol.size_polyNil.
 Qed.
 
 Lemma TM_var_correct X0 X :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X X0) (fun x => x).
 Proof.
@@ -1665,7 +1665,7 @@ simpl; congr Xreal; ring.
 Qed.
 
 Theorem TM_var_correct_strong X0 X (f : ExtendedR -> ExtendedR) :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = (Xreal x)) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X X0) f.
@@ -1679,7 +1679,7 @@ Lemma size_TM_exp X0 X (n : nat) : Pol.size (approx (TM_exp X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec1. Qed.
 
 Lemma TM_exp_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) Xexp.
 Proof.
@@ -1733,7 +1733,7 @@ Lemma size_TM_sin X0 X (n : nat) : Pol.size (approx (TM_sin X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
 Lemma TM_sin_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) Xsin.
 Proof.
@@ -1785,7 +1785,7 @@ Lemma size_TM_cos X0 X (n : nat) : Pol.size (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
 Lemma TM_cos_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) Xcos.
 Proof.
@@ -1836,7 +1836,7 @@ Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
 Lemma TM_atan_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_atan X0 X n) Xatan.
 Proof.
@@ -1951,7 +1951,7 @@ by move=> x; split; rewrite /Xtan /=; case E0: is_zero =>//;
 Qed.
 
 Lemma TM_tan_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) Xtan.
 Proof.
@@ -2106,7 +2106,7 @@ Lemma toR_sqrt x : (0 <= x)%R -> sqrt x = toR_fun Xsqrt x.
 Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt /Xbind negativeF. Qed.
 
 Lemma TM_sqrt_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt.
 Proof.
@@ -2224,7 +2224,7 @@ exact/Rgt_not_eq/sqrt_lt_R0.
 Qed.
 
 Lemma TM_invsqrt_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
             (fun x => Xinv (Xsqrt x)).
@@ -2365,7 +2365,7 @@ Qed.
 
 Lemma TM_power_int_correct_aux (p : Z) X0 X n :
   (0 <= p)%Z \/ apart0 X ->
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (let P := (T_power_int prec p X0 n) in
                                           RPA P (Ztech
@@ -2524,7 +2524,7 @@ constructor.
 Qed.
 
 Lemma TM_power_int_correct (p : Z) X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
             (fun x => Xpower_int x p).
@@ -2564,7 +2564,7 @@ Lemma toR_inv x : (x <> 0)%R -> Rinv x = toR_fun Xinv x.
 Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xinv /Xbind zeroF. Qed.
 
 Lemma TM_inv_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv.
 Proof.
@@ -2672,7 +2672,7 @@ exact: pow_nonzero.
 Qed.
 
 Lemma TM_ln_correct X0 X n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln.
 Proof.
@@ -2813,7 +2813,7 @@ Local Notation "a - b" := (Xsub a b).
 
 Lemma TM_add_correct_gen
   (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
-  I.subset_ smallX0 (I.convert X) ->
+  subset smallX0 (I.convert X) ->
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
   i_validTM smallX0 (I.convert X) (TM_add TMf TMg)
@@ -3149,8 +3149,8 @@ Proof. by move=> x y []. Qed.
 
 Lemma TM_mul_correct_gen
   (smallX0 : interval) (TMf TMg : rpa) f g (X0 X : I.type) n :
-  I.subset_ smallX0 (I.convert X0) ->
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset smallX0 (I.convert X0) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty smallX0 ->
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
@@ -3407,7 +3407,7 @@ by apply/negbTE; rewrite neq_ltn Hi.
 Qed.
 
 Lemma TM_horner_correct (X0 X : I.type) Mf f pi pr n :
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   f Xnan = Xnan ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
@@ -3511,7 +3511,7 @@ Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
   f Xnan = Xnan ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
-  (forall Y0 Y k, I.subset_ (I.convert Y0) (I.convert Y) ->
+  (forall Y0 Y k, subset (I.convert Y0) (I.convert Y) ->
     not_empty (I.convert Y0) ->
     i_validTM (I.convert Y0) (I.convert Y) (TMg Y0 Y k) g) ->
   forall n,

@@ -319,7 +319,7 @@ Parameter zero_correct :
 Parameter nai_correct :
   convert nai = Inan.
 
-Notation subset_ := subset.
+Local Notation subset_ := subset.
 
 Parameter subset : type -> type -> bool.
 

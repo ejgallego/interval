@@ -471,7 +471,7 @@ Qed.
 
 Lemma Imid_subset (X : I.type) :
   not_empty (I.convert X) ->
-  I.subset_ (I.convert (Imid X)) (I.convert X).
+  subset (I.convert (Imid X)) (I.convert X).
 Proof.
 case=>[v Hv].
 rewrite /Imid I.bnd_correct.
@@ -666,7 +666,7 @@ Qed.
 
 Lemma subset_sub_contains_0 x0 (X0 X : I.type) :
   contains (I.convert X0) x0 ->
-  I.subset_ (I.convert X0) (I.convert X) ->
+  subset (I.convert X0) (I.convert X) ->
   contains (I.convert (I.sub prec X X0)) (Xreal 0).
 Proof.
 move=> Hx0 Hsub.
