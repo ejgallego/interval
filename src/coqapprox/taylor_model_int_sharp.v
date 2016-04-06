@@ -755,7 +755,6 @@ Class validIPoly : Prop := ValidIPoly {
 Context { validPoly_ : validPoly }.
 Context { validIPoly_ : validIPoly }.
 
-Hypothesis Hdef : forall x, X >: x -> def x.
 Hypothesis Hder_n : forall n x, X >: x -> ex_derive_n f0 n x.
 
 Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
@@ -797,7 +796,7 @@ have H0 : X >: x0 by exact: (subset_contains (I.convert X0)).
 have Hbig :
   \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
   \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
-apply: eq_big_nat => i Hi; rewrite Poly_nth //; exact: Hder_n || exact: Hdef.
+by apply: eq_big_nat => i Hi; rewrite Poly_nth.
 rewrite Hbig.
 have Hder' : forall n r, X >: r -> ex_derive_n (toR_fun xf) n r.
   move=> m r Hr.
@@ -806,7 +805,7 @@ have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 
 rewrite Hc {Hc t Ht} /TLrem.
 apply: R_mul_correct=>//.
   rewrite -(@Poly_nth _ c n.+1 n.+1) //;
-  exact: IPoly_nth || exact: Hder_n || exact: Hdef.
+  exact: IPoly_nth.
 rewrite pow_powerRZ.
 apply: R_power_int_correct.
 exact: R_sub_correct.
@@ -1189,7 +1188,7 @@ case=>[Hpos|Hneg].
         have [|||c [H1 [H2 H3]]] := TL =>//.
           move=> k t Ht; rewrite toR_toXreal.
           case: k => [//|k]; rewrite -ex_derive_nSS.
-          by apply: (Hder_n k.+2) =>//; apply: Hdef.
+          exact: (Hder_n k.+2).
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
         rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
@@ -1207,7 +1206,7 @@ case=>[Hpos|Hneg].
         have [|||c [H1 [H2 H3]]] := TL =>//.
           move=> k t Ht; rewrite toR_toXreal.
           case: k => [//|k]; rewrite -ex_derive_nSS.
-          by apply: (Hder_n k.+2) =>//; apply: Hdef.
+          exact: (Hder_n k.+2).
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
         rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
         set b := \big[Rplus/R0]_(_ <= i < _) _.
@@ -1231,7 +1230,7 @@ case=>[Hpos|Hneg].
   have [|||c [H1 [H2 H3]]] := TL =>//.
     move=> k t Ht; rewrite toR_toXreal.
     case: k => [//|k]; rewrite -ex_derive_nSS.
-    by apply: (Hder_n k.+2) =>//; apply: Hdef.
+    exact: (Hder_n k.+2).
   rewrite /Rdelta' PolR.horner_derivE Poly_size.
   rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
   set b := \big[Rplus/R0]_(_ <= i < _) _.
@@ -1257,7 +1256,7 @@ split.
     have [|||c [H1 [H2 H3]]] := TL =>//.
       move=> k t Ht; rewrite toR_toXreal.
       case: k => [//|k]; rewrite -ex_derive_nSS.
-      by apply: (Hder_n k.+2) =>//; apply: Hdef.
+      exact: (Hder_n k.+2).
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
     rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
@@ -1275,7 +1274,7 @@ split.
     have [|||c [H1 [H2 H3]]] := TL =>//.
       move=> k t Ht; rewrite toR_toXreal.
       case: k => [//|k]; rewrite -ex_derive_nSS.
-      by apply: (Hder_n k.+2) =>//; apply: Hdef.
+      exact: (Hder_n k.+2).
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
     rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
     set b := \big[Rplus/R0]_(_ <= i < _) _.
@@ -1300,7 +1299,7 @@ have TL :=
 have [|||c [H1 [H2 H3]]] := TL =>//.
   move=> k t Ht; rewrite toR_toXreal.
   case: k => [//|k]; rewrite -ex_derive_nSS.
-  by apply: (Hder_n k.+2) =>//; apply: Hdef.
+  exact: (Hder_n k.+2).
 rewrite /Rdelta' PolR.horner_derivE Poly_size.
 rewrite bigXadd'_P //; last exact/Hder_n/intvlP.
 set b := \big[Rplus/R0]_(_ <= i < _) _.
