@@ -937,13 +937,13 @@ Parameter grec1_correct :
 Parameter nth_default_alt : forall pi p, pi >:: p ->
   forall n : nat, size pi <= n -> PolR.nth p n = 0%R.
 
-Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
+Definition poly_eqNai s := forall k, k < size s -> I.convert (nth s k) = IInan.
 
-Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
+Definition seq_eqNai s := forall k, k < seq.size s -> I.convert (seq.nth I.zero s k) = IInan.
 
 Parameter grec1_propagate :
   forall A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si,
-  (forall qi m, eqNai (Gi qi m)) ->
+  (forall qi m, I.convert (Gi qi m) = IInan) ->
   seq_eqNai si ->
   forall n, poly_eqNai (grec1 Fi Gi ai si n).
 
@@ -956,13 +956,13 @@ Parameter dotmuldiv_propagate :
 
 Parameter rec1_propagate :
   forall (Fi : I.type -> nat -> I.type) ai,
-  (forall qi m, eqNai qi -> eqNai (Fi qi m)) ->
-  eqNai ai ->
+  (forall qi m, I.convert qi = IInan -> I.convert (Fi qi m) = IInan) ->
+  I.convert ai = IInan ->
   forall n, poly_eqNai (rec1 Fi ai n).
 
 Parameter polyCons_propagate :
   forall xi pi,
-  eqNai xi ->
+  I.convert xi = IInan ->
   poly_eqNai pi ->
   poly_eqNai (polyCons xi pi).
 End PolyIntOps.
@@ -996,9 +996,9 @@ Notation eq_size pi p := (size pi = PolR.size p).
 End Notations.
 Local Open Scope ipoly_scope.
 
-Definition poly_eqNai s := forall k, k < size s -> eqNai (nth s k).
+Definition poly_eqNai s := forall k, k < size s -> I.convert (nth s k) = IInan.
 
-Definition seq_eqNai s := forall k, k < seq.size s -> eqNai (seq.nth I.zero s k).
+Definition seq_eqNai s := forall k, k < seq.size s -> I.convert (seq.nth I.zero s k) = IInan.
 
 Lemma horner_propagate u pi : I.propagate (horner u pi).
 Proof. by red=> *; rewrite /horner I.mask_propagate_r. Qed.
@@ -1316,7 +1316,7 @@ Qed.
 
 (* Check all_nthP *)
 Lemma grec1_propagate A (Fi : A -> nat -> A) (Gi : A -> nat -> I.type) ai si :
-  (forall qi m, eqNai (Gi qi m)) ->
+  (forall qi m, I.convert (Gi qi m) = IInan) ->
   seq_eqNai si ->
   forall n, poly_eqNai (grec1 Fi Gi ai si n).
 Proof.
@@ -1332,8 +1332,8 @@ Qed.
 Arguments nth_rec1up_indep [T F a0 d1 d2 m1 m2 n] _ _.
 Lemma rec1_propagate
   (Fi : I.type -> nat -> I.type) ai :
-  (forall qi m, eqNai qi -> eqNai (Fi qi m)) ->
-  eqNai ai ->
+  (forall qi m, I.convert qi = IInan -> I.convert (Fi qi m) = IInan) ->
+  I.convert ai = IInan ->
   forall n, poly_eqNai (rec1 Fi ai n).
 Proof.
 move=> HF Ha n k Hk.
@@ -1362,13 +1362,13 @@ Proof.
 move=> Ha Hb Hp; red => k Hk.
 rewrite (@size_dotmuldiv (size p)) // in Hk.
 rewrite nth_dotmuldiv Ha Hb !orbb ifF.
-  apply/eqNaiP; rewrite I.mul_propagate_r //.
-  apply/eqNaiP; exact: Hp.
+  rewrite I.mul_propagate_r //.
+  exact: Hp.
 by rewrite leqNgt Hk.
 Qed.
 
 Lemma polyCons_propagate xi pi :
-  eqNai xi ->
+  I.convert xi = IInan ->
   poly_eqNai pi ->
   poly_eqNai (polyCons xi pi).
 Proof.

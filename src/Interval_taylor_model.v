@@ -252,16 +252,16 @@ have->: f (Xreal x) = Xadd (Xreal (PolR.horner tt qx (Rminus x c0)))
   (Xsub (f (Xreal x)) (Xreal (PolR.horner tt qx (Rminus x c0)))).
 case Efx : (f (Xreal x)) => [|r]; first by rewrite Xadd_comm.
 simpl.
-by congr Xreal; auto with real.
+by congr Xreal; ring.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
   exact: R_sub_correct.
-case: (eqNaiP (error tm)); first by move=>->.
-move=> /eqNaiP/negbTE Hnn; rewrite Hnn in Hdef.
-rewrite Xreal_sub Xreal_toR // in Hdelta.
-apply: Hdelta.
+case Efx: (f (Xreal x)) => [|fx].
+apply/contains_Xnan.
+apply: Hdef Efx.
 exact: (subset_contains _ _ Hsubset).
-apply: contraT; apply: Hdef.
+rewrite /toR_fun /proj_fun Efx in Hdelta.
+apply: Hdelta.
 exact: (subset_contains _ _ Hsubset).
 Qed.
 

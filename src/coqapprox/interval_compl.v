@@ -90,95 +90,16 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
-Definition defined (f : ExtendedR -> ExtendedR) (x : R) : bool :=
-  match f (Xreal x) with
-  | Xnan => false
-  | Xreal _ => true
-  end.
-
-Lemma definedP f x : reflect (f (Xreal x) <> Xnan) (defined f x).
-Proof. by apply: introP; rewrite /defined; case: (f _) =>//; intuition. Qed.
-
-Lemma definedPn f x : f (Xreal x) = Xnan <-> ~~ defined f x.
-Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
-
-Lemma definedPf f x : f (Xreal x) = Xnan <-> defined f x = false.
-Proof. by rewrite /defined; case: (f (Xreal x)). Qed.
-
-Lemma defined_ext g f x :
-  f (Xreal x) = g (Xreal x) -> defined f x = defined g x.
-Proof.
-by rewrite /defined =>->.
-Qed.
-
 Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
 Proof. by case: a; case b => * //=; f_equal; ring. Qed.
-
-Lemma definedPn2V (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined (fun v => op (f v) (g v)) x ->
-  (forall x y, (* OK for +,-,* only *)
-    op (Xreal x) (Xreal y) = Xreal (proj_val (op (Xreal x) (Xreal y)))) ->
-  ~~ defined f x \/ ~~ defined g x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f; case: g.
-- by left.
-- by left.
-- by right.
-- by move=> a b; rewrite Hop.
-Qed.
-
-Lemma definedPn2l (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined f x ->
-  (forall y, op Xnan y = Xnan) ->
-  ~~ defined (fun v => op (f v) (g v)) x.
-Proof.
-move=> Dx Hl; move: Dx; rewrite /defined.
-case: f.
-- by rewrite Hl.
-- done.
-Qed.
-
-Lemma definedPn2r (op : ExtendedR -> ExtendedR -> ExtendedR) f g x :
-  ~~ defined g x ->
-  (forall x, op x Xnan = Xnan) ->
-  ~~ defined (fun v => op (f v) (g v)) x.
-Proof.
-move=> Dx Hr; move: Dx; rewrite /defined.
-case: g.
-- by rewrite Hr.
-- done.
-Qed.
-
-Lemma definedPn1T (op : ExtendedR -> ExtendedR) f x :
-  ~~ defined (fun v => op (f v)) x ->
-  (forall x, op (Xreal x) = Xreal (proj_val (op (Xreal x)))) ->
-  ~~ defined f x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f.
-- done.
-- by move=> a; rewrite Hop.
-Qed.
-
-Lemma definedPn1TE (op : ExtendedR -> ExtendedR) f x :
-  ~~ defined f x ->
-  (op Xnan = Xnan) ->
-  ~~ defined (fun v => op (f v)) x.
-Proof.
-move=> Dx Hop; move: Dx; rewrite /defined.
-case: f.
-- by rewrite Hop.
-- done.
-Qed.
 
 Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
   proj_fun R0 f x.
 
 Lemma Xreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
-  defined f x ->
+  f (Xreal x) <> Xnan ->
   Xreal (toR_fun f x) = f (Xreal x).
-Proof. by rewrite /toR_fun /proj_fun /defined; case: f. Qed.
+Proof. by rewrite /toR_fun /proj_fun ; case: f. Qed.
 
 Lemma toR_toXreal (f : R -> R) :
   toR_fun (Xlift f) = f.
@@ -370,8 +291,7 @@ Variable X : interval.
 Variable n : nat.
 Let dom r := contains X (Xreal r).
 Let Hdom : connected dom. Proof (contains_connected _).
-Let def r := defined xf r.
-Hypothesis Hdef : forall r, dom r -> def r.
+Hypothesis Hdef : forall r, dom r -> xf (Xreal r) <> Xnan.
 Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
 
 Theorem ITaylor_Lagrange x0 x :
@@ -432,14 +352,6 @@ End NDerive.
 Module IntervalAux (I : IntervalOps).
 
 Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
-
-Definition eqNai X := match I.convert X with
-                      | IInan => true
-                      | _ => false
-                      end.
-
-Fact eqNaiP X : reflect (I.convert X = IInan) (eqNai X).
-Proof. by apply: introP; rewrite /eqNai; case: (I.convert X). Qed.
 
 Lemma bounded_singleton_contains_lower_upper (X : I.type) :
   I.bounded X = true ->

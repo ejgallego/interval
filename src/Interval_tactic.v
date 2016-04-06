@@ -572,7 +572,7 @@ have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (i
   move /Int.EF.F_realP : Hra => ->.
   apply Rle_refl.
   by move /Int.EF.F_realP : Hrb => ->.
-rewrite /Int'.TM.TMI.i_validTM /Int'.TM.TMI.Aux.eqNai.
+rewrite /Int'.TM.TMI.i_validTM.
 case: (Int'.I.convert (taylor_model_int_sharp.error (iF' (I.bnd fa fb)))).
   by case.
 move => l u [H1 H0 H2 H3 H4].
@@ -582,7 +582,7 @@ case: (H4 x0 Hx0) => {H4} [Q H4 H4'].
 exists Q => //.
 move => x Hx.
 move: (H1 x Hx) (H4' x Hx) => {H1 H4'}.
-rewrite /Xmask /Xlift /Xbind /interval_compl.toR_fun /proj_fun /interval_compl.defined.
+rewrite /Xmask /Xlift /Xbind /interval_compl.toR_fun /proj_fun.
 change (fun b0 : A.bound_proof => A.xreal_from_bp b0) with A.xreal_from_bp.
 set bx := A.Bproof x (I.bnd fa fb) Hx.
 rewrite -[_::map _ _]/(map _ (bx::_)).
