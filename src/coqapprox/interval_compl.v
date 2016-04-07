@@ -86,16 +86,8 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
-Lemma Xneg_Xadd (a b : ExtendedR) : Xneg (Xadd a b) = Xadd (Xneg a) (Xneg b).
-Proof. by case: a; case b => * //=; f_equal; ring. Qed.
-
 Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
   proj_fun R0 f x.
-
-Lemma Xreal_toR (f : ExtendedR -> ExtendedR) (x : R) :
-  f (Xreal x) <> Xnan ->
-  Xreal (toR_fun f x) = f (Xreal x).
-Proof. by rewrite /toR_fun /proj_fun ; case: f. Qed.
 
 Lemma toR_toXreal (f : R -> R) :
   toR_fun (Xlift f) = f.
@@ -134,9 +126,6 @@ Lemma Xreal_sub x y : Xreal (x - y) = Xsub (Xreal x) (Xreal y).
 Proof. done. Qed.
 
 Lemma Xreal_add x y : Xreal (x + y) = Xadd (Xreal x) (Xreal y).
-Proof. done. Qed.
-
-Lemma Xreal_mul x y : Xreal (x * y) = Xmul (Xreal x) (Xreal y).
 Proof. done. Qed.
 
 (**************************************************************)

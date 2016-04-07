@@ -3126,9 +3126,6 @@ Definition TM_mul (Mf Mg : rpa) X0 X n : rpa :=
  RPA (Pol.mul_trunc prec n (approx Mf) (approx Mg))
      (mul_error prec n Mf Mg X0 X).
 
-Lemma Xreal_inj : injective Xreal.
-Proof. by move=> x y []. Qed.
-
 Lemma TM_mul_correct_gen
   (smallX0 : interval) (TMf TMg : rpa) f g (X0 X : I.type) n :
   subset smallX0 (I.convert X0) ->
