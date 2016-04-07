@@ -1328,7 +1328,6 @@ have Hstep : Rcst_sign
       exact/intvlP.
       exact/intvlP.
       move/(_ _ inGamma) in Hmain.
-      rewrite /proj_fun.
       exact: proj2 Hmain.
 have: Rcst_sign
   (intvl (proj_val (I.convert_bound (I.lower X)))
@@ -1933,16 +1932,6 @@ Definition TM_tan X0 X (n : nat) : rpa :=
 Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
 Proof. by rewrite /TM_tan; case: apart0; rewrite Pol.size_grec1. Qed.
 
-(* Erik: This lemma could be generalized... *)
-Lemma toR_tan : forall x, Xtan (Xreal x) <> Xnan -> toR_fun Xtan x = tan x.
-Proof. by rewrite /Xtan' /toR_fun /proj_fun => x /=; case: is_zero. Qed.
-
-Lemma def_tan : forall x, Xtan (Xreal x) <> Xnan <-> cos x <> R0.
-Proof.
-by move=> x; split; rewrite /Xtan' /=; case E0: is_zero =>//;
-  move: E0; case: is_zero_spec.
-Qed.
-
 Lemma TM_tan_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -1962,7 +1951,7 @@ constructor.
     rewrite /TR.T_tan /PolR.nth /PolR.grec1
       (nth_grec1up_indep _ _ _ _ _ 0%R (m2 := k)) //
       nth_grec1up_last.
-    have->: Derive_n (toR_fun Xtan) k x = Derive_n tan k x.
+    have->: Derive_n (fun t => proj_val (Xtan' t)) k x = Derive_n tan k x.
       apply: (@Derive_n_ext_loc _ tan).
       have Hdef : cos x <> 0%R.
         move/apart0_correct in E0.
@@ -1972,7 +1961,7 @@ constructor.
           (fun y _ => continuous_cos y)
         (open_neq R0)) (3 := Hdef).
       move=> {Hdef Hx x} x Hdef.
-      by rewrite toR_tan // def_tan.
+      by rewrite /Xtan' zeroF.
     rewrite last_grec1up // head_gloop1.
     rewrite [size _]/= subn0.
     have Hdef : cos x <> 0%R.
@@ -2097,9 +2086,6 @@ by rewrite /TM_sqrt;
   case: gt0; rewrite Pol.size_rec1.
 Qed.
 
-Lemma toR_sqrt x : (0 <= x)%R -> sqrt x = toR_fun Xsqrt x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt' /Xbind negativeF. Qed.
-
 Lemma TM_sqrt_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2117,7 +2103,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ sqrt); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
-      by move=> y Hy; rewrite toR_sqrt //; apply: Rlt_le.
+      by move=> y Hy; rewrite /Xsqrt' negativeF //; apply: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -2211,14 +2197,6 @@ Ltac Inc :=
   rewrite (*?*) INR_IZR_INZ -Z2R_IZR;
   apply: I.fromZ_correct.
 
-Lemma toR_invsqrt x : (0 < x)%R -> / sqrt x = toR_fun (fun t => Xinv (Xsqrt t)) x.
-Proof.
-move=> Hx.
-rewrite /toR_fun /proj_fun /Xinv' /Xsqrt' /Xbind negativeF; last exact: Rlt_le.
-rewrite zeroF //.
-exact/Rgt_not_eq/sqrt_lt_R0.
-Qed.
-
 Lemma TM_invsqrt_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2239,7 +2217,10 @@ constructor.
     rewrite (Derive_n_ext_loc _ (fun t => / sqrt t)); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
-      by move=> y Hy; rewrite toR_invsqrt //; apply: Rlt_le.
+      move=> y Hy.
+      rewrite /Xinv' /Xsqrt' /= negativeF /= ?zeroF //.
+      now apply Rgt_not_eq, sqrt_lt_R0.
+      exact: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -2652,9 +2633,6 @@ by rewrite /TM_ln; case: gt0; case: n => [|n] /=; rewrite !sizes
   ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1, size_rec1up, size_behead).
 Qed.
 
-Lemma toR_ln x : (0 < x)%R -> ln x = toR_fun Xln x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xln' /Xbind positiveT. Qed.
-
 Lemma powerRZ_opp x n :
   x <> 0%R -> powerRZ x (- n) = / (powerRZ x n).
 Proof.
@@ -2682,7 +2660,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ ln); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E0].
-      by move=> y Hy; rewrite toR_ln.
+      by move=> y Hy; rewrite /Xln' positiveT.
       rewrite /PolR.nth; case: k Hkn => [|k] Hkn; first by rewrite Rdiv_1.
       case: n Hkn => [|n] Hkn //.
       rewrite [nth _ _ _]PolR.nth_dotmuldiv ifF; last first.
@@ -2774,7 +2752,7 @@ constructor.
     move/(gt0_correct Hx) in E0.
     apply: (ex_derive_n_ext_loc ln).
       apply: locally_open E0; first exact: open_gt.
-      simpl=> t Ht; exact: toR_ln.
+      by simpl=> t Ht; rewrite /Xln' positiveT.
     exact: ex_derive_n_is_derive_n (is_derive_n_ln n x E0).
   }
 split =>//.
