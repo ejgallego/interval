@@ -89,10 +89,6 @@ Qed.
 Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
   proj_fun R0 f x.
 
-Lemma toR_toXreal (f : R -> R) :
-  toR_fun (Xlift f) = f.
-Proof. done. Qed.
-
 Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
   contains xi x -> contains xi (Xreal (proj_val x)).
 Proof. by case: x =>//; case: xi. Qed.
@@ -267,14 +263,14 @@ End PredArg.
 (********************************************************************)
 
 Section NDerive.
-Variable xf : ExtendedR -> ExtendedR.
-Let f := toR_fun xf.
+Variable xf : R -> ExtendedR.
+Let f x := proj_val (xf x).
 Let Dn := Derive_n f.
 Variable X : interval.
 Variable n : nat.
 Let dom r := contains X (Xreal r).
 Let Hdom : connected dom. Proof (contains_connected _).
-Hypothesis Hdef : forall r, dom r -> xf (Xreal r) <> Xnan.
+Hypothesis Hdef : forall r, dom r -> xf r <> Xnan.
 Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
 
 Theorem ITaylor_Lagrange x0 x :

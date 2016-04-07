@@ -111,7 +111,7 @@ Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
   not_nil tf /\
   match tf with
   | Dummy => True
-  | Const c => is_const (Xbind f) X c
+  | Const c => is_const f X c
   | Var =>
     forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x
   | Tm tm =>
@@ -126,8 +126,7 @@ Proof.
 move=> Hfg [Hcont Hmain].
 split=>//.
 case: t Hmain {Hcont} =>[|c| |tm] Hmain; rewrite -?Hfg //.
-apply: is_const_ext_weak Hmain.
-now intros [|x] ; try apply Hfg.
+exact: is_const_ext_weak Hmain.
 by move=> *; rewrite -Hfg; apply: Hmain.
 move=> Hne; move/(_ Hne): Hmain.
 exact: TM_fun_eq.

@@ -629,12 +629,12 @@ End TM_integral.
 Section Misc.
 (* Note: some of these lemmas might be moved in a better place *)
 
-Definition is_const (f : ExtendedR -> ExtendedR) (X c : I.type) : Prop :=
+Definition is_const (f : R -> ExtendedR) (X c : I.type) : Prop :=
   exists2 y : ExtendedR, contains (I.convert c) y
-  & forall x : R, contains (I.convert X) (Xreal x) -> f (Xreal x) = y.
+  & forall x : R, contains (I.convert X) (Xreal x) -> f x = y.
 
-Lemma is_const_ext (f g : ExtendedR -> ExtendedR) X c :
-  (forall x : R, contains (I.convert X) (Xreal x) -> f(Xreal x)=g(Xreal x)) ->
+Lemma is_const_ext (f g : R -> ExtendedR) X c :
+  (forall x : R, contains (I.convert X) (Xreal x) -> f x = g x) ->
   is_const f X c -> is_const g X c.
 Proof.
 move=> Hmain [a Ha1 Ha2].
@@ -644,8 +644,8 @@ rewrite -Hmain //.
 exact: Ha2.
 Qed.
 
-Corollary is_const_ext_weak (f g : ExtendedR -> ExtendedR) X c :
-  (forall x : ExtendedR, f x = g x) ->
+Corollary is_const_ext_weak (f g : R -> ExtendedR) X c :
+  (forall x : R, f x = g x) ->
   is_const f X c -> is_const g X c.
 Proof.
 move=> Hmain.
@@ -780,7 +780,7 @@ rewrite Hbig.
 have Hder' : forall n r, X >: r -> ex_derive_n f0 n r.
   move=> m r Hr.
   exact: Hder_n.
-have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange (Xbind xf) (I.convert X) n Hder' x0 x H0 Hx).
+have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf (I.convert X) n Hder' x0 x H0 Hx).
 rewrite Hc {Hc t Ht} /TLrem.
 apply: R_mul_correct=>//.
   rewrite -(@Poly_nth _ c n.+1 n.+1) //;
@@ -1162,10 +1162,9 @@ case=>[Hpos|Hneg].
         move=> x Hx.
         have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
         have H'x0 : X >: x0 by exact/intvlP.
-        have TL :=
-          @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+        have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
         have [|||c [H1 [H2 H3]]] := TL =>//.
-          move=> k t Ht; rewrite toR_toXreal.
+          move=> k t Ht.
           case: k => [//|k]; rewrite -ex_derive_nSS.
           exact: (Hder_n k.+2).
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1180,10 +1179,9 @@ case=>[Hpos|Hneg].
         move=> x Hx.
         have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
         have H'x0 : X >: x0 by exact/intvlP.
-        have TL :=
-          @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+        have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
         have [|||c [H1 [H2 H3]]] := TL =>//.
-          move=> k t Ht; rewrite toR_toXreal.
+          move=> k t Ht.
           case: k => [//|k]; rewrite -ex_derive_nSS.
           exact: (Hder_n k.+2).
         rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1204,10 +1202,9 @@ case=>[Hpos|Hneg].
   move=> x Hx.
   have H'x : X >: x by exact/intvlP/(intvl_trans Hx0 Hu Hx).
   have H'x0 : X >: x0 by exact/intvlP.
-  have TL :=
-    @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+  have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
   have [|||c [H1 [H2 H3]]] := TL =>//.
-    move=> k t Ht; rewrite toR_toXreal.
+    move=> k t Ht.
     case: k => [//|k]; rewrite -ex_derive_nSS.
     exact: (Hder_n k.+2).
   rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1230,10 +1227,9 @@ split.
     move=> x Hx.
     have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
     have H'x0 : X >: x0 by exact/intvlP.
-    have TL :=
-      @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+    have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
     have [|||c [H1 [H2 H3]]] := TL =>//.
-      move=> k t Ht; rewrite toR_toXreal.
+      move=> k t Ht.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       exact: (Hder_n k.+2).
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1248,10 +1244,9 @@ split.
     move=> x Hx.
     have H'x : X >: x by exact/intvlP/(intvl_trans Hl Hx0 Hx).
     have H'x0 : X >: x0 by exact/intvlP.
-    have TL :=
-      @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+    have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
     have [|||c [H1 [H2 H3]]] := TL =>//.
-      move=> k t Ht; rewrite toR_toXreal.
+      move=> k t Ht.
       case: k => [//|k]; rewrite -ex_derive_nSS.
       exact: (Hder_n k.+2).
     rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1273,10 +1268,9 @@ right.
 move=> x Hx.
 have H'x : X >: x by exact/intvlP/(intvl_trans Hx0 Hu Hx).
 have H'x0 : X >: x0 by exact/intvlP.
-have TL :=
-  @ITaylor_Lagrange (Xlift (Derive f0)) (I.convert X) n.-1  _ x0 x _ _.
+have TL := @ITaylor_Lagrange (fun x => Xreal (Derive f0 x)) (I.convert X) n.-1  _ x0 x _ _.
 have [|||c [H1 [H2 H3]]] := TL =>//.
-  move=> k t Ht; rewrite toR_toXreal.
+  move=> k t Ht.
   case: k => [//|k]; rewrite -ex_derive_nSS.
   exact: (Hder_n k.+2).
 rewrite /Rdelta' PolR.horner_derivE Poly_size.
@@ -1513,7 +1507,7 @@ Qed.
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : R -> ExtendedR) :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  is_const (Xbind f) X ci ->
+  is_const f X ci ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) f.
 Proof.
 move=> Hsubset Hne [c H1 H2].
@@ -2962,7 +2956,7 @@ Qed.
 
 Corollary TM_mul_mixed_correct_strong a M X0 X f g :
   not_empty (I.convert X0) ->
-  is_const (Xbind f) X a ->
+  is_const f X a ->
   i_validTM (I.convert X0) (I.convert X) M g ->
   i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
   (fun x => Xmul (f x) (g x)).
@@ -2987,7 +2981,6 @@ split=>//.
   exact/contains_Xnan.
 - apply: TM_fun_eq; last exact: TM_mul_mixed_correct Hy1 Hg.
   move=> x Hx /=.
-  rewrite /Xbind in Hy2.
   by rewrite Hy2.
 Qed.
 
@@ -3062,7 +3055,7 @@ Qed.
 Corollary TM_div_mixed_r_correct_strong M b X0 X f g :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) M f ->
-  is_const (Xbind g) X b ->
+  is_const g X b ->
   i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
   (fun x => Xdiv (f x) (g x)).
 Proof.
@@ -3084,7 +3077,7 @@ split=>//=.
   rewrite I.div_propagate_r //.
   exact/contains_Xnan.
 apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR).
-- by move=> x Hx /=; rewrite /Xbind in Hy2; rewrite Hy2.
+- by move=> x Hx /=; rewrite Hy2.
 - exact: TM_div_mixed_r_correct.
 Qed.
 
