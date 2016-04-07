@@ -628,22 +628,6 @@ rewrite /Xabs Hfx /=; congr Xreal.
 by rewrite Rabs_right; auto with real.
 Qed.
 
-Lemma not_empty_dec (X : interval) : {not_empty X} + {~ not_empty X}.
-Proof. (* without ssr tactics *)
-case X.
-  left.
-  now exists R0.
-intros l u; destruct l as [|l]; destruct u as [|u].
-now left; exists R0.
-now left; exists u; split; trivial; apply Rle_refl.
-now left; exists l; split; trivial; apply Rle_refl.
-destruct (Rle_lt_dec l u) as [H|H].
-now left; exists l; split; trivial; apply Rle_refl.
-right; intros K.
-destruct K as [x [H1 H2]].
-now apply Rle_not_lt with (1 := Rle_trans _ _ _ H1 H2).
-Defined.
-
 Local Ltac byp a b := move=> x Hx; rewrite a //; exact: b.
 Local Ltac foo :=
   by move=> Hne; apply: TM_any_correct;

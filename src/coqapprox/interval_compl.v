@@ -86,9 +86,6 @@ case/(_ (Xreal u)): Hmain =>//.
 by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
 Qed.
 
-Definition toR_fun (f : ExtendedR -> ExtendedR) (x : R) : R :=
-  proj_fun R0 f x.
-
 Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
   contains xi x -> contains xi (Xreal (proj_val x)).
 Proof. by case: x =>//; case: xi. Qed.

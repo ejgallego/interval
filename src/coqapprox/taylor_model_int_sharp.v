@@ -2315,23 +2315,22 @@ case: p => [|p|p]; last case: apart0;
 Qed.
 
 Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
-  powerRZ x p = toR_fun (Xpower_int^~ p) x.
+  powerRZ x p = proj_val (Xpower_int' x p).
 Proof.
-rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /=.
 case => [Hp|Hx].
   by case: p Hp =>// p [].
 by case: p =>//; rewrite /Xpower_int' zeroF.
 Qed.
 
 Lemma toR_power_int_loc p x : (0 <= p)%Z \/ x <> R0 ->
-  locally x (fun t => powerRZ t p = toR_fun (Xpower_int^~ p) t).
+  locally x (fun t => powerRZ t p = proj_val (Xpower_int' t p)).
 Proof.
 case: p => [|p|p] Hx.
 - eapply (locally_open (fun _ => True)) =>//; exact: open_true.
 - eapply (locally_open (fun _ => True)) =>//; exact: open_true.
 - eapply (@locally_open _ (fun x => x <> 0)%R) =>//; first exact: open_neq.
-  by move=> {x Hx} x Hx; rewrite /toR_fun /Xpower_int /proj_fun /= zeroF //.
-  move: Hx; rewrite /Xpower_int /proj_fun /=; case =>//.
+  by move => {x Hx} x Hx; rewrite /= zeroF.
+  case: Hx => //.
   by case.
 Qed.
 
