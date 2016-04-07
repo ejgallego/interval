@@ -519,6 +519,7 @@ Lemma R_div_correct (prec : I.precision) :
 Proof.
 intros xi yi x y Hx Hy.
 move: (I.div_correct prec _ _ _ _ Hx Hy) => /=.
+unfold Xdiv'.
 case is_zero => //.
 now case I.convert.
 Qed.
@@ -543,6 +544,7 @@ Lemma R_power_int_correct prec (n : Z) :
 Proof.
 intros xi x.
 move/(I.power_int_correct prec n) => /=.
+unfold Xpower_int'.
 case: n => // n.
 case is_zero => //.
 now case I.convert.
@@ -558,6 +560,7 @@ Lemma R_inv_correct : forall prec, R_extension Rinv (I.inv prec).
 Proof.
 intros prec xi x.
 move/(I.inv_correct prec) => /=.
+unfold Xinv'.
 case is_zero => //.
 now case I.convert.
 Qed.
@@ -566,6 +569,7 @@ Lemma R_sqrt_correct : forall prec, R_extension sqrt (I.sqrt prec).
 Proof.
 intros prec xi x.
 move/(I.sqrt_correct prec) => /=.
+unfold Xsqrt'.
 case is_negative => //.
 now case I.convert.
 Qed.
@@ -580,7 +584,7 @@ Lemma R_tan_correct : forall prec, R_extension tan (I.tan prec).
 Proof.
 intros prec xi x.
 move/(I.tan_correct prec).
-unfold Xtan, Xsin, Xcos, Xdiv, Xbind2, Xlift, Xbind.
+unfold Xtan', Xbind.
 case is_zero => //.
 now case I.convert.
 Qed.
@@ -595,6 +599,7 @@ Lemma R_ln_correct : forall prec, R_extension ln (I.ln prec).
 Proof.
 intros prec xi x.
 move/(I.ln_correct prec) => /=.
+unfold Xln'.
 case is_positive => //.
 now case I.convert.
 Qed.

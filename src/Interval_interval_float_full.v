@@ -78,7 +78,7 @@ easy.
 intros Ha Hal.
 simpl in Hal.
 destruct x as [|x] ; try easy.
-simpl Xcos.
+unfold Xbind.
 replace (Rtrigo_def.cos x) with (Rtrigo_def.cos (Rabs x)).
 2: unfold Rabs ; case Rcase_abs ; intros _ ; try easy ; apply cos_neg.
 clear Hx.
@@ -443,7 +443,7 @@ assert (H1: (- PI / 2 < rl)%R).
   now apply Ropp_le_contravar.
 assert (H2: (ru < PI / 2)%R).
   now apply Rlt_le_trans with (pi4r * 2)%R.
-unfold Xtan.
+unfold Xtan'.
 simpl.
 case is_zero_spec.
 simpl in Hx.
@@ -452,7 +452,7 @@ apply Rlt_le_trans with (2 := proj1 Hx).
 unfold Rdiv.
 now rewrite <- Ropp_mult_distr_l_reverse.
 now apply Rle_lt_trans with ru.
-unfold Xtan in Hl, Hu.
+unfold Xtan' in Hl, Hu.
 intros _.
 split.
 - destruct (T.tan_fast prec xl) as [|tl tu].
@@ -638,11 +638,11 @@ Theorem ln_correct :
 Proof.
 intros prec [|xl xu].
 easy.
+unfold Xln'.
 intros [|x].
 easy.
 simpl.
 intros [Hl Hu].
-unfold ln.
 case_eq (F'.lt F.zero xl) ; intros Hlt ; try easy.
 apply F'.lt_correct in Hlt.
 rewrite F.zero_correct in Hlt.
@@ -667,6 +667,7 @@ apply Rle_trans with (1 := H).
 destruct (F.toX xl) as [|xlr].
 easy.
 revert Hlnx.
+unfold Xln'.
 simpl.
 case is_positive_spec.
 intros _ H'.
@@ -690,6 +691,7 @@ now rewrite F.nan_correct.
 intros l u.
 simpl.
 rewrite Hxu.
+unfold Xln'.
 simpl.
 case is_positive_spec.
 intros _.

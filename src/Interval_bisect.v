@@ -207,7 +207,7 @@ set (w := Xmul v' u).
 rewrite Xmul_Xadd_distr_r.
 rewrite Xmul_assoc Xmul_Xinv.
 destruct (Xinv v) as [|z].
-by rewrite /= /Xmul 2!Xlift2_nan_r.
+by rewrite /= 2!Xlift2_nan_r.
 rewrite /= Xmul_1_r Xmul_Xneg_distr_l.
 apply Xadd_comm.
 Qed.
@@ -236,15 +236,17 @@ destruct a as [|a].
 now destruct o.
 intros b H.
 rewrite H.
-destruct o ; try easy ; simpl.
+destruct o ; try easy ; simpl ; unfold Xinv'.
 now case (is_zero b).
+unfold Xsqrt'.
 now case (is_negative b).
-unfold Xtan, Xdiv, Xsin, Xcos, Xbind2, Xlift, Xbind.
+unfold Xtan'.
 now case (is_zero (cos b)).
+unfold Xln'.
 now case (is_positive b).
-change (match Xpower_int (Xreal b) n0 with Xnan => True | Xreal z => z = powerRZ b n0 end).
 generalize (Xpower_int_correct n0 (Xreal b)).
-now case Xpower_int.
+simpl.
+now case Xpower_int'.
 (* binary *)
 destruct a1 as [|a1].
 now destruct o.
@@ -252,7 +254,7 @@ destruct a2 as [|a2].
 now destruct o.
 intros b1 b2 H1 H2.
 rewrite H1 H2.
-destruct o ; try easy ; simpl.
+destruct o ; try easy ; simpl ; unfold Xdiv'.
 now destruct (is_zero b2).
 (* . *)
 intros k.
@@ -278,12 +280,16 @@ move: HbnotXnan.
 rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
 split.
 case: unop HnotXnan => //=.
-- by case is_zero.
-- by case is_negative.
-- rewrite /Xtan /tan /Xdiv /Xcos /Xsin /Xbind2 /Xlift /Xbind.
+- rewrite /Xinv'.
   by case is_zero.
-- by case is_positive.
-- case => [||p] // .
+- rewrite /Xsqrt'.
+  by case is_negative.
+- rewrite /Xtan'.
+  by case is_zero.
+- rewrite /Xln'.
+  by case is_positive.
+- case => [||p] //.
+  rewrite /Xpower_int'.
   by case is_zero.
 case: unop HnotXnan => /=.
 - move => _. by apply: continuous_opp.
@@ -291,7 +297,7 @@ case: unop HnotXnan => /=.
 - move => HnotXnan.
   apply: continuous_Rinv_comp => // Ha.
   move: HnotXnan.
-  by rewrite Ha is_zero_correct_zero.
+  by rewrite /Xinv' Ha is_zero_correct_zero.
 - move => _. by apply: continuous_mult.
 - move => HnotXnan.
   exact: continuous_sqrt_comp.
@@ -301,12 +307,13 @@ case: unop HnotXnan => /=.
   apply: continuous_comp => //.
   apply: continuous_tan => Ha.
     move: HnotXnan.
-    by rewrite /Xtan /Xsin /Xcos /Xdiv /Xbind2 /Xlift /Xbind Ha is_zero_correct_zero.
+    by rewrite /Xtan' Ha is_zero_correct_zero.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
 - move => HnotXnan.
   apply: continuous_comp => //.
   apply: continuous_ln.
+  rewrite /Xln' in HnotXnan.
   by case: is_positive_spec HnotXnan.
 - move => n.
   rewrite /powerRZ.
@@ -316,7 +323,8 @@ case: unop HnotXnan => /=.
     apply: ex_derive_continuous.
     apply: ex_derive_pow.
     exact: ex_derive_id.
-  + case: is_zero_spec HnotXnan => // Ha _.
+  + rewrite /Xpower_int' in HnotXnan.
+    case: is_zero_spec HnotXnan => // Ha _.
     apply: continuous_comp.
     apply: (continuous_comp a (fun x => pow x _)) => //.
     apply: ex_derive_continuous.
@@ -512,12 +520,12 @@ case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
   move => HnotXnan [] // Heq1 Hconta1 [] // Heq2 Hconta2.
   split => // .
   + move: HnotXnan.
-    rewrite /binary /ext_operations /Xdiv /Xbind2.
+    rewrite /= /Xdiv'.
     case: (is_zero b2) => // .
     by inversion Heq1; inversion Heq2.
   + apply: continuous_mult => // .
     apply: continuous_Rinv_comp => // Habs .
-    by move: Heq2 HnotXnan => ->; rewrite Habs /= is_zero_correct_zero.
+    by move: Heq2 HnotXnan => ->; rewrite /= /Xdiv' Habs is_zero_correct_zero.
 intros [|n].
 simpl.
 intros _.
@@ -726,7 +734,7 @@ Proof.
 intros o f d x Hd.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_neg.
-rewrite is_zero_correct_zero.
+rewrite /Xinv' is_zero_correct_zero.
 now apply Xderive_pt_abs.
 rewrite rewrite_inv_diff.
 now apply Xderive_pt_inv.
@@ -741,7 +749,7 @@ now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 now apply Xderive_pt_atan.
 now apply Xderive_pt_exp.
-rewrite is_zero_correct_zero.
+rewrite /Xinv' is_zero_correct_zero.
 now apply Xderive_pt_ln.
 now apply Xderive_pt_power_int.
 Qed.
@@ -854,8 +862,7 @@ destruct o ; simpl ;
   try now first [ apply Hf | apply Hf' ].
 (* abs *)
 generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
-simpl.
-rewrite is_zero_correct_zero.
+rewrite /= /Xinv' is_zero_correct_zero.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
 case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
@@ -876,8 +883,7 @@ now apply Hf'.
 apply H.
 (* ln *)
 generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
-simpl.
-rewrite is_zero_correct_zero.
+rewrite /= /Xinv' is_zero_correct_zero.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
 case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.

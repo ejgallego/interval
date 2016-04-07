@@ -997,7 +997,7 @@ Proof.
 intros [ | xl xu] [ | x] ; simpl ; trivial.
 intros (Hxl, Hxu).
 split ; rewrite F.neg_correct ;
-  unfold Xneg ; [ xreal_tac xu | xreal_tac xl ] ;
+  [ xreal_tac xu | xreal_tac xl ] ;
   apply Ropp_le_contravar ; assumption.
 Qed.
 
@@ -1154,7 +1154,7 @@ intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 split ;
   rewrite <- F.toF_correct, F.add_correct, Fadd_correct ;
-  do 2 xreal_tac2 ; unfold Xadd, Xlift2, Xbind2 ; bound_tac ;
+  do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
   apply Rplus_le_compat ; assumption.
 Qed.
 
@@ -1167,7 +1167,7 @@ intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 split ;
   rewrite <- F.toF_correct, F.sub_correct, Fsub_correct ;
-  do 2 xreal_tac2 ; unfold Xsub, Xlift2, Xbind2 ; bound_tac ;
+  do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
   unfold Rminus ; apply Rplus_le_compat ;
   try apply Ropp_le_contravar ; assumption.
 Qed.
@@ -1184,6 +1184,7 @@ rewrite F.zero_correct.
 revert Hxl.
 case_eq (F.toX xl) ; [ split | idtac ].
 intros rl Hrl Hxl.
+unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec x).
 rewrite Rcompare_Lt.
@@ -1195,6 +1196,7 @@ destruct (Rcompare_spec rl 0) ; simpl ;
 exact I.
 (* xl zero *)
 rewrite F.zero_correct.
+unfold Xsqrt'.
 simpl.
 split.
 now apply sqrt_positivity.
@@ -1210,6 +1212,7 @@ exact Hxu.
 (* xl positive *)
 rewrite Hrl.
 split.
+unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec rl).
 exact I.
@@ -1219,6 +1222,7 @@ exact (Rlt_le _ _ H0).
 exact H.
 exact Hxl.
 xreal_tac xu.
+unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec r).
 exact I.
@@ -1312,7 +1316,7 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
   try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct ;
-        do 2 xreal_tac2 ; unfold Xmul, Xlift2, Xbind2 ; bound_tac ;
+        do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
   try ( eauto with mulauto ; fail ).
@@ -1322,7 +1326,6 @@ rewrite <- !F.toF_correct.
 do 4 rewrite F.mul_correct.
 do 4 rewrite Fmul_correct.
 do 4 xreal_tac2 ;
-  unfold Xmul ;
   try ( split ; simpl ; exact I ).
 unfold xround.
 simpl.
@@ -1389,10 +1392,12 @@ intros y (Hxl, Hxu).
 simpl.
 rewrite F.cmp_correct, F.zero_correct.
 xreal_tac2.
+unfold Xdiv'.
 simpl.
 case Rcompare_spec ; intros Hy ; try exact I ;
   simpl ; simpl_is_zero ;
   rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct ;
+  unfold Xdiv' ;
   xreal_tac2 ;
   split ;
     xreal_tac2 ;
@@ -1410,7 +1415,7 @@ intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ;
   try ( intros H1 H2 ; try elim H1 ; elim H2 ; fail ).
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
-unfold bnd, contains, convert.
+unfold bnd, contains, convert, Xdiv'.
 (* case study on sign of xi *)
 generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
@@ -1430,7 +1435,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   split ;
   (* remove rounding operators *)
   try ( rewrite <- F.toF_correct, F.div_correct, Fdiv_correct ;
-        do 2 xreal_tac2 ; unfold Xdiv, Xbind2, Rdiv ;
+        do 2 xreal_tac2 ; unfold Xdiv', Xbind2, Rdiv ;
         match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
         bound_tac ) ;
   clear_complex ;
@@ -1449,9 +1454,9 @@ intros prec [ | xl xu] [ | x] ;
   try ( intros H1 ; elim H1 ; fail ).
 intros (Hxl, Hxu).
 simpl.
-unfold bnd, contains, convert.
-generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
+unfold bnd, contains, convert, Xinv'.
 (* case study on sign of xi *)
+generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
 case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
   try exact I ; try simpl_is_zero ;
@@ -1470,7 +1475,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   rewrite F.fromZ_correct ;
   try rewrite X0 ;
   try rewrite Hx2 ;
-  unfold Xdiv, Xbind2, Rdiv ;
+  unfold Xdiv', Xbind2, Rdiv ;
   match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
   bound_tac ; rewrite Rmult_1_l ; auto with mulauto.
 Qed.
@@ -1495,7 +1500,7 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
   try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct  ;
-        xreal_tac2 ; unfold Xmul, Xlift2, Xbind2 ; bound_tac ;
+        xreal_tac2 ; unfold Xbind2 ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
   try ( eauto with mulauto ; fail ).
@@ -2025,7 +2030,7 @@ intros xi x Hx.
 generalize (power_pos_correct prec n _ _ Hx).
 intros Hp.
 generalize (inv_correct prec _ _ Hp).
-unfold Xpower_int, Xinv, Xbind, power_int.
+unfold Xpower_int, Xpower_int', Xinv', Xbind, power_int.
 destruct x as [ | x].
 easy.
 replace (is_zero x) with (is_zero (x ^ nat_of_P n)).

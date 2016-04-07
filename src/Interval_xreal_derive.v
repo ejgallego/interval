@@ -256,7 +256,7 @@ Ltac xtotal_aux :=
   end.
 
 Ltac xtotal :=
-  unfold Xderive_pt, Xtan, Xcos, Xsin, Xexp, Xdiv, Xsqr, Xneg, Xabs, Xadd, Xsub, Xmul, Xinv, Xsqrt, Xatan, Xpower_int, Xmask, Xlift2, Xlift, Xbind2, Xbind in * ;
+  unfold Xderive_pt, Xinv', Xdiv', Xsqrt', Xtan', Xln', Xpower_int, Xpower_int', Xmask, Xbind2, Xbind in * ;
   repeat xtotal_aux.
 
 Theorem Xderive_pt_add :
@@ -587,19 +587,15 @@ revert X0.
 now case Xcmp.
 simpl Xcmp in X0.
 destruct (Rcompare_spec r1 0) ; try easy.
-simpl in X1.
-destruct (is_positive_spec r1) ; try easy.
-now elim Rle_not_lt with (1 := H0).
+now elim Rle_not_lt with (1 := Y0).
 simpl Xcmp in X0.
 destruct (Rcompare_spec r1 0) ; try easy.
-simpl in X1.
 intro v.
 apply derivable_pt_lim_eq_locally with (comp ln (proj_fun v f)).
 apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ R0 X H Hf).
 intros x (w, (Hw1, Hw2)).
 unfold comp, proj_fun.
 rewrite Hw2.
-simpl Xln.
 destruct (is_positive_spec w).
 easy.
 now elim (Rlt_not_le _ _ Hw1).
@@ -676,7 +672,7 @@ apply lt_O_nat_of_P.
 case (f x).
 easy.
 intros r.
-unfold Xpower_int, Xbind.
+unfold Xpower_int, Xpower_int', Xbind.
 case_eq (Zpred (Zpos n))%Z.
 intros H.
 replace (nat_of_P n) with 1.

@@ -86,13 +86,6 @@ Definition extension f fx := forall x,
   | _, _ => False
   end.
 
-Definition extension_2 f fx := forall x y,
-  match fx x y, x, y with
-  | Xnan, _, _ => True
-  | Xreal w, Xreal u, Xreal v => f u v = w
-  | _, _, _ => False
-  end.
-
 Definition Xbind f x :=
   match x with
   | Xreal x => f x
@@ -105,9 +98,8 @@ Definition Xbind2 f x y :=
   | _, _ => Xnan
   end.
 
-Definition Xlift f := Xbind (fun x => Xreal (f x)).
-
-Definition Xlift2 f := Xbind2 (fun x y => Xreal (f x y)).
+Notation Xlift f := (Xbind (fun x => Xreal (f x))).
+Notation Xlift2 f := (Xbind2 (fun x y => Xreal (f x y))).
 
 Lemma Xlift2_nan_r :
   forall f x, Xlift2 f x Xnan = Xnan.
@@ -115,7 +107,7 @@ Proof.
 now intros f [|x].
 Qed.
 
-Definition Xneg := Xlift Ropp.
+Notation Xneg := (Xlift Ropp).
 
 Lemma Xneg_involutive :
   forall x, Xneg (Xneg x) = x.
@@ -125,23 +117,19 @@ easy.
 apply (f_equal Xreal), Ropp_involutive.
 Qed.
 
-Definition Xinv := Xbind (fun x => if is_zero x then Xnan else Xreal (/ x)).
+Definition Xinv' x := if is_zero x then Xnan else Xreal (/ x).
+Definition Xsqrt' x := if is_negative x then Xnan else Xreal (sqrt x).
+Definition Xdiv' x y := if is_zero y then Xnan else Xreal (x / y).
 
-Definition Xsqrt := Xbind (fun x => if is_negative x then Xnan else Xreal (sqrt x)).
-
-Definition Xabs := Xlift Rabs.
-
-Definition Xadd := Xlift2 Rplus.
-
-Definition Xsub := Xlift2 Rminus.
-
-Definition Xmul := Xlift2 Rmult.
-
-Definition Xdiv := Xbind2 (fun x y => if is_zero y then Xnan else Xreal (x / y)).
-
-Definition Xmin := Xlift2 Rmin.
-
-Definition Xmax := Xlift2 Rmax.
+Notation Xinv := (Xbind Xinv').
+Notation Xsqrt := (Xbind Xsqrt').
+Notation Xabs := (Xlift Rabs).
+Notation Xadd := (Xlift2 Rplus).
+Notation Xsub := (Xlift2 Rminus).
+Notation Xmul := (Xlift2 Rmult).
+Notation Xdiv := (Xbind2 Xdiv').
+Notation Xmin := (Xlift2 Rmin).
+Notation Xmax := (Xlift2 Rmax).
 
 Lemma Xsub_split :
   forall x y, Xsub x y = Xadd x (Xneg y).
@@ -153,36 +141,33 @@ Lemma Xdiv_split :
   forall x y, Xdiv x y = Xmul x (Xinv y).
 Proof.
 intros [|x] [|y] ; try split.
-simpl.
+unfold Xbind2, Xbind, Xdiv', Xinv'.
 now case (is_zero y).
 Qed.
 
-Definition Xsqr := Xlift Rsqr.
-
-Definition Xcos := Xlift cos.
-
-Definition Xsin := Xlift sin.
-
-Definition Xtan := Xbind (fun x => if is_zero (cos x) then Xnan else Xreal (tan x)).
-
-Definition Xatan := Xlift atan.
-
-Definition Xexp := Xlift exp.
-
-Definition Xln := Xbind (fun x => if is_positive x then Xreal (ln x) else Xnan).
-
-Definition Xpower_int x n := Xbind (fun x =>
+Definition Xtan' x := if is_zero (cos x) then Xnan else Xreal (tan x).
+Definition Xln' x := if is_positive x then Xreal (ln x) else Xnan.
+Definition Xpower_int' x n :=
   match n with
   | 0%Z => Xreal 1%R
   | Zpos p => Xreal (pow x (nat_of_P p))
   | Zneg p => if is_zero x then Xnan else Xreal (Rinv (pow x (nat_of_P p)))
-  end) x.
+  end.
+
+Notation Xsqr := (Xlift Rsqr).
+Notation Xcos := (Xlift cos).
+Notation Xsin := (Xlift sin).
+Notation Xtan := (Xbind Xtan').
+Notation Xatan := (Xlift atan).
+Notation Xexp := (Xlift exp).
+Notation Xln := (Xbind Xln').
+Definition Xpower_int x n := Xbind (fun x => Xpower_int' x n) x.
 
 Lemma Xpower_int_correct :
   forall n, extension (fun x => powerRZ x n) (fun x => Xpower_int x n).
 Proof.
 intros [|n|n] [|x] ; try split.
-unfold Xpower_int, Xbind.
+unfold Xpower_int, Xpower_int', Xbind.
 now case (is_zero x).
 Qed.
 
@@ -294,7 +279,7 @@ Lemma Xinv_Xmul_distr :
   forall x y,
   Xinv (Xmul x y) = Xmul (Xinv x) (Xinv y).
 Proof.
-intros [|x] [|y] ; try split ; simpl.
+intros [|x] [|y] ; try easy ; simpl ; unfold Xinv'.
 now destruct (is_zero_spec x).
 destruct (is_zero_spec x).
 destruct (is_zero_spec (x * y)).
@@ -324,12 +309,10 @@ Lemma Xmul_Xinv :
   forall x,
   Xmul x (Xinv x) = Xmask (Xreal 1) (Xinv x).
 Proof.
-intros [|x] ; try split.
-simpl.
+intros [|x] ; try easy ; simpl ; unfold Xinv'.
 destruct (is_zero_spec x).
 apply refl_equal.
-simpl.
-apply f_equal.
+apply (f_equal Xreal).
 now apply Rinv_r.
 Qed.
 
@@ -337,8 +320,7 @@ Lemma Xdiv_0_r :
   forall x,
   Xdiv x (Xreal 0) = Xnan.
 Proof.
-intros [|x] ; try easy.
-simpl.
+intros [|x] ; try easy ; simpl ; unfold Xdiv'.
 case is_zero_spec ; try easy.
 intros H.
 now elim H.

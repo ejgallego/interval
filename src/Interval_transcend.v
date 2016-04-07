@@ -296,6 +296,7 @@ assert (Hexit : forall k powu ft,
   intros powu' Hpu'.
   destruct (F.toX su) as [|sur].
   easy.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -410,6 +411,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   easy.
   intros pl Hpl'.
   rewrite Hsl''.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   intros H'.
@@ -438,7 +440,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   case_eq (F.toX su).
   easy.
   intros sur Hsu'.
-  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
+  unfold Xdiv', Xbind2, xround.
   case is_zero_spec.
   easy.
   intros _.
@@ -592,6 +594,7 @@ assert (Hexit : forall k powu ft,
   case_eq (F.toX powu).
   easy.
   intros powu' Hpu'.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -698,7 +701,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
+  unfold Xdiv', Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -824,6 +827,7 @@ assert (H: forall p, (2 <= p)%Z ->
   replace (Xreal (/ Z2R p)) with (Xinv (Xreal (Z2R p))).
   apply I.inv_correct.
   apply I.fromZ_correct.
+  unfold Xinv'.
   simpl.
   case is_zero_spec ; try easy.
   intros H.
@@ -899,6 +903,7 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   rewrite F.add_exact_correct, Fadd_exact_correct.
   rewrite 2!F.toF_correct, F.fromZ_correct.
   rewrite Rx.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec ; intros Zx.
   Fourier.fourier.
@@ -931,6 +936,7 @@ unfold I.convert_bound.
 rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
 rewrite 2!F.toF_correct, F.fromZ_correct.
 rewrite Rx.
+unfold Xdiv'.
 simpl.
 case is_zero_spec ; intros Zx.
 elim Rlt_not_le with (1 := Bx'').
@@ -1133,6 +1139,7 @@ assert (Hexit : forall k powu ft,
   simpl in Ix.
   destruct (F.toX xu) as [|xur].
   easy.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -1242,6 +1249,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   easy.
   intros pl Hpl'.
   rewrite Hxl.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -1268,6 +1276,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   case_eq (F.toX xu).
   easy.
   intros xur Hxu'.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -1448,6 +1457,7 @@ apply IHnb.
 unfold toR.
 rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
 rewrite Hxl1.
+unfold Xsqrt'.
 simpl.
 case is_negative_spec ; trivial.
 intros H'.
@@ -1457,6 +1467,7 @@ apply Rle_0_1.
 unfold toR.
 rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
 rewrite Hxl1.
+unfold Xsqrt'.
 simpl.
 case is_negative_spec ; trivial.
 intros H'.
@@ -1478,6 +1489,7 @@ now apply Zpower_gt_1.
 split ;
   rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
 rewrite Hxl1.
+unfold Xsqrt'.
 simpl.
 case is_negative_spec.
 intros H'.
@@ -1490,6 +1502,7 @@ bound_tac.
 now apply sqrt_le_1_alt.
 destruct (F.toX xu) as [|xur].
 exact I.
+unfold Xsqrt'.
 simpl.
 case is_negative_spec.
 intros H'.
@@ -1526,7 +1539,8 @@ intros Hx _.
 case Rcompare_spec.
 (* x < 1 *)
 intros Hx'.
-simpl Xln.
+unfold Xln'.
+simpl Xbind.
 case is_positive_spec.
 2: intros Hx'' ; now elim Rlt_not_le with (1 := Hx).
 intros _.
@@ -1540,6 +1554,7 @@ apply ln_fast1P_correct.
 unfold toR.
 rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct.
 rewrite F.fromZ_correct, Hxr.
+unfold Xdiv'.
 simpl.
 case is_zero_spec.
 intros ->.
@@ -1548,6 +1563,7 @@ easy.
 unfold toR.
 rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct.
 rewrite F.fromZ_correct, Hxr.
+unfold Xdiv'.
 simpl.
 case is_zero_spec.
 intros ->.
@@ -1571,6 +1587,7 @@ now apply Zpower_gt_1.
 split ;
   rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct ;
   rewrite F.fromZ_correct, Hxr ;
+  unfold Xdiv' ;
   simpl ;
   case is_zero_spec ;
     try (intros -> ; elim Rlt_irrefl with (1 := Hx)) ;
@@ -1582,6 +1599,7 @@ now apply Rinv_0_lt_compat.
 now apply Rgt_not_eq.
 (* x = 1 *)
 intros ->.
+unfold Xln'.
 simpl.
 case is_positive_spec.
 unfold I.convert_bound.
@@ -1591,7 +1609,8 @@ split ; apply Rle_refl.
 now apply Rlt_not_le.
 (* x > 1 *)
 intros Hx'.
-simpl Xln.
+unfold Xln'.
+simpl.
 case is_positive_spec.
 intros _.
 apply ln_fast1P_correct.
@@ -1781,6 +1800,7 @@ assert (Hexit : forall k powu ft,
   case_eq (F.toX powu).
   easy.
   intros powu' Hpu'.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -1890,7 +1910,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
+  unfold Xdiv', Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -2335,6 +2355,7 @@ assert (Hexit : forall k powu ft,
   case_eq (F.toX powu).
   easy.
   intros powu' Hpu'.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -2444,7 +2465,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xmul, Xdiv, Xlift2, Xbind2, xround.
+  unfold Xdiv', Xbind2, xround.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -2612,6 +2633,7 @@ unfold c1.
 rewrite F.fromZ_correct.
 split ; apply Rle_refl.
 now apply I.sqr_correct.
+unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec (sin (toR x))²).
 elim (Rlt_not_le _ _ H).
@@ -2629,6 +2651,7 @@ unfold I.convert_bound, c1.
 rewrite F.fromZ_correct.
 split ; apply Rle_refl.
 now apply I.sqr_correct.
+unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec (sin (toR x))²).
 elim (Rlt_not_le _ _ H).
@@ -2751,6 +2774,7 @@ case le_spec.
   apply I.sqr_correct.
   apply sin_fast0_correct with (1 := Rx).
   now rewrite Rabs_pos_eq.
+  unfold Xsqrt'.
   simpl.
   case is_negative_spec.
   intros H.
@@ -2772,13 +2796,14 @@ case le_spec.
     apply Rinv_lt.
     apply Rlt_0_1.
     now apply (Z2R_lt 1 2).
+  unfold Xdiv'.
   case is_zero_spec.
   intros H.
   elim Rgt_not_eq with (1 := Hc).
   apply Rsqr_0_uniq.
   now apply sqrt_eq_0.
   intros H''.
-  unfold Xtan.
+  unfold Xtan'.
   simpl.
   case is_zero_spec.
   intros H.
@@ -2808,6 +2833,7 @@ case le_spec.
     unfold I.convert_bound, c1.
     rewrite F.fromZ_correct.
     split ; apply Rle_refl.
+    unfold Xdiv'.
     simpl.
     case is_zero_spec ; intros Zc.
     rewrite Rsqr_0_uniq with (1 := Zc).
@@ -2816,6 +2842,7 @@ case le_spec.
     rewrite Zc' in Zc.
     elim Zc.
     apply Rmult_0_l.
+    unfold Xsqrt'.
     simpl.
     replace (1 / (Rsqr (cos (toR x))) - 1)%R with (Rsqr (sin (toR x) / cos (toR x))).
     case is_negative_spec ; intros H.
@@ -2826,10 +2853,9 @@ case le_spec.
     rewrite sin2.
     unfold Rsqr.
     now field.
-  simpl Xdiv in H.
+  unfold Xdiv', Xbind2 in H.
   generalize (I.sign_large_correct c).
-  unfold Xtan, Xbind.
-  simpl Xdiv.
+  unfold Xtan', Xbind.
   destruct s ; try easy ; case I.sign_large ; try easy ; intros Hc'.
   revert H.
   destruct (is_zero_spec (cos (toR x))).
@@ -2919,7 +2945,7 @@ assert (H1 : (0 <= -r)%R).
   now apply Rlt_le.
 specialize (H' eq_refl H1).
 revert H'.
-unfold Xtan.
+unfold Xtan'.
 simpl.
 rewrite cos_neg.
 case is_zero_spec.
@@ -2929,7 +2955,7 @@ now rewrite tan_neg.
 (* zero *)
 simpl.
 rewrite H, F.zero_correct.
-unfold Xtan.
+unfold Xtan'.
 simpl.
 case is_zero_spec.
 rewrite cos_0.
@@ -3088,6 +3114,7 @@ assert (Hexit : forall k powxu fp2,
   case_eq (F.toX powxu).
   easy.
   intros powxu' Hpu'.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   easy.
@@ -3178,6 +3205,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   rewrite 2!F.mul_correct, 2!Fmul_correct, 4!F.toF_correct.
   rewrite Rx, Rpl, Rpu, Hfp2.
   rewrite F.fromZ_correct.
+  unfold Xdiv'.
   simpl.
   case is_zero_spec.
   intros H'.
@@ -3392,6 +3420,7 @@ unfold toR.
 now rewrite Hr.
 unfold toR.
 rewrite Hr.
+unfold Xinv'.
 simpl.
 case is_zero_spec ; intro H1.
 elim Rgt_not_eq with (2 := H1).

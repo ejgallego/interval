@@ -1935,18 +1935,18 @@ Proof. by rewrite /TM_tan; case: apart0; rewrite Pol.size_grec1. Qed.
 
 (* Erik: This lemma could be generalized... *)
 Lemma toR_tan : forall x, Xtan (Xreal x) <> Xnan -> toR_fun Xtan x = tan x.
-Proof. by rewrite /Xtan /toR_fun /proj_fun => x /=; case: is_zero. Qed.
+Proof. by rewrite /Xtan' /toR_fun /proj_fun => x /=; case: is_zero. Qed.
 
 Lemma def_tan : forall x, Xtan (Xreal x) <> Xnan <-> cos x <> R0.
 Proof.
-by move=> x; split; rewrite /Xtan /=; case E0: is_zero =>//;
+by move=> x; split; rewrite /Xtan' /=; case E0: is_zero =>//;
   move: E0; case: is_zero_spec.
 Qed.
 
 Lemma TM_tan_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) (fun x => Xtan (Xreal x)).
+  i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) Xtan'.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_tan.
@@ -2036,7 +2036,7 @@ constructor.
       move=> q _.
       apply/Pol.horner_propagate/contains_Xnan.
       rewrite -Dx.
-      exact: I.tan_correct.
+      exact: I.tan_correct Hx.
     by rewrite Pol.size_grec1.
   }
 - move=> m x Hx; move/apart0_correct in E0.
@@ -2048,7 +2048,7 @@ constructor.
       (fun y _ => continuous_cos y)
     (open_neq 0%R)) (3 := E0).
   move => /= x0 Hx0.
-  by rewrite /Xtan /Xsin /Xcos /Xdiv /Xbind2 /Xlift /Xbind zeroF.
+  by rewrite /Xtan' zeroF.
 
 simpl.
 split =>//.
@@ -2098,12 +2098,12 @@ by rewrite /TM_sqrt;
 Qed.
 
 Lemma toR_sqrt x : (0 <= x)%R -> sqrt x = toR_fun Xsqrt x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt /Xbind negativeF. Qed.
+Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xsqrt' /Xbind negativeF. Qed.
 
 Lemma TM_sqrt_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) (fun x => Xsqrt (Xreal x)).
+  i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt'.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_sqrt.
@@ -2155,19 +2155,20 @@ constructor.
     exact: R_sqrt_correct.
   }
 - move=> I r Ir /= {E1 Hex Hsubset X X0 n}.
+  unfold Xsqrt'.
   case: ifP=> // neg_r _ m k leqmk.
   apply: Pol.rec1_propagate; last by rewrite Pol.size_rec1.
   * move=> qi n Hq. rewrite /sqrt_rec.
     rewrite I.div_propagate_l // I.mul_propagate_r //; exact:eqNaiP.
   * apply/contains_Xnan.
     suff <- : Xsqrt (Xreal r) = Xnan by apply: I.sqrt_correct.
-    by rewrite /= neg_r.
+    by rewrite /Xsqrt' /= neg_r.
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc sqrt).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt /Xbind /toR_fun /proj_fun negativeF //.
+      simpl=> y Hy; rewrite /Xsqrt' negativeF //.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_sqrt n x E1).
   }
@@ -2213,7 +2214,7 @@ Ltac Inc :=
 Lemma toR_invsqrt x : (0 < x)%R -> / sqrt x = toR_fun (fun t => Xinv (Xsqrt t)) x.
 Proof.
 move=> Hx.
-rewrite /toR_fun /proj_fun /Xinv /Xsqrt /Xbind negativeF; last exact: Rlt_le.
+rewrite /toR_fun /proj_fun /Xinv' /Xsqrt' /Xbind negativeF; last exact: Rlt_le.
 rewrite zeroF //.
 exact/Rgt_not_eq/sqrt_lt_R0.
 Qed.
@@ -2291,7 +2292,7 @@ by move=> *;
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc (fun t => / sqrt t)).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt /Xinv /Xbind negativeF ?zeroF //.
+      simpl=> y Hy; rewrite /Xsqrt' /Xinv' /Xbind negativeF ?zeroF //.
       apply: Rgt_not_eq; exact: sqrt_lt_R0.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_invsqrt n x E1).
@@ -2344,7 +2345,7 @@ Proof.
 rewrite /toR_fun /proj_fun /powerRZ /Xpower_int /=.
 case => [Hp|Hx].
   by case: p Hp =>// p [].
-by case: p =>//; rewrite zeroF.
+by case: p =>//; rewrite /Xpower_int' zeroF.
 Qed.
 
 Lemma toR_power_int_loc p x : (0 <= p)%Z \/ x <> R0 ->
@@ -2368,7 +2369,7 @@ Lemma TM_power_int_correct_aux (p : Z) X0 X n :
                                                    (T_power_int prec p) P
                                                    (fun x => I.power_int prec x p)
                                                    X0 X n))
-            (fun x => Xpower_int (Xreal x) p).
+            (fun x => Xpower_int' x p).
 Proof.
 move=> Hyp Hsubset Hex.
 apply i_validTM_Ztech with (TR.T_power_int tt p); last 2 first =>//.
@@ -2498,7 +2499,7 @@ constructor.
     rewrite /pow_aux_rec ifT.
     apply/contains_Xnan.
     have->: Xnan = Xpower_int^~ (p - Z.of_nat m)%Z (Xreal x).
-    move: Dx; rewrite /Xpower_int /Xbind.
+    move: Dx; rewrite /Xpower_int /Xpower_int' /Xbind.
     by case Ep: p =>//; case: is_zero =>//; case: m.
     exact: I.power_int_correct.
     match goal with |- is_true ?a => rewrite -(negbK a) negb_or end.
@@ -2507,7 +2508,7 @@ constructor.
     by case: {Hyp} p H0 Hm.
     apply/contains_Xnan.
     rewrite -Dx.
-    exact: I.power_int_correct.
+    exact: I.power_int_correct Hx.
   }
 - move=> k x Hx.
   have [Hp|/(apart0_correct Hx) Nx] := Hyp.
@@ -2522,8 +2523,7 @@ Qed.
 Lemma TM_power_int_correct (p : Z) X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n)
-            (fun x => Xpower_int (Xreal x) p).
+  i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n) (fun x => Xpower_int' x p).
 Proof.
 move=> Hsubs Hnex.
 rewrite /TM_power_int.
@@ -2559,7 +2559,7 @@ Proof. by rewrite /TM_inv; case: apart0 =>/=; rewrite Pol.size_rec1. Qed.
 Lemma TM_inv_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) (fun x => Xinv (Xreal x)).
+  i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv'.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_inv /=.
@@ -2573,7 +2573,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ Rinv); last first.
       apply: (locally_open (fun t => t <> 0)%R);
         [exact: open_neq| |exact: apart0_correct E0].
-      by move=> y Hy; rewrite zeroF.
+      by move=> y Hy; rewrite /Xinv' zeroF.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -2620,7 +2620,7 @@ constructor.
     apply: (ex_derive_n_ext_loc Rinv).
       apply: (locally_open (fun t => t <> 0)%R) =>//.
       exact: open_neq.
-      by simpl=> y Hy; rewrite zeroF.
+      by simpl=> y Hy; rewrite /Xinv' zeroF.
     exact: ex_derive_n_is_derive_n (is_derive_n_inv n x E0).
   }
 
@@ -2653,7 +2653,7 @@ by rewrite /TM_ln; case: gt0; case: n => [|n] /=; rewrite !sizes
 Qed.
 
 Lemma toR_ln x : (0 < x)%R -> ln x = toR_fun Xln x.
-Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xln /Xbind positiveT. Qed.
+Proof. by move=> Hx; rewrite /toR_fun /proj_fun /Xln' /Xbind positiveT. Qed.
 
 Lemma powerRZ_opp x n :
   x <> 0%R -> powerRZ x (- n) = / (powerRZ x n).
@@ -2667,7 +2667,7 @@ Qed.
 Lemma TM_ln_correct X0 X n :
   subset (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) (fun x => Xln (Xreal x)).
+  i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln'.
 Proof.
 move=> Hsubset Hex.
 rewrite /TM_ln.
@@ -2748,7 +2748,7 @@ constructor.
     apply: Pol.polyCons_propagate.
     - apply/contains_Xnan.
       rewrite -Dx.
-      exact: I.ln_correct.
+      exact: I.ln_correct Hx.
     - case: n Hk => [|n] Hk m; first by rewrite Pol.size_polyNil.
       rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
                size_falling_seq, size_behead, size_fact_seq) //.
@@ -2758,10 +2758,10 @@ constructor.
       apply: Pol.rec1_propagate.
       move=> q l Hq; rewrite I.power_int_propagate //.
       rewrite I.mask_propagate_r //.
-      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct.
+      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
       rewrite I.power_int_propagate //.
       rewrite I.mask_propagate_r //.
-      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct.
+      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
       by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
                size_falling_seq, size_behead, size_fact_seq).
     - rewrite Pol.size_polyCons.
@@ -2833,7 +2833,7 @@ set pfx := pf.[_]; set pgx := pg.[_].
 case Ef: f => [|fx]. by move => ->.
 case Eg: g => [|gx]. by move => ->.
 intros _.
-simpl Xsub.
+simpl Xbind2.
 replace (fx + gx - (pfx + pgx))%R with ((fx - pfx) + (gx - pgx))%R by ring.
 rewrite Xreal_add 2!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
 rewrite Ef Eg /=.
@@ -2913,7 +2913,7 @@ set pfx := pf.[_]; set pgx := pg.[_].
 case Ef: f => [|fx]. by move => ->.
 case Eg: g => [|gx]. by move => ->.
 intros _.
-rewrite /Xsub /Xlift2 /Xbind2 /proj_val.
+rewrite /Xbind2 /proj_val.
 replace (fx - gx - (pfx - pgx))%R with ((fx - pfx) - (gx - pgx))%R by ring.
 rewrite 3!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
 apply: I.sub_correct.
@@ -2966,7 +2966,7 @@ exists (PolR.map (Rmult y) q).
   rewrite PolR.horner_mul_mixed.
   case Dx: (f x) => [|fx].
   by rewrite I.mul_propagate_r // (Hdef x Hx Dx).
-  rewrite /Xmul /Xlift2 /Xbind2 /proj_val.
+  rewrite /Xbind2 /proj_val.
   replace (y * fx - y * q.[x - x0])%R with (y * (fx - q.[x - x0]))%R by ring.
   rewrite Dx in H2.
   exact: R_mul_correct.
@@ -3049,10 +3049,10 @@ split=>//.
   move=> x Hx Dx; rewrite /TM_div_mixed_r /=.
   rewrite I.div_propagate_l //; apply/(Hdef x Hx).
   case: (f x) Dx => [|fx] //=.
-  by rewrite zeroF.
+  by rewrite /Xdiv' zeroF.
   by move=> HX; rewrite I.div_propagate_l // Hnai.
   have->: (Xreal 0) = (Xdiv (Xreal 0) (Xreal y)).
-  by rewrite /= zeroF // /Rdiv Rmult_0_l.
+  by rewrite /Xdiv' /= zeroF // /Rdiv Rmult_0_l.
   exact: I.div_correct.
 move=> /= x0 Hx0.
 have [q H1 H2] := Hmain x0 Hx0.
@@ -3065,7 +3065,7 @@ exists (PolR.map (Rdiv ^~ y) q).
   case Df: (f x) => [|fx].
   by rewrite I.div_propagate_l // (Hdef x Hx).
   clear - H2 Hy Hy0 Df Hdef Hx.
-  rewrite PolR.horner_div_mixed_r /Xdiv /Xbind2 zeroF // /proj_val.
+  rewrite PolR.horner_div_mixed_r /Xdiv' /Xbind2 zeroF // /proj_val.
   rewrite Df in H2.
   replace (fx / y - q.[x - x0] / y)%R with ((fx - q.[x - x0]) / y)%R by now field.
   exact: R_div_correct.
@@ -3469,7 +3469,7 @@ Proof.
   case Df: (f x) => [|fx].
   by move ->.
   intros _.
-  rewrite /Xsub /Xlift2 /Xbind2 /proj_val.
+  rewrite /Xbind2 /proj_val.
   replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
     with (Q.[(x - x1)%Re] - alpha0)%R.
   replace (fx - alpha0 - (Q.[x - x1] - alpha0))%R

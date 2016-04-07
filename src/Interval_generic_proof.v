@@ -475,7 +475,7 @@ Theorem Fmin_correct :
   FtoX (Fmin x y) = Xmin (FtoX x) (FtoX y).
 Proof.
 intros.
-unfold Fmin, Xmin, Rmin.
+unfold Fmin, Rmin.
 rewrite (Fcmp_correct beta x y).
 case_eq (FtoX x) ; [ split | intros xr Hx ].
 case_eq (FtoX y) ; [ split | intros yr Hy ].
@@ -499,7 +499,7 @@ Theorem Fmax_correct :
   FtoX (Fmax x y) = Xmax (FtoX x) (FtoX y).
 Proof.
 intros.
-unfold Fmax, Xmax, Rmax.
+unfold Fmax, Rmax.
 rewrite (Fcmp_correct beta x y).
 case_eq (FtoX x) ; [ split | intros xr Hx ].
 case_eq (FtoX y) ; [ split | intros yr Hy ].
@@ -866,7 +866,7 @@ Lemma Fadd_slow_aux1_correct :
   Xadd (FtoX (@Float beta sx mx e)) (FtoX (@Float beta sy my e)).
 Proof.
 intros.
-simpl Xadd.
+simpl Xbind2.
 unfold Fadd_slow_aux1.
 change (Zpos mx + Zneg my)%Z with (Zpos mx - Zpos my)%Z.
 case_eq (eqb sx sy) ; intro H.
@@ -914,10 +914,10 @@ Lemma Fadd_slow_aux2_correct :
   Xadd (FtoX (@Float beta sx mx ex)) (FtoX (@Float beta sy my ey)).
 Proof.
 intros.
-unfold Xadd, FtoX.
+unfold Xbind2, FtoX.
 unfold Fadd_slow_aux2.
 case_eq (ex - ey)%Z ; intros ; rewrite Fadd_slow_aux1_correct ;
-  unfold FtoX, Xadd.
+  unfold FtoX, Xbind2.
 (* . *)
 replace ey with ex.
 apply refl_equal.
@@ -1131,7 +1131,7 @@ Theorem Fdiv_correct :
   FtoX (Fdiv mode prec x y) = xround beta mode prec (Xdiv (FtoX x) (FtoX y)).
 Proof with auto with typeclass_instances.
 intros beta mode prec [ | | sx mx ex] [ | | sy my ey] ;
-  simpl ;
+  simpl ; unfold Xdiv' ;
   try rewrite is_zero_correct_zero ;
   try apply refl_equal ;
   rewrite is_zero_correct_float.
@@ -1180,7 +1180,7 @@ Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),
   FtoX (Fsqrt mode prec x) = xround beta mode prec (Xsqrt (FtoX x)).
 Proof with auto with typeclass_instances.
-intros beta mode prec [ | | sx mx ex] ; simpl ; try easy.
+intros beta mode prec [ | | sx mx ex] ; simpl ; unfold Xsqrt' ; try easy.
 (* *)
 case is_negative_spec.
 intros H.
