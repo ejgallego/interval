@@ -1646,14 +1646,14 @@ Theorem eval_correct_aux :
   forall prec deg prog bounds n xi,
   TM.approximates xi
     (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)
-    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
+    (fun x => nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan).
 Proof.
 intros prec deg prog bounds n xi.
 unfold eval, eval_ext.
 rewrite rev_formula.
 apply (@TM.approximates_ext (fun t => nth n (fold_right
   (fun y l => eval_generic_body Xnan ext_operations l y)
-  (t :: map (fun b => Xmask (xreal_from_bp b) t) bounds)
+  (Xreal t :: map xreal_from_bp bounds)
   (rev prog)) Xnan)).
 intros t.
 apply (f_equal (fun v => nth n v _)).
@@ -1675,10 +1675,10 @@ induction (rev prog) as [|t l].
     rewrite (nth_indep _ TM.dummy (TM.const (interval_from_bp b))).
     2: now rewrite map_length.
     rewrite (map_nth (fun v => TM.const (interval_from_bp v))).
-    apply (@TM.approximates_ext (fun t => Xmask (xreal_from_bp (nth n bounds b)) t)).
+    apply (@TM.approximates_ext (fun t => xreal_from_bp (nth n bounds b))).
     intros t.
-    rewrite (nth_indep _ _ (Xmask (xreal_from_bp b) t)).
-    apply sym_eq, (map_nth (fun v => Xmask (xreal_from_bp v) t)).
+    rewrite (nth_indep _ _ (xreal_from_bp b)).
+    apply sym_eq, (map_nth xreal_from_bp).
     now rewrite map_length.
     destruct (nth n bounds b) as [t ti Ht].
     simpl.
@@ -1713,11 +1713,11 @@ Qed.
 Theorem eval_correct_ext :
   forall prec deg prog bounds n yi,
   I.extension
-    (fun x => nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan)
+    (Xbind (fun x => nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan))
     (fun b => TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy) yi b).
 Proof.
 intros prec deg prog bounds n yi xi x Hx.
-pose (f x := nth n (eval_ext prog (x :: map (fun b => Xmask (xreal_from_bp b) x) bounds)) Xnan).
+pose (f x := nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan).
 pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
 apply (@TM.eval_correct (prec,deg) yi ft f) with (2 := Hx).
 now apply eval_correct_aux.

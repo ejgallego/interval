@@ -564,8 +564,8 @@ apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   by apply (contains_eval_arg prec prog bounds 0).
 rewrite /f.
 have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (iF' (I.bnd fa fb))
-    (fun x => nth 0 (eval_ext prog (Xreal x :: map (fun b => Xmask (A.xreal_from_bp b) (Xreal x)) bounds)) Xnan)).
-  have H := (@A.TaylorValuator.TM.get_tm_correct _ _ _ (fun x => nth 0 (eval_ext prog (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan) _).
+    (fun x => nth 0 (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan)).
+  have H := (@A.TaylorValuator.TM.get_tm_correct _ _ _ (fun x => nth 0 (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan) _).
   apply H.
   apply: A.TaylorValuator.eval_correct_aux.
   exists (Int.EF.toR fa).
@@ -1119,17 +1119,17 @@ Lemma interval_helper_bisection_taylor :
   A.check_p check (nth n (eval_ext formula (map A.xreal_from_bp bounds)) Xnan).
 Proof.
 intros [|[x [|l u] Hx] bounds] check formula prec deg depth n ; try easy.
-pose (f := fun x => nth n (eval_ext formula (x :: map (fun b => Xmask (A.xreal_from_bp b) x) bounds)) Xnan).
+pose (f := fun x => nth n (eval_ext formula (Xreal x :: map A.xreal_from_bp bounds)) Xnan).
 pose (fi := fun b => A.TaylorValuator.TM.eval (prec, deg)
   (nth n (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var ::
     map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy)
   b b).
-change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f (Xreal x))).
+change (A.bisect_1d l u (fun b => A.check_f check (fi b)) depth = true -> A.check_p check (f x)).
 intros H.
-apply A.bisect_1d_correct with (P := fun x => A.check_p check (f x)) (2 := H) (3 := Hx).
+apply A.bisect_1d_correct with (P := fun x => A.check_p check (Xbind f x)) (2 := H) (x := Xreal x) (3 := Hx).
 intros y yi Hy Hb.
 destruct check as [b P HP].
-apply (HP (f y) (fi yi)) with (2 := Hb).
+apply (HP (Xbind f y) (fi yi)) with (2 := Hb).
 now apply A.TaylorValuator.eval_correct_ext.
 Qed.
 

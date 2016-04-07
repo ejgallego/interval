@@ -30,7 +30,7 @@ Parameter T : Type.
 
 Definition U := (I.precision * nat (* for degree *) )%type.
 
-Parameter approximates : I.type -> T -> (ExtendedR -> ExtendedR) -> Prop.
+Parameter approximates : I.type -> T -> (R -> ExtendedR) -> Prop.
 
 Parameter approximates_ext :
   forall f g xi t,
@@ -42,23 +42,23 @@ Parameter const : I.type -> T.
 Parameter const_correct :
   forall (c : I.type) (r : R), contains (I.convert c) (Xreal r) ->
   forall (X : I.type),
-  approximates X (const c) (Xmask (Xreal r)).
+  approximates X (const c) (fun _ => Xreal r).
 
 Parameter dummy : T.
 
 Parameter dummy_correct :
-  forall xi f, f Xnan = Xnan -> approximates xi dummy f.
+  forall xi f, approximates xi dummy f.
 
 Parameter var : T.
 
 Parameter var_correct :
-  forall (X : I.type), approximates X var (fun x => x).
+  forall (X : I.type), approximates X var Xreal.
 
 Parameter eval : U -> T -> I.type -> I.type -> I.type.
 
 Parameter eval_correct :
   forall u (Y : I.type) t f,
-  approximates Y t f -> I.extension f (eval u t Y).
+  approximates Y t f -> I.extension (Xbind f) (eval u t Y).
 
 (*
 Parameter prim : U -> I.type -> I.type -> I.type -> T -> T.
