@@ -2,7 +2,7 @@
 This file is part of the Coq.Interval library for proving bounds of
 real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
 
-Copyright (C) 2013-2015, Inria
+Copyright (C) 2013-2016, Inria
 
 This library is governed by the CeCILL-C license under French law and
 abiding by the rules of distribution of free software. You can use,

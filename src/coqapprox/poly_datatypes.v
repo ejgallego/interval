@@ -3,7 +3,7 @@ This file is part of the CoqApprox formalization of rigorous
 polynomial approximation in Coq:
 http://tamadi.gforge.inria.fr/CoqApprox/
 
-Copyright (c) 2010-2014, ENS de Lyon and Inria.
+Copyright (C) 2010-2016, ENS de Lyon and Inria.
 
 This library is governed by the CeCILL-C license under French law and
 abiding by the rules of distribution of free software. You can use,
