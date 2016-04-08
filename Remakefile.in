@@ -2,7 +2,6 @@ FILES = \
 	Interval_bigint_carrier.v \
 	Interval_bisect.v \
 	Interval_definitions.v \
-	Interval_float_ext.v \
 	Interval_float_sig.v \
 	Interval_generic_ops.v \
 	Interval_generic_proof.v \

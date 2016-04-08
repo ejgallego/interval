@@ -130,3 +130,53 @@ Parameter sqrt_correct :
   FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
 
 End FloatOps.
+
+Module FloatExt (F : FloatOps).
+
+Definition le x y :=
+  match F.cmp x y with
+  | Xlt | Xeq => true
+  | Xgt | Xund => false
+  end.
+
+Lemma le_correct :
+  forall x y,
+  le x y = true ->
+  match F.toX x, F.toX y with
+  | Xreal xr, Xreal yr => (xr <= yr)%R
+  | _, _ => False
+  end.
+Proof.
+intros x y.
+unfold le.
+rewrite F.cmp_correct.
+destruct F.toX as [|xr]. easy.
+destruct F.toX as [|yr]. easy.
+simpl.
+now case Fcore_Raux.Rcompare_spec ; auto with real.
+Qed.
+
+Definition lt x y :=
+  match F.cmp x y with
+  | Xlt  => true
+  | _ => false
+  end.
+
+Lemma lt_correct :
+  forall x y,
+  lt x y = true ->
+  match F.toX x, F.toX y with
+  | Xreal xr, Xreal yr => (xr < yr)%R
+  | _, _ => False
+  end.
+Proof.
+intros x y.
+unfold lt.
+rewrite F.cmp_correct.
+destruct F.toX as [|xr]. easy.
+destruct F.toX as [|yr]. easy.
+simpl.
+now case Fcore_Raux.Rcompare_spec.
+Qed.
+
+End FloatExt.

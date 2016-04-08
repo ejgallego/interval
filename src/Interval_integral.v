@@ -22,7 +22,6 @@ Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool.
 Require Import Interval_xreal.
 Require Import Interval_float_sig.
-Require Import Interval_float_ext.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
 Require Import Interval_interval_float_full.
