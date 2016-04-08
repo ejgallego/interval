@@ -40,6 +40,10 @@ powerRZ should be written with a numeric exponent; the input of cos and
 sin should be between -2*PI and 2*PI; the input of tan should be between
 -PI/2 and PI/2.
 
+The tactic also recognizes integral expressions RInt whose bounds are
+constants and whose integrand is an expression containing only constant
+leaves except for the integration variable.
+
 A helper tactic "interval_intro e" is also available. Instead of proving
 the current goal, it computes an enclosure of the expression "e" passed
 as argument and it introduces the inequalities into the proof context.
@@ -60,13 +64,21 @@ parameters are parsed from left to right: If some parameters are
 conflicting, the earlier ones are discarded. Available parameter classes
 are: (with the type of their arguments, if any)
 
-  i_prec (p:nat)      sets precision of the floating-point computations
-  i_depth (n:nat)     sets bisection depth (2^n sub-intervals at most)
+  i_prec (p:nat)      sets the precision of the floating-point computations
+  i_depth (n:nat)     sets the bisection depth (2^n sub-intervals at most)
   i_bisect (x:R)      splits input interval on x and repeat until proven
   i_bisect_diff (x:R) same as i_bisect, but studies variations along x too
   i_bisect_taylor (x:R) (d:nat)
                       same as i_bisect_diff, but computes degree-d Taylor
                       models instead of performing automatic differentiation
+  i_integral_prec (p:nat)
+                      sets the target relative accuracy of integral expressions
+  i_integral_depth (n:nat)
+                      sets the bisection depth for bounding integral
+                      expressions (2^n sub-intervals at most)
+  i_integral_deg (d:nat)
+                      sets the degree of Taylor models for approximating
+                      the integrand when bounding integral expressions
 
 For both tactics, performing a bisection of depth 1 is not much slower
 than performing no bisection. If the current goal can be proven by
@@ -86,34 +98,39 @@ properties for which "i_bisect_diff" would have succeeded.
 
 By default, the precision of the floating-point computations is 30 bits.
 If the user enables a bisection, the default depth is 15 for "interval"
-and 5 for "interval_intro".
+and 5 for "interval_intro". When bounding integral expressions, the
+tactics target 10 bits of accuracy by splitting the domain into 2^3
+subdomains at most and by using degree-10 Taylor models.
+
 
 III. Examples
 -------------
 
 (** BEGIN **)
 Require Import Reals.
-Require Import Interval_tactic.
+Require Import Interval.Interval_tactic.
+
+Open Scope R_scope.
 
 Goal
-  forall x, (-1 <= x <= 1)%R ->
-  (sqrt (1 - x) <= 3/2)%R.
+  forall x, -1 <= x <= 1 ->
+  sqrt (1 - x) <= 3/2.
 Proof.
   intros.
   interval.
 Qed.
 
 Goal
-  forall x, (-1 <= x <= 1)%R ->
-  (sqrt (1 - x) <= 141422/100000)%R.
+  forall x, -1 <= x <= 1 ->
+  sqrt (1 - x) <= 141422/100000.
 Proof.
   intros.
   interval.
 Qed.
 
 Goal
-  forall x, (-1 <= x <= 1)%R ->
-  (sqrt (1 - x) <= 141422/100000)%R.
+  forall x, -1 <= x <= 1 ->
+  sqrt (1 - x) <= 141422/100000.
 Proof.
   intros.
   interval_intro (sqrt (1 - x)) upper as H'.
@@ -122,30 +139,39 @@ Proof.
 Qed.
 
 Goal
-  forall x, (3/2 <= x <= 2)%R ->
-  forall y, (1 <= y <= 33/32)%R ->
-  (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
+  forall x, 3/2 <= x <= 2 ->
+  forall y, 1 <= y <= 33/32 ->
+  Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768.
 Proof.
   intros.
   interval with (i_prec 19, i_bisect x).
 Qed.
 
 Goal
-  forall x, (1/2 <= x <= 2)%R ->
-  (Rabs (sqrt x - (((((122 / 7397 * x + (-1733) / 13547) * x
+  forall x, 1/2 <= x <= 2 ->
+  Rabs (sqrt x - (((((122 / 7397 * x + (-1733) / 13547) * x
                    + 529 / 1274) * x + (-767) / 999) * x
                    + 407 / 334) * x + 227 / 925))
-    <= 5/65536)%R.
+    <= 5/65536.
 Proof.
   intros.
   interval with (i_bisect_taylor x 3).
 Qed.
 
 Goal
-  forall x, (-1 <= x)%R ->
-  (x < 1 + powerRZ x 3)%R.
+  forall x, -1 <= x ->
+  x < 1 + powerRZ x 3.
 Proof.
   intros.
   interval with (i_bisect_diff x).
+Qed.
+
+Require Import Coquelicot.Coquelicot.
+
+Goal
+  Rabs (RInt (fun x => atan (sqrt (x*x + 2)) / (sqrt (x*x + 2) * (x*x + 1))) 0 1
+        - 5/96*PI*PI) <= 1/1000.
+Proof.
+  interval with (i_integral_prec 9, i_integral_depth 1, i_integral_deg 5).
 Qed.
 (*** END ***)
