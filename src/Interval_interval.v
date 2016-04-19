@@ -368,6 +368,13 @@ Parameter midpoint_correct :
   convert_bound (midpoint xi) = Xreal (proj_val (convert_bound (midpoint xi))) /\
   contains (convert xi) (convert_bound (midpoint xi)).
 
+Parameter midpoint' : type -> type.
+
+Parameter midpoint'_correct :
+  forall xi,
+  (forall x, contains (convert (midpoint' xi)) x -> contains (convert xi) x) /\
+  (not_empty (convert xi) -> not_empty (convert (midpoint' xi))).
+
 Definition extension f fi := forall b x,
   contains (convert b) x -> contains (convert (fi b)) (f x).
 
