@@ -715,7 +715,7 @@ Lemma fun_gen_correct
   (forall prec : I.precision, I.extension (Xbind fx) (fi prec)) ->
   (forall prec X0 X n, tmsize (ftm prec X0 X n) = n.+1) ->
   (forall prec X0 X n,
-    subset (I.convert X0) (I.convert X) ->
+    subset' (I.convert X0) (I.convert X) ->
     not_empty (I.convert X0) ->
     i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
   forall (u : U) (X : I.type) (tf : T) (f : R -> ExtendedR),

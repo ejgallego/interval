@@ -192,7 +192,7 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     forall x : R, contains X (Xreal x) -> xf x = Xnan -> I.convert (error M) = IInan,
     X = IInan -> I.convert (error M) = IInan,
     contains (I.convert (error M)) (Xreal 0),
-    subset X0 X &
+    subset' X0 X &
     forall x0, contains X0 (Xreal x0) ->
     exists2 Q, approx M >:: Q
     & forall x, contains X (Xreal x) ->
@@ -208,7 +208,6 @@ split=>//.
   apply: (Hdom x) =>//.
   by rewrite Hfg.
 move=> x0 Hx0.
-have Hx0' : contains X (Xreal x0) by exact: subset_contains Hsubs _ _.
 move/(_ x0 Hx0) in Hmain.
 have [Q HQ Hf] := Hmain.
 exists Q =>//.
@@ -527,8 +526,8 @@ have->: Xreal 0 = Xadd (Xreal 0) (Xadd (Xreal 0) (Xreal 0)).
   by rewrite /= 2!Rplus_0_l.
 apply: I.add_correct; last apply: I.add_correct.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
-  have->: Xreal (x0 - x0) = Xsub (Xreal x0) (Xreal x0) by [].
-  by apply: I.sub_correct => //; apply: (subset_contains (I.convert X0) _).
+  apply: (I.sub_correct _ _ _ (Xreal _)) (Hx0X0).
+  exact: HX0X.
 - apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
     apply: Pol.primitive_correct =>//; exact: cont0.
   exact: (IsubXX Hx0X0).
@@ -557,9 +556,8 @@ exists (PolR.primitive tt 0 p1).
 - by apply: Pol.primitive_correct; first exact: cont0.
 - move => x hxX.
   have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
- + apply: RInt_Chasles; first apply: f_int => // .
-      by apply: subset_contains HX0x1 => // .
-    by apply: f_int => // .
+  + apply: RInt_Chasles; apply: f_int => //.
+    exact: HX0X.
   have -> : PolR.horner tt (PolR.primitive tt 0 p1) (x - x1) =
             RInt (fun t => PolR.horner tt p1 (t - x1)) x1 x.
   + rewrite RInt_translation_sub.
@@ -600,27 +598,27 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
   apply: Bnd.ComputeBound_correct; last by rewrite Xreal_sub; exact: I.sub_correct.
   by apply: Pol.primitive_correct; first exact: cont0.
   + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
-      by apply: f_int => //; apply: (subset_contains iX0) => // .
+      by apply: f_int => //; exact: HX0X.
       apply: contains_RInt_full => // .
       apply: ex_RInt_minus.
-        by apply: f_int => //; apply: (subset_contains iX0) => // .
+        by apply: f_int => //; exact: HX0X.
         by apply: pol_int_sub.
       move => x2 Hx2.
       have hx2 : contains iX (Xreal x2).
       apply: (@contains_trans iX (Xreal (Rmin x0 x1)) (Xreal (Rmax x0 x1))) => // .
-        by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
-        by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; apply: (subset_contains iX0) => // .
+        by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; exact: HX0X.
+        by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; exact: HX0X.
       by move/(_ x2 hx2) in H3.
 rewrite  {H3}.
 - apply: contains_RInt_full => // .
   + apply: ex_RInt_minus.
-        by apply: f_int => //; apply: (subset_contains iX0).
+        exact: f_int.
         by apply: pol_int_sub.
       move => x2 Hx2.
       have hx2 : contains iX (Xreal x2).
       apply: (@contains_trans iX (Xreal (Rmin x1 x)) (Xreal (Rmax x1 x))) => // .
-      by rewrite /Rmin;case (Rle_dec x1 x) =>_ //;apply: (subset_contains iX0).
-      by rewrite /Rmax;case (Rle_dec x1 x) => _ //;apply: (subset_contains iX0).
+      by rewrite /Rmin;case (Rle_dec x1 x) => _ //; exact: HX0X.
+      by rewrite /Rmax;case (Rle_dec x1 x) => _ //; exact: HX0X.
       by move/(_ x2 hx2) in H31.
 Qed.
 
@@ -739,7 +737,7 @@ Lemma Poly_nth0 x n : X >: x -> PolR.nth (P x n) 0 = f0 x.
 Proof. by move=> H; rewrite Poly_nth // ?Rcomplements.Rdiv_1 //. Qed.
 
 Theorem i_validTM_TLrem (X0 : I.type) n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (TLrem IP X0 X n)) xf.
@@ -762,17 +760,16 @@ by rewrite I.mul_propagate_r // I.power_int_propagate // I.sub_propagate_l.
 set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
 apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
   apply: IPoly_nth =>//.
-  exact: subset_contains (I.convert X0) _ _ _ _ =>//.
+  exact: Hsubs.
 apply: pow_contains_0 =>//.
-apply: subset_sub_contains_0 Ht _.
-exact: subset_contains.
+exact: subset_sub_contains_0 Ht Hsubs.
 
 move=> x0 Hx0.
 (* |- Main condition for i_validTM *)
 exists (P x0 n); first by apply: IPoly_nth.
 move=> x Hx.
 rewrite PolR.hornerE Poly_size //.
-have H0 : X >: x0 by exact: (subset_contains (I.convert X0)).
+have H0 : X >: x0 by exact: Hsubs.
 have Hbig :
   \big[Rplus/R0]_(0 <= i < n.+1) (PolR.nth (P x0 n) i * (x - x0) ^ i)%R =
   \big[Rplus/R0]_(0 <= i < n.+1) (Dn i x0 / INR (fact i) * (x - x0)^i)%R.
@@ -1357,7 +1354,7 @@ by case I.convert.
 Qed.
 
 Theorem i_validTM_Ztech (X0 : I.type) n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X)
   (RPA (IP X0 n) (Ztech IP (IP X0 n) F X0 X n)) xf.
@@ -1372,7 +1369,7 @@ case E2 : (I.bounded X); last first.
 set err := Ztech IP (IP X0 n) F X0 X n.
 have [r' Hr'0] := Hne.
 have Hr' : contains (I.convert X) (Xreal r').
-  exact: subset_contains Hsubs _ Hr'0.
+  exact: Hsubs.
 pose x' := Xreal r'.
 have XNNan : I.convert X <> IInan.
   apply I.bounded_correct in E2.
@@ -1438,7 +1435,7 @@ have {Hlower} Hlower : Delta >: Rdelta0 l.
   by apply: I.join_correct; left; apply: I.join_correct; left.
 have {Hupper} Hupper : Delta >: Rdelta0 u.
   by apply: I.join_correct; left; apply: I.join_correct; right.
-have H'x0 : X >: x0 by exact: (subset_contains (I.convert X0)).
+have H'x0 : X >: x0 by exact: Hsubs.
 have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
   apply: I.join_correct; right.
   apply: R_sub_correct; first exact: F_Rcontains.
@@ -1473,7 +1470,7 @@ Lemma size_TM_cst X c : Pol.size (approx (TM_cst X c)) = 1.
 Proof. by rewrite /TM_cst Pol.polyCE Pol.size_polyCons Pol.size_polyNil. Qed.
 
 Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   contains (I.convert ci) c ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) (fun _ => c).
@@ -1491,7 +1488,7 @@ split=>//=.
     change (Xreal 0%R) with (Xmask (Xmask (Xreal 0%R) (Xreal t)) (Xreal rc)).
     repeat apply: I.mask_correct =>//.
     exact: cont0.
-    exact: subset_contains Hsubset _ _.
+    exact: Hsubset.
 move=> x0 Hx0.
 case: c Hc => [|c]; first move/contains_Xnan; move => Hc.
 exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
@@ -1502,11 +1499,11 @@ rewrite Rmult_0_l Rplus_0_l Rminus_diag_eq //.
 change (Xreal 0) with (Xmask (Xmask (Xreal 0) (Xreal t)) (Xreal c)).
 repeat apply: I.mask_correct =>//.
 exact: cont0.
-exact: subset_contains Hsubset _ _.
+exact: Hsubset.
 Qed.
 
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : R -> ExtendedR) :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   is_const f X ci ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) f.
@@ -1540,14 +1537,14 @@ Qed.
 
 Theorem TM_any_correct
   (Y X0 X : I.type) (n : nat) (f : R -> ExtendedR) :
-  not_empty (I.convert X0) -> subset (I.convert X0) (I.convert X) ->
+  not_empty (I.convert X0) -> subset' (I.convert X0) (I.convert X) ->
   (forall x : R, contains (I.convert X) (Xreal x) ->
     contains (I.convert Y) (f x)) ->
   i_validTM (I.convert X0) (I.convert X) (TM_any Y X n) f.
 Proof.
 move=> H0 Hsubset Hf.
 have [x0' Hx0'] := H0.
-have H'x0': X >: x0' by apply: subset_contains Hsubset _ _.
+have H'x0': X >: x0' by exact: Hsubset.
 have Hrr := Hf _ H'x0'.
 set r := proj_val (f x0').
 have Hr : contains (I.convert Y) (Xreal r).
@@ -1569,18 +1566,16 @@ have Hr' := contains_not_empty _ _ Hr.
     have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
     apply: I.mask_correct.
       apply: subset_sub_contains_0 Hv _.
-      apply: subset_contains.
       exact: Imid_subset.
     by rewrite E.
   have HX : exists x : ExtendedR, contains (I.convert X) x.
     have [w Hw] := H0.
-    have Hw' := subset_contains _ _ Hsubset (Xreal w) Hw.
-    by exists (Xreal w).
+    exists (Xreal w).
+    exact: Hsubset.
   have [H1 H2] := I.midpoint_correct X HX.
   suff->: Xreal 0 = Xmask (Xreal 0) (I.convert_bound (I.midpoint X)).
     apply: I.mask_correct=>//.
     apply: subset_sub_contains_0 Hv _.
-    apply: subset_contains.
     exact: Imid_subset.
   by rewrite H1.
 move=> x0 Hx0.
@@ -1631,7 +1626,7 @@ by rewrite Pol.size_polyCons Pol.size_polyNil.
 Qed.
 
 Lemma TM_var_correct X0 X :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X X0) Xreal.
 Proof.
@@ -1641,7 +1636,7 @@ split=>//.
   change (Xreal 0) with (Xmask (Xreal 0) (Xreal t)).
   apply: I.mask_correct. 
   exact: cont0.
-  exact: subset_contains Hsubs _ _.
+  exact: Hsubs.
 move=> x0 Hx0 /=.
 exists (PolR.set_nth PolR.polyX 0 x0).
   apply: Pol.set_nth_correct =>//.
@@ -1654,7 +1649,7 @@ simpl; congr Xreal; ring.
 Qed.
 
 Theorem TM_var_correct_strong X0 X (f : R -> ExtendedR) :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X X0) f.
@@ -1668,7 +1663,7 @@ Lemma size_TM_exp X0 X (n : nat) : Pol.size (approx (TM_exp X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec1. Qed.
 
 Lemma TM_exp_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) (fun x => Xreal (exp x)).
 Proof.
@@ -1722,7 +1717,7 @@ Lemma size_TM_sin X0 X (n : nat) : Pol.size (approx (TM_sin X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
 Lemma TM_sin_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) (fun x => Xreal (sin x)).
 Proof.
@@ -1774,7 +1769,7 @@ Lemma size_TM_cos X0 X (n : nat) : Pol.size (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
 Lemma TM_cos_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) (fun x => Xreal (cos x)).
 Proof.
@@ -1825,7 +1820,7 @@ Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
 Lemma TM_atan_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_atan X0 X n) (fun x => Xreal (atan x)).
 Proof.
@@ -1930,7 +1925,7 @@ Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
 Proof. by rewrite /TM_tan; case: apart0; rewrite Pol.size_grec1. Qed.
 
 Lemma TM_tan_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) Xtan'.
 Proof.
@@ -2084,7 +2079,7 @@ by rewrite /TM_sqrt;
 Qed.
 
 Lemma TM_sqrt_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt'.
 Proof.
@@ -2195,7 +2190,7 @@ Ltac Inc :=
   apply: I.fromZ_correct.
 
 Lemma TM_invsqrt_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
             (fun x => Xinv (Xsqrt (Xreal x))).
@@ -2339,7 +2334,7 @@ Qed.
 
 Lemma TM_power_int_correct_aux (p : Z) X0 X n :
   (0 <= p)%Z \/ apart0 X ->
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (let P := (T_power_int prec p X0 n) in
                                           RPA P (Ztech
@@ -2498,7 +2493,7 @@ constructor.
 Qed.
 
 Lemma TM_power_int_correct (p : Z) X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n) (fun x => Xpower_int' x p).
 Proof.
@@ -2534,7 +2529,7 @@ Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
 Proof. by rewrite /TM_inv; case: apart0 =>/=; rewrite Pol.size_rec1. Qed.
 
 Lemma TM_inv_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv'.
 Proof.
@@ -2639,7 +2634,7 @@ exact: pow_nonzero.
 Qed.
 
 Lemma TM_ln_correct X0 X n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln'.
 Proof.
@@ -2780,7 +2775,7 @@ Local Notation "a - b" := (Xsub a b).
 
 Lemma TM_add_correct_gen
   (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
-  subset smallX0 (I.convert X) ->
+  subset' smallX0 (I.convert X) ->
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
   i_validTM smallX0 (I.convert X) (TM_add TMf TMg)
@@ -3101,8 +3096,8 @@ Definition TM_mul (Mf Mg : rpa) X0 X n : rpa :=
 
 Lemma TM_mul_correct_gen
   (smallX0 : interval) (TMf TMg : rpa) f g (X0 X : I.type) n :
-  subset smallX0 (I.convert X0) ->
-  subset (I.convert X0) (I.convert X) ->
+  subset' smallX0 (I.convert X0) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty smallX0 ->
   i_validTM smallX0 (I.convert X) TMf f ->
   i_validTM smallX0 (I.convert X) TMg g ->
@@ -3111,8 +3106,8 @@ Lemma TM_mul_correct_gen
 Proof.
 move=> HinX0 HinX [t Ht']
   [Fdef Fnai Fzero Fsubs Fmain] [Gdef Gnai Gzero _ Gmain].
-have Ht0 : X0 >: t by apply: (subset_contains smallX0).
-have Ht : X >: t by apply: subset_contains Ht'.
+have Ht0 : X0 >: t by exact: HinX0.
+have Ht : X >: t by exact: HinX.
 have Hf0 := Fmain t Ht'.
 have Hg0 := Gmain t Ht'.
 split =>//.
@@ -3135,8 +3130,7 @@ split =>//.
       (y := (Xreal (PolR.horner tt (PolR.mul_tail tt n qf qg) (t - t)%R))));
       last first.
       apply: pow_contains_0 =>//.
-      apply: subset_sub_contains_0 Ht0 _.
-      exact: subset_contains.
+      exact: subset_sub_contains_0 Ht0 HinX.
     apply: Bnd.ComputeBound_correct.
       exact: Pol.mul_tail_correct.
     exact: R_sub_correct.
@@ -3176,17 +3170,17 @@ step_r ((PolR.mul_tail tt n pf pg).[x - x0] * (x - x0)^n.+1 +
     apply: R_mul_correct.
       apply: Bnd.ComputeBound_correct.
         exact: Pol.mul_tail_correct.
-      apply: R_sub_correct =>//; exact: (subset_contains smallX0).
+      apply: R_sub_correct =>//; exact: HinX0.
       rewrite pow_powerRZ; apply: R_power_int_correct.
-      apply: R_sub_correct=>//; exact: (subset_contains smallX0).
+      apply: R_sub_correct=>//; exact: HinX0.
     apply: R_add_correct.
     apply: R_mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: R_sub_correct =>//; apply: (subset_contains smallX0).
+    by apply: R_sub_correct =>//; exact: HinX0.
   apply: R_add_correct.
     apply: R_mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: R_sub_correct =>//; apply: (subset_contains smallX0).
+    by apply: R_sub_correct =>//; exact: HinX0.
   exact: R_mul_correct.
 clear - Fdef Gdef Dx Hx.
 have Hdfx := Fdef x Hx.
@@ -3284,8 +3278,7 @@ Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
   (fun xr => Xmul (f xr) (g xr)).
 Proof.
 move=> Ht [Hdf Hef H0 Hf] Hg.
-apply: TM_mul_correct_gen => //.
-exact: subset_refl.
+exact: TM_mul_correct_gen.
 Qed.
 
 Lemma size_TM_add Mf Mg :
@@ -3359,7 +3352,7 @@ by apply/negbTE; rewrite neq_ltn Hi.
 Qed.
 
 Lemma TM_horner_correct (X0 X : I.type) Mf f pi pr n :
-  subset (I.convert X0) (I.convert X) ->
+  subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
   pi >:: pr ->
@@ -3457,7 +3450,7 @@ Qed.
 Lemma TM_comp_correct (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) Mf f ->
-  (forall Y0 Y k, subset (I.convert Y0) (I.convert Y) ->
+  (forall Y0 Y k, subset' (I.convert Y0) (I.convert Y) ->
     not_empty (I.convert Y0) ->
     i_validTM (I.convert Y0) (I.convert Y) (TMg Y0 Y k) g) ->
   forall n,
@@ -3484,10 +3477,8 @@ have in_a0 : a0 >: alpha0.
   exact: Xreal_Imid_contains.
 have ne_a0 : not_empty (I.convert a0).
   by exists alpha0.
-have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
+have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
   rewrite /a0 /BfMf.
-  apply: contains_subset.
-  exact: not_empty'E.
   move=> [|v] Hv.
     apply/contains_Xnan; rewrite I.add_propagate_r //.
     rewrite /A0 in Hv.
@@ -3500,10 +3491,8 @@ have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
   have [t Ht] := Hne.
   have [qf hq1 hq2] := Fmain t Ht.
   apply: (ComputeBound_nth0 qf) =>//.
-  apply: subset_sub_contains_0 _ Ht _.
-  exact: subset_contains.
-  fold A0.
-  eapply subset_contains =>//; by [exact: Imid_subset|].
+  exact: subset_sub_contains_0 _ Ht Hsubs.
+  exact: Imid_subset.
 have [Gdef Gnai Gzero Gsubs Gmain] := Hg a0 BfMf n subs_a0 ne_a0.
 have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f x).
   move=> x Hx; rewrite /BfMf /Bf.

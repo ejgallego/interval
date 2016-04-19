@@ -154,12 +154,13 @@ Definition subset xi yi :=
   | _, _ => False
   end.
 
+Definition subset' xi yi :=
+  forall x, contains xi x -> contains yi x.
+
 Theorem subset_contains :
   forall xi yi,
   subset xi yi ->
-  forall v,
-  contains xi v ->
-  contains yi v.
+  subset' xi yi.
 Proof.
 intros xi yi.
 destruct yi as [|yl yu].

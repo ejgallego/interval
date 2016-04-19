@@ -56,36 +56,6 @@ Qed.
 
 Notation IInan := Interval_interval.Inan (only parsing).
 
-Lemma subset_refl : forall x, subset x x.
-Proof.
-case => [|l u] =>//=; rewrite /le_lower /le_upper; split.
-  by case (-l)%XR => //; apply Rle_refl.
-by case u => //; apply Rle_refl.
-Qed.
-
-Lemma contains_subset (X Y : interval) :
-  (exists t, contains X t) ->
-  (forall v : ExtendedR, contains X v -> contains Y v) ->
-  subset X Y.
-Proof.
-case: X =>[|l u]; case: Y =>[|L U] //; first by move=>_ /(_ Xnan); apply.
-move=>[t Ht] Hmain.
-have {t Ht} [r Hr] : exists r : R, contains (Ibnd l u) (Xreal r).
-  exact: contains_not_empty Ht.
-have H'r := Hmain _ Hr; split; move: Hmain Hr H'r.
-  case: L=>[//|L]; case: l=>[|l] Hmain Hr H'r; first exfalso.
-    move/(_ (Xreal (L - 1))): Hmain.
-    by move: Hr H'r; rewrite /contains; case: u; intuition psatzl R.
-  case/(_ (Xreal l)): Hmain.
-    by move: Hr H'r; rewrite /contains; case: u; intuition psatzl R.
-  by rewrite /le_lower => top _ /=; psatzl R.
-case: U=>[//|U]; case: u=>[|u] Hmain Hr H'r; first exfalso.
-  move/(_ (Xreal (U + 1))): Hmain.
-  by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
-case/(_ (Xreal u)): Hmain =>//.
-by move: Hr H'r; rewrite /contains; case: l; intuition psatzl R.
-Qed.
-
 Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
   contains xi x -> contains xi (Xreal (proj_val x)).
 Proof. by case: x =>//; case: xi. Qed.
@@ -453,13 +423,14 @@ Qed.
 
 Lemma Imid_subset (X : I.type) :
   not_empty (I.convert X) ->
-  subset (I.convert (Imid X)) (I.convert X).
+  subset' (I.convert (Imid X)) (I.convert X).
 Proof.
 case=>[v Hv].
 rewrite /Imid I.bnd_correct.
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> Hreal] := I.midpoint_correct X HX.
 case E: I.convert =>[//|l u].
+apply: subset_contains.
 split.
 - have := lower_le Hreal.
   have->: l = Xlower (I.convert X) by rewrite E.
@@ -653,7 +624,7 @@ Qed.
 
 Lemma subset_sub_contains_0 x0 (X0 X : I.type) :
   contains (I.convert X0) x0 ->
-  (forall x, contains (I.convert X0) x -> contains (I.convert X) x) ->
+  subset' (I.convert X0) (I.convert X) ->
   contains (I.convert (I.sub prec X X0)) (Xreal 0).
 Proof.
 move=> Hx0 Hsub.
