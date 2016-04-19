@@ -1516,10 +1516,11 @@ Qed.
 
 (** Return a dummy Taylor model of order [n] that contains every point of [Y] *)
 Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
-  let pol := Pol.polyC (Imid Y) in
+  let mid := I.midpoint' Y in
+  let pol := Pol.polyC mid in
   {| approx := if n == 0 then pol
                else Pol.set_nth pol n Pol.Int.zero;
-     error := I.mask (I.sub prec Y (Imid Y)) X
+     error := I.mask (I.sub prec Y mid) X
   |}.
 
 Definition sizes := (Pol.size_polyNil, Pol.size_polyCons,
@@ -1549,6 +1550,8 @@ have Hrr := Hf _ H'x0'.
 set r := proj_val (f x0').
 have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
+have Hmid := I.midpoint'_correct Y.
+have [m Hm] := proj2 Hmid (ex_intro _ r Hr).
 split=>//.
   move=> /= x Hx Nx.
   rewrite /TM_any /= in Nx.
@@ -1557,40 +1560,19 @@ split=>//.
   rewrite -Nx.
   exact: Hf.
 by move=> HX; rewrite I.mask_propagate_r.
-have Hr' := contains_not_empty _ _ Hr.
-  have Hmid := not_empty_Imid Hr'.
-  have [v Hv] := Hmid.
   rewrite /TM_any /=.
-  case E: (I.convert X) =>[|l u] //.
-    (* we could use Imask_IInan *)
-    have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
-    apply: I.mask_correct.
-      apply: subset_sub_contains_0 Hv _.
-      exact: Imid_subset.
-    by rewrite E.
-  have HX : exists x : ExtendedR, contains (I.convert X) x.
-    have [w Hw] := H0.
-    exists (Xreal w).
-    exact: Hsubset.
-  have [H1 H2] := I.midpoint_correct X HX.
-  suff->: Xreal 0 = Xmask (Xreal 0) (I.convert_bound (I.midpoint X)).
-    apply: I.mask_correct=>//.
-    apply: subset_sub_contains_0 Hv _.
-    exact: Imid_subset.
-  by rewrite H1.
+  apply: (I.mask_correct _ _ (Xreal 0)) H'x0'.
+  apply: subset_sub_contains_0 Hm _.
+  exact: proj1 Hmid.
 move=> x0 Hx0.
-set pol0 := PolR.polyC (proj_val (I.convert_bound (I.midpoint Y))).
+set pol0 := PolR.polyC m.
 set pol' := if n == 0 then pol0 else PolR.set_nth pol0 n 0%R.
 exists pol'.
 rewrite /pol' {pol'} /pol0 /TM_any /=.
 + case: ifP => H.
-  apply: Pol.polyC_correct.
-  apply: Xreal_Imid_contains.
-  exact: contains_not_empty Hrr.
+  exact: Pol.polyC_correct.
   apply: Pol.set_nth_correct.
-  apply: Pol.polyC_correct.
-  apply: Xreal_Imid_contains.
-  exact: contains_not_empty Hrr.
+  exact: Pol.polyC_correct.
   exact: cont0.
 + move=> x Hx /=.
   case Efx: (f x) => [|fx].
@@ -1602,14 +1584,10 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   apply: I.mask_correct =>//.
   apply: I.sub_correct; first exact: Hf.
   rewrite /pol' /pol0; case: ifP => H.
-  rewrite PolR.horner_polyC.
-  apply: Xreal_Imid_contains.
-  exact: contains_not_empty Hrr.
+  by rewrite PolR.horner_polyC.
   rewrite PolR.hornerE !sizes maxnSS maxn0.
   step_r ((pol0.[(x - x0)%Re]))%XR.
-  rewrite PolR.horner_polyC.
-  apply: Xreal_Imid_contains.
-  exact: contains_not_empty Hrr.
+  by rewrite PolR.horner_polyC.
   rewrite /pol0 (@PolR.hornerE_wide n.+1) ?sizes //.
   apply: eq_bigr => i _.
   congr Rmult.

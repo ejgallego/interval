@@ -107,7 +107,6 @@ Proof. by apply/idP/idP; case: t =>//= tm; rewrite lt0n //; move/negP. Qed.
 (** ** Define the main validity predicate *)
 
 Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
-  let X0 := Imid X in
   not_nil tf /\
   match tf with
   | Dummy => True
@@ -116,7 +115,7 @@ Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
     forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x
   | Tm tm =>
     not_empty (I.convert X) ->
-    i_validTM (I.convert X0) (I.convert X) tm f
+    i_validTM (I.convert (Imid X)) (I.convert X) tm f
   end.
 
 Theorem approximates_ext f g xi t :
