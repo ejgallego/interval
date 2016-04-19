@@ -764,7 +764,8 @@ apply (mul_0_contains_0_r _ (y := Xreal (PolR.nth (P t n.+1) n.+1))).
   apply: IPoly_nth =>//.
   exact: subset_contains (I.convert X0) _ _ _ _ =>//.
 apply: pow_contains_0 =>//.
-exact: subset_sub_contains_0 Ht _.
+apply: subset_sub_contains_0 Ht _.
+exact: subset_contains.
 
 move=> x0 Hx0.
 (* |- Main condition for i_validTM *)
@@ -1567,7 +1568,8 @@ have Hr' := contains_not_empty _ _ Hr.
     (* we could use Imask_IInan *)
     have->: Xreal 0 = Xmask (Xreal 0) (Xreal 0) by [].
     apply: I.mask_correct.
-      eapply subset_sub_contains_0; first by eexact Hv.
+      apply: subset_sub_contains_0 Hv _.
+      apply: subset_contains.
       exact: Imid_subset.
     by rewrite E.
   have HX : exists x : ExtendedR, contains (I.convert X) x.
@@ -1577,7 +1579,8 @@ have Hr' := contains_not_empty _ _ Hr.
   have [H1 H2] := I.midpoint_correct X HX.
   suff->: Xreal 0 = Xmask (Xreal 0) (I.convert_bound (I.midpoint X)).
     apply: I.mask_correct=>//.
-    eapply subset_sub_contains_0; first by eexact Hv.
+    apply: subset_sub_contains_0 Hv _.
+    apply: subset_contains.
     exact: Imid_subset.
   by rewrite H1.
 move=> x0 Hx0.
@@ -3132,7 +3135,8 @@ split =>//.
       (y := (Xreal (PolR.horner tt (PolR.mul_tail tt n qf qg) (t - t)%R))));
       last first.
       apply: pow_contains_0 =>//.
-      exact: subset_sub_contains_0 Ht0 _.
+      apply: subset_sub_contains_0 Ht0 _.
+      exact: subset_contains.
     apply: Bnd.ComputeBound_correct.
       exact: Pol.mul_tail_correct.
     exact: R_sub_correct.
@@ -3496,7 +3500,8 @@ have subs_a0 : Interval_interval.subset (I.convert a0) (I.convert BfMf).
   have [t Ht] := Hne.
   have [qf hq1 hq2] := Fmain t Ht.
   apply: (ComputeBound_nth0 qf) =>//.
-  exact: (subset_sub_contains_0 _ Ht Hsubs).
+  apply: subset_sub_contains_0 _ Ht _.
+  exact: subset_contains.
   fold A0.
   eapply subset_contains =>//; by [exact: Imid_subset|].
 have [Gdef Gnai Gzero Gsubs Gmain] := Hg a0 BfMf n subs_a0 ne_a0.

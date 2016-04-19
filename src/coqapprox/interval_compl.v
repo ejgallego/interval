@@ -653,18 +653,18 @@ Qed.
 
 Lemma subset_sub_contains_0 x0 (X0 X : I.type) :
   contains (I.convert X0) x0 ->
-  subset (I.convert X0) (I.convert X) ->
+  (forall x, contains (I.convert X0) x -> contains (I.convert X) x) ->
   contains (I.convert (I.sub prec X X0)) (Xreal 0).
 Proof.
 move=> Hx0 Hsub.
-  have H1 : contains (I.convert X) x0.
-    exact: (subset_contains (I.convert X0)).
-have Hs := I.sub_correct prec X X0 x0 x0 H1 Hx0.
-case cx0 : x0 Hs Hx0 => [|rx0].
-  by case: (I.convert (I.sub prec X X0)).
-rewrite (_: Xreal 0 = Xreal rx0 - Xreal rx0)%XR;
-  last by rewrite /= Rminus_diag_eq.
-by move=>*; apply: I.sub_correct=>//; apply: (subset_contains (I.convert X0)).
+destruct x0 as [|x0].
+rewrite I.sub_propagate_r //.
+now destruct (I.convert X0).
+replace (Xreal 0) with (Xreal x0 - Xreal x0)%XR.
+apply I.sub_correct with (2 := Hx0).
+now apply Hsub.
+apply (f_equal Xreal).
+now apply Rminus_diag_eq.
 Qed.
 
 End PrecArgument.
