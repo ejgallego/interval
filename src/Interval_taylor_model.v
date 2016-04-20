@@ -267,8 +267,8 @@ Lemma add_slow_correct u (Y : I.type) tf tg f g :
   approximates Y tf f -> approximates Y tg g ->
   approximates Y (add_slow u Y tf tg) (fun x => Xadd (f x) (g x)).
 Proof.
-move=> [[Hnil Hf] [_ Hg]].
-split=>//.
+move=> [Hnil Hf] [_ Hg].
+split.
 rewrite not_nilE /add_slow /= /tmsize size_TM_add -!/(tmsize _) !size_get_tm.
 rewrite not_nilE in Hnil.
 by rewrite -(prednK Hnil) maxSn.
