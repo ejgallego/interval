@@ -427,6 +427,29 @@ Definition connected (P : R -> Prop) :=
   forall x y, P x -> P y ->
   forall z, (x <= z <= y)%R -> P z.
 
+Lemma connected_and :
+  forall d1 d2, connected d1 -> connected d2 -> connected (fun t => d1 t /\ d2 t).
+Proof.
+intros d1 d2 H1 H2 u v [D1u D2u] [D1v D2v] t Ht.
+split.
+now apply H1 with (3 := Ht).
+now apply H2 with (3 := Ht).
+Qed.
+
+Lemma connected_ge :
+  forall x, connected (Rle x).
+Proof.
+intros x u v Hu _ t [Ht _].
+exact (Rle_trans _ _ _ Hu Ht).
+Qed.
+
+Lemma connected_le :
+  forall x, connected (fun t => Rle t x).
+Proof.
+intros x u v _ Hv t [_ Ht].
+exact (Rle_trans _ _ _ Ht Hv).
+Qed.
+
 Theorem derivable_pos_imp_increasing :
   forall f f' dom,
   connected dom ->

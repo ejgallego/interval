@@ -233,10 +233,9 @@ Section NDerive.
 Variable xf : R -> ExtendedR.
 Let f x := proj_val (xf x).
 Let Dn := Derive_n f.
-Variable X : interval.
+Variable dom : R -> Prop.
+Hypothesis Hdom : connected dom.
 Variable n : nat.
-Let dom r := contains X (Xreal r).
-Let Hdom : connected dom. Proof (contains_connected _).
 Hypothesis Hdef : forall r, dom r -> xf r <> Xnan.
 Hypothesis Hder : forall n r, dom r -> ex_derive_n f n r.
 
@@ -272,7 +271,7 @@ destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
   exists c.
   have Hdc : dom c.
     move: Hdom; rewrite /connected; move/(_ x x0); apply=>//.
-    by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+    by case: (Hc1 Hneq)=> [J|K]; lra.
   split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
   rewrite sum_f_to_big in Hc.
   exact: Hc.
@@ -283,7 +282,7 @@ case: (Cor_Taylor_Lagrange x0 x n (fun n r => Dn n r)
 exists c.
 have Hdc : dom c.
   move: Hdom; rewrite /connected; move/(_ x0 x); apply=>//.
-  by case: (Hc1 Hneq)=> [J|K]; auto with real; psatzl R.
+  by case: (Hc1 Hneq)=> [J|K]; lra.
 split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
 rewrite sum_f_to_big in Hc.
 exact: Hc.
