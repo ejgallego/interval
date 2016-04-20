@@ -31,7 +31,6 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Delimit Scope ring_scope with Ri.
-Delimit Scope R_scope with Re.
 Delimit Scope XR_scope with XR.
 
 Local Open Scope XR_scope.
@@ -45,25 +44,25 @@ Notation "x / y" := (Xdiv x y) : XR_scope.
 Lemma Xmul_Xreal a b : Xreal a * Xreal b = Xreal (a * b).
 Proof. by []. Qed.
 
-Lemma zeroF r : (r <> 0)%Re -> is_zero r = false.
+Lemma zeroF r : (r <> 0)%R -> is_zero r = false.
 Proof.
 rewrite /is_zero /Req_bool; case E: (Rcompare r 0) =>//.
 by rewrite (Rcompare_Eq_inv _ _ E).
 Qed.
 
-Lemma zeroT r : (r = 0)%Re -> is_zero r = true.
+Lemma zeroT r : (r = 0)%R -> is_zero r = true.
 Proof. by move ->; rewrite is_zero_correct_zero. Qed.
 
-Lemma positiveT x : (0 < x)%Re -> is_positive x = true.
+Lemma positiveT x : (0 < x)%R -> is_positive x = true.
 Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
 
-Lemma negativeF x : (0 <= x)%Re -> is_negative x = false.
+Lemma negativeF x : (0 <= x)%R -> is_negative x = false.
 Proof. by case: is_negative_spec =>//; move/Rle_not_lt. Qed.
 
-Lemma positiveF x : (x <= 0)%Re -> is_positive x = false.
+Lemma positiveF x : (x <= 0)%R -> is_positive x = false.
 Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
 
-Lemma negativeT x : (x < 0)%Re -> is_negative x = true.
+Lemma negativeT x : (x < 0)%R -> is_negative x = true.
 Proof. by case: is_negative_spec =>//; move/Rle_not_lt. Qed.
 
 Lemma XReq_EM_T : forall r1 r2:ExtendedR, {r1 = r2} + {r1 <> r2}.

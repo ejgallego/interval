@@ -528,7 +528,7 @@ apply: I.add_correct; last apply: I.add_correct.
 - apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
     apply: Pol.primitive_correct =>//; exact: cont0.
   exact: (IsubXX Hx0X0).
-  have->: 0%R = PolR.nth (PolR.primitive tt 0%Re p) 0 by [].
+  have->: 0%R = PolR.nth (PolR.primitive tt 0%R p) 0 by [].
   exact: contains_interval_float_integral.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
   exact: R_sub_correct.
@@ -649,7 +649,7 @@ move=> x _; exact: Hmain.
 Qed.
 
 Lemma Rdiv_pos_compat (x y : R) :
-  (0 <= x -> 0 < y -> 0 <= x / y)%Re.
+  (0 <= x -> 0 < y -> 0 <= x / y)%R.
 Proof.
 move=> Hx Hy.
 rewrite /Rdiv -(@Rmult_0_l (/ y)).
@@ -658,11 +658,11 @@ by left; apply: Rinv_0_lt_compat.
 Qed.
 
 Lemma Rlt_neq_sym (x y : R) :
-  (x < y -> y <> x)%Re.
+  (x < y -> y <> x)%R.
 Proof. by move=> Hxy Keq; rewrite Keq in Hxy; apply: (Rlt_irrefl _ Hxy). Qed.
 
 Lemma Rdiv_pos_compat_rev (x y : R) :
-  (0 <= x / y -> 0 < y -> 0 <= x)%Re.
+  (0 <= x / y -> 0 < y -> 0 <= x)%R.
 Proof.
 move=> Hx Hy.
 rewrite /Rdiv -(@Rmult_0_l y) -(@Rmult_1_r x).
@@ -672,7 +672,7 @@ by apply: Rmult_le_compat_r =>//; left.
 Qed.
 
 Lemma Rdiv_neg_compat (x y : R) :
-  (x <= 0 -> 0 < y -> x / y <= 0)%Re.
+  (x <= 0 -> 0 < y -> x / y <= 0)%R.
 Proof.
 move=> Hx Hy.
 rewrite /Rdiv -(@Rmult_0_l (/ y)).
@@ -681,7 +681,7 @@ by left; apply Rinv_0_lt_compat.
 Qed.
 
 Lemma Rdiv_neg_compat_rev (x y : R) :
-  (x / y <= 0 -> 0 < y -> x <= 0)%Re.
+  (x / y <= 0 -> 0 < y -> x <= 0)%R.
 Proof.
 move=> Hx Hy.
 rewrite -(@Rmult_0_l y) -(@Rmult_1_r x).
@@ -847,13 +847,13 @@ Lemma upper_Rpos_over
   X >: x0 ->
   Rpos_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl x0 u x -> intvl x x0 c \/ intvl x0 x c ->
-  (0 <= (Dn n.+1 c) / INR (fact n) * (x - x0) ^ n)%Re.
+  (0 <= (Dn n.+1 c) / INR (fact n) * (x - x0) ^ n)%R.
 Proof.
 move=> Hbnd Hx0 Hsign x Hx [Hc|Hc]. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0.
     by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: (0 <= (x - x0))%Re.
+have Hle: (0 <= x - x0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
 have Hle_pow := pow_le _ n Hle.
 have Hle_fact := INR_fact_lt_0 n.
@@ -879,13 +879,13 @@ Lemma upper_Rneg_over
   X >: x0 ->
   Rneg_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl x0 u x -> intvl x x0 c \/ intvl x0 x c ->
-  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%Re.
+  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%R.
 Proof.
 move=> Hbnd Hx0 Hsign x Hx [Hc|Hc]. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0.
     by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: (0 <= (x - x0))%Re.
+have Hle: (0 <= x - x0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
 have Hle_pow := pow_le _ n Hle.
 have Hle_fact := INR_fact_lt_0 n.
@@ -905,7 +905,7 @@ Qed.
 
 Lemma pow_Rabs_sign (r : R) (n : nat) :
   (r ^ n = powerRZ
-    (if Rle_bool R0 r then 1 else -1) (Z_of_nat n) * (Rabs r) ^ n)%Re.
+    (if Rle_bool R0 r then 1 else -1) (Z_of_nat n) * (Rabs r) ^ n)%R.
 Proof.
 elim: n =>[|n /= ->]; first by rewrite Rmult_1_l.
 case: Rle_bool_spec => Hr.
@@ -914,14 +914,14 @@ case: Rle_bool_spec => Hr.
 by rewrite {-1 3}Rabs_left // SuccNat2Pos.id_succ -pow_powerRZ /=; ring.
 Qed.
 
-Lemma powerRZ_1_even (k : Z) : (0 <= powerRZ (-1) (2 * k))%Re.
+Lemma powerRZ_1_even (k : Z) : (0 <= powerRZ (-1) (2 * k))%R.
 Proof.
 by case: k =>[|p|p] /=; rewrite ?Pos2Nat.inj_xO ?pow_1_even; auto with real.
 Qed.
 
 Lemma ZEven_pow_le (r : R) (n : nat) :
   Z.Even (Z_of_nat n) ->
-  (0 <= r ^ n)%Re.
+  (0 <= r ^ n)%R.
 Proof.
 move=> [k Hk].
 rewrite pow_Rabs_sign; case: Rle_bool_spec =>[_|Hr].
@@ -934,12 +934,12 @@ by apply: pow_le; exact: Rabs_pos.
 Qed.
 
 Lemma Ropp_le_0 (x : R) :
-  (0 <= x -> - x <= 0)%Re.
+  (0 <= x -> - x <= 0)%R.
 Proof. by move=> ?; auto with real. Qed.
 
 Lemma ZOdd_pow_le (r : R) (n : nat) :
   Z.Odd (Z_of_nat n) ->
-  (r <= 0 -> r ^ n <= 0)%Re.
+  (r <= 0 -> r ^ n <= 0)%R.
 Proof.
 move=> [k Hk] Hneg.
 rewrite pow_Rabs_sign; case: Rle_bool_spec =>[Hr|Hr].
@@ -963,14 +963,14 @@ Lemma lower_even_Rpos_over
   Rpos_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl l x0 x ->
                 intvl x x0 c \/ intvl x0 x c ->
-  (0 <= Dn n.+1 c / INR (fact n) * (x - x0) ^ n)%Re.
+  (0 <= Dn n.+1 c / INR (fact n) * (x - x0) ^ n)%R.
 Proof.
 move=> Hev Hbnd Hx0 Hsign x Hx [Hc|Hc]; last first. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0 by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: ((x - x0) <= 0)%Re.
+have Hle: (x - x0 <= 0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
-have Hle_pow := @ZEven_pow_le (x - x0)%Re n Hev.
+have Hle_pow := @ZEven_pow_le (x - x0)%R n Hev.
 have Hle_fact := INR_fact_lt_0 n.
 have contains_l : intvl l u l.
   exact/intvlP/(bounded_contains_lower _ Hx0).
@@ -995,14 +995,14 @@ Lemma lower_even_Rneg_over
   X >: x0 ->
   Rneg_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl l x0 x -> intvl x x0 c \/ intvl x0 x c ->
-  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%Re.
+  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%R.
 Proof.
 move=> Hev Hbnd Hx0 Hsign x Hx [Hc|Hc]; last first. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0 by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: ((x - x0) <= 0)%Re.
+have Hle: (x - x0 <= 0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
-have Hle_pow := @ZEven_pow_le (x - x0)%Re n Hev.
+have Hle_pow := @ZEven_pow_le (x - x0)%R n Hev.
 have Hle_fact := INR_fact_lt_0 n.
 have contains_l : intvl l u l.
   exact/intvlP/(bounded_contains_lower _ Hx0).
@@ -1027,14 +1027,14 @@ Lemma lower_odd_Rpos_over
   X >: x0 ->
   Rpos_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl l x0 x -> intvl x x0 c \/ intvl x0 x c ->
-  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%Re.
+  (Dn n.+1 c / INR (fact n) * (x - x0) ^ n <= 0)%R.
 Proof.
 move=> Hev Hbnd Hx0 Hsign x Hx [Hc|Hc]; last first. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0 by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: ((x - x0) <= 0)%Re.
+have Hle: (x - x0 <= 0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
-have Hle_pow := @ZOdd_pow_le (x - x0)%Re n Hev Hle.
+have Hle_pow := @ZOdd_pow_le (x - x0)%R n Hev Hle.
 have Hle_fact := INR_fact_lt_0 n.
 have contains_l : intvl l u l.
   exact/intvlP/(bounded_contains_lower _ Hx0).
@@ -1047,7 +1047,7 @@ have contains_c : intvl l u c.
   apply: (intvl_trans _ Hx0 Hc).
   apply: (intvl_trans Hl Hx0 Hx).
 move/(_ c contains_c) in Hsign.
-set r := (_ / _)%Re.
+set r := (_ / _)%R.
 rewrite -(@Rmult_0_r r); apply: Rge_le; apply: Rmult_ge_compat_l.
   by apply: Rle_ge; apply: Rdiv_pos_compat.
 by auto with real.
@@ -1062,14 +1062,14 @@ Lemma lower_odd_Rneg_over
   X >: x0 ->
   Rneg_over (intvl l u) (Dn n.+1) ->
   forall x : R, intvl l x0 x -> intvl x x0 c \/ intvl x0 x c ->
-  (0 <= (Dn n.+1 c) / INR (fact n) * (x - x0) ^ n)%Re.
+  (0 <= (Dn n.+1 c) / INR (fact n) * (x - x0) ^ n)%R.
 Proof.
 move=> Hev Hbnd Hx0 Hsign x Hx [Hc|Hc]; last first. (* REMARK: Hbnd may be unnecessary *)
   have ->: x = x0 by move: Hx Hc; rewrite /intvl; lra.
   by rewrite Rminus_diag_eq // pow_ne_zero // Rmult_0_r; auto with real.
-have Hle: ((x - x0) <= 0)%Re.
+have Hle: (x - x0 <= 0)%R.
   by move: Hx Hc; rewrite /intvl; lra.
-have Hle_pow := @ZOdd_pow_le (x - x0)%Re n Hev Hle.
+have Hle_pow := @ZOdd_pow_le (x - x0)%R n Hev Hle.
 have Hle_fact := INR_fact_lt_0 n.
 have contains_l : intvl l u l.
   exact/intvlP/(bounded_contains_lower _ Hx0).
@@ -1082,7 +1082,7 @@ have contains_c : intvl l u c.
   apply: (intvl_trans _ Hx0 Hc).
   apply: (intvl_trans Hl Hx0 Hx).
 move/(_ c contains_c) in Hsign.
-set r := ((x - x0) ^ n)%Re.
+set r := ((x - x0) ^ n)%R.
 rewrite -(@Rmult_0_l r); apply: Rmult_le_compat_neg_r.
   by auto with real.
 exact: Rdiv_neg_compat.
@@ -1576,14 +1576,14 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
     rewrite I.mask_propagate_l // I.sub_propagate_l //.
     apply/contains_Xnan.
     rewrite -Efx; exact: Hf.
-  step_xr (Xmask ((f x - Xreal (pol'.[(x - x0)%Re]))%XR) (Xreal x))=>//.
+  step_xr (Xmask ((f x - Xreal (pol'.[(x - x0)%R]))%XR) (Xreal x))=>//.
   2: by rewrite /= Efx.
   apply: I.mask_correct =>//.
   apply: I.sub_correct; first exact: Hf.
   rewrite /pol' /pol0; case: ifP => H.
   by rewrite PolR.horner_polyC.
   rewrite PolR.hornerE !sizes maxnSS maxn0.
-  step_r ((pol0.[(x - x0)%Re]))%XR.
+  step_r (pol0.[x - x0])%R.
   by rewrite PolR.horner_polyC.
   rewrite /pol0 (@PolR.hornerE_wide n.+1) ?sizes //.
   apply: eq_bigr => i _.
@@ -2080,7 +2080,7 @@ constructor.
       have gt0_x : (0 < x)%R by move/(gt0_correct Hx) in E1.
       rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_sqrt _ _ gt0_x)).
       rewrite big_ord_recr.
-      set big := \big[Rmult/1%Re]_(i < k) _.
+      set big := \big[Rmult/1%R]_(i < k) _.
       simpl (Rmul_monoid _ _).
       rewrite fact_simpl mult_INR !addn1.
       have->: (/2 - INR k.+1 = /2 - INR k + (- 1))%R
@@ -2197,7 +2197,7 @@ constructor.
       have gt0_x : (0 < x)%R by move/(gt0_correct Hx) in E1.
       rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_invsqrt _ _ gt0_x)).
       rewrite big_ord_recr.
-      set big := \big[Rmult/1%Re]_(i < k) _.
+      set big := \big[Rmult/1%R]_(i < k) _.
       simpl (Rmul_monoid _ _).
       rewrite fact_simpl mult_INR !addn1.
       have->: (-/2 - INR k.+1 = -/2 - INR k + (- 1))%R
@@ -2530,7 +2530,7 @@ constructor.
       have neq0_x : (x <> 0)%R by move/(apart0_correct Hx) in E0.
       rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_inv _ _ neq0_x)).
       rewrite big_ord_recr.
-      set big := \big[Rmult/1%Re]_(i < k) _.
+      set big := \big[Rmult/1%R]_(i < k) _.
       simpl (Rmul_monoid _).
       rewrite /Rdiv !Rmult_assoc; congr Rmult.
       rewrite fact_simpl mult_INR.
@@ -3194,9 +3194,9 @@ apply: (Rplus_eq_reg_r (proj_val (f x * g x)%XR)).
 congr Rplus.
 rewrite -!PolR.hornerE /=.
 rewrite -PolR.horner_mul PolR.hornerE.
-set bign1 := \big[Rplus/0%Re]_(0 <= i < n.+1) _.
+set bign1 := \big[Rplus/0%R]_(0 <= i < n.+1) _.
 apply: (Rplus_eq_reg_r bign1); rewrite Rplus_opp_l /bign1.
-set big := \big[Rplus/0%Re]_(0 <= i < _) _.
+set big := \big[Rplus/0%R]_(0 <= i < _) _.
 apply: (Rplus_eq_reg_l big); rewrite -!Rplus_assoc Rplus_opp_r /big Rplus_0_l.
 rewrite PolR.size_mul add0n Rplus_0_r.
 case: (ltnP n ((PolR.size pf + PolR.size pg).-1)) => Hn.
@@ -3413,7 +3413,7 @@ Proof.
   intros _.
   rewrite /Xbind2 /proj_val.
   replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
-    with (Q.[(x - x1)%Re] - alpha0)%R.
+    with (Q.[x - x1] - alpha0)%R.
   replace (fx - alpha0 - (Q.[x - x1] - alpha0))%R
     with (fx - Q.[x - x1])%R by ring.
   by rewrite Df in H2.

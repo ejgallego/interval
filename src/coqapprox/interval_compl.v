@@ -256,17 +256,17 @@ case (Req_dec x0 x)=> [->|Hneq].
   rewrite (Rminus_diag_eq x) // Rmult_0_l Rmult_0_r.
   rewrite big_nat_recl // pow_O big1 /Dn /=; try field.
   by move=> i _; rewrite Rmult_0_l Rmult_0_r.
-have Hlim x1 x2 : (x1 < x2)%Re -> dom x1 -> dom x2 ->
+have Hlim x1 x2 : (x1 < x2)%R -> dom x1 -> dom x2 ->
   forall (k : nat) (r1 : R), (k <= n)%coq_nat ->
-  (fun r2 : R => x1 <= r2 <= x2)%Re r1 ->
+  (fun r2 : R => x1 <= r2 <= x2)%R r1 ->
   derivable_pt_lim (Dn k) r1 (Dn (S k) r1).
   move=> Hx12 Hdom1 Hdom2 k y Hk Hy.
   have Hdy: (dom y) by move: Hdom; rewrite /connected; move/(_ x1 x2); apply.
   by apply/is_derive_Reals/Derive_correct; apply: (Hder k.+1 Hdy).
 destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
     by case: Hneq.
-  have H0 : (x <= x0 <= x0)%Re by auto with real.
-  have H : (x <= x <= x0)%Re by auto with real.
+  have H0 : (x <= x0 <= x0)%R by auto with real.
+  have H : (x <= x <= x0)%R by auto with real.
   case: (Cor_Taylor_Lagrange x x0 n (fun n r => (Dn n r))
     (Hlim _ _ (Rgt_lt _ _ H3) Hx Hx0) x0 x H0 H) => [c [Hc Hc1]].
   exists c.
@@ -276,8 +276,8 @@ destruct (total_order_T x0 x) as [[H1|H2]|H3]; last 2 first.
   split=>//; split; last by case:(Hc1 Hneq);rewrite /=; [right|left]; intuition.
   rewrite sum_f_to_big in Hc.
   exact: Hc.
-have H0 : (x0 <= x0 <= x)%Re by auto with real.
-have H : (x0 <= x <= x)%Re by auto with real.
+have H0 : (x0 <= x0 <= x)%R by auto with real.
+have H : (x0 <= x <= x)%R by auto with real.
 case: (Cor_Taylor_Lagrange x0 x n (fun n r => Dn n r)
   (Hlim _ _ (Rgt_lt _ _ H1) Hx0 Hx) x0 x H0 H) => [c [Hc Hc1]].
 exists c.

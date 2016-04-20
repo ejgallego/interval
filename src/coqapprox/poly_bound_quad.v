@@ -109,7 +109,7 @@ set x2 := powerRZ x 2.
 set x3 := powerRZ x 3.
 set s1 := bigop _ _ _.
 set s2 := bigop _ _ _.
-have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
+have H4 : (a2 + a2 + (a2 + a2) <> 0)%R.
   intro K.
   move: Eb.
   have Hzero : contains (I.convert
@@ -129,7 +129,7 @@ have H4 : (a2 + a2 + (a2 + a2))%Re <> 0%Re.
   apply: I.div_correct =>//.
   apply: I.sqr_correct.
   by apply: Hnth; rewrite Hi3.
-have H2 : (a2 + a2)%Re <> 0%Re by intro K; rewrite K Rplus_0_r in H4.
+have H2 : (a2 + a2 <> 0)%R by intro K; rewrite K Rplus_0_r in H4.
 suff->: s1 = Rmult x3 s2.
   have->: Rmult a0 x0 = a0 by simpl; rewrite /x0 powerRZ_O Rmult_1_r.
   rewrite -!Rplus_assoc /Rminus; congr Rplus.
