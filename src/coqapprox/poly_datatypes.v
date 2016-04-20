@@ -22,15 +22,9 @@ Require Import ZArith Reals.
 Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import Flocq.Core.Fcore.
-Require Import NaryFunctions.
 Require Import Interval_missing.
 Require Import Interval_interval.
 Require Import Interval_xreal.
-Require Import Interval_definitions.
-Require Import Interval_specific_ops.
-Require Import Interval_float_sig.
-Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import Rstruct interval_compl basic_rec seq_compl.
 
 Set Implicit Arguments.

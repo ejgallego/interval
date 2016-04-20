@@ -25,10 +25,6 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.s
 Require Import Interval_xreal.
 Require Import Interval_generic Interval_interval.
 Require Import Interval_definitions.
-Require Import Interval_specific_ops.
-Require Import Interval_float_sig.
-Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
 Require Import Interval_generic_proof.

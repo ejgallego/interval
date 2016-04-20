@@ -17,11 +17,8 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import ZArith.
+Require Import Reals ZArith.
 Require Import Flocq.Core.Fcore_Raux.
-Require Import Interval_xreal.
-Require Import Interval_missing.
 
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.

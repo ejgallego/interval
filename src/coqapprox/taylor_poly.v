@@ -21,14 +21,8 @@ liability. See the COPYING file for more details.
 
 Require Import BinPos.
 Require Import Flocq.Core.Fcore_Raux.
-Require Import Interval_xreal.
-Require Import Interval_generic Interval_interval.
-Require Import Interval_definitions.
-Require Import Interval_specific_ops.
-Require Import Interval_float_sig.
-Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
+Require Import Interval_interval.
 Require Import poly_datatypes basic_rec.
 
 Set Implicit Arguments.

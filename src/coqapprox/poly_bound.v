@@ -19,24 +19,13 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Psatz.
-Require Import Flocq.Core.Fcore_Raux.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
-Require Import Interval_xreal.
-Require Import Interval_generic Interval_interval.
-Require Import Interval_definitions.
-Require Import Interval_specific_ops.
-Require Import Interval_float_sig.
-Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
-Require Import Interval_xreal_derive.
+Require Import Interval_interval.
 Require Import Interval_missing.
-Require Import Interval_generic_proof.
-Require Import Rstruct xreal_ssr_compat.
+Require Import Rstruct.
 Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.
-Require Import taylor_poly.
-Require Import basic_rec.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -22,11 +22,6 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.
 Require Import Interval_interval.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
-Require Import Interval_generic.
-Require Import Interval_specific_ops.
-Require Import Interval_bigint_carrier.
-Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import interval_compl.
 Require Import poly_datatypes.
 Require Import taylor_model_int_sharp.

@@ -18,16 +18,13 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
-Require Import Psatz.
+Require Import Reals Psatz.
+Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat mathcomp.ssreflect.bigop.
 Require Import Interval_missing.
 Require Import Interval_xreal.
-Require Import Interval_xreal_derive.
 Require Import Interval_interval.
 Require Import Interval_generic_proof.
 Require Import Rstruct.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq.
-Require Import mathcomp.ssreflect.div mathcomp.ssreflect.fintype mathcomp.ssreflect.finfun mathcomp.ssreflect.path mathcomp.ssreflect.bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
