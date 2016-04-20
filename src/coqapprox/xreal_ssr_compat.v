@@ -45,12 +45,6 @@ Notation " - y" := (Xneg y) : XR_scope.
 Notation "x * y" := (Xmul x y) : XR_scope.
 Notation "x / y" := (Xdiv x y) : XR_scope.
 
-Definition Xpow x n := Xpower_int x (Z_of_nat n).
-
-Notation "x ^ n" := (Xpow x n) : XR_scope.
-
-Arguments Xpow x n : simpl nomatch.
-
 Lemma Xmul_Xreal a b : Xreal a * Xreal b = Xreal (a * b).
 Proof. by []. Qed.
 
@@ -81,25 +75,6 @@ case=>[|r1] []; [left|move=> ?; right|right|move=> r2] =>//.
 case: (Req_EM_T r1 r2); first by move ->; left.
 by move=> Hr; right=> HX; apply: Hr; case: HX.
 Qed.
-
-Definition eqX x1 x2 : bool :=
-  match XReq_EM_T x1 x2 with
-    | left _ => true
-    | right _ => false
-  end.
-
-Lemma eqXP : Equality.axiom eqX.
-Proof.
-move=> x1 x2; apply: (iffP idP) => [|<-].
-  by rewrite /eqX; case: XReq_EM_T.
-by rewrite /eqX; case: XReq_EM_T.
-Qed.
-
-Canonical Structure Xreal_eqMixin := EqMixin eqXP.
-Canonical Structure Xreal_eqType := Eval hnf in
-  EqType ExtendedR Xreal_eqMixin.
-
-Local Open Scope XR_scope.
 
 Lemma sum_f_to_big n (f : nat -> R) :
   sum_f_R0 f n = \big[Rplus/0%R]_(0 <= i < n.+1) f i.
