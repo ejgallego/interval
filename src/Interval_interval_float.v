@@ -2234,21 +2234,6 @@ Proof. intros xi yi; destruct xi; destruct yi; easy. Qed.
 Lemma mask_propagate_r : propagate_r mask.
 Proof. intros xi yi; destruct xi; destruct yi; easy. Qed.
 
-Lemma neg_propagate : propagate neg.
-Proof. intros xi; destruct xi; easy. Qed.
-
-Lemma inv_propagate : forall prec, propagate (inv prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma sqr_propagate : forall prec, propagate (sqr prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma sqrt_propagate : forall prec, propagate (sqrt prec).
-Proof. intros prec xi; destruct xi; easy. Qed.
-
-Lemma power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
-Proof. intros prec n xi; destruct xi; destruct n; easy. Qed.
-
 Lemma add_propagate_l : forall prec, propagate_l (add prec).
 Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
 

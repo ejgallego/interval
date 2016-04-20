@@ -69,6 +69,7 @@ Module Export Aux := IntervalAux I.
 Module Import TI := TaylorPoly Pol.Int Pol.
 Module TR := TaylorPoly FullR PolR.
 Module Import BndThm := PolyBoundThm I Pol Bnd.
+Module J := IntervalExt I.
 
 Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
 
@@ -754,7 +755,7 @@ exact: (IPoly_nai Hx Nx).
 
 (* Nai *)
 move=> HX; rewrite /TLrem.
-by rewrite I.mul_propagate_r // I.power_int_propagate // I.sub_propagate_l.
+by rewrite I.mul_propagate_r // J.power_int_propagate // I.sub_propagate_l.
 
 (* |- 0 \in err *)
 set V := (I.power_int prec (I.sub prec X X0) (Z_of_nat n.+1)).
@@ -2703,10 +2704,10 @@ constructor.
       apply: Pol.dotmuldiv_propagate;
       rewrite ?(size_falling_seq, size_behead, size_fact_seq) ?Pol.size_rec1 //.
       apply: Pol.rec1_propagate.
-      move=> q l Hq; rewrite I.power_int_propagate //.
+      move=> q l Hq; rewrite J.power_int_propagate //.
       rewrite I.mask_propagate_r //.
       by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
-      rewrite I.power_int_propagate //.
+      rewrite J.power_int_propagate //.
       rewrite I.mask_propagate_r //.
       by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
       by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
@@ -2812,10 +2813,10 @@ have HL :
    forall x : R,
    contains X (Xreal x) -> Xneg (f x) = Xnan -> I.convert (I.neg (error TMf)) = IInan.
   move=> x Hx Dx.
-  apply I.neg_propagate, (Hdef x Hx).
+  apply J.neg_propagate, (Hdef x Hx).
   by case: (f x) Dx.
 split=>//.
-  by move=> HX; rewrite I.neg_propagate // Hnai.
+  by move=> HX; rewrite J.neg_propagate // Hnai.
   rewrite -Ropp_0 Xreal_neg.
   exact: I.neg_correct.
 simpl=> x0 Hx0.

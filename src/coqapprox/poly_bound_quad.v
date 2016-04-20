@@ -161,13 +161,15 @@ Qed.
 
 Arguments ComputeBound_correct [prec pi p] _ b x _.
 
+Module J := IntervalExt I.
+
 Lemma ComputeBound_propagate :
   forall prec pi,
   I.propagate (ComputeBound prec pi).
 Proof.
 red=> *; rewrite /ComputeBound /=.
 by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
-  rewrite !(I.add_propagate_r,I.mul_propagate_l,I.power_int_propagate,
+  rewrite !(I.add_propagate_r,I.mul_propagate_l,J.power_int_propagate,
             Pol.horner_propagate).
 Qed.
 

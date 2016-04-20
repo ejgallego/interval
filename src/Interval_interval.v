@@ -493,11 +493,6 @@ Definition propagate_r fi :=
 
 Parameter mask_propagate_l : propagate_l mask.
 Parameter mask_propagate_r : propagate_r mask.
-Parameter neg_propagate : propagate neg.
-Parameter inv_propagate : forall prec, propagate (inv prec).
-Parameter sqr_propagate : forall prec, propagate (sqr prec).
-Parameter sqrt_propagate : forall prec, propagate (sqrt prec).
-Parameter power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
 Parameter add_propagate_l : forall prec, propagate_l (add prec).
 Parameter sub_propagate_l : forall prec, propagate_l (sub prec).
 Parameter mul_propagate_l : forall prec, propagate_l (mul prec).
@@ -508,3 +503,43 @@ Parameter mul_propagate_r : forall prec, propagate_r (mul prec).
 Parameter div_propagate_r : forall prec, propagate_r (div prec).
 
 End IntervalOps.
+
+Module IntervalExt (I : IntervalOps).
+
+Import I.
+
+Lemma propagate_extension :
+  forall fi f, extension (Xbind f) fi -> propagate fi.
+Proof.
+intros fi f Hf xi H.
+specialize (Hf xi Xnan).
+rewrite H in Hf.
+specialize (Hf I).
+clear -Hf.
+now destruct convert.
+Qed.
+
+Lemma neg_propagate : propagate neg.
+Proof.
+apply propagate_extension with (1 := neg_correct).
+Qed.
+
+Lemma inv_propagate : forall prec, propagate (inv prec).
+Proof.
+intros prec.
+apply propagate_extension with (1 := inv_correct prec).
+Qed.
+
+Lemma sqrt_propagate : forall prec, propagate (sqrt prec).
+Proof.
+intros prec.
+apply propagate_extension with (1 := sqrt_correct prec).
+Qed.
+
+Lemma power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
+Proof.
+intros prec n.
+apply propagate_extension with (1 := power_int_correct prec n).
+Qed.
+
+End IntervalExt.
