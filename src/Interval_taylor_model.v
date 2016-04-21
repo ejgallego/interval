@@ -195,17 +195,10 @@ by rewrite I.nai_correct.
 (* Const *)
 case=> _ [y Hy1 /= Hy2].
 case: x Hx =>[|x] Hx /=.
-  move/contains_Xnan in Hx.
-  have H0 : contains (I.convert Y) (Xreal 0).
-  by apply: subset_contains Hsubset _ _; rewrite Hx.
-  have->: Xnan = Xmask (f R0) Xnan by [].
-  apply: I.mask_correct =>//.
-  by rewrite Hy2.
-  by rewrite Hx.
-have->: f x = Xmask (f x) (Xreal x) by [].
-apply: I.mask_correct=>//.
+  now apply contains_Xnan, I.mask_propagate_r, contains_Xnan.
+apply I.mask_correct'.
 rewrite Hy2 //.
-exact: subset_contains Hsubset _ _.
+exact: subset_contains Hx.
 (* Var *)
 case => /= _.
 case: x Hx => [|x] Hx //= -> //.

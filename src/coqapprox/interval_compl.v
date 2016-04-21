@@ -435,15 +435,6 @@ case is_positive => //.
 now case I.convert.
 Qed.
 
-Lemma R_mask_correct : R_extension_2 (fun c x => c) I.mask.
-Proof.
-move=> ci xi c x Hc Hx /=.
-change (Xreal c) with (Xmask (Xreal c) (Xreal x)).
-exact: I.mask_correct.
-Qed.
-
-Arguments R_mask_correct [ix iy x] y _ _.
-
 Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
 Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
 

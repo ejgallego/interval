@@ -995,7 +995,7 @@ Definition poly_eqNai s := forall k, k < size s -> I.convert (nth s k) = IInan.
 Definition seq_eqNai s := forall k, k < seq.size s -> I.convert (seq.nth I.zero s k) = IInan.
 
 Lemma horner_propagate u pi : I.propagate (horner u pi).
-Proof. by red=> *; rewrite /horner I.mask_propagate_r. Qed.
+Proof. intros x. apply I.mask_propagate_r. Qed.
 
 Lemma zero_correct : zero >:: PolR.zero.
 Proof. by case=> [|k]; exact: cont0. Qed.
@@ -1190,7 +1190,7 @@ Lemma horner_correct u pi ai p a :
 Proof.
 move=> Hp Ha.
 rewrite /horner /PolR.horner.
-apply: (R_mask_correct a _ Ha).
+apply: I.mask_correct'.
 apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - exact: cont0.
 - move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: cont0.

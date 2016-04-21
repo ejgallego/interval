@@ -1331,14 +1331,7 @@ split=>//=.
   apply I.mask_propagate_r, contains_Xnan.
   by rewrite -Nx.
   by move=> HX; apply I.mask_propagate_l, I.mask_propagate_r.
-  case Eci: (I.convert ci) => [|rci].
-    by rewrite I.mask_propagate_r.
-  case Ec: c Hc => [|rc] Hc.
-    by rewrite I.mask_propagate_r //; apply/contains_Xnan.
-    change (Xreal 0%R) with (Xmask (Xmask (Xreal 0%R) (Xreal t)) (Xreal rc)).
-    repeat apply: I.mask_correct =>//.
-    exact: cont0.
-    exact: Hsubset.
+  apply I.mask_correct', I.mask_correct', cont0.
 move=> x0 Hx0.
 case: c Hc => [|c]; first move/contains_Xnan; move => Hc.
 exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
@@ -1346,10 +1339,7 @@ exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
 exists (PolR.polyC c); first exact: Pol.polyC_correct.
 move=> x Hx /=.
 rewrite Rmult_0_l Rplus_0_l Rminus_diag_eq //.
-change (Xreal 0) with (Xmask (Xmask (Xreal 0) (Xreal t)) (Xreal c)).
-repeat apply: I.mask_correct =>//.
-exact: cont0.
-exact: Hsubset.
+apply I.mask_correct', I.mask_correct', cont0.
 Qed.
 
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : R -> ExtendedR) :
@@ -1405,13 +1395,11 @@ have [m Hm] := proj2 Hmid (ex_intro _ r Hr).
 split=>//.
   move=> /= x Hx Nx.
   rewrite /TM_any /= in Nx.
-  rewrite I.mask_propagate_l // I.sub_propagate_l //.
-  apply/contains_Xnan.
+  apply I.mask_propagate_l, I.sub_propagate_l, contains_Xnan.
   rewrite -Nx.
   exact: Hf.
-by move=> HX; rewrite I.mask_propagate_r.
-  rewrite /TM_any /=.
-  apply: (I.mask_correct _ _ (Xreal 0)) H'x0'.
+  apply I.mask_propagate_r.
+  apply I.mask_correct'.
   apply: subset_sub_contains_0 Hm _.
   exact: proj1 Hmid.
 move=> x0 Hx0.
@@ -1425,14 +1413,8 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   exact: Pol.polyC_correct.
   exact: cont0.
 + move=> x Hx /=.
-  case Efx: (f x) => [|fx].
-    rewrite I.mask_propagate_l // I.sub_propagate_l //.
-    apply/contains_Xnan.
-    rewrite -Efx; exact: Hf.
-  step_xr (Xmask ((f x - Xreal (pol'.[(x - x0)%R]))%XR) (Xreal x))=>//.
-  2: by rewrite /= Efx.
-  apply: I.mask_correct =>//.
-  apply: I.sub_correct; first exact: Hf.
+  apply I.mask_correct', R_sub_correct.
+  now apply contains_Xreal, Hf.
   rewrite /pol' /pol0; case: ifP => H.
   by rewrite PolR.horner_polyC.
   rewrite PolR.hornerE !sizes maxnSS maxn0.
@@ -1460,20 +1442,15 @@ Lemma TM_var_correct X0 X :
 Proof.
 move=> Hsubs [t Ht].
 split=>//.
-  by move=> HX; rewrite I.mask_propagate_r.
-  change (Xreal 0) with (Xmask (Xreal 0) (Xreal t)).
-  apply: I.mask_correct. 
-  exact: cont0.
-  exact: Hsubs.
+  apply I.mask_propagate_r.
+  apply I.mask_correct', cont0.
 move=> x0 Hx0 /=.
 exists (PolR.set_nth PolR.polyX 0 x0).
   apply: Pol.set_nth_correct =>//.
   exact: Pol.polyX_correct.
 move=> x Hx /=.
-rewrite Rmult_0_l Rplus_0_l Rmult_1_l.
-step_xr (Xmask (Xreal 0) (Xreal x)).
-  apply: I.mask_correct =>//; exact: cont0.
-simpl; congr Xreal; ring.
+replace (x - _)%R with R0 by ring.
+apply I.mask_correct', cont0.
 Qed.
 
 Theorem TM_var_correct_strong X0 X (f : R -> ExtendedR) :
@@ -2281,8 +2258,7 @@ constructor.
     + rewrite /pow_aux_rec /TR.pow_aux_rec; move=> _ _ m _.
       case: ifP => H.
       exact: R_power_int_correct.
-      apply: R_mask_correct Hx0.
-      exact: cont0.
+      apply I.mask_correct', cont0.
     + exact: R_power_int_correct.
   }
 - { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
@@ -2342,7 +2318,7 @@ rewrite /pow_aux_rec /TR.pow_aux_rec -Ep.
 move=> ai a m Ha.
 case: ((p <? 0) || (p >=? Z.of_nat m))%Z.
 exact: R_power_int_correct.
-apply R_mask_correct with x0; done || exact: cont0.
+apply I.mask_correct', cont0.
 exact: R_power_int_correct.
 by move=> x Hx; rewrite I.nai_correct.
 Qed.
@@ -2539,7 +2515,7 @@ constructor.
                    |apply: R_power_int_correct
                    |apply: R_ln_correct
                    ];
-      exact: (R_mask_correct (ln x0) Hx0 (R_ln_correct prec Hx0)).
+      exact: I.mask_correct'.
   }
 - { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
     apply: Pol.polyCons_propagate.
@@ -2553,12 +2529,11 @@ constructor.
       apply: Pol.dotmuldiv_propagate;
       rewrite ?(size_falling_seq, size_behead, size_fact_seq) ?Pol.size_rec1 //.
       apply: Pol.rec1_propagate.
-      move=> q l Hq; rewrite J.power_int_propagate //.
-      rewrite I.mask_propagate_r //.
-      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
-      rewrite J.power_int_propagate //.
-      rewrite I.mask_propagate_r //.
-      by apply/contains_Xnan; rewrite -Dx; apply: I.ln_correct Hx.
+      move=> q l Hq.
+      apply J.power_int_propagate, I.mask_propagate_r, contains_Xnan.
+      by rewrite -Dx; apply: I.ln_correct Hx.
+      apply J.power_int_propagate, I.mask_propagate_r, contains_Xnan.
+      by rewrite -Dx; apply: I.ln_correct Hx.
       by rewrite ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1,
                size_falling_seq, size_behead, size_fact_seq).
     - rewrite Pol.size_polyCons.
@@ -2588,7 +2563,7 @@ apply: Pol.polyCons_correct; case: n =>[|n]/=; first exact: Pol.polyNil_correct.
                  |apply: R_power_int_correct
                  |apply: R_ln_correct
                  ];
-    exact: (R_mask_correct (ln x0) Hx0 (R_ln_correct prec Hx0)).
+    exact: I.mask_correct'.
 - exact: R_ln_correct.
 - exact: R_ln_correct.
 by rewrite I.nai_correct.
