@@ -1174,38 +1174,25 @@ have: Rcst_sign (fun t => contains (I.convert X) (Xreal t))
   (fun x => (Dn n.+1 x) / INR (fact n.+1))%R.
   move: Hsign; set Gamma := Pol.nth _ _.
   set g := fun x => ((Dn n.+1 x) / INR (fact n.+1))%R.
+  have inGamma : forall x, X >: x -> Gamma >: g x.
+    move => x Hx.
+    rewrite /g -(Poly_nth _ (n:=n.+1)) //.
+    exact: IPoly_nth.
   rewrite /isNNegOrNPos.
   case E : I.sign_large =>// _;
     have := I.sign_large_correct Gamma; rewrite E => Hmain.
   - left; move=> x Hx.
-    have inGamma : Gamma >: g x.
-      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
-      apply: IPoly_nth =>//.
-      case/(_ _ inGamma): Hmain =>->.
-      exact: Rle_refl.
+    case/(_ _ (inGamma x Hx)): Hmain =>->.
+    exact: Rle_refl.
   - right; move=> x Hx.
-    have inGamma : Gamma >: g x.
-      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
-      apply: IPoly_nth =>//.
-      move/(_ _ inGamma) in Hmain.
-      exact: proj2 Hmain.
+    now apply (Hmain (Xreal (g x))), inGamma.
   - left; move=> x Hx.
-    have inGamma : Gamma >: g x.
-      rewrite /g -(Poly_nth _ (n:=n.+1)) //.
-      apply: IPoly_nth =>//.
-      move/(_ _ inGamma) in Hmain.
-      exact: proj2 Hmain.
-case=>[Hpos|Hneg]; [left|right].
-- move=> x Hx.
-  move/(_ x Hx): Hpos => Htop.
-  apply: Rdiv_pos_compat_rev Htop _.
-  apply: (lt_INR 0).
-  exact: lt_O_fact.
-move=> x Hx.
-move/(_ x Hx): Hneg => Htop.
-   apply: Rdiv_neg_compat_rev Htop _.
-   apply: (lt_INR 0).
-   exact: lt_O_fact.
+    now apply (Hmain (Xreal (g x))), inGamma.
+case=>[Htop|Htop]; [left|right]; intros x Hx.
+- apply: Rdiv_pos_compat_rev (Htop x Hx) _.
+  exact: INR_fact_lt_0.
+- apply: Rdiv_neg_compat_rev (Htop x Hx) _.
+  exact: INR_fact_lt_0.
 Qed.
 
 Lemma F_Rcontains : forall X x, X >: x -> F X >: f0 x.
@@ -1343,7 +1330,7 @@ split=>//=.
   move=> x Hx Nx.
   apply I.mask_propagate_r, contains_Xnan.
   by rewrite -Nx.
-  by move=> HX; rewrite I.mask_propagate_l // I.mask_propagate_r.
+  by move=> HX; apply I.mask_propagate_l, I.mask_propagate_r.
   case Eci: (I.convert ci) => [|rci].
     by rewrite I.mask_propagate_r.
   case Ec: c Hc => [|rc] Hc.
