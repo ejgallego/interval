@@ -1321,7 +1321,7 @@ have [||Hlow|Hup] := @intvl_lVu l u x0 x => //.
     by rewrite HX.
     exact: Ztech_derive_sign.
     case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
-      try apply: intvl_trans (intvl_l H'x0) (H'x0) _ => // ;
+      try apply: intvl_connected (intvl_l H'x0) (H'x0) _ _ => // ;
       try apply Hp ; try apply Hq.
     exact: intvl_l Hlow.
     exact: intvl_u Hlow.
@@ -1334,7 +1334,7 @@ have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ 
   by rewrite HX.
   exact: Ztech_derive_sign.
   case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
-    try apply: intvl_trans (H'x0) (intvl_u H'x0) _ => // ;
+    try apply: intvl_connected (H'x0) (intvl_u H'x0) _ _ => // ;
     try apply Hp ; try apply Hq.
   exact: intvl_l Hup.
   exact: intvl_u Hup.

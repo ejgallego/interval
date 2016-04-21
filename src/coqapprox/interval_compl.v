@@ -78,10 +78,6 @@ move=> x y Hx Hy z Hz; split.
 - exact: Rle_trans (proj2 Hz) (proj2 Hy).
 Qed.
 
-Lemma intvl_trans x y a b z :
-  intvl a b x -> intvl a b y -> intvl x y z -> intvl a b z.
-Proof. by move=> H1 H2 H3; apply: (@intvl_connected a b _ _ H1 H2 _ H3). Qed.
-
 Lemma intvl_l l u x0 :
   intvl l u x0 -> intvl l u l.
 Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
@@ -140,7 +136,7 @@ eapply (derivable_pos_imp_increasing f f' P) =>//.
 move=> r Hr.
 move/(_ _ Hr) in Hder.
 move/(_ _ Hr) in H0.
-split; last by auto with real.
+apply: conj H0.
 exact/is_derive_Reals.
 Qed.
 
@@ -153,7 +149,7 @@ eapply (derivable_neg_imp_decreasing f f' P) =>//.
 move=> r Hr.
 move/(_ _ Hr) in Hder.
 move/(_ _ Hr) in H0.
-split; last by auto with real.
+apply: conj H0.
 exact/is_derive_Reals.
 Qed.
 
@@ -249,7 +245,7 @@ move=> HX.
 have [H1 H2] := I.bounded_correct X HX.
 have [H1a H1b] := I.lower_bounded_correct X H1.
 have [H2a H2b] := I.upper_bounded_correct X H2.
-by rewrite !I.bnd_correct /contains H1a H2a; psatzl R.
+rewrite !I.bnd_correct H1a H2a; split; split; apply Rle_refl.
 Qed.
 
 (** The following predicate will be used by [Ztech]. *)
