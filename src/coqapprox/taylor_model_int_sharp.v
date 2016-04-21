@@ -494,16 +494,6 @@ Qed.
 
 End NumericIntegration.
 
-Lemma IsubXX (x0 : R) :
-contains iX0 (Xreal x0) ->
-contains (I.convert (Isub X0 X0)) (Xreal 0).
-Proof.
-move => Hx0.
-have -> : 0%R = (x0 - x0)%R by ring.
-rewrite Xreal_sub.
-by apply: I.sub_correct.
-Qed.
-
 Lemma contains_interval_float_integral (p : PolR.T) :
   approx Mf >:: p ->
   TM_integral_poly >:: (PolR.primitive tt 0%R p).

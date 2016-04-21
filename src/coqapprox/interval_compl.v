@@ -32,33 +32,7 @@ Unset Printing Implicit Defensive.
 
 Local Open Scope nat_scope.
 
-(****************************************************************************)
-(** Additional support results on extended reals and/or interval arithmetic *)
-(****************************************************************************)
-
-Lemma contains_trans (X : interval) (a b c : ExtendedR) :
-  contains X a -> contains X b -> contains (Interval_interval.Ibnd a b) c ->
-  contains X c.
-Proof.
-intros Ha Hb Hc.
-destruct a as [|a]; destruct b as [|b]; destruct c as [|c];
-  destruct X as [|l u]; trivial.
-- now destruct Ha.
-- now destruct Ha.
-- now destruct Hb.
-- destruct l as [|l]; destruct u as [|u]; trivial; simpl in *.
-  + now repeat split; apply Rle_trans with (1 := proj2 Hc) (2 := proj2 Hb).
-  + now repeat split; apply Rle_trans with (1 := proj1 Ha) (2 := proj1 Hc).
-  + split.
-    * now apply Rle_trans with (1 := proj1 Ha) (2 := proj1 Hc).
-    * now apply Rle_trans with (1 := proj2 Hc) (2 := proj2 Hb).
-Qed.
-
 Notation IInan := Interval_interval.Inan (only parsing).
-
-Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
-  contains xi x -> contains xi (Xreal (proj_val x)).
-Proof. by case: x =>//; case: xi. Qed.
 
 (*******************************************************************************)
 (** For convenience, define a predicate [not_empty'] equivalent to [not_empty] *)
@@ -303,32 +277,6 @@ Lemma isNNegOrNPos_false (X : I.type) :
 Proof.
 move=> H; rewrite /isNNegOrNPos; have := I.sign_large_correct X.
 by case: I.sign_large =>//; rewrite H; move/(_ Xnan I) =>//; case.
-Qed.
-
-Lemma bounded_contains_lower (x : ExtendedR) (X : I.type) :
-  I.bounded X = true -> contains (I.convert X) x ->
-  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.lower X)))).
-Proof.
-move=> HX Hx.
-have [H1 H2] := I.bounded_correct X HX.
-have [H3 H4] := I.lower_bounded_correct X H1.
-move: H4 Hx; rewrite /I.bounded_prop =>->.
-rewrite -H3 /contains H3.
-by case Er : x =>[//|r]; case Es: (I.convert_bound (I.upper X))=>[|s]; lra.
-Qed.
-
-(* Erik: May also prove lower/upper-related lemmas involving subset *)
-
-Lemma bounded_contains_upper (X : I.type) (x : ExtendedR) :
-  I.bounded X = true -> contains (I.convert X) x ->
-  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.upper X)))).
-Proof.
-move=> HX Hx.
-have [H1 H2] := I.bounded_correct X HX.
-have [H3 H4] := I.upper_bounded_correct X H2.
-move: H4 Hx; rewrite /I.bounded_prop =>->.
-rewrite -H3 /contains H3.
-by case Er : x =>[//|r]; case Es : (I.convert_bound (I.lower X)) =>[|s]; lra.
 Qed.
 
 Definition gt0 xi : bool :=
