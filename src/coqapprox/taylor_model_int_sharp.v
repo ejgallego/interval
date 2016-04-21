@@ -483,11 +483,11 @@ rewrite Xreal_add; apply:I.add_correct.
   + move => x Hx.
     apply: Herror.
     have [Hab|Hba] := Rle_dec a b.
-      apply: contains_intvl_trans Ha Hb _; red.
+      apply: contains_connected Ha Hb _ _.
       revert Hx.
       now rewrite -> Rmin_left, Rmax_right.
     apply Rnot_le_lt, Rlt_le in Hba.
-    apply: contains_intvl_trans Hb Ha _; red.
+    apply: contains_connected Hb Ha _ _.
     revert Hx.
     now rewrite -> Rmin_right, Rmax_left.
 Qed.
@@ -527,8 +527,8 @@ apply: I.add_correct; last apply: I.add_correct.
   exact: HX0X.
 - apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
     apply: Pol.primitive_correct =>//; exact: cont0.
-  exact: (IsubXX Hx0X0).
-  have->: 0%R = PolR.nth (PolR.primitive tt 0%R p) 0 by [].
+  have -> : 0%R = (x0 - x0)%R by rewrite Rminus_diag_eq.
+  exact: R_sub_correct.
   exact: contains_interval_float_integral.
 - apply: (@Aux.mul_0_contains_0_r _ (Xreal (x0 - x0))) => // .
   exact: R_sub_correct.
@@ -1285,18 +1285,16 @@ have [Hcl _] := I.lower_bounded_correct _ Hbl.
 have [Hcu _] := I.upper_bounded_correct _ Hbu.
 set (l := (proj_val (I.convert_bound (I.lower X)))) in Hcl.
 set (u := (proj_val (I.convert_bound (I.upper X)))) in Hcu.
-have {Hlower} Hlower :
-  Idelta (Ibnd2 (I.lower X)) >: Rdelta0 (proj_val (I.convert_bound (I.lower X))).
-  apply: R_sub_correct =>//.
+have {Hlower} Hlower : Idelta (Ibnd2 (I.lower X)) >: Rdelta0 l.
+  apply: R_sub_correct.
   - rewrite Hcl in Hlower.
     exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
     apply: R_sub_correct =>//.
     by rewrite Hcl in Hlower.
-have {Hupper} Hupper :
-  Idelta (Ibnd2 (I.upper X)) >: Rdelta0 (proj_val (I.convert_bound (I.upper X))).
-  apply: R_sub_correct =>//.
+have {Hupper} Hupper : Idelta (Ibnd2 (I.upper X)) >: Rdelta0 u.
+  apply: R_sub_correct.
   - rewrite Hcu in Hupper.
     exact: F_Rcontains.
   - apply: Pol.horner_correct.
@@ -1304,7 +1302,7 @@ have {Hupper} Hupper :
     apply: R_sub_correct =>//.
     by rewrite Hcu in Hupper.
 have HX0 : Idelta X0 >: Rdelta0 x0.
-  apply: R_sub_correct =>//.
+  apply: R_sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
@@ -1339,8 +1337,8 @@ have [||Hlow|Hup] := @intvl_lVu l u x0 x => //.
       try apply Hp ; try apply Hq.
     exact: intvl_l Hlow.
     exact: intvl_u Hlow.
-  + exact: (@contains_intvl_trans (Rdelta0 l) (Rdelta0 x0)).
-  + exact: (@contains_intvl_trans (Rdelta0 x0) (Rdelta0 l)).
+  + exact: contains_connected H1.
+  + exact: contains_connected H2.
 have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ _ Hup.
 + have [|||||_ H] := @Zumkeller_monot_rem _ (contains_connected (I.convert X)) _ _ _ x0 n => //.
   apply Poly_size.
@@ -1352,8 +1350,8 @@ have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ 
     try apply Hp ; try apply Hq.
   exact: intvl_l Hup.
   exact: intvl_u Hup.
-+ exact: (@contains_intvl_trans (Rdelta0 x0) (Rdelta0 u)).
-+ exact: (@contains_intvl_trans (Rdelta0 u) (Rdelta0 x0)).
++ exact: contains_connected H1.
++ exact: contains_connected H2.
 Qed.
 
 End GenericProof.

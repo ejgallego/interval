@@ -108,22 +108,6 @@ Lemma intvl_trans x y a b z :
   intvl a b x -> intvl a b y -> intvl x y z -> intvl a b z.
 Proof. by move=> H1 H2 H3; apply: (@intvl_connected a b _ _ H1 H2 _ H3). Qed.
 
-Lemma contains_intvl_trans : forall x y X z,
-  contains X (Xreal x) ->
-  contains X (Xreal y) ->
-  intvl x y z ->
-  contains X (Xreal z).
-Proof.
-clear; move=> x y X z.
-rewrite /contains.
-case: X => [//|l u].
-case: l => [|l]; case: u => [|u]; move=> [H1 H2] [H3 H4] [H5 H6]; split=>//.
-exact: Rle_trans H6 H4.
-exact: Rle_trans H1 H5.
-exact: Rle_trans H1 H5.
-exact: Rle_trans H6 H4.
-Qed.
-
 Lemma intvl_lx l u x0 :
   intvl l u x0 -> intvl l x0 x0.
 Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
