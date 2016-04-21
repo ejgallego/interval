@@ -34,6 +34,10 @@ Local Open Scope nat_scope.
 
 Notation IInan := Interval_interval.Inan (only parsing).
 
+Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
+  contains xi x -> contains xi (Xreal (proj_val x)).
+Proof. by case: x =>//; case: xi. Qed.
+
 (*******************************************************************************)
 (** For convenience, define a predicate [not_empty'] equivalent to [not_empty] *)
 (*******************************************************************************)

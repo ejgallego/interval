@@ -1399,8 +1399,7 @@ have H'x0': X >: x0' by exact: Hsubset.
 have Hrr := Hf _ H'x0'.
 set r := proj_val (f x0').
 have Hr : contains (I.convert Y) (Xreal r).
-  revert r Hrr.
-  by case (f x0') => // ; case I.convert.
+  exact: contains_Xreal.
 have Hmid := I.midpoint'_correct Y.
 have [m Hm] := proj2 Hmid (ex_intro _ r Hr).
 split=>//.
