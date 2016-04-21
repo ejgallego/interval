@@ -601,22 +601,20 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
         by apply: f_int => //; exact: HX0X.
         by apply: pol_int_sub.
       move => x2 Hx2.
-      have hx2 : contains iX (Xreal x2).
-      apply: (@contains_trans iX (Xreal (Rmin x0 x1)) (Xreal (Rmax x0 x1))) => // .
-        by rewrite /Rmin; case (Rle_dec x0 x1) => _ //; exact: HX0X.
-        by rewrite /Rmax; case (Rle_dec x0 x1) => _ //; exact: HX0X.
-      by move/(_ x2 hx2) in H3.
-rewrite  {H3}.
+      apply: H3.
+      apply: contains_connected Hx2.
+      by apply Rmin_case => // ; exact: HX0X.
+      by apply Rmax_case => // ; exact: HX0X.
+rewrite {H3}.
 - apply: contains_RInt_full => // .
   + apply: ex_RInt_minus.
         exact: f_int.
         by apply: pol_int_sub.
       move => x2 Hx2.
-      have hx2 : contains iX (Xreal x2).
-      apply: (@contains_trans iX (Xreal (Rmin x1 x)) (Xreal (Rmax x1 x))) => // .
-      by rewrite /Rmin;case (Rle_dec x1 x) => _ //; exact: HX0X.
-      by rewrite /Rmax;case (Rle_dec x1 x) => _ //; exact: HX0X.
-      by move/(_ x2 hx2) in H31.
+      apply: H31.
+      apply: contains_connected Hx2.
+      by apply Rmin_case => // ; exact: HX0X.
+      by apply Rmax_case => // ; exact: HX0X.
 Qed.
 
 End TM_integral.
@@ -1439,7 +1437,8 @@ have H'x0': X >: x0' by exact: Hsubset.
 have Hrr := Hf _ H'x0'.
 set r := proj_val (f x0').
 have Hr : contains (I.convert Y) (Xreal r).
-  exact: contains_Xreal.
+  revert r Hrr.
+  by case (f x0') => // ; case I.convert.
 have Hmid := I.midpoint'_correct Y.
 have [m Hm] := proj2 Hmid (ex_intro _ r Hr).
 split=>//.
