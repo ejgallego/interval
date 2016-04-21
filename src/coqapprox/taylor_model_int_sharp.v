@@ -67,8 +67,6 @@ Module TR := TaylorPoly FullR PolR.
 Module Import BndThm := PolyBoundThm I Pol Bnd.
 Module J := IntervalExt I.
 
-Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
-
 (* POSSIBLE UTF-8 NOTATION
 Notation "X ∋ x" := (contains X x) (at level 70).
 Notation "X ⊂ Y" := (I.subset_ X Y) (at level 70).
@@ -1233,74 +1231,63 @@ case E2 : (I.bounded X); last first.
   rewrite (ZtechE2 _ _ _ _ _ E2).
   exact: i_validTM_TLrem.
 set err := Ztech IP (IP X0 n) F X0 X n.
-have [r' Hr'0] := Hne.
-have Hr' : contains (I.convert X) (Xreal r').
-  exact: Hsubs.
-have XNNan : I.convert X <> IInan.
-  apply I.bounded_correct in E2.
-  now rewrite (proj2 (I.lower_bounded_correct _ _)).
 have Hdef : forall r : R, X >: r -> xf r <> Xnan.
   move=> r Hr Kr.
   have Knai := @IPoly_nai validIPoly_ X r Hr Kr n.+1 n.+1 (leqnn _).
   by rewrite isNNegOrNPos_false in E1.
 split=>//.
-  by move=> x Hx /(Hdef x Hx).
-  rewrite /= /err /Ztech E1 E2 /=.
+- by move=> x Hx /(Hdef x Hx).
+- apply I.bounded_correct in E2.
+  now rewrite (proj2 (I.lower_bounded_correct _ _)).
+- rewrite /= /err /Ztech E1 E2 /=.
   apply: I.join_correct; right.
-  have C1 : contains (I.convert (F X0)) (xf r') := F_contains Hr'0.
-  case E0 : (xf r') => [|r'0].
-    rewrite I.sub_propagate_l //.
-    apply contains_Xnan.
-    by rewrite -E0.
-  have->: Xreal 0 = Xsub (Xreal r'0) (Xreal r'0) by simpl; f_equal; ring.
-  apply: I.sub_correct; rewrite E0 // in C1.
-  rewrite -{}E0 in C1 *.
-  suff->: xf r' = Xreal (PolR.nth (P r' n) 0) by apply: IPoly_nth.
-  rewrite Poly_nth0 // /f0.
-  by case: (xf r') (Hdef r' Hr').
-clear r' Hr'0 Hr' XNNan.
+  have [r' Hr'0] := Hne.
+  have Hr' : contains (I.convert X) (Xreal r').
+    exact: Hsubs.
+  have E0 : xf r' = Xreal (PolR.nth (P r' n) 0).
+    rewrite Poly_nth0 // /f0.
+    by case: (xf r') (Hdef r' Hr').
+  pose r'0 := PolR.nth (P r' n) 0.
+  have->: Xreal 0 = Xsub (xf r') (Xreal r'0) by rewrite E0 /= Rminus_diag_eq.
+  apply: I.sub_correct.
+  exact: F_contains Hr'0.
+  exact: IPoly_nth.
+clear Hdef Hne.
 move=> x0 Hx0.
 exists (P x0 n); first by move=> k; apply: IPoly_nth.
-pose Idelta := fun X => I.sub prec (F X) (Pol.horner prec (IP X0 n) (I.sub prec X X0)).
 pose Rdelta0 := Rdelta n x0.
 move=> x Hx.
 
 rewrite /err /Ztech E1 E2 /=.
 set Delta := I.join (I.join _ _) _; rewrite -/(Rdelta n x0 x) -/(Rdelta0 x).
-have [Hlower Hupper] := bounded_singleton_contains_lower_upper E2.
 have [Hbl Hbu] := I.bounded_correct _ E2.
 have [Hcl _] := I.lower_bounded_correct _ Hbl.
 have [Hcu _] := I.upper_bounded_correct _ Hbu.
 set (l := (proj_val (I.convert_bound (I.lower X)))) in Hcl.
 set (u := (proj_val (I.convert_bound (I.upper X)))) in Hcu.
-have {Hlower} Hlower : Idelta (Ibnd2 (I.lower X)) >: Rdelta0 l.
-  apply: R_sub_correct.
-  - rewrite Hcl in Hlower.
-    exact: F_Rcontains.
-  - apply: Pol.horner_correct.
-    exact: IPoly_nth.
-    apply: R_sub_correct =>//.
-    by rewrite Hcl in Hlower.
-have {Hupper} Hupper : Idelta (Ibnd2 (I.upper X)) >: Rdelta0 u.
-  apply: R_sub_correct.
-  - rewrite Hcu in Hupper.
-    exact: F_Rcontains.
-  - apply: Pol.horner_correct.
-    exact: IPoly_nth.
-    apply: R_sub_correct =>//.
-    by rewrite Hcu in Hupper.
-have HX0 : Idelta X0 >: Rdelta0 x0.
+have HX: I.convert X = Ibnd (Xreal l) (Xreal u).
+  rewrite -Hcl -Hcu.
+  now apply I.lower_bounded_correct.
+have {Hcl Hbl} Hlower : Delta >: Rdelta0 l.
+  apply: I.join_correct; left; apply: I.join_correct; left.
+  have Hlower : contains (I.convert (I.bnd (I.lower X) (I.lower X))) (Xreal l).
+    rewrite I.bnd_correct Hcl; split; apply Rle_refl.
   apply: R_sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
     exact: R_sub_correct.
-have {Hlower} Hlower : Delta >: Rdelta0 l.
-  by apply: I.join_correct; left; apply: I.join_correct; left.
-have {Hupper} Hupper : Delta >: Rdelta0 u.
-  by apply: I.join_correct; left; apply: I.join_correct; right.
+have {Hcu Hbu} Hupper : Delta >: Rdelta0 u.
+  apply: I.join_correct; left; apply: I.join_correct; right.
+  have Hupper : contains (I.convert (I.bnd (I.upper X) (I.upper X))) (Xreal u).
+    rewrite I.bnd_correct Hcu; split; apply Rle_refl.
+  apply: R_sub_correct.
+  - exact: F_Rcontains.
+  - apply: Pol.horner_correct.
+    exact: IPoly_nth.
+    exact: R_sub_correct.
 have H'x0 : X >: x0 by exact: Hsubs.
-have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
+have HX0 : Delta >: Rdelta0 x0.
   apply: I.join_correct; right.
   apply: R_sub_correct; first exact: F_Rcontains.
   rewrite Rminus_diag_eq //.
@@ -1309,9 +1296,7 @@ have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
   rewrite big1 ?(Rplus_0_r, Rmult_1_r) //.
   move=> i _.
   by rewrite /= Rmult_0_l Rmult_0_r.
-have HX: I.convert X = Ibnd (Xreal l) (Xreal u).
-  rewrite -Hcl -Hcu.
-  now apply I.lower_bounded_correct.
+clearbody Delta l u.
 rewrite -> HX in Hx, H'x0.
 have [||Hlow|Hup] := @intvl_lVu l u x0 x => //.
   have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected l x0) Rdelta0 _ _ _ _ _ _ Hlow.

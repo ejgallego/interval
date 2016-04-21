@@ -234,20 +234,6 @@ End NDerive.
 
 Module IntervalAux (I : IntervalOps).
 
-Local Notation Ibnd2 x := (I.bnd x x) (only parsing).
-
-Lemma bounded_singleton_contains_lower_upper (X : I.type) :
-  I.bounded X = true ->
-  contains (I.convert (Ibnd2 (I.lower X))) (I.convert_bound (I.lower X)) /\
-  contains (I.convert (Ibnd2 (I.upper X))) (I.convert_bound (I.upper X)).
-Proof.
-move=> HX.
-have [H1 H2] := I.bounded_correct X HX.
-have [H1a H1b] := I.lower_bounded_correct X H1.
-have [H2a H2b] := I.upper_bounded_correct X H2.
-rewrite !I.bnd_correct H1a H2a; split; split; apply Rle_refl.
-Qed.
-
 (** The following predicate will be used by [Ztech]. *)
 Definition isNNegOrNPos (X : I.type) : bool :=
   if I.sign_large X is Xund then false else true.
