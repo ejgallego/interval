@@ -1485,13 +1485,9 @@ constructor.
       rewrite {}IHk /TR.exp_rec; last exact: ltnW.
       rewrite !(is_derive_n_unique _ _ _ _ (is_derive_n_exp _ _)).
       rewrite fact_simpl mult_INR.
-      field_simplify; first apply: Rdiv_eq_reg; try ring;
-        by repeat first [ split
-                        | apply: Rmult_neq0
-                        | apply: not_0_INR
-                        | apply: pow_nonzero
-                        | apply: Rsqr_plus1_neq0
-                        | apply: fact_neq_0 ].
+      change eq with (@eq R); field; split.
+      apply INR_fact_neq_0.
+      now apply not_0_INR.
   }
 constructor.
 - by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
@@ -1550,11 +1546,12 @@ constructor.
         move=> t; change (Derive _ t) with (Derive_n sin 2 t).
         rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_sin _ _)) /= Rmult_1_r.
         by rewrite Ropp_mult_distr_l_reverse Rmult_1_l.
-      rewrite Derive_n_opp.
-      field_simplify;
-        try (try repeat split; exact: INR_fact_neq_0 || exact: not_0_INR).
-      congr Rdiv; rewrite 2!fact_simpl !mult_INR.
-      by rewrite !Rmult_assoc Rmult_comm Rmult_assoc.
+      rewrite Derive_n_opp 2!fact_simpl 2!mult_INR.
+      change (Derive_n (fun x => _)) with (Derive_n sin).
+      simpl (k.+2.-1).
+      change eq with (@eq R); field; split.
+      apply INR_fact_neq_0.
+      split ; exact: not_0_INR.
   }
 constructor.
 - by move=> x m k; rewrite /TR.T_sin Pol.size_rec2 PolR.size_rec2.
@@ -1602,11 +1599,12 @@ constructor.
         move=> t; change (Derive _ t) with (Derive_n cos 2 t).
         rewrite (is_derive_n_unique _ _ _ _ (is_derive_n_cos _ _)) /= Rmult_1_r.
         by rewrite Ropp_mult_distr_l_reverse Rmult_1_l.
-      rewrite Derive_n_opp.
-      field_simplify;
-        try (try repeat split; exact: INR_fact_neq_0 || exact: not_0_INR).
-      congr Rdiv; rewrite 2!fact_simpl !mult_INR.
-      by rewrite !Rmult_assoc Rmult_comm Rmult_assoc.
+      rewrite Derive_n_opp 2!fact_simpl 2!mult_INR.
+      change (Derive_n (fun x => _)) with (Derive_n cos).
+      simpl (k.+2.-1).
+      change eq with (@eq R); field; split.
+      apply INR_fact_neq_0.
+      split ; exact: not_0_INR.
   }
 constructor.
 - by move=> x m k; rewrite /TR.T_cos Pol.size_rec2 PolR.size_rec2.
@@ -1673,23 +1671,11 @@ constructor.
       rewrite SuccNat2Pos.id_succ.
       rewrite -addnE addn1 Rmult_1_r Rmult_1_l; simpl predn.
       (* Now, some reals' bookkeeping *)
-      suff->: forall x, (x * INR (fact k.+1) / INR (fact k.+2) = x / INR k.+2)%R.
-      suff->: INR (k.+1).*2 = (2 * INR k.+1)%R.
-      suff->: (((1 + x * x) ^ k.+1) ^ 2 = (1 + x * x) ^ k.+2 * (1 + x * x) ^ k)%R.
-      suff->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R.
-      * by field_simplify; first apply: Rdiv_eq_reg; first ring;
-        repeat first [ split
-                     | apply: Rmult_neq0
-                     | apply: not_0_INR
-                     | apply: pow_nonzero
-                     | apply: Rsqr_plus1_neq0].
-      * by rewrite /= Rmult_1_r.
-      * by rewrite -pow_mult multE muln2 -pow_add plusE addSnnS -addnn.
-      * by rewrite -mul2n -multE mult_INR.
-      * clear; move=> x; apply: Rdiv_eq_reg.
-        - by rewrite [in RHS]fact_simpl mult_INR; lra.
-        - exact: INR_fact_neq_0.
-        - exact: not_0_INR.
+      rewrite -mul2n (fact_simpl k.+1) 2!mult_INR -[INR 2]/2%R.
+      rewrite -pow_mult multE muln2 -addnn addSnnS pow_add.
+      have ->: (((1 + x * x) ^ k.+1) = (1 + x ^ 2) * (1 + x * x) ^ k)%R by rewrite /= Rmult_1_r.
+      change eq with (@eq R); field.
+      repeat first [ split | exact: INR_fact_neq_0 | exact: not_0_INR | apply pow_nonzero, Rsqr_plus1_neq0 ].
   }
 constructor.
 - by move=> *; rewrite PolR.size_grec1 Pol.size_grec1.
@@ -1790,7 +1776,7 @@ constructor.
       rewrite (is_derive_unique _ _ _ (is_derive_tan _ Hdef)).
       rewrite /Rdiv Rmult_assoc.
       rewrite -simpl_fact Rinv_involutive.
-      by ring_simplify.
+      change eq with (@eq R); ring.
       exact: INR_fact_neq_0.
     }
 constructor.
@@ -1919,8 +1905,8 @@ constructor.
       have->: ((/ 2 - INR k) = (INR 1 - INR 2 * INR k.+1.-1) / INR 2)%R
         by simpl; field.
       move/(gt0_correct Hx)/Rgt_not_eq in E1.
-      field_simplify; done || (repeat split;
-        repeat first [apply: INR_fact_neq_0 | by simpl; discrR | apply: not_0_INR ]).
+      change eq with (@eq R); field.
+      repeat first [exact E1 | split | exact: INR_fact_neq_0 | exact: not_0_INR ].
   }
 constructor.
 - by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
@@ -2036,8 +2022,8 @@ constructor.
       have->: (-/ 2 - INR k = - (INR 1 + INR 2 * INR k.+1.-1) / INR 2)%R
         by simpl; field.
       move/(gt0_correct Hx)/Rgt_not_eq in E1.
-      field_simplify; done || (repeat split;
-        repeat first [apply: INR_fact_neq_0 | by simpl; discrR | apply: not_0_INR ]).
+      change eq with (@eq R); field.
+      repeat first [exact E1 | split | exact: INR_fact_neq_0 | exact: not_0_INR ].
   }
 constructor.
 - by move=> *; rewrite PolR.size_rec1 Pol.size_rec1.
