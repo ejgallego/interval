@@ -326,6 +326,10 @@ Definition extension_2 f fi := forall ix iy x y,
 Parameter mask : type -> type -> type.
 
 Parameter mask_correct : extension_2 Xmask mask.
+Parameter mask_correct' :
+  forall xi yi x,
+  contains (convert xi) x ->
+  contains (convert (mask xi yi)) x.
 
 Parameter precision : Type.
 

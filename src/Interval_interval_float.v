@@ -1165,6 +1165,14 @@ Proof.
 now intros xi [|yl yu] x [|y] Hx Hy.
 Qed.
 
+Theorem mask_correct' :
+  forall xi yi x,
+  contains (convert xi) x ->
+  contains (convert (mask xi yi)) x.
+Proof.
+now intros xi [|yl yu] x Hx.
+Qed.
+
 Definition propagate fi :=
   forall xi, convert xi = Interval_interval.Inan ->
              convert (fi xi) = Interval_interval.Inan.
