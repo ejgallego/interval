@@ -65,13 +65,6 @@ Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.
 Lemma negativeT x : (x < 0)%R -> is_negative x = true.
 Proof. by case: is_negative_spec =>//; move/Rle_not_lt. Qed.
 
-Lemma XReq_EM_T : forall r1 r2:ExtendedR, {r1 = r2} + {r1 <> r2}.
-Proof.
-case=>[|r1] []; [left|move=> ?; right|right|move=> r2] =>//.
-case: (Req_EM_T r1 r2); first by move ->; left.
-by move=> Hr; right=> HX; apply: Hr; case: HX.
-Qed.
-
 Lemma sum_f_to_big n (f : nat -> R) :
   sum_f_R0 f n = \big[Rplus/0%R]_(0 <= i < n.+1) f i.
 Proof.

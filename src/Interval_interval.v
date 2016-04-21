@@ -178,32 +178,6 @@ Qed.
 Definition domain P b :=
   forall x, contains b x -> P x.
 
-Theorem subset_subset :
-  forall xi yi zi,
-  subset xi yi ->
-  subset yi zi ->
-  subset xi zi.
-Proof.
-intros xi yi zi.
-case zi.
-case xi ; intros ; exact I.
-intros zl zu.
-case xi.
-case yi ; simpl ; trivial.
-intros xl xu.
-case yi.
-intros _ H.
-elim H.
-intros yl yu Hx Hy.
-split.
-apply le_lower_trans with yl.
-exact (proj1 Hy).
-exact (proj1 Hx).
-apply le_upper_trans with yu.
-exact (proj2 Hx).
-exact (proj2 Hy).
-Qed.
-
 Theorem bisect :
   forall P xl xm xu,
   domain P (Ibnd xl xm) ->
@@ -234,41 +208,6 @@ Qed.
 
 Definition not_empty xi :=
   exists v, contains xi (Xreal v).
-
-Lemma contains_minf_not_empty :
-  forall xu, not_empty (Ibnd Xnan xu).
-Proof.
-intros [|xr].
-exists R0. now split.
-exists xr. repeat split.
-apply Rle_refl.
-Qed.
-
-Lemma contains_pinf_not_empty :
-  forall xl, not_empty (Ibnd xl Xnan).
-Proof.
-intros [|xr].
-exists R0. now split.
-exists xr. repeat split.
-apply Rle_refl.
-Qed.
-
-Lemma contains_not_empty :
-  forall x xi, contains xi x -> not_empty xi.
-Proof.
-intros x [|[u _|l [_|u]]].
-intros _.
-exists R0.
-exact I.
-apply contains_minf_not_empty.
-apply contains_pinf_not_empty.
-case x.
-intro H.
-elim H.
-intros xr H.
-exists xr.
-exact H.
-Qed.
 
 Lemma contains_lower :
   forall l u x,

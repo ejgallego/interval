@@ -82,14 +82,6 @@ Lemma intvl_trans x y a b z :
   intvl a b x -> intvl a b y -> intvl x y z -> intvl a b z.
 Proof. by move=> H1 H2 H3; apply: (@intvl_connected a b _ _ H1 H2 _ H3). Qed.
 
-Lemma intvl_lx l u x0 :
-  intvl l u x0 -> intvl l x0 x0.
-Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
-
-Lemma intvl_xu l u x0 :
-  intvl l u x0 -> intvl x0 u x0.
-Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl. Qed.
-
 Lemma intvl_l l u x0 :
   intvl l u x0 -> intvl l u l.
 Proof. by case=> [H1 H2]; split =>//; apply: Rle_refl || apply: Rle_trans H2. Qed.
@@ -135,14 +127,6 @@ Definition Rneg_over (g : R -> R) :=
 
 Definition Rcst_sign (g : R -> R) :=
   Rpos_over g \/ Rneg_over g.
-
-Lemma eq'_Rcst_sign (f g : R -> R) :
-  (forall x, P x -> f x = g x) ->
-  Rcst_sign f -> Rcst_sign g.
-Proof.
-move=> H; rewrite /Rcst_sign /Rpos_over /Rneg_over.
-by case=> Hf; [left|right] => x Hx; rewrite -H //; apply: Hf.
-Qed.
 
 Definition Rderive_over (f f' : R -> R) :=
   forall x : R, P x -> is_derive f x (f' x).
@@ -304,24 +288,6 @@ have := I.sign_strict_correct X; case: I.sign_strict=>//;
   by case/(_ _ Hx) =>/=; auto with real.
 Qed.
 
-Lemma upper_le (X : I.type) x :
-  contains (I.convert X) x -> le_upper x (I.convert_bound (I.upper X)).
-Proof.
-rewrite I.upper_correct.
-case (I.convert X) => // l u /=.
-case: x => // x [Hl Hu] //.
-Qed.
-
-Lemma lower_le (X : I.type) x :
-  contains (I.convert X) x -> le_lower (I.convert_bound (I.lower X)) x.
-Proof.
-rewrite I.lower_correct.
-case (I.convert X) => // l u /=.
-case: x => // x [Hl Hu].
-case: l Hl => // l Hl /=.
-now apply Ropp_le_contravar.
-Qed.
-
 (*******************************************************)
 (** Support results about [I.midpoint] and [not_empty] *)
 (*******************************************************)
@@ -348,16 +314,11 @@ Proof.
 case=>[v Hv].
 rewrite /Imid I.bnd_correct.
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
-have [-> Hreal] := I.midpoint_correct X HX.
-case E: I.convert =>[//|l u].
-apply: subset_contains.
-split.
-- have := lower_le Hreal.
-  have->: l = Xlower (I.convert X) by rewrite E.
-  by rewrite I.lower_correct.
-- have := upper_le Hreal.
-  have->: u = Xupper (I.convert X) by rewrite E.
-  by rewrite I.upper_correct.
+have [->] := I.midpoint_correct X HX.
+case: I.convert =>[//|l u].
+move => H [//|x].
+intros [H1 H2].
+by rewrite (Rle_antisym _ _ H2 H1).
 Qed.
 
 Lemma Imid_contains (X : I.type) :
@@ -368,7 +329,7 @@ move=>[v Hv].
 rewrite /Imid I.bnd_correct.
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> Hreal] := I.midpoint_correct X HX.
-by red; auto with real.
+split ; apply Rle_refl.
 Qed.
 
 Lemma Xreal_Imid_contains (X : I.type) :
@@ -379,7 +340,7 @@ move=>[v Hv].
 rewrite /Imid I.bnd_correct.
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> Hreal] := I.midpoint_correct X HX.
-by red; auto with real.
+split ; apply Rle_refl.
 Qed.
 
 (******************************************************************************)
