@@ -372,17 +372,6 @@ have := I.sign_strict_correct X; case: I.sign_strict=>//;
   by case/(_ _ Hx) =>/=; auto with real.
 Qed.
 
-Lemma intvlP X :
-  I.bounded X = true ->
-  forall x,
-  (contains (I.convert X) (Xreal x) <->
-   intvl (proj_val (I.convert_bound (I.lower X)))
-         (proj_val (I.convert_bound (I.upper X))) x).
-Proof.
-move/I.bounded_correct => [/I.lower_bounded_correct [Hl H] /I.upper_bounded_correct [Hu _]] x.
-by rewrite H Hl Hu.
-Qed.
-
 Lemma upper_le (X : I.type) x :
   contains (I.convert X) x -> le_upper x (I.convert_bound (I.upper X)).
 Proof.

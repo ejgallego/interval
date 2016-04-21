@@ -702,18 +702,6 @@ Variable P : R -> nat -> PolR.T.
 Let f0 := fun x => proj_val (xf x).
 Let Dn n := Derive_n f0 n.
 
-Lemma Rmonot_contains (g : R -> R) (a b : R) :
-  Rmonot (intvl a b) g ->
-  forall (x y z : R),
-  intvl a b x -> intvl a b y -> intvl x y z ->
-  intvl (g x) (g y) (g z) \/ intvl (g y) (g x) (g z).
-Proof.
-move=> Hmonot x y z Hx Hy Hz.
-have Habz : intvl a b z by exact: intvl_trans Hx Hy Hz.
-case: Hmonot; rewrite /Rincr /Rdecr =>H; [left|right];
-  split; apply: H =>//; move: Hz; rewrite /intvl /=; psatzl R.
-Qed.
-
 Definition Rdelta (n : nat) (x0 x : R) :=
   (f0 x - (P x0 n).[x - x0])%R.
 
@@ -725,6 +713,19 @@ Section aux.
 
 Variable dom : R -> Prop.
 Hypothesis Hdom : connected dom.
+
+Lemma Rmonot_contains (g : R -> R) :
+  Rmonot dom g ->
+  forall (x y z : R),
+  dom x -> dom y -> intvl x y z ->
+  intvl (g x) (g y) (g z) \/ intvl (g y) (g x) (g z).
+Proof.
+move=> Hmonot x y z Hx Hy Hz.
+have Dz: dom z by exact: Hdom Hz.
+case: Hmonot; rewrite /Rincr /Rdecr =>H; [left|right];
+  split; apply: H =>//; move: Hz; rewrite /intvl /=;
+  by move=> [H1 H2].
+Qed.
 
 Lemma upper_Rpos_over
   (c x0 : R) (nm1 : nat) (n := nm1.+1) :
@@ -1179,16 +1180,11 @@ exact: R_sub_correct.
 Qed.
 
 Lemma Ztech_derive_sign (n : nat) :
-  not_empty (I.convert X) ->
-  I.bounded X = true ->
   isNNegOrNPos (Pol.nth (IP X n.+1) n.+1) = true ->
-  Rcst_sign (intvl (proj_val (I.convert_bound (I.lower X)))
-                   (proj_val (I.convert_bound (I.upper X)))) (Dn n.+1).
+  Rcst_sign (fun t => contains (I.convert X) (Xreal t)) (Dn n.+1).
 Proof.
-move=> [t Ht] Hbnd Hsign.
-have Hstep : Rcst_sign
-  (intvl (proj_val (I.convert_bound (I.lower X)))
-         (proj_val (I.convert_bound (I.upper X))))
+move=> Hsign.
+have: Rcst_sign (fun t => contains (I.convert X) (Xreal t))
   (fun x => (Dn n.+1 x) / INR (fact n.+1))%R.
   move: Hsign; set Gamma := Pol.nth _ _.
   set g := fun x => ((Dn n.+1 x) / INR (fact n.+1))%R.
@@ -1199,46 +1195,30 @@ have Hstep : Rcst_sign
     have inGamma : Gamma >: g x.
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
-      exact/intvlP.
-      exact/intvlP.
       case/(_ _ inGamma): Hmain =>->.
       exact: Rle_refl.
   - right; move=> x Hx.
     have inGamma : Gamma >: g x.
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
-      exact/intvlP.
-      exact/intvlP.
       move/(_ _ inGamma) in Hmain.
       exact: proj2 Hmain.
   - left; move=> x Hx.
     have inGamma : Gamma >: g x.
       rewrite /g -(Poly_nth _ (n:=n.+1)) //.
       apply: IPoly_nth =>//.
-      exact/intvlP.
-      exact/intvlP.
       move/(_ _ inGamma) in Hmain.
       exact: proj2 Hmain.
-have: Rcst_sign
-  (intvl (proj_val (I.convert_bound (I.lower X)))
-         (proj_val (I.convert_bound (I.upper X))))
-  (fun x : R => Dn n.+1 x / INR (fact n.+1))%R.
-  exact: eq'_Rcst_sign Hstep.
 case=>[Hpos|Hneg]; [left|right].
 - move=> x Hx.
-  move/(_ x Hx): Hpos.
-  move=> Htop; apply: Rdiv_pos_compat_rev Htop _.
-  change R0 with (INR O).
-  apply: lt_INR.
-  change (fact n + _)%coq_nat with (fact n.+1).
+  move/(_ x Hx): Hpos => Htop.
+  apply: Rdiv_pos_compat_rev Htop _.
+  apply: (lt_INR 0).
   exact: lt_O_fact.
-  (* by change (fact n + _)%coq_nat with (fact n.+1); apply: INR_fact_neq_0. *)
 move=> x Hx.
-move/(_ x Hx): Hneg.
-   move=> Htop; apply: Rdiv_neg_compat_rev Htop _.
-   change R0 with (INR O).
-   apply: lt_INR.
-   change (fact n + _)%coq_nat with (fact n.+1).
+move/(_ x Hx): Hneg => Htop.
+   apply: Rdiv_neg_compat_rev Htop _.
+   apply: (lt_INR 0).
    exact: lt_O_fact.
 Qed.
 
@@ -1346,34 +1326,28 @@ have {HX0} HX0 : contains (I.convert Delta) (Xreal (Rdelta0 x0)).
 have HX: I.convert X = Ibnd (Xreal l) (Xreal u).
   rewrite -Hcl -Hcu.
   now apply I.lower_bounded_correct.
-rewrite -> HX in Hx, H'x0, Hder_n.
+rewrite -> HX in Hx, H'x0.
 have [||Hlow|Hup] := @intvl_lVu l u x0 x => //.
-  have [|||H1|H2] := @Rmonot_contains Rdelta0 l x0 _ _ _ _ _ _ Hlow.
-  + have [|||||H _] := @Zumkeller_monot_rem _ (@intvl_connected l u) _ _ _ x0 n => //.
+  have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected l x0) Rdelta0 _ _ _ _ _ _ Hlow.
+  + have [|||||H _] := @Zumkeller_monot_rem _ (contains_connected (I.convert X)) _ _ _ x0 n => //.
     apply Poly_size.
-    move => t m k H.
     apply Poly_nth.
     by rewrite HX.
-    apply: Ztech_derive_sign =>//.
-    rewrite HX.
-    by exists x.
-    case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; split ;
+    exact: Ztech_derive_sign.
+    case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
       try apply: intvl_trans (intvl_l H'x0) (H'x0) _ => // ;
       try apply Hp ; try apply Hq.
     exact: intvl_l Hlow.
     exact: intvl_u Hlow.
   + exact: (@contains_intvl_trans (Rdelta0 l) (Rdelta0 x0)).
   + exact: (@contains_intvl_trans (Rdelta0 x0) (Rdelta0 l)).
-have [|||H1|H2] := @Rmonot_contains Rdelta0 x0 u _ _ _ _ _ _ Hup.
-+ have [|||||_ H] := @Zumkeller_monot_rem _ (@intvl_connected l u) _ _ _ x0 n => //.
+have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ _ Hup.
++ have [|||||_ H] := @Zumkeller_monot_rem _ (contains_connected (I.convert X)) _ _ _ x0 n => //.
   apply Poly_size.
-  move => t m k H.
   apply Poly_nth.
   by rewrite HX.
-  apply: Ztech_derive_sign =>//.
-  rewrite HX.
-  by exists x.
-  case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; split ;
+  exact: Ztech_derive_sign.
+  case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
     try apply: intvl_trans (H'x0) (intvl_u H'x0) _ => // ;
     try apply Hp ; try apply Hq.
   exact: intvl_l Hup.
