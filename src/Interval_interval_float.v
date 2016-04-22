@@ -1173,12 +1173,10 @@ Proof.
 now intros xi [|yl yu] x Hx.
 Qed.
 
-Definition propagate fi :=
-  forall xi, convert xi = Interval_interval.Inan ->
-             convert (fi xi) = Interval_interval.Inan.
 Definition propagate_l fi :=
   forall xi yi : type, convert xi = Interval_interval.Inan ->
                        convert (fi xi yi) = Interval_interval.Inan.
+
 Definition propagate_r fi :=
   forall xi yi : type, convert yi = Interval_interval.Inan ->
                        convert (fi xi yi) = Interval_interval.Inan.

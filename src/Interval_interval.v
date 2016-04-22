@@ -427,8 +427,6 @@ Parameter fromZ : Z -> type.
 Parameter fromZ_correct :
   forall v, contains (convert (fromZ v)) (Xreal (Z2R v)).
 
-Definition propagate fi :=
-  forall xi, convert xi = Inan -> convert (fi xi) = Inan.
 Definition propagate_l fi :=
   forall xi yi : type, convert xi = Inan -> convert (fi xi yi) = Inan.
 Definition propagate_r fi :=
@@ -449,40 +447,168 @@ End IntervalOps.
 
 Module IntervalExt (I : IntervalOps).
 
-Import I.
+Definition propagate fi :=
+  forall xi, I.convert xi = Inan -> I.convert (fi xi) = Inan.
 
 Lemma propagate_extension :
-  forall fi f, extension (Xbind f) fi -> propagate fi.
+  forall fi f, I.extension (Xbind f) fi -> propagate fi.
 Proof.
 intros fi f Hf xi H.
 specialize (Hf xi Xnan).
 rewrite H in Hf.
 specialize (Hf I).
 clear -Hf.
-now destruct convert.
+now destruct I.convert.
 Qed.
 
-Lemma neg_propagate : propagate neg.
+Lemma neg_propagate : propagate I.neg.
 Proof.
-apply propagate_extension with (1 := neg_correct).
+apply propagate_extension with (1 := I.neg_correct).
 Qed.
 
-Lemma inv_propagate : forall prec, propagate (inv prec).
-Proof.
-intros prec.
-apply propagate_extension with (1 := inv_correct prec).
-Qed.
-
-Lemma sqrt_propagate : forall prec, propagate (sqrt prec).
+Lemma inv_propagate : forall prec, propagate (I.inv prec).
 Proof.
 intros prec.
-apply propagate_extension with (1 := sqrt_correct prec).
+apply propagate_extension with (1 := I.inv_correct prec).
 Qed.
 
-Lemma power_int_propagate : forall prec n, propagate (fun x => power_int prec x n).
+Lemma sqrt_propagate : forall prec, propagate (I.sqrt prec).
+Proof.
+intros prec.
+apply propagate_extension with (1 := I.sqrt_correct prec).
+Qed.
+
+Lemma power_int_propagate : forall prec n, propagate (fun x => I.power_int prec x n).
 Proof.
 intros prec n.
-apply propagate_extension with (1 := power_int_correct prec n).
+apply propagate_extension with (1 := I.power_int_correct prec n).
+Qed.
+
+Definition extension f fi :=
+  forall (xi : I.type) (x : R),
+  contains (I.convert xi) (Xreal x) ->
+  contains (I.convert (fi xi)) (Xreal (f x)).
+
+Definition extension_2 f fi :=
+  forall (xi yi : I.type) (x y : R),
+  contains (I.convert xi) (Xreal x) ->
+  contains (I.convert yi) (Xreal y) ->
+  contains (I.convert (fi xi yi)) (Xreal (f x y)).
+
+Lemma neg_correct : extension Ropp I.neg.
+Proof.
+intros xi x.
+now apply I.neg_correct.
+Qed.
+
+Lemma inv_correct : forall prec, extension Rinv (I.inv prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.inv_correct prec xi _ Hx).
+unfold Xinv', Xbind.
+case is_zero ; try easy.
+now case I.convert.
+Qed.
+
+Lemma sqr_correct : forall prec, extension Rsqr (I.sqr prec).
+Proof.
+intros prec xi x.
+now apply I.sqr_correct.
+Qed.
+
+Lemma sqrt_correct : forall prec, extension sqrt (I.sqrt prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.sqrt_correct prec xi _ Hx).
+unfold Xsqrt', Xbind.
+case is_negative ; try easy.
+now case I.convert.
+Qed.
+
+Lemma cos_correct : forall prec, extension cos (I.cos prec).
+Proof.
+intros prec xi x.
+now apply I.cos_correct.
+Qed.
+
+Lemma sin_correct : forall prec, extension sin (I.sin prec).
+Proof.
+intros prec xi x.
+now apply I.sin_correct.
+Qed.
+
+Lemma tan_correct : forall prec, extension tan (I.tan prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.tan_correct prec xi _ Hx).
+unfold Xtan', Xbind.
+case is_zero ; try easy.
+now case I.convert.
+Qed.
+
+Lemma atan_correct : forall prec, extension atan (I.atan prec).
+Proof.
+intros prec xi x.
+now apply I.atan_correct.
+Qed.
+
+Lemma exp_correct : forall prec, extension exp (I.exp prec).
+Proof.
+intros prec xi x.
+now apply I.exp_correct.
+Qed.
+
+Lemma ln_correct : forall prec, extension ln (I.ln prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.ln_correct prec xi _ Hx).
+unfold Xln', Xbind.
+case is_positive ; try easy.
+now case I.convert.
+Qed.
+
+Lemma add_correct : forall prec, extension_2 Rplus (I.add prec).
+Proof.
+intros prec xi yi x y.
+now apply I.add_correct.
+Qed.
+
+Lemma sub_correct : forall prec, extension_2 Rminus (I.sub prec).
+Proof.
+intros prec xi yi x y.
+now apply I.sub_correct.
+Qed.
+
+Lemma mul_correct : forall prec, extension_2 Rmult (I.mul prec).
+Proof.
+intros prec xi yi x y.
+now apply I.mul_correct.
+Qed.
+
+Lemma div_correct : forall prec, extension_2 Rdiv (I.div prec).
+Proof.
+intros prec xi yi x y Hx Hy.
+generalize (I.div_correct prec _ _ _ _ Hx Hy).
+simpl. unfold Xdiv'.
+case is_zero ; try easy.
+now case I.convert.
+Qed.
+
+Lemma power_int_correct :
+  forall prec n, extension (fun x => powerRZ x n) (fun xi => I.power_int prec xi n).
+Proof.
+intros prec n xi x Hx.
+generalize (I.power_int_correct prec n xi _ Hx).
+unfold Xpower_int, Xpower_int', Xbind.
+destruct n as [|n|n] ; try easy.
+case is_zero ; try easy.
+now case I.convert.
+Qed.
+
+Lemma zero_correct : contains (I.convert I.zero) (Xreal 0).
+Proof.
+rewrite I.zero_correct.
+split ; apply Rle_refl.
 Qed.
 
 End IntervalExt.

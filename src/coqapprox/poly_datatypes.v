@@ -834,7 +834,7 @@ End PolR.
 
 Module Type PolyIntOps (I : IntervalOps).
 Module Int := FullInt I.
-Module Import Aux := IntervalAux I. (* for Aux.eqNai *)
+Module J := IntervalExt I.
 Include PolyOps Int.
 
 Definition contains_pointwise pi p : Prop :=
@@ -892,7 +892,7 @@ Parameter mul_mixed_correct :
 Parameter div_mixed_r_correct :
   forall u pi bi p b, pi >:: p -> bi >: b ->
   div_mixed_r u pi bi >:: PolR.div_mixed_r tt p b.
-Parameter horner_propagate : forall u pi, I.propagate (horner u pi).
+Parameter horner_propagate : forall u pi, J.propagate (horner u pi).
 Parameter deriv_correct :
   forall u pi p, pi >:: p -> deriv u pi >:: (PolR.deriv tt p).
 Parameter primitive_correct :
@@ -974,6 +974,7 @@ Module Int := FullInt I.
 Include SeqPoly Int.
 
 Module Import Aux := IntervalAux I.
+Module J := IntervalExt I.
 
 Definition contains_pointwise pi p : Prop :=
   forall k, contains (I.convert (nth pi k)) (Xreal (PolR.nth p k)).
@@ -996,11 +997,11 @@ Definition poly_eqNai s := forall k, k < size s -> I.convert (nth s k) = IInan.
 
 Definition seq_eqNai s := forall k, k < seq.size s -> I.convert (seq.nth I.zero s k) = IInan.
 
-Lemma horner_propagate u pi : I.propagate (horner u pi).
+Lemma horner_propagate u pi : J.propagate (horner u pi).
 Proof. intros x. apply I.mask_propagate_r. Qed.
 
 Lemma zero_correct : zero >:: PolR.zero.
-Proof. by case=> [|k]; exact: cont0. Qed.
+Proof. by case=> [|k]; exact: J.zero_correct. Qed.
 
 Lemma one_correct : one >:: PolR.one.
 Proof. by case=> [|k] /=; [apply: I.fromZ_correct|exact: zero_correct]. Qed.
@@ -1009,10 +1010,10 @@ Lemma opp_correct pi p : pi >:: p -> opp pi >:: PolR.opp p.
 Proof.
 move=> Hp k; rewrite /opp /PolR.opp /nth /PolR.nth.
 apply(*:*) (@map_correct R I.type) =>//.
-- exact: cont0.
-- by move=> ? /only0 ->; rewrite Ropp_0; apply: cont0.
-- by move=> *; rewrite -(Ropp_0); apply: R_neg_correct.
-- move=> *; exact: R_neg_correct.
+- exact: J.zero_correct.
+- by move=> ? /only0 ->; rewrite Ropp_0; apply: J.zero_correct.
+- by move=> *; rewrite -(Ropp_0); apply: J.neg_correct.
+- move=> *; exact: J.neg_correct.
 Qed.
 
 Lemma map_correct fi f pi p :
@@ -1023,8 +1024,8 @@ Lemma map_correct fi f pi p :
 Proof.
 move=> H0 Hf Hp k; rewrite /map /PolR.map /nth /PolR.nth.
 apply(*:*) (@map_correct R I.type) =>//.
-- exact: cont0.
-- by move=> ? /only0 ->; rewrite H0; apply: cont0.
+- exact: J.zero_correct.
+- by move=> ? /only0 ->; rewrite H0; apply: J.zero_correct.
 - by move=> *; rewrite -(H0); apply: Hf.
 - move=> *; exact: Hf.
 Qed.
@@ -1034,13 +1035,13 @@ Lemma add_correct u pi qi p q :
 Proof.
 move=> Hp Hq k; rewrite /PolR.add /add /nth /PolR.nth.
 apply (@map2_correct R I.type) =>//.
-- exact: cont0.
+- exact: J.zero_correct.
 - exact: only0.
 - by move=> ? ? ? H1 /only0 ->; rewrite Rplus_0_r.
 - by move=> ? ? ? /only0 -> H2; rewrite Rplus_0_l.
-- by move=> v1 ? ? ? ?; rewrite -(Rplus_0_r v1); apply: R_add_correct.
-- by move=> v2 ? ? ? ?; rewrite -(Rplus_0_l v2); apply: R_add_correct.
-- by move=> *; apply: R_add_correct.
+- by move=> v1 ? ? ? ?; rewrite -(Rplus_0_r v1); apply: J.add_correct.
+- by move=> v2 ? ? ? ?; rewrite -(Rplus_0_l v2); apply: J.add_correct.
+- by move=> *; apply: J.add_correct.
 Qed.
 
 Lemma nth_default_alt pi p :
@@ -1061,21 +1062,21 @@ Proof.
 move=> Hs Hp.
 move=> k; rewrite nth_dotmuldiv PolR.nth_dotmuldiv.
 do ![case: ifP] => /or3P A /or3P B.
-- exact: cont0.
+- exact: J.zero_correct.
 - case B.
-  by move/nth_default_alt =>->; rewrite ?Rmult_0_r; try exact: cont0.
+  by move/nth_default_alt =>->; rewrite ?Rmult_0_r; try exact: J.zero_correct.
   by move/or3P in A; move=> K; rewrite K orbT in A.
   by move/or3P in A; move=> K; rewrite K !orbT in A.
 - case A=> K.
   apply (@mul_0_contains_0_r u (Xreal (Rdiv (Z2R (seq.nth 0%Z a k)) (Z2R (seq.nth 0%Z b k))))).
-  by apply: R_div_correct; apply: I.fromZ_correct.
+  by apply: J.div_correct; apply: I.fromZ_correct.
   have->: 0%R = PolR.nth p k.
   by move/PolR.nth_default: K.
   exact: Hp.
   by move/or3P in B; rewrite K !orbT in B.
   by move/or3P in B; rewrite K !orbT in B.
-- apply: R_mul_correct =>//.
-  apply: R_div_correct =>//; exact: I.fromZ_correct.
+- apply: J.mul_correct =>//.
+  apply: J.div_correct =>//; exact: I.fromZ_correct.
 Qed.
 
 Lemma sub_correct u pi qi p q :
@@ -1083,16 +1084,16 @@ Lemma sub_correct u pi qi p q :
 Proof.
 move=> Hp Hq k; rewrite /PolR.sub /sub /nth /PolR.nth.
 apply (@map2_correct R I.type) =>//.
-- exact: cont0.
-- by move=> v /only0 ->; rewrite Ropp_0; apply: cont0.
-- by move=> t ?; rewrite -Ropp_0; apply: R_neg_correct.
-- move=> *; exact: R_neg_correct.
+- exact: J.zero_correct.
+- by move=> v /only0 ->; rewrite Ropp_0; apply: J.zero_correct.
+- by move=> t ?; rewrite -Ropp_0; apply: J.neg_correct.
+- move=> *; exact: J.neg_correct.
 - exact: only0.
 - by move=> ? ? ? H1 /only0 ->; rewrite Rminus_0_r.
-- by move=> ? ? ? /only0 -> H2; rewrite Rminus_0_l; apply: R_neg_correct.
-- by move=> v1 ? ? ? ?; rewrite -(Rminus_0_r v1); apply: R_sub_correct.
-- by move=> v2 ? ? ? ?; rewrite -(Rminus_0_l v2); apply: R_sub_correct.
-- by move=> *; apply: R_sub_correct.
+- by move=> ? ? ? /only0 -> H2; rewrite Rminus_0_l; apply: J.neg_correct.
+- by move=> v1 ? ? ? ?; rewrite -(Rminus_0_r v1); apply: J.sub_correct.
+- by move=> v2 ? ? ? ?; rewrite -(Rminus_0_l v2); apply: J.sub_correct.
+- by move=> *; apply: J.sub_correct.
 Qed.
 
 Lemma mul_coeff_correct u pi qi p q :
@@ -1102,9 +1103,9 @@ Proof.
 move=> Hpi Hqi k.
 rewrite mul_coeffE PolR.mul_coeffE.
 apply (@big_ind2 R I.type (fun r i => i >: r)).
-- exact: cont0.
-- move=> *; exact: R_add_correct.
-- move=> *; exact: R_mul_correct.
+- exact: J.zero_correct.
+- move=> *; exact: J.add_correct.
+- move=> *; exact: J.mul_correct.
 Qed.
 
 Lemma mul_correct u pi qi p q :
@@ -1112,7 +1113,7 @@ Lemma mul_correct u pi qi p q :
 Proof.
 move=> Hp Hq; rewrite /mul /PolR.mul /nth /PolR.nth.
 apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
-- exact: cont0.
+- exact: J.zero_correct.
 - exact: mul_coeff_correct.
 - move=> k /andP [Hk _]; rewrite PolR.mul_coeffE.
   rewrite PolR.mul_coeff_eq0 //.
@@ -1130,7 +1131,7 @@ Lemma mul_trunc_correct u n pi qi p q :
 Proof.
 move=> Hp Hq; rewrite /nth /PolR.nth.
 apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
-- exact: cont0.
+- exact: J.zero_correct.
 - exact: mul_coeff_correct.
 - by move=> k; rewrite ltn_leqN.
 - by move=> k; rewrite ltn_leqN.
@@ -1142,7 +1143,7 @@ Lemma mul_tail_correct u n pi qi p q :
 Proof.
 move=> Hp Hq; rewrite /mul_tail /PolR.mul_tail /nth /PolR.nth.
 apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
-- exact: cont0.
+- exact: J.zero_correct.
 - move=> k; exact: mul_coeff_correct.
 - move=> k /andP [_k k_]; rewrite PolR.mul_coeffE.
   rewrite PolR.mul_coeff_eq0 //.
@@ -1164,11 +1165,11 @@ Lemma mul_mixed_correct  u ai pi a p :
 Proof.
 move=> Ha Hp; rewrite /mul_mixed /PolR.mul_mixed.
 apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
-- move=> x s /only0 -> Hs [|k] /=; first by rewrite Rmult_0_r; apply: cont0.
+- move=> x s /only0 -> Hs [|k] /=; first by rewrite Rmult_0_r; apply: J.zero_correct.
   by move: (Hs k); rewrite nth_nil.
-- move=> x s Hx Hs [|k]; first by rewrite -(Rmult_0_r a); apply: R_mul_correct.
+- move=> x s Hx Hs [|k]; first by rewrite -(Rmult_0_r a); apply: J.mul_correct.
   by move: (Hs k); rewrite nth_nil.
-- move=> x y s t Hx Hs [|k]; first by apply: R_mul_correct.
+- move=> x y s t Hx Hs [|k]; first by apply: J.mul_correct.
   by apply: Hs.
 Qed.
 
@@ -1179,11 +1180,11 @@ Lemma div_mixed_r_correct u pi bi p b :
 Proof.
 move=> Ha Hp; rewrite /div_mixed_r /PolR.div_mixed_r.
 apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
-- move=> x s /only0 -> Hs [|k] /=; first by rewrite /Rdiv Rmult_0_l; apply: cont0.
+- move=> x s /only0 -> Hs [|k] /=; first by rewrite /Rdiv Rmult_0_l; apply: J.zero_correct.
   by move: (Hs k); rewrite nth_nil.
 - move=> x s Hx Hs [|k]; last by move: (Hs k); rewrite nth_nil.
-  by rewrite -(Rmult_0_l (Rinv b)); apply: R_div_correct.
-- move=> x y s t Hx Hs [|k]; first by apply: R_div_correct.
+  by rewrite -(Rmult_0_l (Rinv b)); apply: J.div_correct.
+- move=> x y s t Hx Hs [|k]; first by apply: J.div_correct.
   by apply: Hs.
 Qed.
 
@@ -1194,11 +1195,11 @@ move=> Hp Ha.
 rewrite /horner /PolR.horner.
 apply: I.mask_correct'.
 apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
-- exact: cont0.
-- move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: cont0.
+- exact: J.zero_correct.
+- move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: J.zero_correct.
 - move=> x y Hx Hy; rewrite -(Rplus_0_r R0) -{1}(Rmult_0_l a).
-  apply: R_add_correct =>//; exact: R_mul_correct.
-- move=> x xi y yi Hx Hy; apply: R_add_correct=>//; exact: R_mul_correct.
+  apply: J.add_correct =>//; exact: J.mul_correct.
+- move=> x xi y yi Hx Hy; apply: J.add_correct=>//; exact: J.mul_correct.
 Qed.
 
 Lemma deriv_correct u pi p : pi >:: p -> deriv u pi >:: PolR.deriv tt p.
@@ -1207,14 +1208,14 @@ move=> Hpi; rewrite /deriv /PolR.deriv /deriv_loop /PolR.deriv_loop.
 apply: (seq_foldri_correct (Rel := fun v t => t >: v)) =>//.
 - by move=> k; rewrite !nth_behead.
 - move=> x s i Hx Hs [|k] /=.
-  + by move/only0: Hx->; rewrite Rmult_0_l; apply: cont0.
+  + by move/only0: Hx->; rewrite Rmult_0_l; apply: J.zero_correct.
   + by move: (Hs k); rewrite nth_nil.
 - move=> x s i Hx Hs [|k] /=.
   rewrite -(Rmult_0_l (INR i)).
-  apply: R_mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+  apply: J.mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
   by move: (Hs k); rewrite nth_nil.
 - move=> x xi y yi i Hx Hy [|k] //=.
-  by apply: R_mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+  by apply: J.mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
 Qed.
 
 Lemma set_nth_correct pi p n ai a :
@@ -1227,7 +1228,7 @@ Qed.
 Lemma lift_correct n pi p : pi >:: p -> lift n pi >:: PolR.lift n p.
 Proof.
 move=> Hp k; rewrite /nth /PolR.nth.
-by apply: (ncons_correct (Rel := fun v t => t >: v)); first exact: cont0.
+by apply: (ncons_correct (Rel := fun v t => t >: v)); first exact: J.zero_correct.
 Qed.
 
 Lemma tail_correct n pi p : pi >:: p -> tail n pi >:: PolR.tail n p.
@@ -1236,7 +1237,7 @@ exact: (drop_correct (Rel := fun v t => t >: v)).
 Qed.
 
 Lemma polyNil_correct : polyNil >:: PolR.polyNil.
-Proof. intro; rewrite /nth /PolR.nth ![seq.nth _ _ _]nth_nil; exact: cont0. Qed.
+Proof. intro; rewrite /nth /PolR.nth ![seq.nth _ _ _]nth_nil; exact: J.zero_correct. Qed.
 
 Lemma polyCons_correct pi xi p x :
   pi >:: p -> xi >: x -> polyCons xi pi >:: PolR.polyCons x p.
@@ -1248,7 +1249,7 @@ Lemma rec1_correct fi f fi0 f0 n :
   rec1 fi fi0 n >:: PolR.rec1 f f0 n.
 Proof.
 move=> Hf Hf0.
-by apply: (rec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+by apply: (rec1up_correct (Rel := fun r i => i >: r)); first exact: J.zero_correct.
 Qed.
 
 Lemma rec2_correct fi f fi0 f0 fi1 f1 n :
@@ -1258,7 +1259,7 @@ Lemma rec2_correct fi f fi0 f0 fi1 f1 n :
   rec2 fi fi0 fi1 n >:: PolR.rec2 f f0 f1 n.
 Proof.
 move=> Hf Hf0 Hf1.
-by apply: (rec2up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+by apply: (rec2up_correct (Rel := fun r i => i >: r)); first exact: J.zero_correct.
 Qed.
 
 Lemma grec1_correct
@@ -1271,7 +1272,7 @@ Lemma grec1_correct
   grec1 Fi Gi ai si n >:: PolR.grec1 F G a s n.
 Proof.
 move=> HF HG Ha Hs Hsize.
-by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: cont0.
+by apply: (grec1up_correct (Rel := fun r i => i >: r)); first exact: J.zero_correct.
 Qed.
 
 Lemma polyC_correct ci c : ci >: c -> polyC ci >:: PolR.polyC c.
@@ -1280,15 +1281,15 @@ move=> Hc [//|k].
 rewrite /polyC /PolR.polyC.
 rewrite nth_polyCons PolR.nth_polyCons.
 rewrite nth_polyNil PolR.nth_polyNil.
-exact: cont0.
+exact: J.zero_correct.
 Qed.
 
 Lemma polyX_correct : polyX >:: PolR.polyX.
 Proof.
-case=> [|k] /=; first exact: cont0.
+case=> [|k] /=; first exact: J.zero_correct.
 case: k => [|k] /=; first by change R1 with (INR 1); apply: I.fromZ_correct.
 rewrite /nth /PolR.nth !nth_nil.
-exact: cont0.
+exact: J.zero_correct.
 Qed.
 
 Lemma primitive_correct u ci c pi p :
@@ -1299,9 +1300,9 @@ Proof.
 move=> Hc Hp; rewrite /primitive /PolR.primitive /nth /PolR.nth.
 apply: polyCons_correct =>//.
 apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
-- exact: cont0.
+- exact: J.zero_correct.
 - move=> k; rewrite /int_coeff_shift /PolR.int_coeff_shift.
-  apply: R_div_correct =>//.
+  apply: J.div_correct =>//.
   exact: R_from_nat_correct.
 - move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.
   by rewrite [seq.nth _ _ _](PolR.nth_default _k) /Rdiv Rmult_0_l.

@@ -26,7 +26,6 @@ Require Import Interval_interval.
 Require Import Interval_missing.
 Require Import Rstruct.
 Require Import seq_compl.
-Require Import interval_compl.
 Require Import poly_datatypes.
 
 Set Implicit Arguments.
@@ -39,18 +38,18 @@ Module Type PolyBound (I : IntervalOps) (Pol : PolyIntOps I).
 Import Pol Pol.Notations.
 Local Open Scope ipoly_scope.
 
-Module Import Aux := IntervalAux I.
+Module J := IntervalExt I.
 
 Parameter ComputeBound : Pol.U -> Pol.T -> I.type -> I.type.
 
 Parameter ComputeBound_correct :
   forall u pi p,
   pi >:: p ->
-  R_extension (PolR.horner tt p) (ComputeBound u pi).
+  J.extension (PolR.horner tt p) (ComputeBound u pi).
 
 Parameter ComputeBound_propagate :
   forall u pi,
-  I.propagate (ComputeBound u pi).
+  J.propagate (ComputeBound u pi).
 
 End PolyBound.
 
@@ -61,8 +60,6 @@ Module PolyBoundThm
 
 Import Pol.Notations Bnd.
 Local Open Scope ipoly_scope.
-
-Module Import Aux := IntervalAux I.
 
 Theorem ComputeBound_nth0 prec pi p X :
   pi >:: p ->
@@ -89,8 +86,6 @@ have->: pi = Pol.set_nth pi 0 (Pol.nth pi 0).
 exact: Pol.set_nth_correct.
 Qed.
 
-Arguments ComputeBound_nth0 [prec pi] p [X] _ _ r _.
-
 End PolyBoundThm.
 
 (** Naive implementation: Horner evaluation *)
@@ -100,7 +95,7 @@ Module PolyBoundHorner (I : IntervalOps) (Pol : PolyIntOps I)
 
 Import Pol.Notations.
 Local Open Scope ipoly_scope.
-Module Import Aux := IntervalAux I.
+Module J := IntervalExt I.
 
 Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
   Pol.horner.
@@ -108,19 +103,15 @@ Definition ComputeBound : Pol.U -> Pol.T -> I.type -> I.type :=
 Theorem ComputeBound_correct :
   forall prec pi p,
   pi >:: p ->
-  R_extension (PolR.horner tt p) (ComputeBound prec pi).
+  J.extension (PolR.horner tt p) (ComputeBound prec pi).
 Proof.
 move=> Hfifx X x Hx; rewrite /ComputeBound.
 by move=> *; apply Pol.horner_correct.
 Qed.
 
-Arguments ComputeBound_correct [prec pi p] _ b x _.
-
 Lemma ComputeBound_propagate :
   forall prec pi,
-  I.propagate (ComputeBound prec pi).
+  J.propagate (ComputeBound prec pi).
 Proof. by red=> *; rewrite /ComputeBound Pol.horner_propagate. Qed.
-
-Arguments ComputeBound_propagate [prec pi] xi _.
 
 End PolyBoundHorner.

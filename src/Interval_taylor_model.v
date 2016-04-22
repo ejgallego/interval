@@ -234,7 +234,7 @@ simpl.
 by congr Xreal; ring.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
-  exact: R_sub_correct.
+  exact: J.sub_correct.
 case Efx: (f x) => [|fx].
 apply/contains_Xnan.
 apply: Hdef Efx.

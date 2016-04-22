@@ -335,110 +335,11 @@ Qed.
 (** Correctness predicates dealing with reals only, weaker than [I.extension] *)
 (******************************************************************************)
 
-Definition R_extension f fi :=
-  forall (b : I.type) (x : R),
-    contains (I.convert b) (Xreal x) ->
-    contains (I.convert (fi b))
-             (Xreal (f x)).
-
-Definition R_extension_2 f fi :=
-  forall (ix iy : I.type) (x y : R),
-    contains (I.convert ix) (Xreal x) ->
-    contains (I.convert iy) (Xreal y) ->
-    contains (I.convert (fi ix iy)) (Xreal (f x y)).
-
-Lemma R_div_correct (prec : I.precision) :
-  R_extension_2 Rdiv (I.div prec).
-Proof.
-intros xi yi x y Hx Hy.
-move: (I.div_correct prec _ _ _ _ Hx Hy) => /=.
-unfold Xdiv'.
-case is_zero => //.
-now case I.convert.
-Qed.
-
-Lemma R_neg_correct : R_extension Ropp I.neg.
-Proof. intros xi x. exact: I.neg_correct. Qed.
-
-Lemma R_sub_correct prec : R_extension_2 Rminus (I.sub prec).
-Proof. intros xi yi x y. exact: I.sub_correct. Qed.
-
-Lemma R_add_correct prec : R_extension_2 Rplus (I.add prec).
-Proof. intros xi yi x y. exact: I.add_correct. Qed.
-
-Lemma R_mul_correct prec : R_extension_2 Rmult (I.mul prec).
-Proof. intros xi yi x y. exact: I.mul_correct. Qed.
-
-Lemma R_sqr_correct prec : R_extension Rsqr (I.sqr prec).
-Proof. intros xi x. exact: I.sqr_correct. Qed.
-
-Lemma R_power_int_correct prec (n : Z) :
-  R_extension (powerRZ ^~ n) (I.power_int prec ^~ n).
-Proof.
-intros xi x.
-move/(I.power_int_correct prec n) => /=.
-unfold Xpower_int'.
-case: n => // n.
-case is_zero => //.
-now case I.convert.
-Qed.
-
 Lemma R_from_nat_correct :
   forall (b : I.type) (n : nat),
   contains (I.convert (I.fromZ (Z.of_nat n)))
            (Xreal (INR n)).
 Proof. move=> b n; rewrite INR_Z2R; exact: I.fromZ_correct. Qed.
-
-Lemma R_inv_correct : forall prec, R_extension Rinv (I.inv prec).
-Proof.
-intros prec xi x.
-move/(I.inv_correct prec) => /=.
-unfold Xinv'.
-case is_zero => //.
-now case I.convert.
-Qed.
-
-Lemma R_sqrt_correct : forall prec, R_extension sqrt (I.sqrt prec).
-Proof.
-intros prec xi x.
-move/(I.sqrt_correct prec) => /=.
-unfold Xsqrt'.
-case is_negative => //.
-now case I.convert.
-Qed.
-
-Lemma R_cos_correct : forall prec, R_extension cos (I.cos prec).
-Proof. intros prec xi x. exact: I.cos_correct. Qed.
-
-Lemma R_sin_correct : forall prec, R_extension sin (I.sin prec).
-Proof. intros prec xi x. exact: I.sin_correct. Qed.
-
-Lemma R_tan_correct : forall prec, R_extension tan (I.tan prec).
-Proof.
-intros prec xi x.
-move/(I.tan_correct prec).
-unfold Xtan', Xbind.
-case is_zero => //.
-now case I.convert.
-Qed.
-
-Lemma R_atan_correct : forall prec, R_extension atan (I.atan prec).
-Proof. intros prec xi x Hx. exact: I.atan_correct Hx. Qed.
-
-Lemma R_exp_correct : forall prec, R_extension exp (I.exp prec).
-Proof. intros prec xi x Hx. exact: I.exp_correct Hx. Qed.
-
-Lemma R_ln_correct : forall prec, R_extension ln (I.ln prec).
-Proof.
-intros prec xi x.
-move/(I.ln_correct prec) => /=.
-unfold Xln'.
-case is_positive => //.
-now case I.convert.
-Qed.
-
-Lemma cont0 : contains (I.convert I.zero) (Xreal 0).
-Proof. by rewrite I.zero_correct //=; split; exact: Rle_refl. Qed.
 
 Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
 Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.

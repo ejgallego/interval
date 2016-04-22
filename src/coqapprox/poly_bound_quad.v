@@ -40,8 +40,7 @@ Module PolyBoundHornerQuad (I : IntervalOps) (Pol : PolyIntOps I)
   <: PolyBound I Pol.
 
 Module Import Bnd := PolyBoundHorner I Pol.
-
-Module Import Aux := IntervalAux I.
+Module J := IntervalExt I.
 
 Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
   if 3 <= Pol.size pol then
@@ -63,7 +62,7 @@ Import Pol.Notations. Local Open Scope ipoly_scope.
 
 Theorem ComputeBound_correct prec pi p :
   pi >:: p ->
-  R_extension (PolR.horner tt p) (ComputeBound prec pi).
+  J.extension (PolR.horner tt p) (ComputeBound prec pi).
 Proof.
 move=> Hnth X x Hx; rewrite /ComputeBound.
 case E: (2 < Pol.size pi); last by apply: Bnd.ComputeBound_correct.
@@ -85,21 +84,21 @@ suff->: PolR.horner tt p x =
               (Rmult a2 (Rsqr (Rplus x (Rdiv a1 (Rplus a2 a2))))))
         (Rmult (powerRZ x 3) (PolR.horner tt q3 x))).
 have Hnth3 : Q3 >:: q3 by apply(*:*) Pol.tail_correct.
-apply: R_add_correct;
-  [apply: R_add_correct;
-    [apply: R_sub_correct;
+apply: J.add_correct;
+  [apply: J.add_correct;
+    [apply: J.sub_correct;
       [apply: Hnth
-      |apply: R_div_correct;
-        [apply: R_sqr_correct; apply: Hnth
-        |apply: R_add_correct; apply: R_add_correct; apply: Hnth]]
-    |apply: R_mul_correct;
+      |apply: J.div_correct;
+        [apply: J.sqr_correct; apply: Hnth
+        |apply: J.add_correct; apply: J.add_correct; apply: Hnth]]
+    |apply: J.mul_correct;
       [apply: Hnth
-      |apply: R_sqr_correct; apply: R_add_correct;
+      |apply: J.sqr_correct; apply: J.add_correct;
        [done
-       |apply: R_div_correct;
-         [apply: Hnth|apply: R_add_correct; apply: Hnth ]]]]
-  |apply: R_mul_correct;
-    [exact: R_power_int_correct|exact: Pol.horner_correct]].
+       |apply: J.div_correct;
+         [apply: Hnth|apply: J.add_correct; apply: Hnth ]]]]
+  |apply: J.mul_correct;
+    [exact: J.power_int_correct|exact: Pol.horner_correct]].
 rewrite 2!PolR.hornerE.
 rewrite (@big_nat_leq_idx _ _ _ (3 + (PolR.size p - 3))).
 rewrite big_mkord.
@@ -120,7 +119,7 @@ have H4 : (a2 + a2 + (a2 + a2) <> 0)%R.
     rewrite -K.
     change (Xreal _) with (Xadd (Xadd (Xreal a2) (Xreal a2))
       (Xadd (Xreal a2) (Xreal a2))).
-    by apply: R_add_correct; apply: R_add_correct; apply: Hnth.
+    by apply: J.add_correct; apply: J.add_correct; apply: Hnth.
   case/(I.bounded_correct _) => _.
   case/(I.upper_bounded_correct _) => _.
   rewrite /I.bounded_prop.
@@ -152,20 +151,14 @@ move=> i /andP [Hi _].
 by rewrite PolR.nth_default ?Rmult_0_l.
 Qed.
 
-Arguments ComputeBound_correct [prec pi p] _ b x _.
-
-Module J := IntervalExt I.
-
 Lemma ComputeBound_propagate :
   forall prec pi,
-  I.propagate (ComputeBound prec pi).
+  J.propagate (ComputeBound prec pi).
 Proof.
 red=> *; rewrite /ComputeBound /=.
 by repeat match goal with [|- context [if ?b then _ else _]] => destruct b end;
   rewrite !(I.add_propagate_r,I.mul_propagate_l,J.power_int_propagate,
             Pol.horner_propagate).
 Qed.
-
-Arguments ComputeBound_propagate [prec pi] xi _.
 
 End PolyBoundHornerQuad.

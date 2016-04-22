@@ -294,14 +294,14 @@ Proof.
 move => Hf3_int HZx1 HZx2 Hext.
 destruct (Req_dec x2 x1) as [H|H].
   rewrite H RInt_point -(Rmult_0_l (f3 x1)) -(Rminus_diag_eq x2 x1) //.
-  apply: R_mul_correct.
-  exact: R_sub_correct.
+  apply: J.mul_correct.
+  exact: J.sub_correct.
   apply: Hext.
   exact: Rmin_Rmax_l.
 have -> : (RInt f3 x1 x2 = (x2 - x1) * ((RInt f3 x1 x2) / (x2 - x1)))%R
   by field; apply: Rminus_eq_contra.
-apply: R_mul_correct.
-exact: R_sub_correct.
+apply: J.mul_correct.
+exact: J.sub_correct.
 wlog H': x1 x2 {H HZx1 HZx2} Hext Hf3_int / (x1 < x2)%R.
   intros H'.
   destruct (Rdichotomy _ _ H) as [H21|H12].
@@ -369,14 +369,14 @@ have ->: RInt f a b =
     RInt (fun x => f x - PolR.horner tt q (x - x0)) a b.
   rewrite RInt_minus //.
   ring.
-apply: R_add_correct.
+apply: J.add_correct.
   rewrite RInt_translation_sub Rpol_integral_0.
   have H: forall x xi, xi >: x -> Pol.horner prec TM_integral_poly (Isub xi X0) >: (PolR.primitive tt 0 q).[x - x0].
     move => x xi Hx.
     apply: Pol.horner_correct.
-    exact: Pol.primitive_correct cont0 HMfq.
-    exact: R_sub_correct.
-  apply: R_sub_correct ; exact: H.
+    exact: Pol.primitive_correct J.zero_correct HMfq.
+    exact: J.sub_correct.
+  apply: J.sub_correct ; exact: H.
 apply: contains_RInt => //.
   exact: ex_RInt_minus.
 move => x Hx.
@@ -393,7 +393,7 @@ Lemma contains_interval_float_integral (p : PolR.T) :
   TM_integral_poly >:: (PolR.primitive tt 0%R p).
 Proof.
 move=> Hp; rewrite /TM_integral_poly.
-by apply: Pol.primitive_correct; first exact: cont0.
+by apply: Pol.primitive_correct; first exact: J.zero_correct.
 Qed.
 
 Lemma TM_integral_error_0 (x0 : R) :
@@ -404,17 +404,17 @@ Proof.
 move => Hx0X0 [_ _ ErrMf0 HX0X HPol].
 case: {HPol} (HPol x0 Hx0X0) => [p Hcontains _].
 replace R0 with ((x0 - x0) * 0 + (0 + (x0 - x0) * 0))%R by ring.
-apply: R_add_correct; last apply: R_add_correct.
-- apply: R_mul_correct ErrMf0.
-  apply: R_sub_correct (Hx0X0).
+apply: J.add_correct; last apply: J.add_correct.
+- apply: J.mul_correct ErrMf0.
+  apply: J.sub_correct (Hx0X0).
   exact: HX0X.
-- apply (BndThm.ComputeBound_nth0 (PolR.primitive tt 0%R p)).
-    apply: Pol.primitive_correct =>//; exact: cont0.
+- apply (@BndThm.ComputeBound_nth0 prec _ (PolR.primitive tt 0%R p)).
+    apply: Pol.primitive_correct =>//; exact: J.zero_correct.
   have -> : 0%R = (x0 - x0)%R by rewrite Rminus_diag_eq.
-  exact: R_sub_correct.
-  exact: Pol.primitive_correct cont0 Hcontains O.
-- apply: R_mul_correct ErrMf0.
-  exact: R_sub_correct.
+  exact: J.sub_correct.
+  exact: Pol.primitive_correct J.zero_correct Hcontains O.
+- apply: J.mul_correct ErrMf0.
+  exact: J.sub_correct.
 Qed.
 
 Definition TM_integral :=
@@ -433,7 +433,7 @@ move=> /= x1 HX0x1 {ErrMf0}.
 case: (HPol (x0) Hx0X0) => [p Hcontains H3].
 case: (HPol (x1) HX0x1) => [p1 Hcontains1 H31 {HPol}].
 exists (PolR.primitive tt 0 p1).
-- by apply: Pol.primitive_correct; first exact: cont0.
+- by apply: Pol.primitive_correct; first exact: J.zero_correct.
 - move => x hxX.
   have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
   + apply: RInt_Chasles; apply: f_int => //.
@@ -476,7 +476,7 @@ apply: I.add_correct; last first;  first apply: I.add_correct.
   have -> : x0 - x0 = 0 by ring.
   rewrite PolR.toSeq_horner0. rewrite -nth0 -PolR.nth_toSeq PolR.nth_primitive // Rminus_0_r.
   apply: Bnd.ComputeBound_correct; last by rewrite Xreal_sub; exact: I.sub_correct.
-  by apply: Pol.primitive_correct; first exact: cont0.
+  by apply: Pol.primitive_correct; first exact: J.zero_correct.
   + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
       by apply: f_int => //; exact: HX0X.
       apply: contains_RInt => //.
@@ -1052,12 +1052,12 @@ have Hder' : forall n r, X >: r -> ex_derive_n f0 n r.
   exact: Hder_n.
 have [c [Hcin [Hc Hc']]] := (@ITaylor_Lagrange xf _ (contains_connected (I.convert X)) n Hder' x0 x H0 Hx).
 rewrite Hc {Hc t Ht} /TLrem.
-apply: R_mul_correct=>//.
+apply: J.mul_correct=>//.
   rewrite -(@Poly_nth _ c n.+1 n.+1) //;
   exact: IPoly_nth.
 rewrite pow_powerRZ.
-apply: R_power_int_correct.
-exact: R_sub_correct.
+apply: J.power_int_correct.
+exact: J.sub_correct.
 Qed.
 
 Lemma Ztech_derive_sign (n : nat) :
@@ -1154,24 +1154,24 @@ have {Hcl Hbl} Hlower : Delta >: Rdelta0 l.
   apply: I.join_correct; left; apply: I.join_correct; left.
   have Hlower : contains (I.convert (I.bnd (I.lower X) (I.lower X))) (Xreal l).
     rewrite I.bnd_correct Hcl; split; apply Rle_refl.
-  apply: R_sub_correct.
+  apply: J.sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
-    exact: R_sub_correct.
+    exact: J.sub_correct.
 have {Hcu Hbu} Hupper : Delta >: Rdelta0 u.
   apply: I.join_correct; left; apply: I.join_correct; right.
   have Hupper : contains (I.convert (I.bnd (I.upper X) (I.upper X))) (Xreal u).
     rewrite I.bnd_correct Hcu; split; apply Rle_refl.
-  apply: R_sub_correct.
+  apply: J.sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
-    exact: R_sub_correct.
+    exact: J.sub_correct.
 have H'x0 : X >: x0 by exact: Hsubs.
 have HX0 : Delta >: Rdelta0 x0.
   apply: I.join_correct; right.
-  apply: R_sub_correct; first exact: F_Rcontains.
+  apply: J.sub_correct; first exact: F_Rcontains.
   rewrite Rminus_diag_eq //.
   suff->: ((P x0 n).[0%R]) = PolR.nth (P x0 n) 0 by apply: IPoly_nth.
   rewrite PolR.hornerE Poly_size big_nat_recl // pow_O Rmult_1_r.
@@ -1226,7 +1226,7 @@ split=>//=.
   apply I.mask_propagate_r, contains_Xnan.
   by rewrite -Nx.
   by move=> HX; apply I.mask_propagate_l, I.mask_propagate_r.
-  apply I.mask_correct', I.mask_correct', cont0.
+  apply I.mask_correct', I.mask_correct', J.zero_correct.
 move=> x0 Hx0.
 case: c Hc => [|c]; first move/contains_Xnan; move => Hc.
 exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
@@ -1234,7 +1234,7 @@ exists (PolR.polyC 0%R); first by apply: Pol.polyC_correct; rewrite Hc.
 exists (PolR.polyC c); first exact: Pol.polyC_correct.
 move=> x Hx /=.
 rewrite Rmult_0_l Rplus_0_l Rminus_diag_eq //.
-apply I.mask_correct', I.mask_correct', cont0.
+apply I.mask_correct', I.mask_correct', J.zero_correct.
 Qed.
 
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : R -> ExtendedR) :
@@ -1306,9 +1306,9 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   exact: Pol.polyC_correct.
   apply: Pol.set_nth_correct.
   exact: Pol.polyC_correct.
-  exact: cont0.
+  exact: J.zero_correct.
 + move=> x Hx /=.
-  apply I.mask_correct', R_sub_correct.
+  apply I.mask_correct', J.sub_correct.
   now apply contains_Xreal, Hf.
   rewrite /pol' /pol0; case: ifP => H.
   by rewrite PolR.horner_polyC.
@@ -1338,14 +1338,14 @@ Proof.
 move=> Hsubs [t Ht].
 split=>//.
   apply I.mask_propagate_r.
-  apply I.mask_correct', cont0.
+  apply I.mask_correct', J.zero_correct.
 move=> x0 Hx0 /=.
 exists (PolR.set_nth PolR.polyX 0 x0).
   apply: Pol.set_nth_correct =>//.
   exact: Pol.polyX_correct.
 move=> x Hx /=.
 replace (x - _)%R with R0 by ring.
-apply I.mask_correct', cont0.
+apply I.mask_correct', J.zero_correct.
 Qed.
 
 Theorem TM_var_correct_strong X0 X (f : R -> ExtendedR) :
@@ -1389,10 +1389,10 @@ constructor.
 - { move => {X0 X n Hsubset Hex} X0 xi0 n Hx.
     apply: Pol.rec1_correct =>//.
     by move=> *;
-      repeat first [apply: R_div_correct
+      repeat first [apply: J.div_correct
                    |apply: R_from_nat_correct
                    ].
-    exact: R_exp_correct.
+    exact: J.exp_correct.
   }
 - done.
 - move=> {n} n x Hx; eapply ex_derive_n_is_derive_n; exact: is_derive_n_exp.
@@ -1451,12 +1451,12 @@ constructor.
 constructor.
 - by move=> x m k; rewrite /TR.T_sin Pol.size_rec2 PolR.size_rec2.
 - by move=> Y x m Hx; apply: Pol.rec2_correct; first move=> ai bi a b l Ha Hb;
-  repeat first [apply: R_div_correct|
-                apply: R_neg_correct|
-                apply: R_mul_correct|
+  repeat first [apply: J.div_correct|
+                apply: J.neg_correct|
+                apply: J.mul_correct|
                 apply: R_from_nat_correct|
-                apply: R_sin_correct|
-                apply: R_cos_correct].
+                apply: J.sin_correct|
+                apply: J.cos_correct].
 - move=> Y x Hx Dx m k Hk; rewrite /T_sin.
 - done.
 - move=> *; apply/ex_derive_n_is_derive_n/is_derive_n_sin.
@@ -1504,12 +1504,12 @@ constructor.
 constructor.
 - by move=> x m k; rewrite /TR.T_cos Pol.size_rec2 PolR.size_rec2.
 - by move=> Y x m Hx; apply: Pol.rec2_correct; first move=> ai bi a b l Ha Hb;
-  repeat first [apply: R_div_correct|
-                apply: R_neg_correct|
-                apply: R_mul_correct|
+  repeat first [apply: J.div_correct|
+                apply: J.neg_correct|
+                apply: J.mul_correct|
                 apply: R_from_nat_correct|
-                apply: R_sin_correct|
-                apply: R_cos_correct].
+                apply: J.sin_correct|
+                apply: J.cos_correct].
 - done.
 - move=> *; apply/ex_derive_n_is_derive_n/is_derive_n_cos.
 Qed.
@@ -1585,16 +1585,16 @@ constructor.
                        apply: Pol.mul_mixed_correct|
                        apply: R_from_nat_correct].
     + move=> qi q m Hq.
-      by repeat first [apply: R_div_correct|
-                       apply: R_power_int_correct|
+      by repeat first [apply: J.div_correct|
+                       apply: J.power_int_correct|
                        apply: Pol.horner_correct|
-                       apply: R_add_correct|
-                       apply: R_sqr_correct|
+                       apply: J.add_correct|
+                       apply: J.sqr_correct|
                        apply: I.fromZ_correct|
                        apply: Pol.one_correct].
     + exact: Pol.one_correct.
-    + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: cont0.
-      exact: R_atan_correct.
+    + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: J.zero_correct.
+      exact: J.atan_correct.
   }
 - done.
 - by move=> m x Hx; apply: ex_derive_n_is_derive_n (is_derive_n_atan m x).
@@ -1633,7 +1633,7 @@ constructor.
       apply: (@Derive_n_ext_loc _ tan).
       have Hdef : cos x <> 0%R.
         move/apart0_correct in E0.
-        by apply: E0; apply: R_cos_correct.
+        by apply: E0; apply: J.cos_correct.
       eapply locally_open with
         (1 := open_comp cos (fun y => y <> 0%R)
           (fun y _ => continuous_cos y)
@@ -1644,7 +1644,7 @@ constructor.
     rewrite [size _]/= subn0.
     have Hdef : cos x <> 0%R.
       move/apart0_correct in E0.
-      by apply: E0; apply: R_cos_correct.
+      by apply: E0; apply: J.cos_correct.
     elim: k H x {Hx} Hdef =>[|k IHk] H x Hdef.
     + by rewrite /= !Rsimpl.
     + move/ltnW in H; move/(_ H) in IHk.
@@ -1687,16 +1687,16 @@ constructor.
                        apply: Pol.mul_mixed_correct|
                        apply: R_from_nat_correct].
     + move=> qi q m Hq.
-      by repeat first [apply: R_div_correct|
-                       apply: R_power_int_correct|
+      by repeat first [apply: J.div_correct|
+                       apply: J.power_int_correct|
                        apply: Pol.horner_correct|
-                       apply: R_add_correct|
-                       apply: R_sqr_correct|
+                       apply: J.add_correct|
+                       apply: J.sqr_correct|
                        apply: I.fromZ_correct|
                        apply: Pol.one_correct|
-                       apply: R_tan_correct].
+                       apply: J.tan_correct].
     + apply: Pol.lift_correct; exact: Pol.one_correct.
-    + move=> [/=|k]; rewrite /PolR.nth ?nth_default //; exact: cont0.
+    + move=> [/=|k]; rewrite /PolR.nth ?nth_default //; exact: J.zero_correct.
   }
 - { move => {X0 X n Hsubset Hex E0} X x Hx Dx n k Hk.
     apply/Pol.grec1_propagate =>//.
@@ -1706,8 +1706,10 @@ constructor.
       exact: I.tan_correct Hx.
     by rewrite Pol.size_grec1.
   }
-- move=> m x Hx; move/apart0_correct in E0.
-  move/(_ (cos x) (R_cos_correct _ Hx)) in E0.
+- move=> m x Hx.
+  have {E0} E0: cos x <> R0.
+    apply: apart0_correct E0.
+    exact: J.cos_correct.
   eapply (@ex_derive_n_ext_loc tan); last first.
     exact: ex_derive_n_is_derive_n (is_derive_n_tan m x E0).
   eapply locally_open with
@@ -1732,10 +1734,10 @@ apply: Pol.grec1_correct;
                   |apply: Pol.deriv_correct
                   |apply: R_from_nat_correct
                   |move=> *; apply: Pol.horner_correct
-                  |apply: R_tan_correct
+                  |apply: J.tan_correct
                   |apply: Pol.lift_correct
                   |apply: Pol.one_correct
-                  |move=> [|k]; rewrite /PolR.nth ?nth_default //; exact: cont0
+                  |move=> [|k]; rewrite /PolR.nth ?nth_default //; exact: J.zero_correct
                   ].
 Qed.
 
@@ -1808,15 +1810,15 @@ constructor.
 - { move => {X0 X n Hsubset Hex E1} X0 xi0 n Hx.
     apply: Pol.rec1_correct =>//.
     by move=> *;
-      repeat first [apply: R_div_correct
-                   |apply: R_mul_correct
-                   |apply: R_sub_correct
+      repeat first [apply: J.div_correct
+                   |apply: J.mul_correct
+                   |apply: J.sub_correct
                    |apply: I.fromZ_correct
-                   |apply: R_mul_correct
+                   |apply: J.mul_correct
                    |apply: I.fromZ_correct
                    |apply: R_from_nat_correct
                    ].
-    exact: R_sqrt_correct.
+    exact: J.sqrt_correct.
   }
 - move=> I r Ir /= {E1 Hex Hsubset X X0 n}.
   unfold Xsqrt'.
@@ -1846,15 +1848,15 @@ move=> x0 Hx0.
 exists (TR.T_sqrt tt x0 n).
 apply: Pol.rec1_correct.
 by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
+  repeat first [apply: J.div_correct
+               |apply: J.mul_correct
+               |apply: J.sub_correct
                |apply: I.fromZ_correct
-               |apply: R_mul_correct
+               |apply: J.mul_correct
                |apply: I.fromZ_correct
                |apply: R_from_nat_correct
                ].
-exact: R_sqrt_correct.
+exact: J.sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
@@ -1925,18 +1927,18 @@ constructor.
 - { move => {X0 X n Hsubset Hex E1} X0 xi0 n Hx.
     apply: Pol.rec1_correct =>//.
 by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
+  repeat first [apply: J.div_correct
+               |apply: J.mul_correct
+               |apply: J.sub_correct
                |apply: I.fromZ_correct
-               |apply: R_mul_correct
+               |apply: J.mul_correct
                |apply: I.fromZ_correct
                |apply/eqNaiPy: R_from_nat_correct
-               |apply: R_add_correct
-               |apply: R_neg_correct
+               |apply: J.add_correct
+               |apply: J.neg_correct
                |Inc
                ].
-    apply: R_inv_correct; exact: R_sqrt_correct.
+    apply: J.inv_correct; exact: J.sqrt_correct.
   }
 - move=> I r Ir {X0 X n Hsubset Hex E1} Dx n k Hkn.
   apply: Pol.rec1_propagate.
@@ -1965,18 +1967,18 @@ move=> x0 Hx0.
 exists (TR.T_invsqrt tt x0 n).
 apply: Pol.rec1_correct.
 by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_mul_correct
-               |apply: R_sub_correct
+  repeat first [apply: J.div_correct
+               |apply: J.mul_correct
+               |apply: J.sub_correct
                |apply: I.fromZ_correct
-               |apply: R_mul_correct
+               |apply: J.mul_correct
                |apply: I.fromZ_correct
                |apply/eqNaiPy: R_from_nat_correct
-               |apply: R_add_correct
-               |apply: R_neg_correct
+               |apply: J.add_correct
+               |apply: J.neg_correct
                |Inc
                ].
-by apply: R_inv_correct; apply: R_sqrt_correct.
+by apply: J.inv_correct; apply: J.sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
@@ -2138,9 +2140,9 @@ constructor.
     apply: Pol.rec1_correct =>//.
     + rewrite /pow_aux_rec /TR.pow_aux_rec; move=> _ _ m _.
       case: ifP => H.
-      exact: R_power_int_correct.
-      apply I.mask_correct', cont0.
-    + exact: R_power_int_correct.
+      exact: J.power_int_correct.
+      apply I.mask_correct', J.zero_correct.
+    + exact: J.power_int_correct.
   }
 - { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
     rewrite /T_power_int.
@@ -2198,9 +2200,9 @@ apply: Pol.rec1_correct.
 rewrite /pow_aux_rec /TR.pow_aux_rec -Ep.
 move=> ai a m Ha.
 case: ((p <? 0) || (p >=? Z.of_nat m))%Z.
-exact: R_power_int_correct.
-apply I.mask_correct', cont0.
-exact: R_power_int_correct.
+exact: J.power_int_correct.
+apply I.mask_correct', J.zero_correct.
+exact: J.power_int_correct.
 by move=> x Hx; rewrite I.nai_correct.
 Qed.
 
@@ -2259,9 +2261,9 @@ constructor.
 constructor.
 - by move=> {n} ? ? n; rewrite PolR.size_rec1 Pol.size_rec1.
 - { move=> {X0 n Hsubset Hex} X0 x0 n Hx0.
-    apply: Pol.rec1_correct; last exact: R_inv_correct.
-    move=> ai a m Ha; apply: R_div_correct =>//.
-    exact: R_neg_correct.
+    apply: Pol.rec1_correct; last exact: J.inv_correct.
+    move=> ai a m Ha; apply: J.div_correct =>//.
+    exact: J.neg_correct.
   }
 - { move=> {X0 n Hsubset Hex} Y x Hx Dx n k Hk.
     apply/Pol.rec1_propagate =>//.
@@ -2289,11 +2291,11 @@ move=> x0 Hx0.
 exists (TR.T_inv tt x0 n).
 apply: Pol.rec1_correct.
 by move=> *;
-  repeat first [apply: R_div_correct
-               |apply: R_inv_correct
-               |apply: R_neg_correct
+  repeat first [apply: J.div_correct
+               |apply: J.inv_correct
+               |apply: J.neg_correct
                ].
-exact: R_inv_correct.
+exact: J.inv_correct.
 by rewrite I.nai_correct.
 Qed.
 
@@ -2387,14 +2389,14 @@ constructor.
       @PolR.size_dotmuldiv n.+1, PolR.size_rec1, size_rec1up, size_behead).
 - { move=> {X0 n Hsubset Hex} X0 x0 n Hx0.
     rewrite /T_ln /TR.T_ln.
-    apply: Pol.polyCons_correct; last exact: R_ln_correct.
+    apply: Pol.polyCons_correct; last exact: J.ln_correct.
     case: n => [|n]; first exact: Pol.polyNil_correct.
     apply: Pol.dotmuldiv_correct;
       first by rewrite size_falling_seq size_behead size_fact_seq.
     apply: Pol.rec1_correct; first move=> *;
-      repeat first [apply: R_div_correct
-                   |apply: R_power_int_correct
-                   |apply: R_ln_correct
+      repeat first [apply: J.div_correct
+                   |apply: J.power_int_correct
+                   |apply: J.ln_correct
                    ];
       exact: I.mask_correct'.
   }
@@ -2440,13 +2442,13 @@ apply: Pol.polyCons_correct; case: n =>[|n]/=; first exact: Pol.polyNil_correct.
 - apply: Pol.dotmuldiv_correct;
     first by rewrite size_falling_seq size_behead size_fact_seq.
   apply: Pol.rec1_correct; first move=> *;
-    repeat first [apply: R_div_correct
-                 |apply: R_power_int_correct
-                 |apply: R_ln_correct
+    repeat first [apply: J.div_correct
+                 |apply: J.power_int_correct
+                 |apply: J.ln_correct
                  ];
     exact: I.mask_correct'.
-- exact: R_ln_correct.
-- exact: R_ln_correct.
+- exact: J.ln_correct.
+- exact: J.ln_correct.
 by rewrite I.nai_correct.
 Qed.
 
@@ -2490,7 +2492,7 @@ simpl Xbind2.
 replace (fx + gx - (pfx + pgx))%R with ((fx - pfx) + (gx - pgx))%R by ring.
 rewrite Xreal_add 2!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
 rewrite Ef Eg /=.
-apply: R_add_correct.
+apply: J.add_correct.
 rewrite -[fx](f_equal proj_val Ef).
 exact: Hf2.
 rewrite -[gx](f_equal proj_val Eg).
@@ -2532,9 +2534,9 @@ move=> x Hx.
 rewrite PolR.horner_opp.
 case Efx: (f x) (H2 x Hx) => [|fx] /=.
 rewrite /Rminus 2!Rplus_0_l.
-exact: R_neg_correct.
+exact: J.neg_correct.
 replace (- fx - - Q.[x - x0])%R with (-(fx - Q.[x - x0]))%R by ring.
-exact: R_neg_correct.
+exact: J.neg_correct.
 Qed.
 
 Lemma TM_sub_correct (X0 X : interval (*I.type?*)) (TMf TMg : rpa) f g :
@@ -2613,7 +2615,7 @@ have [q H1 H2] := Hmain.
 exists (PolR.map (Rmult y) q).
 - apply: Pol.map_correct =>//.
   by rewrite Rmult_0_r.
-  by move=> *; apply: R_mul_correct.
+  by move=> *; apply: J.mul_correct.
 - move=> x Hx.
   move/(_ x Hx) in H2.
   rewrite PolR.horner_mul_mixed.
@@ -2622,7 +2624,7 @@ exists (PolR.map (Rmult y) q).
   rewrite /Xbind2 /proj_val.
   replace (y * fx - y * q.[x - x0])%R with (y * (fx - q.[x - x0]))%R by ring.
   rewrite Dx in H2.
-  exact: R_mul_correct.
+  exact: J.mul_correct.
 Qed.
 
 Lemma TM_mul_mixed_nai a M f X0 X :
@@ -2654,7 +2656,7 @@ split=>//.
   exists (PolR.map (Rmult (* dummy *) R0) q).
     apply: Pol.map_correct =>//.
       by rewrite Rmult_0_r.
-    move=> *; apply: R_mul_correct =>//.
+    move=> *; apply: J.mul_correct =>//.
     by move/contains_Xnan: Hy1 =>->.
   move=> x Hx /=.
   move/(_ x Hx) in H2.
@@ -2684,7 +2686,7 @@ split=>//.
 move=> x0 Hx0; have [Q Happrox Herr] := Hmain x0 Hx0.
 exists (PolR.map (Rdiv^~ 0)%R Q) =>/=.
 apply: Pol.map_correct =>//; first by rewrite /Rdiv Rmult_0_l.
-move=> *; exact: R_div_correct.
+move=> *; exact: J.div_correct.
 by move=> x Hx; move/contains_Xnan: Lem ->.
 Qed.
 
@@ -2711,7 +2713,7 @@ have [q H1 H2] := Hmain x0 Hx0.
 exists (PolR.map (Rdiv ^~ y) q).
 - apply: Pol.map_correct =>//.
   by rewrite /Rdiv Rmult_0_l.
-  by move=> *; apply: R_div_correct.
+  by move=> *; apply: J.div_correct.
 - move=> x Hx /=.
   move/(_ x Hx) in H2.
   case Df: (f x) => [|fx].
@@ -2720,7 +2722,7 @@ exists (PolR.map (Rdiv ^~ y) q).
   rewrite PolR.horner_div_mixed_r /Xdiv' /Xbind2 zeroF // /proj_val.
   rewrite Df in H2.
   replace (fx / y - q.[x - x0] / y)%R with ((fx - q.[x - x0]) / y)%R by now field.
-  exact: R_div_correct.
+  exact: J.div_correct.
 Qed.
 
 Lemma TM_div_mixed_r_nai M b f X0 X :
@@ -2751,7 +2753,7 @@ split=>//=.
   exists (PolR.map (Rdiv ^~ R0) q).
     apply: Pol.map_correct =>//.
     by rewrite /Rdiv Rmult_0_l.
-    move=> *; apply: R_div_correct =>//.
+    move=> *; apply: J.div_correct =>//.
     by move/contains_Xnan: Hy1 =>->.
   move=> x Hx /=.
   move/(_ x Hx) in H2.
@@ -2809,7 +2811,7 @@ split =>//.
 - have [qf Hf1 Hf2] := Hf0.
   have [qg Hg1 Hg2] := Hg0.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
-  apply: R_add_correct.
+  apply: J.add_correct.
     apply: (mul_0_contains_0_r _
       (y := (Xreal (PolR.horner tt (PolR.mul_tail tt n qf qg) (t - t)%R))));
       last first.
@@ -2817,19 +2819,19 @@ split =>//.
       exact: subset_sub_contains_0 Ht0 HinX.
     apply: Bnd.ComputeBound_correct.
       exact: Pol.mul_tail_correct.
-    exact: R_sub_correct.
+    exact: J.sub_correct.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
-  apply: R_add_correct.
+  apply: J.add_correct.
     apply: (mul_0_contains_0_l _
       (y := (Xreal (PolR.horner tt qg (t - t)%R)))) =>//.
     apply: Bnd.ComputeBound_correct=>//.
-    exact: R_sub_correct.
+    exact: J.sub_correct.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
-  apply: R_add_correct.
+  apply: J.add_correct.
     apply: (mul_0_contains_0_l _
       (y := (Xreal (PolR.horner tt qf (t - t)%R)))) =>//.
     apply: Bnd.ComputeBound_correct=>//.
-    exact: R_sub_correct.
+    exact: J.sub_correct.
   exact: (mul_0_contains_0_l _ (*!*) (y := Xreal 0)).
 
 move=> x0 Hx0 {Hf0 Hg0} /=.
@@ -2850,22 +2852,22 @@ step_r ((PolR.mul_tail tt n pf pg).[x - x0] * (x - x0)^n.+1 +
   (((proj_val (f x) - pf.[x - x0]) * pg.[x - x0] +
   ((proj_val (g x) - pg.[x - x0]) * pf.[x - x0] +
   (proj_val (f x) - pf.[x - x0]) * (proj_val (g x) - pg.[x - x0])))))%R.
-  apply: R_add_correct.
-    apply: R_mul_correct.
+  apply: J.add_correct.
+    apply: J.mul_correct.
       apply: Bnd.ComputeBound_correct.
         exact: Pol.mul_tail_correct.
-      apply: R_sub_correct =>//; exact: HinX0.
-      rewrite pow_powerRZ; apply: R_power_int_correct.
-      apply: R_sub_correct=>//; exact: HinX0.
-    apply: R_add_correct.
-    apply: R_mul_correct =>//.
+      apply: J.sub_correct =>//; exact: HinX0.
+      rewrite pow_powerRZ; apply: J.power_int_correct.
+      apply: J.sub_correct=>//; exact: HinX0.
+    apply: J.add_correct.
+    apply: J.mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: R_sub_correct =>//; exact: HinX0.
-  apply: R_add_correct.
-    apply: R_mul_correct =>//.
+    by apply: J.sub_correct =>//; exact: HinX0.
+  apply: J.add_correct.
+    apply: J.mul_correct =>//.
     apply: Bnd.ComputeBound_correct =>//.
-    by apply: R_sub_correct =>//; exact: HinX0.
-  exact: R_mul_correct.
+    by apply: J.sub_correct =>//; exact: HinX0.
+  exact: J.mul_correct.
 clear - Fdef Gdef Dx Hx.
 have Hdfx := Fdef x Hx.
 have Hdgx := Gdef x Hx.
@@ -3016,7 +3018,7 @@ Proof.
 move=> Hp k.
 rewrite /PolR.nth nth_take_dflt.
 case: ifP => Hk.
-rewrite Pol.nth_default //; exact: cont0.
+rewrite Pol.nth_default //; exact: J.zero_correct.
 rewrite nth_set_nth /= ifF; first exact: Hp.
 by apply/negP => /eqP K; rewrite K leqnn in Hk.
 Qed.
@@ -3056,7 +3058,7 @@ elim/PolR.poly_ind: pr pi Hp Hsize => [|ar pr IHpr] pi Hp Hsize;
   elim/Pol.poly_ind: pi Hp Hsize =>[|ai pi _] Hp Hsize.
 + rewrite /TM_horner Pol.fold_polyNil /=.
   apply: TM_cst_correct =>//.
-  exact: cont0.
+  exact: J.zero_correct.
 + by rewrite sizes in Hsize.
 + by rewrite sizes in Hsize.
 + rewrite /= /TM_horner Pol.fold_polyCons.
@@ -3174,7 +3176,7 @@ have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
   rewrite /Bf.
   have [t Ht] := Hne.
   have [qf hq1 hq2] := Fmain t Ht.
-  apply: (ComputeBound_nth0 qf) =>//.
+  apply: (@ComputeBound_nth0 _ _ qf) =>//.
   exact: subset_sub_contains_0 _ Ht Hsubs.
   exact: Imid_subset.
 have [Gdef Gnai Gzero Gsubs Gmain] := Hg a0 BfMf n subs_a0 ne_a0.
@@ -3186,7 +3188,7 @@ have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f x).
   step_xr (Xreal (qf.[(x - t)%R]) + (f x - Xreal (qf.[(x - t)%R])))%XR =>//.
   apply: I.add_correct.
   apply: Bnd.ComputeBound_correct =>//.
-  exact: R_sub_correct.
+  exact: J.sub_correct.
   case Df: (f x) => [|fx].
   by rewrite (Fdef x Hx Df).
   by rewrite Df in hq2.
@@ -3251,7 +3253,7 @@ pose intermed := Ga0.[proj_val (f0 x)].
 rewrite /proj_val.
 replace (gfx - Q0.[(x - x0)%R])%R with
   (intermed - Q0.[(x - x0)%R] + (gfx - intermed))%R by ring.
-apply: R_add_correct.
+apply: J.add_correct.
 exact: HQ0'.
 rewrite /intermed /f0 Efx /=.
 rewrite -[gfx](f_equal proj_val Egfx).
