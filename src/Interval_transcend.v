@@ -463,8 +463,7 @@ apply IHm.
 unfold toR.
 rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
 now rewrite Rpl, Hsl''.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Htp1.
+rewrite F.add_exact_correct, Htp1.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
@@ -736,8 +735,7 @@ rewrite <- F.toF_correct.
 do 2 rewrite F.mul_correct, Fmul_correct.
 rewrite !F.toF_correct.
 now rewrite Rpu, Rx.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Htp1.
+rewrite F.add_exact_correct, Htp1.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
@@ -899,9 +897,7 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   simpl.
   unfold I.convert_bound.
   rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite F.sub_exact_correct, Fsub_exact_correct.
-  rewrite F.add_exact_correct, Fadd_exact_correct.
-  rewrite 2!F.toF_correct, F.fromZ_correct.
+  rewrite 2!F.toF_correct, F.sub_exact_correct, F.add_exact_correct, F.fromZ_correct.
   rewrite Rx.
   unfold Xdiv'.
   simpl.
@@ -1299,8 +1295,7 @@ apply IHm.
 unfold toR.
 rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
 now rewrite Rpl, Hxl.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Htp1.
+rewrite F.add_exact_correct, Htp1.
 unfold c1.
 rewrite 3!F.fromZ_correct.
 simpl.
@@ -1388,11 +1383,11 @@ cut (toR xu <= 1 + / 256)%R.
 clear ; lra.
 revert Hxu2.
 unfold toR.
-rewrite <- 2!F.toF_correct, F.add_exact_correct, Fadd_exact_correct.
+rewrite F.add_exact_correct, <- (F.toF_correct (F.scale2 c1 sm8)).
 unfold sm8.
 rewrite F.scale2_correct, Fscale2_correct ; trivial.
 unfold c1.
-rewrite 2!F.toF_correct, F.fromZ_correct.
+rewrite F.toF_correct, F.fromZ_correct.
 simpl.
 now rewrite Rmult_1_l.
 exact F.even_radix_correct.
@@ -1944,10 +1939,7 @@ unfold toR, sqru.
 rewrite <- F.toF_correct.
 do 2 rewrite F.mul_correct, Fmul_correct.
 now rewrite 2!F.toF_correct, Rpu, Rx.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_exact_correct, Fmul_exact_correct.
-rewrite F.add_exact_correct, Fadd_exact_correct.
-rewrite 3!F.toF_correct, Hft, Htp1.
+rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
 simpl.
@@ -1958,8 +1950,7 @@ rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
 ring.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Htp1, H.
+rewrite F.add_exact_correct, Htp1, H.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
@@ -2501,10 +2492,7 @@ rewrite <- F.toF_correct.
 do 2 rewrite F.mul_correct, Fmul_correct.
 rewrite 2!F.toF_correct.
 now rewrite Rpu, Rx.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_exact_correct, Fmul_exact_correct.
-rewrite F.add_exact_correct, Fadd_exact_correct, 3!F.toF_correct.
-rewrite Hft, Htp1.
+rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
 simpl.
@@ -2515,8 +2503,7 @@ rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
 ring.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Htp1, H.
+rewrite F.add_exact_correct, Htp1, H.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
@@ -3226,14 +3213,12 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
     now apply Rmult_le_compat_r.
 evar_last.
 apply IHm.
-rewrite <- F.toF_correct, F.mul_exact_correct, Fmul_exact_correct, 2!F.toF_correct.
-rewrite Hfp2, Hp3, 2!H.
+rewrite F.mul_exact_correct, Hfp2, Hp3, 2!H.
 rewrite 3!F.fromZ_correct.
 simpl.
 rewrite <- Z2R_mult, <- inj_mult.
 now rewrite mult_comm, <- plus_n_Sm.
-rewrite <- F.toF_correct, F.add_exact_correct, Fadd_exact_correct, 2!F.toF_correct.
-rewrite Hp3, H.
+rewrite F.add_exact_correct, Hp3, H.
 unfold c1.
 rewrite 3!F.fromZ_correct.
 simpl.

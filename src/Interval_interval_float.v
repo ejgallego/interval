@@ -962,8 +962,7 @@ assert (
   end).
 rewrite F.scale2_correct. 2: apply refl_equal.
 rewrite Fscale2_correct. 2: apply F.even_radix_correct.
-rewrite F.add_exact_correct.
-rewrite Fadd_exact_correct.
+rewrite F.toF_correct, F.add_exact_correct.
 convert_clean.
 rewrite X, X0.
 simpl.
@@ -1095,7 +1094,7 @@ assert ((xlr <= xur)%R ->
 intros Hlu.
 rewrite <- F.toF_correct, F.scale2_correct by easy.
 rewrite Fscale2_correct by apply F.even_radix_correct.
-rewrite F.add_exact_correct, Fadd_exact_correct.
+rewrite F.toF_correct, F.add_exact_correct.
 convert_clean.
 rewrite Hl, Hu.
 simpl.

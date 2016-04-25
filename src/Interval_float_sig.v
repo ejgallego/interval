@@ -22,7 +22,6 @@ Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
-Require Import Interval_generic_proof.
 
 Module Type FloatOps.
 
@@ -101,13 +100,13 @@ Parameter scale2_correct :
   FtoX (toF (scale2 x (ZtoS d))) = FtoX (Fscale2 (toF x) d).
 
 Parameter add_exact_correct :
-  forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).
+  forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).
 
 Parameter sub_exact_correct :
-  forall x y, FtoX (toF (sub_exact x y)) = FtoX (Fsub_exact (toF x) (toF y)).
+  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
 
 Parameter mul_exact_correct :
-  forall x y, FtoX (toF (mul_exact x y)) = FtoX (Fmul_exact (toF x) (toF y)).
+  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
 
 Parameter add_correct :
   forall mode p x y,

@@ -621,9 +621,11 @@ Definition mul_exact (x y : type) :=
   end.
 
 Lemma mul_exact_correct :
-  forall x y, FtoX (toF (mul_exact x y)) = FtoX (Fmul_exact (toF x) (toF y)).
+  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
 Proof.
 intros x y.
+unfold toX.
+rewrite <- Fmul_exact_correct.
 destruct x as [| mx ex].
 apply refl_equal.
 simpl.
@@ -817,9 +819,12 @@ now rewrite Ep.
 Qed.
 
 Lemma add_exact_correct :
-  forall x y, FtoX (toF (add_exact x y)) = FtoX (Fadd_exact (toF x) (toF y)).
+  forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).
 Proof.
-intros [|mx ex] y.
+intros x y.
+unfold toX.
+rewrite <- Fadd_exact_correct.
+destruct x as [|mx ex].
 apply refl_equal.
 destruct y as [|my ey].
 simpl.
@@ -1023,16 +1028,13 @@ Qed.
 Definition sub_exact (x y : type) := add_exact x (neg y).
 
 Lemma sub_exact_correct :
-  forall x y, FtoX (toF (sub_exact x y)) = FtoX (Fsub_exact (toF x) (toF y)).
+  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
 Proof.
 intros x y.
 unfold sub_exact.
-rewrite add_exact_correct, Fadd_exact_correct.
-replace (Fsub_exact (toF x) (toF y)) with (Fadd_exact (toF x) (Fneg (toF y))).
-rewrite Fadd_exact_correct.
-fold (toX (neg y)).
-now rewrite neg_correct, Fneg_correct.
-now case (toF y).
+rewrite add_exact_correct.
+rewrite neg_correct.
+now rewrite Xsub_split.
 Qed.
 
 (*
