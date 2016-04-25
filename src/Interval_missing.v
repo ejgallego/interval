@@ -1270,3 +1270,41 @@ Qed.
 (** The following definition can be used by doing [rewrite !Rsimpl] *)
 Definition Rsimpl :=
   (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
+
+Section Integral.
+
+Variables (f : R -> R) (ra rb : R).
+Hypothesis Hab : ra < rb.
+Hypothesis Hint : ex_RInt f ra rb.
+
+Lemma RInt_le_r (u : R) :
+ (forall x : R, ra <= x <= rb -> f x <= u) -> RInt f ra rb / (rb - ra) <= u.
+Proof.
+intros Hf.
+apply Rle_div_l.
+now apply Rgt_minus.
+rewrite Rmult_comm, <- RInt_const.
+apply RInt_le with (2 := Hint).
+now apply Rlt_le.
+apply ex_RInt_const.
+intros x [Hx1 Hx2].
+apply Hf.
+split; now apply Rlt_le.
+Qed.
+
+Lemma RInt_le_l (l : R) :
+  (forall x : R, ra <= x <= rb -> l <= f x) -> l <= RInt f ra rb / (rb - ra).
+Proof.
+intros Hf.
+apply Rle_div_r.
+now apply Rgt_minus.
+rewrite Rmult_comm, <- RInt_const.
+apply RInt_le with (3 := Hint).
+now apply Rlt_le.
+apply ex_RInt_const.
+intros x [Hx1 Hx2].
+apply Hf.
+split; now apply Rlt_le.
+Qed.
+
+End Integral.

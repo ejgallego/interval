@@ -17,7 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Bool Reals.
+Require Import Bool Reals Psatz.
+Require Import Coquelicot.Coquelicot.
+Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -609,6 +611,48 @@ Lemma zero_correct : contains (I.convert I.zero) (Xreal 0).
 Proof.
 rewrite I.zero_correct.
 split ; apply Rle_refl.
+Qed.
+
+Lemma contains_RInt prec (f3 : R -> R) x1 x2 Y X1 X2 :
+  ex_RInt f3 x1 x2->
+  contains (I.convert X1) (Xreal x1) ->
+  contains (I.convert X2) (Xreal x2) ->
+  (forall x, (Rmin x1 x2 <= x <= Rmax x1 x2)%R -> contains (I.convert Y) (Xreal (f3 x))) ->
+  contains (I.convert (I.mul prec (I.sub prec X2 X1) Y)) (Xreal (RInt f3 x1 x2)).
+Proof.
+move => Hf3_int HZx1 HZx2 Hext.
+destruct (Req_dec x2 x1) as [H|H].
+  rewrite H RInt_point -(Rmult_0_l (f3 x1)) -(Rminus_diag_eq x2 x1) //.
+  apply: mul_correct.
+  exact: sub_correct.
+  apply: Hext.
+  exact: Rmin_Rmax_l.
+have -> : (RInt f3 x1 x2 = (x2 - x1) * ((RInt f3 x1 x2) / (x2 - x1)))%R
+  by field; apply: Rminus_eq_contra.
+apply: mul_correct.
+exact: sub_correct.
+wlog H': x1 x2 {H HZx1 HZx2} Hext Hf3_int / (x1 < x2)%R.
+  intros H'.
+  destruct (Rdichotomy _ _ H) as [H21|H12].
+  rewrite -RInt_swap.
+  replace (-_/_)%R with (RInt f3 x2 x1 / (x1 - x2))%R by (field; lra).
+  apply: H' H21.
+  by rewrite Rmin_comm Rmax_comm.
+  exact: ex_RInt_swap.
+  exact: H'.
+case: (I.convert Y) Hext => // l u Hext.
+apply: le_contains.
+- rewrite /le_lower /le_upper /=.
+  case: l Hext => //= rl Hext.
+  apply: Ropp_le_contravar.
+  apply: RInt_le_l => // x Hx.
+  apply Hext.
+  now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
+- rewrite /le_upper /=.
+  case: u Hext => //= ru Hext.
+  apply: RInt_le_r => // x Hx.
+  apply Hext.
+  now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
 Qed.
 
 End IntervalExt.

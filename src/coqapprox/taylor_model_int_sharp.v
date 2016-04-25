@@ -281,53 +281,6 @@ Qed.
 
 End Extra_RInt.
 
-
-Section IntegralBounding.
-
-Lemma contains_RInt (f3 : R -> R) x1 x2 Y Z1 Z2 :
-  ex_RInt f3 x1 x2->
-  contains (I.convert Z1) (Xreal x1) ->
-  contains (I.convert Z2) (Xreal x2) ->
-  (forall x, (Rmin x1 x2 <= x <= Rmax x1 x2)%R -> contains (I.convert Y) (Xreal (f3 x))) ->
-  contains (I.convert (Imul  (Isub Z2 Z1) Y)) (Xreal (RInt f3 x1 x2)).
-Proof.
-move => Hf3_int HZx1 HZx2 Hext.
-destruct (Req_dec x2 x1) as [H|H].
-  rewrite H RInt_point -(Rmult_0_l (f3 x1)) -(Rminus_diag_eq x2 x1) //.
-  apply: J.mul_correct.
-  exact: J.sub_correct.
-  apply: Hext.
-  exact: Rmin_Rmax_l.
-have -> : (RInt f3 x1 x2 = (x2 - x1) * ((RInt f3 x1 x2) / (x2 - x1)))%R
-  by field; apply: Rminus_eq_contra.
-apply: J.mul_correct.
-exact: J.sub_correct.
-wlog H': x1 x2 {H HZx1 HZx2} Hext Hf3_int / (x1 < x2)%R.
-  intros H'.
-  destruct (Rdichotomy _ _ H) as [H21|H12].
-  rewrite -RInt_swap.
-  replace (-_/_)%R with (RInt f3 x2 x1 / (x1 - x2))%R by (field; lra).
-  apply: H' H21.
-  by rewrite Rmin_comm Rmax_comm.
-  exact: ex_RInt_swap.
-  exact: H'.
-case: (I.convert Y) Hext => // l u Hext.
-apply: le_contains.
-- rewrite /le_lower /le_upper /=.
-  case: l Hext => //= rl Hext.
-  apply: Ropp_le_contravar.
-  apply: RInt_le_l => // x Hx.
-  apply Hext.
-  now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
-- rewrite /le_upper /=.
-  case: u Hext => //= ru Hext.
-  apply: RInt_le_r => // x Hx.
-  apply Hext.
-  now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
-Qed.
-
-End IntegralBounding.
-
 Local Open Scope R_scope.
 
 Lemma pol_int_sub pol x1 x2 x3:  ex_RInt (fun y : R => PolR.horner tt pol (y - x3)) x1 x2.
@@ -377,7 +330,7 @@ apply: J.add_correct.
     exact: Pol.primitive_correct J.zero_correct HMfq.
     exact: J.sub_correct.
   apply: J.sub_correct ; exact: H.
-apply: contains_RInt => //.
+apply: J.contains_RInt => //.
   exact: ex_RInt_minus.
 move => x Hx.
 apply: Herror.
@@ -471,7 +424,7 @@ have {rem} -> : rem = RInt (fun t => PolR.horner tt p (t - x0)) x0 x1
                       + (RInt f x0 x1 -
           RInt (fun t => PolR.horner tt p (t - x0)) x0 x1) by rewrite /rem; ring.
 apply: J.add_correct.
-  apply: contains_RInt => //.
+  apply: J.contains_RInt => //.
     apply: ex_RInt_minus.
     exact: f_int.
     exact: pol_int_sub.
@@ -488,7 +441,7 @@ apply: J.add_correct.
   apply: Bnd.ComputeBound_correct; last by exact: J.sub_correct.
   by apply: Pol.primitive_correct; first exact: J.zero_correct.
 rewrite -RInt_minus; last by apply: pol_int_sub.
-  apply: contains_RInt => //.
+  apply: J.contains_RInt => //.
     apply: ex_RInt_minus.
     apply: f_int Hx0X0.
     exact: HX0X.
