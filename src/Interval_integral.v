@@ -408,70 +408,22 @@ case Hareal : (F.real a); case Hbreal: (F.real b) => Hfint Hab; case: depth => [
   + by apply: integral_float_absolute_correct.
 Qed.
 
-Lemma Fle_Rle u0 l1 :
-  F.real u0 ->
-  F.real l1 ->
-  F'.le u0 l1 ->
-  toR u0 <= toR l1.
-Proof.
-move => /F_realP Hrealu0 /F_realP Hreall1.
-move: (F'.le_correct u0 l1).
-by rewrite Hreall1 Hrealu0.
-Qed.
-
-Lemma Rle_Fle a b :
-  F.real a ->
-  F.real b ->
-  toR a <= toR b ->
-  F'.le a b.
-Proof.
-rewrite 2!F.real_correct /toR /F'.le F.cmp_correct.
-destruct F.toX. easy.
-destruct F.toX. easy.
-move => _ _ /=.
-case Rcompare_spec => //.
-by move /Rlt_not_le.
-Qed.
-
-Lemma Fle_rev a b :
-  F.real a -> F.real b ->
-  F'.le a b = false ->
-  F'.le b a = true.
-Proof.
-rewrite 2!F.real_correct /toR /F'.le 2!F.cmp_correct.
-destruct F.toX. easy.
-destruct F.toX. easy.
-move => _ _ /=.
-case Rcompare_spec => // H _.
-by rewrite Rcompare_Lt.
-Qed.
-
-Lemma Fle_Rgt a b :
-  F.real a -> F.real b -> toR b < toR a -> F'.le a b = false.
-Proof.
-move => Hareal Hbreal Hgt.
-case Hab: (F'.le a b) => //.
-elim Rlt_not_le with (1 := Hgt).
-now apply Fle_Rle.
-Qed.
-
 Lemma integral_float_absolute_signed_correct (depth : nat) (a b : F.type) epsilon :
   ex_RInt f (toR a) (toR b) ->
   (F.real a) -> (F.real b) ->
   contains (I.convert (integral_float_absolute_signed estimator depth a b epsilon)) (Xreal (RInt f (toR a) (toR b))).
 Proof.
-rewrite /integral_float_absolute_signed.
-case (Rle_dec (toR a) (toR b)) => Hab Hintf Hreala Hrealb.
-- have -> : F'.le a b = true by apply: Rle_Fle.
-  exact: integral_float_relative_correct.
-- have -> : F'.le a b = false.
-    apply: Fle_Rgt => //.
-    now apply Rnot_le_lt.
-rewrite -RInt_swap Xreal_neg.
-apply: I.neg_correct.
+rewrite /integral_float_absolute_signed /F'.le F.cmp_correct.
+move => Hint /F_realP -> /F_realP -> /=.
+case: Rcompare_spec => Hab ;
+  try apply: integral_float_relative_correct => //.
+- exact: Rlt_le.
+- exact: Req_le.
+rewrite -RInt_swap.
+apply: J.neg_correct.
 apply: integral_float_relative_correct.
 + exact: ex_RInt_swap.
-+ apply: Rlt_le; exact: Rnot_le_gt.
++ exact: Rlt_le.
 Qed.
 
 Lemma naive_integral_correct_leq (ia ib: I.type) (a b : R) :

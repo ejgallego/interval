@@ -423,7 +423,12 @@ case Horder : (Int.F'.le  u0 l1) HnotInan => HnotInan.
     by case Hlreal: (F.real l1); case Hureal: (F.real u0).
   apply: ex_RInt_swap.
   apply: Int.integral_float_relative_ex_RInt HnotInan2 _ => //.
-  exact: Int.Fle_rev.
+  move: Horder.
+  rewrite /Int.F'.le 2!F.cmp_correct.
+  move/Int.F_realP: Hreall1 => ->.
+  move/Int.F_realP: Hrealu0 => -> /=.
+  case Rcompare_spec => // H _.
+  by rewrite Rcompare_Lt.
 - move: HnotInan.
   by case: Int.integral_float_relative.
 Qed.
