@@ -258,18 +258,12 @@ Variable estimator : F.type -> F.type -> I.type.
 
 Hypothesis Hcorrect : integralEstimatorCorrect estimator.
 
-Let notInan fi :=
-  match I.convert fi with
-  | Interval_interval.Inan => false
-  | _ => true
-  end = true.
-
 Definition ex_RInt_base_case :=
   forall u0 l1,
   F.real u0 ->
   F.real l1 ->
   toR u0 <= toR l1 ->
-  notInan (estimator u0 l1) ->
+  I.convert (estimator u0 l1) <> IInan ->
   ex_RInt f (toR u0) (toR l1).
 
 Lemma integral_ex_RInt_aux u0 l1 :
@@ -285,7 +279,7 @@ Qed.
 
 Lemma integral_float_absolute_ex_RInt (depth : nat) u0 l1 epsilon :
   ex_RInt_base_case ->
-  notInan (integral_float_absolute estimator depth u0 l1 epsilon) ->
+  I.convert (integral_float_absolute estimator depth u0 l1 epsilon) <> IInan ->
   F'.le u0 l1 ->
   ex_RInt f (toR u0) (toR l1).
 Proof.
@@ -418,7 +412,7 @@ Qed.
 
 Lemma integral_float_relative_ex_RInt (depth : nat) u0 l1 epsilon :
   ex_RInt_base_case ->
-  notInan (integral_float_relative estimator depth u0 l1 epsilon) ->
+  I.convert (integral_float_relative estimator depth u0 l1 epsilon) <> IInan ->
   F'.le u0 l1 ->
   ex_RInt f (toR u0) (toR l1).
 Proof.

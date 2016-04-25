@@ -377,23 +377,18 @@ Variable estimator : F.type -> F.type -> I.type.
 
 Hypothesis Hcorrect : Int.integralEstimatorCorrect f estimator.
 
-Let notInan := A.BndValuator.notInan.
-
 Lemma all_integrals_correct_prog :
   forall ia ib a b,
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  notInan (Int.naive_integral prec iF ia ib) ->
+  I.convert (Int.naive_integral prec iF ia ib) <> Inan ->
   ex_RInt f a b.
 Proof.
 move => ia1 ib1 a1 b1 Hconta1 Hcontb1.
 rewrite /Int.naive_integral.
 set iFab := (X in Int.EF.I.mul _ X _).
-move => HnotInan.
-suff HiFNI : notInan iFab =>  [|].
-rewrite /f.
-move: HiFNI.
-rewrite /iFab => HiFNI.
+rewrite /f /iFab.
+rewrite /iFab => HnotInan.
 apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (I.join ia1 ib1)) => //.
 move => x Hx.
 case: (Rle_dec a1 b1) => [Hleab | Hltba].
@@ -406,14 +401,14 @@ case: (Rle_dec a1 b1) => [Hleab | Hltba].
   + by right.
   + by left.
   by rewrite Rmin_right // Rmax_left // in Hx.
-move: HnotInan.
-by case: (iFab) => //.
+contradict HnotInan.
+now apply I.mul_propagate_l.
 Qed.
 
 Lemma integral_float_absolute_signed_ex_RInt (depth : nat) u0 l1 epsilon :
   let i := Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon in
   Int.ex_RInt_base_case f estimator ->
-  notInan (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) ->
+  I.convert (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) <> Inan ->
   ex_RInt f (T.toR u0) (T.toR l1).
 Proof.
 move => ex_RInt_base_case i.
@@ -421,7 +416,7 @@ rewrite /Int.integral_float_absolute_signed.
 move => HnotInan.
 case Horder : (Int.F'.le  u0 l1) HnotInan => HnotInan.
 - exact: Int.integral_float_relative_ex_RInt HnotInan _.
-- suff HnotInan2 : notInan (Int.integral_float_relative prec estimator depth l1 u0 epsilon).
+- suff HnotInan2 : I.convert (Int.integral_float_relative prec estimator depth l1 u0 epsilon) <> Inan.
   have [Hreall1 Hrealu0] : F.real l1 /\ F.real u0.
     move: HnotInan2.
     rewrite /Int.integral_float_relative.
@@ -442,12 +437,11 @@ Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
   let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
   Int.ex_RInt_base_case f estimator ->
-  (notInan i ->
-   ex_RInt f a b) /\
+  (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
 move => depth epsilon i ex_RInt_base_case.
-case Hibndlu : i =>[|l u]; first by [].
+case Hibndlu : (I.convert i) =>[|l u]; first by split.
 rewrite -Hibndlu.
 suff fInt : ex_RInt f a b.
   split => //;  apply: Int.integral_epsilon_correct => // .
@@ -461,12 +455,12 @@ rewrite /Int.integral_intBounds_epsilon /=.
 set res := Int.EF.I.add _ _ _.
 suff res_ok :
    Int.F'.le u0 l1 = true ->
-   res = Interval_interval_float.Ibnd l u -> ex_RInt f a b.
+   I.convert res = Ibnd l u -> ex_RInt f a b.
    by move: res_ok; case Horder: (Int.F'.le u0 l1) => // ; apply.
 move=> Horder; rewrite {}/res => Hibndlu.
-suff: notInan (Int.naive_integral prec iF (Interval_interval_float.Ibnd l0 u0) (Int.EF.thin u0)) /\
-      notInan (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) /\
-      notInan (Int.naive_integral prec iF (Int.EF.thin l1) (Interval_interval_float.Ibnd l1 u1)).
+suff: I.convert (Int.naive_integral prec iF (Interval_interval_float.Ibnd l0 u0) (Int.EF.thin u0)) <> Inan /\
+      I.convert (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) <> Inan /\
+      I.convert (Int.naive_integral prec iF (Int.EF.thin l1) (Interval_interval_float.Ibnd l1 u1)) <> Inan.
   case => HnotInan1 [HnotInan2 HnotInan3].
   have Hint1 : ex_RInt f a (T.toR u0).
     apply: (all_integrals_correct_prog  ia (Int.EF.thin u0) a (T.toR u0)) => // .
@@ -491,8 +485,6 @@ Qed.
 End IntegralProg.
 
 Section Correction_lemmas_integral_for_tactic.
-
-Let notInan := A.BndValuator.notInan.
 
 Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
   forall prec deg prog bounds,
@@ -543,8 +535,7 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
     let xi := I.bnd fa fb in
     Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi (Int.EF.thin fa) (Int.EF.thin fb) in
   let i := Int.integral_intBounds_epsilon prec iF estimator depth ia ib epsilon in
-  (notInan i ->
-   ex_RInt f a b) /\
+  (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
 move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF'' iF' iF a b ia ib estimator i.
