@@ -44,15 +44,16 @@ Module J := IntervalExt I.
 
 Definition ComputeBound (prec : Pol.U) (pol : Pol.T) (x : I.type) : I.type :=
   if 3 <= Pol.size pol then
-    let a := Pol.nth pol in
-    let a2t2 := I.add prec (a 2) (a 2) in
+    let a1 := Pol.nth pol 1 in
+    let a2 := Pol.nth pol 2 in
+    let a2t2 := I.add prec a2 a2 in
     let a2t4 := I.add prec a2t2 a2t2 in
-    let b1 := I.div prec (a 1) a2t2 in
-    let b2 := I.div prec (I.sqr prec (a 1)) a2t4 in
+    let b1 := I.div prec a1 a2t2 in
+    let b2 := I.div prec (I.sqr prec a1) a2t4 in
     if (* I.bounded b1 && *) I.bounded b2 then
       I.add prec
-            (I.add prec (I.sub prec (a 0) b2)
-                   (I.mul prec (a 2) (I.sqr prec (I.add prec x b1))))
+            (I.add prec (I.sub prec (Pol.nth pol 0) b2)
+                   (I.mul prec a2 (I.sqr prec (I.add prec x b1))))
             (I.mul prec (I.power_int prec x 3)
                    (Pol.horner prec (Pol.tail 3 pol) x))
     else Pol.horner prec pol x
@@ -117,8 +118,6 @@ have H4 : (a2 + a2 + (a2 + a2) <> 0)%R.
     (I.add prec (I.add prec (Pol.nth pi 2) (Pol.nth pi 2))
       (I.add prec (Pol.nth pi 2) (Pol.nth pi 2)))) (Xreal 0).
     rewrite -K.
-    change (Xreal _) with (Xadd (Xadd (Xreal a2) (Xreal a2))
-      (Xadd (Xreal a2) (Xreal a2))).
     by apply: J.add_correct; apply: J.add_correct; apply: Hnth.
   case/(I.bounded_correct _) => _.
   case/(I.upper_bounded_correct _) => _.
@@ -134,8 +133,8 @@ have H2 : (a2 + a2 <> 0)%R by intro K; rewrite K Rplus_0_r in H4.
 suff->: s1 = Rmult x3 s2.
   have->: Rmult a0 x0 = a0 by simpl; rewrite /x0 powerRZ_O Rmult_1_r.
   rewrite -!Rplus_assoc /Rminus; congr Rplus.
-  rewrite /Rsqr /x1 /x2; change 1%Z with (Z.of_nat 1); change 2%Z with (Z.of_nat 2).
-  rewrite /=; field.
+  rewrite /x1 /x2 /Rsqr.
+  field.
   split =>//.
 by rewrite -Rplus_assoc in H4.
 rewrite /s1 /s2 /x3; clear.
@@ -144,7 +143,7 @@ rewrite big_mkord big_distrl.
 apply: eq_bigr=> i _.
 rewrite /PolR.tail /PolR.nth nth_drop.
 (* some bookkeeping about powers *)
-change 3%Z with (Z.of_nat 3); rewrite -!pow_powerRZ.
+rewrite -!(pow_powerRZ _ 3).
 rewrite /= !Rmult_assoc; f_equal; ring.
 by rewrite addnC leq_subnK.
 move=> i /andP [Hi _].

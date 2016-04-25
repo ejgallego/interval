@@ -466,38 +466,42 @@ have -> : i1 - i2 = RInt (fun t => f t - PolR.horner tt p1 (t - x1)) x1 x.
         apply: ex_RInt_translation_sub.
         exact: Rpol_integrable.
 rewrite /TM_integral_error {i1 i2}.
-rewrite [rem + _]Rplus_comm Xreal_add.
-have -> : rem = RInt (fun t => PolR.horner tt p (t - x0)) x0 x1
+rewrite Rplus_comm.
+have {rem} -> : rem = RInt (fun t => PolR.horner tt p (t - x0)) x0 x1
                       + (RInt f x0 x1 -
           RInt (fun t => PolR.horner tt p (t - x0)) x0 x1) by rewrite /rem; ring.
-rewrite Xreal_add {rem}.
-apply: I.add_correct; last first;  first apply: I.add_correct.
-- rewrite RInt_translation_sub Rpol_integral_0.
-  have -> : x0 - x0 = 0 by ring.
+apply: J.add_correct.
+  apply: contains_RInt => //.
+    apply: ex_RInt_minus.
+    exact: f_int.
+    exact: pol_int_sub.
+  move => x2 Hx2.
+  apply: H31.
+  apply HX0X in HX0x1.
+  apply: contains_connected Hx2.
+  now apply Rmin_case.
+  now apply Rmax_case.
+apply: J.add_correct.
+  rewrite RInt_translation_sub Rpol_integral_0.
+  rewrite (Rminus_diag_eq x0) //.
   rewrite PolR.toSeq_horner0. rewrite -nth0 -PolR.nth_toSeq PolR.nth_primitive // Rminus_0_r.
-  apply: Bnd.ComputeBound_correct; last by rewrite Xreal_sub; exact: I.sub_correct.
+  apply: Bnd.ComputeBound_correct; last by exact: J.sub_correct.
   by apply: Pol.primitive_correct; first exact: J.zero_correct.
-  + (rewrite -RInt_minus; last by apply: pol_int_sub); last first.
-      by apply: f_int => //; exact: HX0X.
-      apply: contains_RInt => //.
-      apply: ex_RInt_minus.
-        by apply: f_int => //; exact: HX0X.
-        by apply: pol_int_sub.
-      move => x2 Hx2.
-      apply: H3.
-      apply: contains_connected Hx2.
-      by apply Rmin_case => // ; exact: HX0X.
-      by apply Rmax_case => // ; exact: HX0X.
-rewrite {H3}.
-- apply: contains_RInt => //.
-  + apply: ex_RInt_minus.
-        exact: f_int.
-        by apply: pol_int_sub.
-      move => x2 Hx2.
-      apply: H31.
-      apply: contains_connected Hx2.
-      by apply Rmin_case => // ; exact: HX0X.
-      by apply Rmax_case => // ; exact: HX0X.
+rewrite -RInt_minus; last by apply: pol_int_sub.
+  apply: contains_RInt => //.
+    apply: ex_RInt_minus.
+    apply: f_int Hx0X0.
+    exact: HX0X.
+    exact: pol_int_sub.
+  move => x2 Hx2.
+  apply: H3.
+  apply HX0X in Hx0X0.
+  apply HX0X in HX0x1.
+  apply: contains_connected Hx2.
+  now apply Rmin_case.
+  now apply Rmax_case.
+apply: f_int Hx0X0.
+exact: HX0X.
 Qed.
 
 End TM_integral.
@@ -2524,8 +2528,8 @@ have HL :
   by case: (f x) Dx.
 split=>//.
   by move=> HX; rewrite J.neg_propagate // Hnai.
-  rewrite -Ropp_0 Xreal_neg.
-  exact: I.neg_correct.
+  rewrite -Ropp_0.
+  exact: J.neg_correct.
 simpl=> x0 Hx0.
 move/(_ x0 Hx0) in Hmain.
 have [Q H1 H2] := Hmain.

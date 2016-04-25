@@ -1164,18 +1164,9 @@ intros prec f f' xi yi' m mi ymi Hd Hxm Hm Hym Hy' x Hx.
 case_eq (I.convert yi').
 (* - yi' is NaI *)
 intro Hyn'.
-assert (contains (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))) Xnan).
-replace Xnan with (Xadd (f (Xreal m)) Xnan).
-change Xnan with (Xmul (Xsub (Xreal m) (Xreal m)) Xnan).
-apply I.add_correct.
-exact Hym.
-apply I.mul_correct.
-now apply I.sub_correct.
-rewrite Hyn'.
-exact I.
-exact (Xadd_comm _ _).
-generalize H.
-now induction (I.convert (I.add prec ymi (I.mul prec (I.sub prec xi mi) yi'))).
+rewrite I.add_propagate_r.
+easy.
+now apply I.mul_propagate_r.
 (* - yi' is real ... *)
 intros yl' yu' Hyi'.
 destruct x as [|x].
