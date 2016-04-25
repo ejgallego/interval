@@ -426,21 +426,20 @@ apply: integral_float_relative_correct.
 + exact: Rlt_le.
 Qed.
 
-Lemma naive_integral_correct_leq (ia ib: I.type) (a b : R) :
-  a <= b ->
+Lemma naive_integral_correct (ia ib: I.type) (a b : R) :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
   ex_RInt f a b ->
   contains (I.convert (naive_integral ia ib)) (Xreal (RInt f a b)).
 Proof.
-move => Hleab Hcont1 Hcont2 Hfint.
+move => Hcont1 Hcont2 Hfint.
 rewrite /naive_integral.
 apply: J.contains_RInt => //.
-rewrite Rmin_left // Rmax_right // => x Hx.
+intros x Hx.
 apply: HiFIntExt.
 apply: contains_connected Hx; apply: I.join_correct.
-now left.
-now right.
+now apply Rmin_case ; [left|right].
+now apply Rmax_case ; [left|right].
 Qed.
 
 Lemma toX_toF_Freal a : F.toX a <> Xnan -> F.real a.
@@ -505,14 +504,14 @@ have -> : Xreal (RInt f a b) =
      by split.
    apply: I.add_correct.
    + apply: I.add_correct.
-     * apply: naive_integral_correct_leq => // .
+     * apply: naive_integral_correct => //.
        generalize (thin_correct ua).
        unfold I.convert_bound, toR.
        by destruct F.toX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
      * apply: integral_float_absolute_signed_correct => // ; apply: toX_toF_Freal => // .
-   + apply: (naive_integral_correct_leq _ _ (toR lb) b) => //.
+   + apply: naive_integral_correct => //.
      generalize (thin_correct lb).
      unfold I.convert_bound, toR.
      by destruct (F.toX lb).
