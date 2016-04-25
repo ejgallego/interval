@@ -24,7 +24,6 @@ Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 Require Import Interval_interval_float.
-Require Import Interval_interval_float_full.
 Require Import xreal_ssr_compat.
 Require Import Interval_missing.
 Require Import coquelicot_compl.
@@ -110,16 +109,6 @@ Qed.
 
 End ExtraFloats.
 
-
-Module IntegralTactic (F : FloatOps with Definition even_radix := true).
-
-Module I := FloatInterval F.
-Module F' := FloatExt F.
-Module EF := ExtraFloats F.
-Import EF.
-
-Section IntervalIntegral.
-
 Section XRInt.
 
 Variables (f : R -> R) (ra rb : R).
@@ -142,6 +131,14 @@ Qed.
 
 End XRInt.
 
+Module IntegralTactic (F : FloatOps with Definition even_radix := true).
+
+Module I := FloatInterval F.
+Module F' := FloatExt F.
+Module EF := ExtraFloats F.
+Import EF.
+
+Section IntervalIntegral.
 
 (* A fixed precision *)
 Variable prec : F.precision.
@@ -149,51 +146,6 @@ Variable prec : F.precision.
 Variables (f : R -> R) (iF : I.type -> I.type).
 
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
-
-Section OrderOne.
-
-Variables (a b : F.type).
-
-(* f is integrable on [a, b]*)
-Hypothesis Hintegrable : ex_RInt f (toR a) (toR b).
-
-(* a <= b *)
-Hypothesis  Hleab : toR a <= toR b.
-
-(* a and b are not Nan. This cannot be deduced from Hleab *)
-Hypothesis ha : F.real a.
-Hypothesis hb : F.real b.
-
-Definition naive_integral_float :=
-  I.mul prec (iF (I.bnd a b)) (I.sub prec (thin b) (thin a)).
-
-Lemma naive_integral_float_correct :
-  contains
-    (I.convert (naive_integral_float))
-    (Xreal (RInt f (toR a) (toR b))).
-Proof.
-rewrite /naive_integral_float.
-case elu: (iF (I.bnd a b)) => // [l u].
-set ra := toR a; set rb := toR b; fold ra rb in Hintegrable, ha, hb, Hleab.
-set Iab := RInt _ _ _.
-case: (Rle_lt_or_eq_dec _ _ Hleab) => [Hleab1 | Heqab]; last first.
-  + have -> : Xreal Iab = Xmul (Xlift f (Xreal ra)) (Xsub (Xreal rb) (Xreal ra)).
-      rewrite /Iab Heqab /= RInt_point; congr Xreal; ring.
-    apply: I.mul_correct; last by apply: I.sub_correct; exact: thin_correct_toR.
-    rewrite -elu; apply: HiFIntExt;  move/F_realP: ha<-.
-    by apply: contains_convert_bnd_l.
-  + have -> : Xreal Iab = Xmul (Xreal (Iab / (rb - ra))) (Xreal (rb - ra)).
-       rewrite Xmul_Xreal; congr Xreal; field.
-       by apply: Rminus_eq_contra; apply: Rlt_dichotomy_converse; right.
-    apply: I.mul_correct; last first.
-    - rewrite -[Xreal (rb - ra)]/(Xsub (Xreal rb) (Xreal ra)). (* 1 *)
-      apply: I.sub_correct; exact: thin_correct_toR.
-      (* try and show l * (b - a) <= int <= u * (b - a) instead *)
-    - apply: XRInt1_correct => // x hx; rewrite -elu -[Xreal _]/(Xlift f (Xreal x)).
-      apply: HiFIntExt; apply: contains_convert_bnd=> //; case: hx; split; exact: Rlt_le.
-Qed.
-
-End OrderOne.
 
 Definition integralEstimatorCorrect (estimator : F.type -> F.type -> I.type) :=
         forall a b,
@@ -676,19 +628,15 @@ End IntervalIntegral.
 
 End IntegralTactic.
 
-Module IntegralTacticTaylor (F : FloatOps with Definition even_radix := true).
+Module IntegralTaylor (I : IntervalOps).
 
-Module EF := ExtraFloats F.
-Import EF.
-Module I := FloatIntervalFull F.
-Module IntTac := IntegralTactic F.
-
+Module J := IntervalExt I.
 Module TM := TM I.
 
 Section DepthZeroPol.
 
 (* A fixed precision *)
-Variable prec : F.precision.
+Variable prec : I.precision.
 
 Variables (f : R -> R) (iF : I.type -> I.type).
 
@@ -702,43 +650,34 @@ Definition iX0 := I.convert X0.
 
 Hypothesis validMf : TM.TMI.i_validTM iX0 iX Mf (fun x => Xreal (f x)).
 
-Variables (a b : F.type).
+Variables (a b : R).
 
 (* f is integrable on [a, b]*)
-Hypothesis Hintegrable : ex_RInt f (toR a) (toR b).
-
-(* a <= b *)
-Hypothesis  Hleab : toR a <= toR b.
-
-(* a and b are no Nan. This cannot be deduced from Hleab *)
-Hypothesis ha : F.real a.
-Hypothesis hb : F.real b.
+Hypothesis Hintegrable : ex_RInt f a b.
 
 Variables ia ib : I.type.
 
-Hypothesis Hconta : contains (I.convert ia) (Xreal (toR a)).
-Hypothesis Hcontb : contains (I.convert ib) (Xreal (toR b)).
-Hypothesis Hcontxa : contains iX (Xreal (toR a)).
-Hypothesis Hcontxb : contains iX (Xreal (toR b)).
+Hypothesis Hconta : contains (I.convert ia) (Xreal a).
+Hypothesis Hcontb : contains (I.convert ib) (Xreal b).
+Hypothesis Hcontxa : contains iX (Xreal a).
+Hypothesis Hcontxb : contains iX (Xreal b).
 
 Definition taylor_integral :=
   TM.TMI.integralEnclosure prec X0 Mf ia ib.
 
 (* now we take the intersection of a naive and intelligent way of computing the integral *)
 Definition taylor_integral_naive_intersection :=
-  let temp := IntTac.naive_integral_float prec iF a b in
-  match temp with
-  | Inan => Inan
-  | _ => I.meet temp taylor_integral
-  end.
+  let temp := I.mul prec (I.sub prec ib ia) (iF (I.join ia ib)) in
+  if I.subset I.nai temp then I.nai
+  else I.meet temp taylor_integral.
 
 Lemma taylor_integral_correct :
   contains
     (I.convert taylor_integral)
-    (Xreal (RInt f (toR a) (toR b))).
+    (Xreal (RInt f a b)).
 Proof.
 rewrite /taylor_integral.
-apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (toR (I.midpoint X))) => //.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.convert_bound (I.midpoint X)))) => //.
 rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
 split ; apply Rle_refl.
 eexists.
@@ -748,17 +687,25 @@ Qed.
 Lemma taylor_integral_naive_intersection_correct :
   contains
     (I.convert taylor_integral_naive_intersection)
-    (Xreal (RInt f (toR a) (toR b))).
+    (Xreal (RInt f a b)).
 Proof.
 rewrite /taylor_integral_naive_intersection.
-set tmp := (IntTac.naive_integral_float _ _ _ _).
-case Ht : tmp => [| l u] => // .
+set tmp := I.mul prec (I.sub prec ib ia) (iF (I.join ia ib)).
+case I.subset.
+by rewrite I.nai_correct.
 apply I.meet_correct.
-rewrite -Ht.
-exact: IntTac.naive_integral_float_correct.
+apply J.contains_RInt => //.
+intros x Hx.
+apply HiFIntExt.
+assert (H := I.join_correct ia ib).
+apply: contains_connected Hx.
+apply H.
+now apply Rmin_case ; [left|right].
+apply H.
+now apply Rmax_case ; [left|right].
 exact: taylor_integral_correct.
 Qed.
 
 End DepthZeroPol.
 
-End IntegralTacticTaylor.
+End IntegralTaylor.
