@@ -37,12 +37,12 @@ Module IntegralTactic (F : FloatOps with Definition even_radix := true) (I : Int
 Module J := IntervalExt I.
 Module F' := FloatExt F.
 
-Definition toR x := proj_val (F.toX x).
+Local Notation toR x := (proj_val (F.toX x)).
 
 Lemma F_realP (fl : F.type) :
  reflect (F.toX fl = Xreal (toR fl)) (F.real fl).
 Proof.
-have := (F.real_correct fl); rewrite /toR.
+have := F.real_correct fl.
 rewrite <- F.toF_correct.
 by case: (F.toF fl)=> [||y z t] ->; constructor.
 Qed.
@@ -50,7 +50,7 @@ Qed.
 Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX a).
 Proof.
-rewrite F.real_correct /toR I.bnd_correct /= /I.convert_bound.
+rewrite F.real_correct I.bnd_correct /= /I.convert_bound.
 case: F.toX => //= r _ H.
 split.
 apply Rle_refl.
@@ -60,7 +60,7 @@ Qed.
 Lemma contains_convert_bnd (a b : F.type) r :  F.real a -> F.real b ->
   toR a <= r <= toR b -> contains (I.convert (I.bnd a b)) (Xreal r).
 Proof.
-rewrite 2!F.real_correct /toR I.bnd_correct /= /I.convert_bound.
+rewrite 2!F.real_correct I.bnd_correct /= /I.convert_bound.
 case: F.toX => //= ra _.
 by case: F.toX.
 Qed.
@@ -79,7 +79,7 @@ intros Ha Hb Hab.
 have non_empty_iab : exists x : ExtendedR, contains (I.convert (I.bnd a b)) x.
   by exists (F.toX a); apply: contains_convert_bnd_l.
 generalize (I.midpoint_correct (I.bnd a b) non_empty_iab).
-unfold toR, I.convert_bound.
+unfold I.convert_bound.
 set m := F.toX _.
 move => [->].
 rewrite I.bnd_correct /= /I.convert_bound.
@@ -235,7 +235,6 @@ Lemma integral_ex_RInt_aux u0 l1 :
 Proof.
   rewrite 2!F.real_correct.
   move /F'.le_correct => H.
-  unfold toR.
   destruct F.toX ; try easy.
   by destruct F.toX.
 Qed.
@@ -476,12 +475,10 @@ assert (F.toX ua <> Xnan /\ F.toX lb <> Xnan /\
   split. easy.
   split ; easy.
 have Haua: (a <= toR ua).
-  unfold toR.
   case: (I.convert ia) Hconta Hua' Hua => [|l u] /= H -> //=.
   move: H => [_].
   by case: u.
 have Hlbb : (toR lb <= b).
-  unfold toR.
   case: (I.convert ib) Hcontb Hlb' Hlb => [|l u] /= H -> //=.
   move: H => [H _].
   by case: l H.
@@ -506,14 +503,12 @@ have -> : Xreal (RInt f a b) =
    + apply: I.add_correct.
      * apply: naive_integral_correct => //.
        generalize (thin_correct ua).
-       unfold I.convert_bound, toR.
        by destruct F.toX.
        apply: ex_RInt_Chasles_1 Hfint_a_lb.
        by split.
      * apply: integral_float_absolute_signed_correct => // ; apply: toX_toF_Freal => // .
    + apply: naive_integral_correct => //.
      generalize (thin_correct lb).
-     unfold I.convert_bound, toR.
      by destruct (F.toX lb).
      apply: (ex_RInt_Chasles_2 _ a) => //.
      split => //.

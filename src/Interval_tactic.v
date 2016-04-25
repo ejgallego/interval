@@ -47,7 +47,6 @@ Inductive interval_tac_parameters :=
 
 Module Private.
 
-Module T := TranscendentalFloatFast F.
 Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
@@ -409,7 +408,7 @@ Lemma integral_float_absolute_signed_ex_RInt (depth : nat) u0 l1 epsilon :
   let i := Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon in
   Int.ex_RInt_base_case f estimator ->
   I.convert (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) <> Inan ->
-  ex_RInt f (T.toR u0) (T.toR l1).
+  ex_RInt f (I.T.toR u0) (I.T.toR l1).
 Proof.
 move => ex_RInt_base_case i.
 rewrite /Int.integral_float_absolute_signed.
@@ -470,20 +469,20 @@ suff: I.convert (Int.naive_integral prec iF (Interval_interval_float.Ibnd l0 u0)
       I.convert (Int.integral_float_absolute_signed prec estimator depth u0 l1 epsilon) <> Inan /\
       I.convert (Int.naive_integral prec iF (Int.thin l1) (Interval_interval_float.Ibnd l1 u1)) <> Inan.
   case => HnotInan1 [HnotInan2 HnotInan3].
-  have Hint1 : ex_RInt f a (T.toR u0).
-    apply: (all_integrals_correct_prog  ia (Int.thin u0) a (T.toR u0)) => // .
+  have Hint1 : ex_RInt f a (I.T.toR u0).
+    apply: (all_integrals_correct_prog  ia (Int.thin u0) a (I.T.toR u0)) => //.
     * by apply: contains_eval.
     * by apply: Int.thin_correct_toR.
     * rewrite Hia; exact: HnotInan1.
-  have Hint3 : ex_RInt f (T.toR l1) b.
+  have Hint3 : ex_RInt f (I.T.toR l1) b.
     apply: (all_integrals_correct_prog (Int.thin l1) ib).
     * by apply: Int.thin_correct_toR.
     * by apply: contains_eval.
     * rewrite Hib; exact: HnotInan3.
-  have Hint2 : ex_RInt f (T.toR u0) (T.toR l1).
+  have Hint2 : ex_RInt f (I.T.toR u0) (I.T.toR l1).
   by apply: (integral_float_absolute_signed_ex_RInt depth  _ _ epsilon).
-  apply: (ex_RInt_Chasles _ _ (T.toR u0)) => //.
-  by apply: (ex_RInt_Chasles _ _ (T.toR l1)).
+  apply: (ex_RInt_Chasles _ _ (I.T.toR u0)) => //.
+  by apply: (ex_RInt_Chasles _ _ (I.T.toR l1)).
 move: Hibndlu.
 case: Int.naive_integral => // l2 u2.
 case: Int.integral_float_absolute_signed => // l3 u3.
@@ -557,7 +556,7 @@ have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.bnd fa fb)) (Int'.iX (I.bnd fa fb)) (i
   have H := (@A.TaylorValuator.TM.get_tm_correct _ _ _ (fun x => nth 0 (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan) _).
   apply H.
   apply: A.TaylorValuator.eval_correct_aux.
-  exists (Int.toR fa).
+  exists (proj_val (F.toX fa)).
   split.
   move /Int.F_realP : Hra => ->.
   apply Rle_refl.
@@ -633,8 +632,6 @@ simpl A.check_p.
 now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => r <> R0 end) (fun x => x <> R0)).
 Qed.
 
-Definition toR := I.T.toR.
-
 Inductive expr :=
   | Econst : nat -> expr
   | Eunary : unary_op -> expr -> expr
@@ -694,7 +691,7 @@ Ltac reify t l :=
         end
       end
     | ?f =>
-      let u := constr:(toR f) in
+      let u := constr:(I.T.toR f) in
       match list_add u l with
       | (?n, ?l) => constr:(Econst n, l)
       end
@@ -829,8 +826,8 @@ Ltac get_trivial_bounds l prec :=
       let i :=
       match x with
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec))
-      | toR ?v =>
-        constr:(let f := v in let rf := toR f in A.Bproof x (I.bnd f f) (conj (Rle_refl rf) (Rle_refl rf)))
+      | I.T.toR ?v =>
+        constr:(let f := v in let rf := I.T.toR f in A.Bproof x (I.bnd f f) (conj (Rle_refl rf) (Rle_refl rf)))
       end in
       match aux l prec with
       | ?m => constr:(cons i m)
@@ -929,7 +926,7 @@ Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
       let i :=
       match x with
       | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
-      | toR ?v =>
+      | I.T.toR ?v =>
         constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
       | _ => get_RInt_bounds prec rint_depth rint_prec rint_deg x
       | _ =>
