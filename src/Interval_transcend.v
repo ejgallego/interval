@@ -204,9 +204,7 @@ assert (Hexit : forall k powu ft,
   intros k powu ft Hpu Hft.
   rewrite I.bnd_correct.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
-  rewrite F.mul_correct, Fmul_correct.
-  rewrite (F.toF_correct ft), Hft.
+  rewrite F.div_correct, F.mul_correct, Hft.
   rewrite F.fromZ_correct.
   assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / Z2R (Z.of_nat (2 * (k + 1) + 1)))%R).
     rewrite Z2R_IZR, <- INR_IZR_INZ.
@@ -244,7 +242,6 @@ assert (Hexit : forall k powu ft,
     apply sym_eq, Rmult_assoc.
   split.
     apply A.
-  rewrite 2!F.toF_correct.
   case_eq (F.toX powu).
   easy.
   intros powu' Hpu'.
@@ -350,10 +347,8 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  unfold I.convert, I.convert_bound.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 5!F.toF_correct.
-  rewrite Htp1.
+  unfold I.convert.
+  rewrite 2!F.div_correct, 2!F.mul_correct, Htp1.
   rewrite F.fromZ_correct.
   rewrite Z2R_IZR, <- INR_IZR_INZ.
   replace (2 * (n - S m + 1)) with (2 * (n - S m) + 2) by ring.
@@ -415,7 +410,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
 evar_last.
 apply IHm.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
+rewrite F.mul_correct.
 now rewrite Rpl, Hsl''.
 rewrite F.add_exact_correct, Htp1.
 unfold c2.
@@ -429,7 +424,7 @@ simpl.
 ring.
 clear -Hm ; omega.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
+rewrite F.mul_correct.
 rewrite Rpl, Hsl''.
 simpl.
 split.
@@ -445,7 +440,7 @@ apply Rmult_le_compat ; try easy.
 unfold pow.
 now rewrite Rmult_1_r.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
+rewrite F.mul_correct.
 simpl.
 destruct (F.toX powu) as [|pur].
 exact I.
@@ -500,10 +495,9 @@ assert (Hexit : forall k powu ft,
   intros k powu ft Hpu Hft.
   rewrite I.bnd_correct.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
+  rewrite F.div_correct.
   unfold sqru.
-  do 2 rewrite F.mul_correct, Fmul_correct.
-  rewrite !F.toF_correct.
+  do 2 rewrite F.mul_correct.
   rewrite Hft.
   rewrite F.fromZ_correct.
   rewrite Rx.
@@ -647,13 +641,11 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   unfold I.convert, I.convert_bound.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 5!F.toF_correct.
+  rewrite 2!F.div_correct, 2!F.mul_correct.
   rewrite Rpl, Rpu, Htp1.
   rewrite F.fromZ_correct.
   unfold sqrl, sqru.
-  rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
-  rewrite Rx.
+  rewrite 2!F.mul_correct, Rx.
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
@@ -680,14 +672,10 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite !F.toF_correct.
+rewrite 2!F.mul_correct.
 now rewrite Rpl, Rx.
 unfold toR, sqru.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite !F.toF_correct.
+rewrite 2!F.mul_correct.
 now rewrite Rpu, Rx.
 rewrite F.add_exact_correct, Htp1.
 unfold c2.
@@ -701,9 +689,7 @@ simpl.
 ring.
 clear -Hm ; omega.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct.
+rewrite 2!F.mul_correct.
 rewrite Rpl, Rx.
 simpl.
 split.
@@ -725,9 +711,7 @@ unfold pow.
 rewrite Rmult_1_r.
 apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
 unfold toR, sqru.
-rewrite <- 2!F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct.
+rewrite 2!F.mul_correct.
 rewrite Rpu, Rx.
 simpl.
 bound_tac.
@@ -845,9 +829,7 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   Fourier.fourier.
   now apply Rgt_not_eq.
   simpl.
-  unfold I.convert_bound.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.toF_correct, F.sub_exact_correct, F.add_exact_correct, F.fromZ_correct.
+  rewrite 2!F.div_correct, F.sub_exact_correct, F.add_exact_correct, F.fromZ_correct.
   rewrite Rx.
   unfold Xdiv'.
   simpl.
@@ -878,9 +860,7 @@ apply atan_fast0i_correct.
   apply Rlt_0_2.
 unfold subset, le_lower.
 simpl.
-unfold I.convert_bound.
-rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-rewrite 2!F.toF_correct, F.fromZ_correct.
+rewrite 2!F.div_correct, F.fromZ_correct.
 rewrite Rx.
 unfold Xdiv'.
 simpl.
@@ -1037,9 +1017,7 @@ assert (Hexit : forall k powu ft,
   rewrite I.bnd_correct.
   unfold I.convert_bound.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
-  rewrite F.mul_correct, Fmul_correct, 3!F.toF_correct.
-  rewrite Hft.
+  rewrite F.div_correct, F.mul_correct, Hft.
   rewrite F.fromZ_correct.
   assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / Z2R (Z.of_nat ((k + 1) + 1)))%R).
     rewrite Z2R_IZR, <- INR_IZR_INZ.
@@ -1182,9 +1160,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   unfold I.convert.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 5!F.toF_correct.
-  rewrite Htp1.
+  rewrite 2!F.div_correct, 2!F.mul_correct, Htp1.
   rewrite F.fromZ_correct.
   rewrite Z2R_IZR, <- INR_IZR_INZ.
   rewrite pow_add.
@@ -1243,7 +1219,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
 evar_last.
 apply IHm.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
+rewrite F.mul_correct.
 now rewrite Rpl, Hxl.
 rewrite F.add_exact_correct, Htp1.
 unfold c1.
@@ -1255,8 +1231,7 @@ rewrite H.
 now rewrite plus_0_r.
 clear -Hm ; omega.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
-rewrite Rpl, Hxl.
+rewrite F.mul_correct, Rpl, Hxl.
 simpl.
 split.
 apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
@@ -1270,7 +1245,7 @@ unfold pow.
 rewrite Rmult_1_r.
 simpl in Ix.
 now rewrite Hxl in Ix.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
+rewrite F.mul_correct.
 destruct (F.toX powu) as [|pur].
 exact I.
 simpl in Ix.
@@ -1309,13 +1284,11 @@ intros prec xl xu x Hxl1 Hxl2 Hxu [Hx1 Hx2].
 replace x with (1 + (x - 1))%R by ring.
 apply ln1p_fast0i_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.sub_correct, Fsub_correct, 2!F.toF_correct.
-rewrite Hxl1.
+rewrite F.sub_correct, Hxl1.
 unfold c1.
 now rewrite F.fromZ_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.sub_correct, Fsub_correct, 2!F.toF_correct.
-rewrite Hxl1.
+rewrite F.sub_correct, Hxl1.
 unfold c1.
 rewrite F.fromZ_correct.
 simpl.
@@ -1397,8 +1370,7 @@ rewrite Rcompare_Gt.
 2: apply Rlt_le_trans with (1 := Rlt_0_1) (2 := Hxl2).
 apply IHnb.
 unfold toR.
-rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
-rewrite Hxl1.
+rewrite F.sqrt_correct, Hxl1.
 unfold Xsqrt'.
 simpl.
 case is_negative_spec ; trivial.
@@ -1407,8 +1379,7 @@ elim Rle_not_lt with (1 := Hxl2).
 apply Rlt_le_trans with (1 := H').
 apply Rle_0_1.
 unfold toR.
-rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
-rewrite Hxl1.
+rewrite F.sqrt_correct, Hxl1.
 unfold Xsqrt'.
 simpl.
 case is_negative_spec ; trivial.
@@ -1428,8 +1399,7 @@ split.
 apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.
-split ;
-  rewrite <- F.toF_correct, F.sqrt_correct, Fsqrt_correct, F.toF_correct.
+split ; rewrite F.sqrt_correct.
 rewrite Hxl1.
 unfold Xsqrt'.
 simpl.
@@ -1494,7 +1464,7 @@ rewrite ln_Rinv.
 apply (I.neg_correct _ (Xreal (ln (/xr)))).
 apply ln_fast1P_correct.
 unfold toR.
-rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct.
+rewrite F.div_correct.
 rewrite F.fromZ_correct, Hxr.
 unfold Xdiv'.
 simpl.
@@ -1503,7 +1473,7 @@ intros ->.
 elim Rlt_irrefl with (1 := Hx).
 easy.
 unfold toR.
-rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct.
+rewrite F.div_correct.
 rewrite F.fromZ_correct, Hxr.
 unfold Xdiv'.
 simpl.
@@ -1527,7 +1497,7 @@ apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.
 split ;
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct, 2!F.toF_correct ;
+  rewrite F.div_correct ;
   rewrite F.fromZ_correct, Hxr ;
   unfold Xdiv' ;
   simpl ;
@@ -1700,10 +1670,9 @@ assert (Hexit : forall k powu ft,
   intros k powu ft Hpu Hft.
   rewrite I.bnd_correct.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
+  rewrite F.div_correct.
   unfold sqru.
-  do 2 rewrite F.mul_correct, Fmul_correct.
-  rewrite 3!F.toF_correct, Hft.
+  rewrite 2!F.mul_correct, Hft.
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
@@ -1845,13 +1814,11 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   unfold I.convert.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 4!F.toF_correct.
+  rewrite 2!F.div_correct, 2!F.mul_correct.
   rewrite Rpl, Rpu, Hft.
   rewrite F.fromZ_correct.
   unfold sqrl, sqru.
-  rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
-  rewrite Rx.
+  rewrite 2!F.mul_correct, Rx.
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
@@ -1879,13 +1846,9 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-now rewrite 2!F.toF_correct, Rpl, Rx.
+now rewrite 2!F.mul_correct, Rpl, Rx.
 unfold toR, sqru.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-now rewrite 2!F.toF_correct, Rpu, Rx.
+now rewrite 2!F.mul_correct, Rpu, Rx.
 rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
@@ -1906,9 +1869,7 @@ apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
 ring.
 clear -Hm ; omega.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct, Rpl, Rx.
+rewrite 2!F.mul_correct, Rpl, Rx.
 simpl.
 split.
 apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
@@ -1929,9 +1890,7 @@ unfold pow.
 rewrite Rmult_1_r.
 apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
 unfold toR, sqru.
-rewrite <- (F.toF_correct (F.mul _ _ _ _)).
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct, Rpu, Rx.
+rewrite 2!F.mul_correct, Rpu, Rx.
 simpl.
 bound_tac.
 replace (n - m + (n - m + 0)) with (2 * (n - S m) + 2) by (clear -Hm ; omega).
@@ -2219,10 +2178,9 @@ assert (Hexit : forall k powu ft,
   rewrite I.bnd_correct.
   unfold I.convert_bound.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
+  rewrite F.div_correct.
   unfold sqru.
-  do 2 rewrite F.mul_correct, Fmul_correct.
-  rewrite 3!F.toF_correct, Hft.
+  rewrite 2!F.mul_correct, Hft.
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
@@ -2390,14 +2348,12 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  unfold I.convert, I.convert_bound.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 4!F.toF_correct.
+  unfold I.convert.
+  rewrite 2!F.div_correct, 2!F.mul_correct.
   rewrite Rpl, Rpu, Hft.
   rewrite F.fromZ_correct.
   unfold sqrl, sqru.
-  rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
-  rewrite Rx.
+  rewrite 2!F.mul_correct, Rx.
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
@@ -2425,15 +2381,9 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct.
-now rewrite Rpl, Rx.
+now rewrite 2!F.mul_correct, Rpl, Rx.
 unfold toR, sqru.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct.
-now rewrite Rpu, Rx.
+now rewrite 2!F.mul_correct, Rpu, Rx.
 rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
@@ -2454,9 +2404,7 @@ apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
 ring.
 clear -Hm ; omega.
 unfold toR, sqrl.
-rewrite <- F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct, Rpl, Rx.
+rewrite 2!F.mul_correct, Rpl, Rx.
 simpl.
 split.
 apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
@@ -2477,9 +2425,7 @@ unfold pow.
 rewrite Rmult_1_r.
 apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
 unfold toR, sqru.
-rewrite <- 2!F.toF_correct.
-do 2 rewrite F.mul_correct, Fmul_correct.
-rewrite 2!F.toF_correct, Rpu, Rx.
+rewrite 2!F.mul_correct, Rpu, Rx.
 simpl.
 bound_tac.
 replace (n - m + (n - m + 0)) with (2 * (n - S m) + 2) by (clear -Hm ; omega).
@@ -2992,9 +2938,7 @@ assert (Hexit : forall k powxu fp2,
   intros k powxu fp2 Hpu Hfp2.
   rewrite I.bnd_correct.
   rewrite F.zero_correct.
-  rewrite <- F.toF_correct, F.div_correct, Fdiv_correct.
-  rewrite F.mul_correct, Fmul_correct, 3!F.toF_correct.
-  rewrite Hfp2.
+  rewrite F.div_correct, F.mul_correct, Hfp2.
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
@@ -3130,9 +3074,8 @@ change (-1 * (-1) ^ (n - S m))%R with ((-1) ^ (S (n - S m)))%R.
 rewrite -> minus_Sn_m with (1 := Hm).
 simpl (S n - S m).
 apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
-  unfold I.convert, I.convert_bound.
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct.
-  rewrite 2!F.mul_correct, 2!Fmul_correct, 4!F.toF_correct.
+  unfold I.convert.
+  rewrite 2!F.div_correct, 2!F.mul_correct.
   rewrite Rx, Rpl, Rpu, Hfp2.
   rewrite F.fromZ_correct.
   unfold Xdiv'.
@@ -3169,8 +3112,7 @@ rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
 now rewrite <- plus_assoc.
 clear -Hm ; omega.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
-rewrite Rpl, Rx.
+rewrite F.mul_correct, Rpl, Rx.
 simpl.
 bound_tac.
 rewrite H in Hpl.
@@ -3178,11 +3120,9 @@ rewrite <- plus_n_Sm.
 rewrite Rmult_comm.
 now apply Rmult_le_compat_l.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
-now rewrite Rpl, Rx.
+now rewrite F.mul_correct, Rpl, Rx.
 unfold toR.
-rewrite <- 2!F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
-rewrite Rpu, Rx.
+rewrite F.mul_correct, Rpu, Rx.
 simpl.
 bound_tac.
 rewrite H in Hpu.
@@ -3190,8 +3130,7 @@ rewrite <- plus_n_Sm.
 rewrite Rmult_comm.
 now apply Rmult_le_compat_l.
 unfold toR.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, 2!F.toF_correct.
-now rewrite Rpu, Rx.
+now rewrite F.mul_correct, Rpu, Rx.
 apply f_equal.
 rewrite 2!Rmult_plus_distr_l.
 rewrite Rplus_assoc.

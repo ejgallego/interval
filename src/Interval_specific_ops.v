@@ -695,12 +695,12 @@ Definition mul mode prec (x y : type) :=
 
 Lemma mul_correct :
   forall mode p x y,
-  FtoX (toF (mul mode p x y)) = FtoX (Fmul mode (prec p) (toF x) (toF y)).
+  toX (mul mode p x y) = Xround radix mode (prec p) (Xmul (toX x) (toX y)).
 Proof.
-intros.
-destruct x as [| mx ex].
-apply refl_equal.
-destruct y as [| my ey].
+intros mode p x y.
+unfold toX.
+rewrite <- Fmul_correct.
+destruct x as [|mx ex] ; destruct y as [|my ey] ; try easy.
 simpl.
 now case (mantissa_sign mx).
 simpl.
@@ -956,9 +956,12 @@ Definition add_slow mode prec (x y : type) :=
   end.
 
 Lemma add_slow_correct :
-  forall mode p x y, FtoX (toF (add_slow mode p x y)) = FtoX (Fadd_slow mode (prec p) (toF x) (toF y)).
+  forall mode p x y,
+  toX (add_slow mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
 Proof.
 intros mode p x y.
+unfold toX.
+rewrite <- Fadd_correct.
 unfold add_slow, Fadd_slow, Fadd_slow_aux.
 destruct x as [|mx ex] ; try easy.
 destruct y as [|my ey].
@@ -1014,7 +1017,8 @@ Qed.
 Definition add := add_slow.
 
 Lemma add_correct :
-  forall mode p x y, FtoX (toF (add mode p x y)) = FtoX (Fadd mode (prec p) (toF x) (toF y)).
+  forall mode p x y,
+  toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
 Proof.
 exact add_slow_correct.
 Qed.
@@ -1043,15 +1047,13 @@ Definition sub mode prec (x y : type) := add mode prec x (neg y).
 
 Lemma sub_correct :
   forall mode p x y,
-  FtoX (toF (sub mode p x y)) = FtoX (Fsub mode (prec p) (toF x) (toF y)).
+  toX (sub mode p x y) = Xround radix mode (prec p) (Xsub (toX x) (toX y)).
 Proof.
 intros.
-rewrite Fsub_split.
+rewrite Xsub_split.
 unfold sub.
 rewrite add_correct.
-do 2 rewrite Fadd_correct.
-fold (toX (neg y)).
-now rewrite neg_correct, Fneg_correct.
+now rewrite neg_correct.
 Qed.
 
 (*
@@ -1086,9 +1088,12 @@ Definition div mode prec (x y : type) :=
 
 Theorem div_correct :
   forall mode p x y,
-  FtoX (toF (div mode p x y)) = FtoX (Fdiv mode (prec p) (toF x) (toF y)).
+  toX (div mode p x y) = Xround radix mode (prec p) (Xdiv (toX x) (toX y)).
 Proof.
-intros mode p [|mx ex] [|my ey] ; try easy.
+intros mode p x y.
+unfold toX.
+rewrite <- Fdiv_correct.
+destruct x as [|mx ex] ; destruct y as [|my ey] ; try easy.
 simpl.
 now case (mantissa_sign mx).
 simpl.
@@ -1255,9 +1260,12 @@ Definition sqrt mode prec (f : type) :=
 
 Lemma sqrt_correct :
   forall mode p x,
-  FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
+  toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt (toX x)).
 Proof.
-intros mode p [|mx ex] ; try easy.
+intros mode p x.
+unfold toX.
+rewrite <- Fsqrt_correct.
+destruct x as [|mx ex] ; try easy.
 simpl.
 generalize (mantissa_sign_correct mx).
 case_eq (mantissa_sign mx) ; [ intros Hx Mx | intros sx nx Hx (Mx, Vx) ].

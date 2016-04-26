@@ -431,18 +431,7 @@ Definition power_int prec xi n :=
   | Zneg p => inv prec (power_pos prec xi p)
   end.
 
-Ltac convert_clean :=
-  unfold convert_bound in * ;
-  repeat
-  match goal with
-  | H: context [FtoX (F.toF ?v)] |- _
-    => rewrite !F.toF_correct in H
-  | |- context [FtoX (F.toF ?v)]
-    => rewrite !F.toF_correct
-  end.
-
 Ltac xreal_tac v :=
-  convert_clean ;
   let X := fresh "X" in
   case_eq (F.toX v) ;
   [ intros X ; try exact I
@@ -450,7 +439,6 @@ Ltac xreal_tac v :=
     intros r X ; try rewrite X in * ].
 
 Ltac xreal_tac2 :=
-  convert_clean ;
   match goal with
   | H: F.toX ?v = Xreal _ |- context [F.toX ?v] =>
     rewrite H
@@ -975,7 +963,6 @@ apply Rmult_le_compat_r.
 auto with real.
 eapply Rle_trans ; eassumption.
 (* finite bounds 2 *)
-convert_clean.
 case_eq (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) ; intros.
 now rewrite H0 in H.
 destruct (Rcompare_spec r 0) as [H1|H1|H1] ;
@@ -1332,7 +1319,7 @@ intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ; trivial.
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 split ;
-  rewrite <- F.toF_correct, F.add_correct, Fadd_correct ;
+  rewrite F.add_correct ;
   do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
   apply Rplus_le_compat ; assumption.
 Qed.
@@ -1345,7 +1332,7 @@ intros prec [ | xl xu] [ | yl yu] [ | x] [ | y] ; trivial.
 intros (Hxl, Hxu) (Hyl, Hyu).
 simpl.
 split ;
-  rewrite <- F.toF_correct, F.sub_correct, Fsub_correct ;
+  rewrite F.sub_correct ;
   do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
   unfold Rminus ; apply Rplus_le_compat ;
   try apply Ropp_le_contravar ; assumption.
@@ -1370,8 +1357,7 @@ rewrite Rcompare_Lt.
 exact I.
 apply Rle_lt_trans with (1 := Hxl) (2 := H).
 destruct (Rcompare_spec rl 0) ; simpl ;
-  repeat rewrite <- ?F.toF_correct, F.sqrt_correct, Fsqrt_correct ;
-  convert_clean.
+  repeat rewrite F.sqrt_correct.
 exact I.
 (* xl zero *)
 rewrite F.zero_correct.
@@ -1462,7 +1448,7 @@ xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hr ;
   try ( simpl ;
-        rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct ;
+        rewrite 2!F.mul_correct ;
         xreal_tac2 ;
         split ;
           ( xreal_tac2 ; simpl ; bound_tac ; eauto with mulauto ; fail ) ).
@@ -1489,21 +1475,19 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   try ( generalize (sign_large_correct_ yl yu y (conj Hyl Hyu)) ;
         case (sign_large_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   (* remove trivial comparisons with zero *)
-  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
+  try ( rewrite F.zero_correct ; simpl ;
         try ( rewrite (proj1 Hx0) ; rewrite Rmult_0_l ) ;
         try ( rewrite (proj1 Hy0) ; rewrite Rmult_0_r ) ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
-  try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct ;
+  try ( split ; rewrite F.mul_correct ;
         do 2 xreal_tac2 ; unfold Xbind2 ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
   try ( eauto with mulauto ; fail ).
 (* multiplication around zero *)
 rewrite F.min_correct, F.max_correct.
-rewrite <- !F.toF_correct.
-do 4 rewrite F.mul_correct.
-do 4 rewrite Fmul_correct.
+rewrite 4!F.mul_correct.
 do 4 xreal_tac2 ;
   try ( split ; simpl ; exact I ).
 unfold Xround, Xbind.
@@ -1564,7 +1548,7 @@ Hint Local Resolve Rmult_le_neg_neg : mulauto2.
 
 Theorem div_mixed_r_correct :
   forall prec yf,
-  extension (fun x => Xdiv x (FtoX (F.toF yf))) (fun xi => div_mixed_r prec xi yf).
+  extension (fun x => Xdiv x (F.toX yf)) (fun xi => div_mixed_r prec xi yf).
 Proof.
 intros prec yf [ | xl xu] [x | ] ; try easy.
 intros y (Hxl, Hxu).
@@ -1575,7 +1559,7 @@ unfold Xdiv'.
 simpl.
 case Rcompare_spec ; intros Hy ; try exact I ;
   simpl ; simpl_is_zero ;
-  rewrite <- 2!F.toF_correct, 2!F.div_correct, 2!Fdiv_correct ;
+  rewrite 2!F.div_correct ;
   unfold Xdiv' ;
   xreal_tac2 ;
   split ;
@@ -1603,7 +1587,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         case (sign_strict_ yl yu) ; intros Hy0 ; simpl in Hy0 ) ;
   try exact I ; try simpl_is_zero ; unfold Rdiv ;
   (* remove trivial comparisons with zero *)
-  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
+  try ( rewrite F.zero_correct ; simpl ;
         rewrite (proj1 Hx0) ; rewrite Rmult_0_l ;
         split ; apply Rle_refl ) ;
   (* simplify Fdivz *)
@@ -1613,7 +1597,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   try rewrite F.zero_correct ;
   split ;
   (* remove rounding operators *)
-  try ( rewrite <- F.toF_correct, F.div_correct, Fdiv_correct ;
+  try ( rewrite F.div_correct ;
         do 2 xreal_tac2 ; unfold Xdiv', Xbind2, Rdiv ;
         match goal with |- context [is_zero ?v] => case (is_zero v) ; try exact I end ;
         bound_tac ) ;
@@ -1642,15 +1626,13 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* simplify Fdivz *)
   unfold Fdivz ; rewrite 2!F.real_correct ;
   destruct Hx0 as (Hx0, (Hx1, (r, (Hx2, Hx3)))) ;
-  convert_clean ;
   rewrite Hx2 in * ;
   split ;
   [ idtac | xreal_tac xl | xreal_tac xu | idtac ] ;
   try ( rewrite F.zero_correct ;
         simpl ; auto with mulauto ; fail ) ;
   (* remove rounding operators *)
-  rewrite <- !F.toF_correct, F.div_correct, Fdiv_correct ;
-  convert_clean ;
+  rewrite F.div_correct ;
   rewrite F.fromZ_correct ;
   try rewrite X0 ;
   try rewrite Hx2 ;
@@ -1674,11 +1656,11 @@ generalize (sign_large_correct_ xl xu x (conj Hxl Hxu)).
 unfold Rsqr.
 case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* remove trivial comparisons with zero *)
-  try ( convert_clean ; rewrite F.zero_correct ; simpl ;
+  try ( rewrite F.zero_correct ; simpl ;
         try ( rewrite (proj1 Hx0) ; rewrite Rmult_0_l ) ;
         split ; apply Rle_refl ) ;
   (* remove rounding operators *)
-  try ( split ; rewrite <- F.toF_correct, F.mul_correct, Fmul_correct  ;
+  try ( split ; rewrite F.mul_correct ;
         xreal_tac2 ; unfold Xbind2 ; bound_tac ;
         clear_complex ) ;
   (* solve by transivity *)
@@ -1687,9 +1669,7 @@ case (sign_large_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
 split.
 rewrite F.zero_correct ; simpl.
 apply Rle_0_sqr.
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, F.toF_correct.
-rewrite F.max_correct.
-rewrite F.abs_correct.
+rewrite F.mul_correct, F.max_correct, F.abs_correct.
 do 2 xreal_tac2.
 simpl.
 bound_tac.
@@ -1730,8 +1710,7 @@ assert (Hd: forall x xr, F.toX x = Xreal xr ->
     | Xreal yr => (0 <= yr)%R
     end).
   intros x xr Hx.
-  rewrite <- F.toF_correct, F.mul_correct, Fmul_correct, F.toF_correct.
-  rewrite Hx.
+  rewrite F.mul_correct, Hx.
   simpl.
   apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
   apply Fcore_generic_fmt.generic_format_0.
@@ -1740,7 +1719,6 @@ assert (Hz: match F.toX F.zero with
     | Xnan => False
     | Xreal yr => (0 <= yr)%R
     end).
-  convert_clean.
   rewrite F.zero_correct.
   apply Rle_refl.
 case_eq (F.toX xl) ; case_eq (F.toX xu) ; simpl.
@@ -1766,7 +1744,7 @@ unfold le_upper, Xpower_int.
 induction n ; intros x Hx ; simpl.
 (* *)
 generalize (IHn (F.mul rnd_UP prec x x)).
-rewrite <- 2!(F.toF_correct (F.mul _ _ _ _)), 2!F.mul_correct, 2!Fmul_correct.
+rewrite 2!F.mul_correct.
 xreal_tac x ; simpl.
 easy.
 xreal_tac (Fpower_pos rnd_UP prec (F.mul rnd_UP prec x x) n) ; simpl.
@@ -1786,7 +1764,7 @@ bound_tac.
 now apply Rmult_le_pos.
 (* *)
 generalize (IHn (F.mul rnd_UP prec x x)).
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
+rewrite F.mul_correct.
 xreal_tac x ; simpl.
 intros H.
 now apply H.
@@ -1820,7 +1798,7 @@ unfold le_lower', Xpower_int.
 induction n ; intros x Hx ; simpl.
 (* *)
 generalize (IHn (F.mul rnd_DN prec x x)).
-rewrite <- 2!(F.toF_correct (F.mul _ _ _ _)), 2!F.mul_correct, 2!Fmul_correct.
+rewrite 2!F.mul_correct.
 xreal_tac x ; simpl.
 easy.
 xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
@@ -1843,7 +1821,7 @@ bound_tac.
 apply Rle_refl.
 (* *)
 generalize (IHn (F.mul rnd_DN prec x x)).
-rewrite <- F.toF_correct, F.mul_correct, Fmul_correct.
+rewrite F.mul_correct.
 xreal_tac x ; simpl.
 now rewrite X in Hx.
 xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.

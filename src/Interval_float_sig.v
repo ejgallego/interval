@@ -21,7 +21,6 @@ Require Import ZArith.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
-Require Import Interval_generic.
 
 Module Type FloatOps.
 
@@ -110,23 +109,23 @@ Parameter mul_exact_correct :
 
 Parameter add_correct :
   forall mode p x y,
-  FtoX (toF (add mode p x y)) = FtoX (Fadd mode (prec p) (toF x) (toF y)).
+  toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
 
 Parameter sub_correct :
   forall mode p x y,
-  FtoX (toF (sub mode p x y)) = FtoX (Fsub mode (prec p) (toF x) (toF y)).
+  toX (sub mode p x y) = Xround radix mode (prec p) (Xsub (toX x) (toX y)).
 
 Parameter mul_correct :
   forall mode p x y,
-  FtoX (toF (mul mode p x y)) = FtoX (Fmul mode (prec p) (toF x) (toF y)).
+  toX (mul mode p x y) = Xround radix mode (prec p) (Xmul (toX x) (toX y)).
 
 Parameter div_correct :
   forall mode p x y,
-  FtoX (toF (div mode p x y)) = FtoX (Fdiv mode (prec p) (toF x) (toF y)).
+  toX (div mode p x y) = Xround radix mode (prec p) (Xdiv (toX x) (toX y)).
 
 Parameter sqrt_correct :
   forall mode p x,
-  FtoX (toF (sqrt mode p x)) = FtoX (Fsqrt mode (prec p) (toF x)).
+  toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt (toX x)).
 
 End FloatOps.
 
