@@ -251,17 +251,17 @@ Definition scale (f : type) d :=
   end.
 
 Lemma scale_correct :
-  forall x d, FtoX (toF (scale x (ZtoE d))) = FtoX (Fscale (toF x) d).
+  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
 Proof.
-intros.
-case x.
+intros x d.
+unfold toX.
+rewrite <- Fscale_correct.
+destruct x as [|m e].
 apply refl_equal.
-intros m e. simpl.
-case (mantissa_sign m).
+simpl.
+destruct (mantissa_sign m) as [|s p].
 apply refl_equal.
-intros s p.
-rewrite exponent_add_correct, ZtoE_correct.
-apply refl_equal.
+now rewrite exponent_add_correct, ZtoE_correct.
 Qed.
 
 (*
@@ -283,13 +283,11 @@ Definition scale2 (f : type) d :=
 
 Lemma scale2_correct :
   forall x d, even_radix = true ->
-  FtoX (toF (scale2 x (ZtoE d))) = FtoX (Fscale2 (toF x) d).
+  toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
 Proof.
-intros [|m e] d.
+intros [|m e] d H.
 easy.
-intros H.
-rewrite Fscale2_correct.
-2: easy.
+unfold toX.
 simpl.
 generalize (mantissa_sign_correct m).
 case_eq (mantissa_sign m).
@@ -299,7 +297,7 @@ rewrite Hs.
 now rewrite Rmult_0_l.
 intros s m' _ (Em,Vm).
 simpl.
-generalize (mantissa_scale2_correct m' (ZtoE d) Vm).
+generalize (mantissa_scale2_correct m' (ZtoS d) Vm).
 case mantissa_scale2.
 intros p e' (Ep, Vp).
 rewrite ZtoE_correct in Ep.

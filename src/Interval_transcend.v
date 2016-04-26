@@ -93,16 +93,6 @@ Ltac bound_tac :=
 
 Definition toR x := proj_val (F.toX x).
 
-Lemma scale2_correct :
-  forall x d,
-  F.toX (F.scale2 x (F.ZtoS d)) = Xmul (F.toX x) (Xreal (bpow radix2 d)).
-Proof.
-intros x d.
-rewrite <- F.toF_correct, F.scale2_correct. 2: apply refl_equal.
-rewrite Fscale2_correct, F.toF_correct. 2: exact F.even_radix_correct.
-apply refl_equal.
-Qed.
-
 (* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powl powu sqrl sqru div (nb : nat) { struct nb } :=
   let npwu := F.mul rnd_UP prec powu sqru in
@@ -812,10 +802,8 @@ Lemma atan_fastP_correct :
 Proof.
 intros prec x Rx Bx.
 unfold atan_fastP, c1, sm1, s1.
-rewrite F.cmp_correct.
-rewrite scale2_correct.
-rewrite F.fromZ_correct.
-rewrite Rx.
+rewrite F.cmp_correct, F.scale2_correct by easy.
+rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
 rewrite Rmult_1_l.
 case Rcompare_spec ; intros Bx'.
@@ -825,10 +813,8 @@ now apply Rlt_le.
 apply atan_fast0_correct with (1 := Rx).
 rewrite Rabs_pos_eq with (1 := Bx).
 now apply Req_le.
-rewrite F.cmp_correct.
-rewrite scale2_correct.
-rewrite F.fromZ_correct.
-rewrite Rx.
+rewrite F.cmp_correct, F.scale2_correct by easy.
+rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
 rewrite Rmult_1_l.
 assert (H: (toR x <= 2)%R -> contains (I.convert
@@ -1349,7 +1335,7 @@ destruct (F.toX xu).
 easy.
 rewrite F.add_exact_correct.
 unfold sm8, c1.
-rewrite scale2_correct, F.fromZ_correct.
+rewrite F.scale2_correct, F.fromZ_correct by easy.
 simpl.
 now rewrite Rmult_1_l.
 apply (I.sub_correct prec (I.bnd xl xu) (I.bnd c1 c1) (Xreal x) (Xreal 1)).
@@ -1990,7 +1976,7 @@ intros x Hxr Hx0 H.
 assert (toR x <= /2)%R.
 apply F'.le_correct in H.
 revert H.
-rewrite Hxr, scale2_correct, F.fromZ_correct.
+rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
 simpl.
 rewrite Rmult_1_l.
 now intros.
@@ -2091,15 +2077,14 @@ exact Hs.
 exact (proj2 (H _ Hc)).
 (* - . *)
 unfold toR, sm1.
-rewrite scale2_correct.
-rewrite Hxr.
+rewrite F.scale2_correct, Hxr by easy.
 simpl.
 field.
 (* - . *)
 unfold toR, sm1.
-now rewrite scale2_correct, Hxr.
+now rewrite F.scale2_correct, Hxr.
 unfold toR, sm1.
-rewrite scale2_correct, Hxr.
+rewrite F.scale2_correct, Hxr by easy.
 simpl.
 apply Rmult_le_pos with (1 := Hx).
 apply Rlt_le, Rinv_0_lt_compat.
@@ -2132,7 +2117,7 @@ rewrite Rabs_pos_eq with (1 := Hx0).
 apply F'.le_correct in H.
 revert H.
 unfold toR, sm1, c1.
-rewrite Hxr, scale2_correct, F.fromZ_correct.
+rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
 simpl.
 now rewrite Rmult_1_l.
 generalize (S (Z2nat (F.StoZ (F.mag x)))) (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
@@ -2549,7 +2534,7 @@ rewrite Rabs_pos_eq with (1 := Hx0).
 apply F'.le_correct in Hx.
 revert Hx.
 unfold toR, sm1, c1.
-rewrite Hxr, scale2_correct, F.fromZ_correct.
+rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
 simpl.
 now rewrite Rmult_1_l.
 generalize (S (Z2nat (F.StoZ (F.mag x)))) (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
@@ -2701,7 +2686,7 @@ case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
 - apply F'.le_correct in Hx.
   revert Hx.
   unfold toR, c1, sm1.
-  rewrite Rx, scale2_correct, F.fromZ_correct.
+  rewrite Rx, F.scale2_correct, F.fromZ_correct by easy.
   intros Bx'.
   simpl in Bx'.
   rewrite Rmult_1_l in Bx'.
@@ -3249,7 +3234,7 @@ apply F'.le_correct in Hx3.
 revert Hx3.
 rewrite Hx1.
 unfold c1, sm8.
-rewrite scale2_correct, F.fromZ_correct.
+rewrite F.scale2_correct, F.fromZ_correct by easy.
 simpl.
 intros Hx3.
 apply Rle_trans with (1 := Hx3).
@@ -3291,8 +3276,7 @@ case_eq (F'.le x (F.scale2 c1 sm8)) ; intros Hx'.
 now apply H.
 assert (toR (F.scale2 x sm1) = toR x * /2)%R.
 unfold toR, sm1.
-rewrite scale2_correct.
-now rewrite Hx.
+now rewrite F.scale2_correct, Hx.
 replace (toR x) with (toR (F.scale2 x sm1) + toR (F.scale2 x sm1))%R.
 rewrite Ropp_plus_distr.
 rewrite exp_plus.
@@ -3301,8 +3285,7 @@ change (Xreal (exp (- toR (F.scale2 x sm1)) * exp (- toR (F.scale2 x sm1))))
 apply I.sqr_correct.
 apply IHnb.
 unfold toR, sm1.
-rewrite scale2_correct.
-now rewrite Hx.
+now rewrite F.scale2_correct, Hx.
 rewrite H1.
 apply Rmult_lt_0_compat.
 exact H0.

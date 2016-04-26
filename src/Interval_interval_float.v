@@ -920,8 +920,7 @@ xreal_tac xl ; xreal_tac xu ; simpl ;
 repeat split.
 (* infinite lower *)
 destruct (Rcompare_spec r 0).
-rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
-convert_clean.
+rewrite F.scale_correct.
 rewrite X0.
 simpl.
 repeat split.
@@ -945,8 +944,7 @@ rewrite H.
 rewrite F.fromZ_correct.
 repeat split.
 now apply (Z2R_le 0 1).
-rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
-convert_clean.
+rewrite F.scale_correct.
 rewrite X.
 simpl.
 repeat split.
@@ -956,14 +954,12 @@ exact (Rlt_le _ _ H).
 exact Hr.
 (* finite bounds *)
 assert (
-  match FtoX (F.toF (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) with
+  match F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))) with
   | Xnan => False
   | Xreal x0 => (r <= x0 <= r0)%R
   end).
-rewrite F.scale2_correct. 2: apply refl_equal.
-rewrite Fscale2_correct. 2: apply F.even_radix_correct.
-rewrite F.toF_correct, F.add_exact_correct.
-convert_clean.
+rewrite F.scale2_correct by easy.
+rewrite F.add_exact_correct.
 rewrite X, X0.
 simpl.
 pattern r at 1 ; rewrite <- eps2.
@@ -1030,8 +1026,7 @@ split ; apply Rle_refl.
 split.
 case Rcompare_spec ; intros Hu0 ; simpl ;
   (intros [|x] ; [easy|]).
-rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
-rewrite F.toF_correct, Hu.
+rewrite F.scale_correct, Hu.
 simpl.
 intros [_ H].
 apply (conj I).
@@ -1067,8 +1062,7 @@ intros [H1 H2].
 refine (conj _ I).
 rewrite (Rle_antisym _ _ H2 H1), Hl0.
 now apply (Z2R_le 0).
-rewrite <- F.toF_correct, F.scale_correct, Fscale_correct.
-rewrite F.toF_correct, Hl.
+rewrite F.scale_correct, Hl.
 simpl.
 intros [H _].
 refine (conj _ I).
@@ -1092,11 +1086,8 @@ assert ((xlr <= xur)%R ->
   | Xreal m => (xlr <= m <= xur)%R
   end).
 intros Hlu.
-rewrite <- F.toF_correct, F.scale2_correct by easy.
-rewrite Fscale2_correct by apply F.even_radix_correct.
-rewrite F.toF_correct, F.add_exact_correct.
-convert_clean.
-rewrite Hl, Hu.
+rewrite F.scale2_correct by easy.
+rewrite F.add_exact_correct, Hl, Hu.
 simpl.
 rewrite Rmult_plus_distr_r.
 split.
@@ -1327,8 +1318,7 @@ elim Hx.
 unfold convert in Hx.
 destruct Hx as (Hxl, Hxu).
 unfold convert, scale2.
-do 2 ( rewrite <- F.toF_correct, F.scale2_correct ; [ idtac | apply refl_equal ] ).
-do 2 ( rewrite Fscale2_correct ; [ idtac | apply F.even_radix_correct ]).
+rewrite 2!F.scale2_correct by easy.
 split ; xreal_tac2 ; simpl ;
   ( apply Rmult_le_compat_r ;
     [ (apply Rlt_le ; apply bpow_gt_0) | assumption ] ).

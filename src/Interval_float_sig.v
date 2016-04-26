@@ -93,11 +93,11 @@ Parameter abs_correct :
   forall x, toX (abs x) = Xabs (toX x).
 
 Parameter scale_correct :
-  forall x d, FtoX (toF (scale x (ZtoS d))) = FtoX (Fscale (toF x) d).
+  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
 
 Parameter scale2_correct :
   forall x d, even_radix = true ->
-  FtoX (toF (scale2 x (ZtoS d))) = FtoX (Fscale2 (toF x) d).
+  toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
 
 Parameter add_exact_correct :
   forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).

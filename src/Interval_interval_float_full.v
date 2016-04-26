@@ -102,9 +102,7 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= PI)%R).
     revert Hu.
-    rewrite <- F.toF_correct, F.scale2_correct by easy.
-    rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
-    rewrite F.toF_correct.
+    rewrite F.scale2_correct by easy.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
@@ -152,10 +150,8 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= 2 * PI)%R).
     revert Hu.
-    rewrite <- F.toF_correct, F.scale2_correct by easy.
-    rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
+    rewrite F.scale2_correct by easy.
     generalize (T.pi4_correct prec).
-    rewrite F.toF_correct.
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
     intros [H _] Hu.
@@ -176,9 +172,7 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
     now destruct (F.toX (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 2))).
     assert (Hxlr: (PI <= xlr)%R).
       revert Hl.
-      rewrite <- F.toF_correct, F.scale2_correct by easy.
-      rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
-      rewrite F.toF_correct.
+      rewrite F.scale2_correct by easy.
       generalize (T.pi4_correct prec).
       destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
       now rewrite F.nan_correct.
@@ -299,8 +293,6 @@ case_eq (F'.le (F.neg pi2) xl).
     simpl.
     intros Hpl.
     generalize (F.scale2_correct (lower (T.pi4 prec)) 1 (refl_equal _)).
-    rewrite Interval_generic_proof.Fscale2_correct with (1 := F.even_radix_correct).
-    rewrite 2!F.toF_correct.
     intros X2.
     change (F.toX pi2 = Xmul (F.toX (lower (T.pi4 prec))) (Xreal 2)) in X2.
     rewrite X1 in X2. clear X1.
@@ -421,8 +413,7 @@ destruct (F.toX xu) as [|ru] ; try easy.
 intros Hl Hu.
 rewrite bnd_correct.
 rewrite F.neg_correct in Hlt1.
-rewrite <- F.toF_correct, F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct in Hlt1, Hlt2 ;
-  try easy ; try apply F.even_radix_correct.
+rewrite F.scale2_correct in Hlt1, Hlt2 by easy.
 generalize (T.pi4_correct prec).
 destruct (T.pi4 prec) as [|pi4l pi4u].
 simpl in Hlt1.
@@ -510,8 +501,7 @@ split.
   case_eq (F.toX xl).
   intros _ _.
   rewrite F.neg_correct.
-  rewrite <- F.toF_correct, F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct ; try easy.
-  2: apply F.even_radix_correct.
+  rewrite F.scale2_correct by easy.
   destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
   now rewrite F.nan_correct.
   simpl in Hpi.
@@ -540,8 +530,7 @@ split.
 - generalize (proj2 Hx). clear Hx.
   case_eq (F.toX xu).
   intros _ _.
-  rewrite <- F.toF_correct, F.scale2_correct, Interval_generic_proof.Fscale2_correct, F.toF_correct ; try easy.
-  2: apply F.even_radix_correct.
+  rewrite F.scale2_correct by easy.
   destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
   now rewrite F.nan_correct.
   simpl in Hpi.
