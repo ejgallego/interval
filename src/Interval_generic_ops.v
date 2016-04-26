@@ -80,16 +80,16 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition max_correct := @Fmax_correct radix.
   Definition neg_correct := @Fneg_correct radix.
   Definition abs_correct := @Fabs_correct radix.
-  Definition scale_correct := fun x d => refl_equal (FtoX (scale x d)).
-  Definition scale2_correct := fun x d (_ : even_radix = true) => refl_equal (FtoX (scale2 x d)).
-  Definition add_exact_correct := fun x y => refl_equal (FtoX (add_exact x y)).
-  Definition sub_exact_correct := fun x y => refl_equal (FtoX (sub_exact x y)).
-  Definition mul_exact_correct := fun x y => refl_equal (FtoX (mul_exact x y)).
-  Definition add_correct := fun mode prec x y => refl_equal (FtoX (add mode prec x y)).
-  Definition sub_correct := fun mode prec x y => refl_equal (FtoX (sub mode prec x y)).
-  Definition mul_correct := fun mode prec x y => refl_equal (FtoX (mul mode prec x y)).
-  Definition div_correct := fun mode prec x y => refl_equal (FtoX (div mode prec x y)).
-  Definition sqrt_correct := fun mode prec x => refl_equal (FtoX (sqrt mode prec x)).
+  Definition scale_correct := @Fscale_correct radix.
+  Definition scale2_correct := @Fscale2_correct radix.
+  Definition add_exact_correct := @Fadd_exact_correct radix.
+  Definition sub_exact_correct := @Fsub_exact_correct radix.
+  Definition mul_exact_correct := @Fmul_exact_correct radix.
+  Definition add_correct := @Fadd_correct radix.
+  Definition sub_correct := @Fsub_correct radix.
+  Definition mul_correct := @Fmul_correct radix.
+  Definition div_correct := @Fdiv_correct radix.
+  Definition sqrt_correct := @Fsqrt_correct radix.
 
   Definition fromZ n : float radix := match n with Zpos p => Float false p Z0 | Zneg p => Float true p Z0 | Z0 => Fzero end.
 
