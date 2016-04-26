@@ -69,6 +69,13 @@ exact I.
 exact (Rle_trans _ _ _ (proj2 Hx) (proj2 Hb)).
 Qed.
 
+Lemma contains_Xnan :
+  forall xi, contains xi Xnan <-> xi = Inan.
+Proof.
+intros xi.
+now case xi ; split.
+Qed.
+
 Definition le_upper x y :=
   match y with
   | Xnan => True

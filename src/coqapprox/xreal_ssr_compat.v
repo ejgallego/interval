@@ -25,7 +25,6 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.
 Require Import Interval_missing.
 Require Import Interval_definitions.
 Require Import Interval_xreal.
-Require Import Interval_interval.
 Require Import Rstruct.
 
 Set Implicit Arguments.
@@ -73,7 +72,3 @@ Proof.
 elim: n =>[|n IHn]; first by rewrite big_nat_recl // big_mkord big_ord0 Rplus_0_r.
 by rewrite big_nat_recr //= IHn.
 Qed.
-
-Lemma contains_Xnan (X : interval) :
-  contains X Xnan <-> X = Interval_interval.Inan.
-Proof. by case: X. Qed.

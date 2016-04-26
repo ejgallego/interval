@@ -23,7 +23,6 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.s
 Require Import Interval_xreal.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
-Require Import xreal_ssr_compat.
 Require Import Interval_missing.
 Require Import coquelicot_compl.
 Require Import Interval_taylor_model.

@@ -26,7 +26,7 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.s
 Require Import Interval_xreal.
 Require Import Interval_interval.
 Require Import Interval_missing.
-Require Import Rstruct xreal_ssr_compat.
+Require Import Rstruct.
 Require Import seq_compl.
 Require Import interval_compl.
 Require Import poly_datatypes.

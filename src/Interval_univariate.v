@@ -20,7 +20,6 @@ liability. See the COPYING file for more details.
 Require Import Reals.
 Require Import Interval_interval.
 Require Import Interval_xreal.
-Require Import interval_compl.
 
 Module Type UnivariateApprox (I : IntervalOps).
 

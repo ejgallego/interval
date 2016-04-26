@@ -20,7 +20,6 @@ liability. See the COPYING file for more details.
 Require Import Reals List ZArith.
 Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool.
-Require Import xreal_ssr_compat.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.

@@ -25,7 +25,6 @@ Require Import Interval_definitions.
 Require Import interval_compl.
 Require Import poly_datatypes.
 Require Import taylor_model_int_sharp.
-Require Import xreal_ssr_compat.
 Require Import poly_bound.
 Require Import poly_bound_quad.
 Require Import Interval_univariate Rstruct.
@@ -471,7 +470,7 @@ have [Hnil1 H1] := Hf;
 have [Hnil2 H2] := Hg;
 split=>//.
 red=>Hne.
-apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
+apply: (@TM_fun_eq (fun x => Xmul (g x) (f x)) _) =>//.
 by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
   exact: not_empty_Imid.
@@ -485,7 +484,7 @@ split=>//.
   by rewrite /= /tmsize size_TM_mul_mixed.
 red=>Hne.
 have Hdf := H1 Hne.
-apply: (@TM_fun_eq (fun x => g x * f x)%XR _) =>//.
+apply: (@TM_fun_eq (fun x => Xmul (g x) (f x)) _) =>//.
 by move=> *; exact: Xmul_comm.
 apply: TM_mul_mixed_correct_strong =>//.
 exact: not_empty_Imid.
