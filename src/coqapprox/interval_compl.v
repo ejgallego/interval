@@ -58,19 +58,6 @@ Proof.
 case=>[r Hr]; by exists (Xreal r).
 Qed.
 
-(***************************************************************)
-(** Some Reals-based specs to ease the CoqApprox formalization *)
-(***************************************************************)
-
-Lemma Xreal_neg x : Xreal (Ropp x) = Xneg (Xreal x).
-Proof. done. Qed.
-
-Lemma Xreal_sub x y : Xreal (x - y) = Xsub (Xreal x) (Xreal y).
-Proof. done. Qed.
-
-Lemma Xreal_add x y : Xreal (x + y) = Xadd (Xreal x) (Xreal y).
-Proof. done. Qed.
-
 (**************************************************************)
 (** Some support results relating inequalities and [contains] *)
 (**************************************************************)

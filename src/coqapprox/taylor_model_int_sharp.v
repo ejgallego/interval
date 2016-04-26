@@ -2434,20 +2434,19 @@ have HL :
   rewrite I.add_propagate_r //; exact: Gdef Eg.
 split=>//=.
 by move=> H; move/(_ H) in Fnai; rewrite I.add_propagate_l.
-step_xr (Xreal 0 + Xreal 0); by [apply: I.add_correct|rewrite /= Rplus_0_l].
+rewrite -(Rplus_0_l 0).
+exact: J.add_correct.
 move=> x0 Hx0 /=; move: (Fmain x0 Hx0) (Gmain x0 Hx0) => [pf Hf1 Hf2] [pg Hg1 Hg2].
 exists (PolR.add tt pf pg); first exact: Pol.add_correct.
 move=> x Hx /=.
-rewrite PolR.horner_add Xreal_sub.
+rewrite PolR.horner_add.
 case E0: (I.convert (I.add prec _ _)) {HL} (HL x Hx) => [|zl zu] //.
 set pfx := pf.[_]; set pgx := pg.[_].
 case Ef: f => [|fx]. by move => ->.
 case Eg: g => [|gx]. by move => ->.
 intros _.
-simpl Xbind2.
+rewrite /proj_val /Xbind2 -E0.
 replace (fx + gx - (pfx + pgx))%R with ((fx - pfx) + (gx - pgx))%R by ring.
-rewrite Xreal_add 2!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
-rewrite Ef Eg /=.
 apply: J.add_correct.
 rewrite -[fx](f_equal proj_val Ef).
 exact: Hf2.
@@ -2524,10 +2523,9 @@ set pfx := pf.[_]; set pgx := pg.[_].
 case Ef: f => [|fx]. by move => ->.
 case Eg: g => [|gx]. by move => ->.
 intros _.
-rewrite /Xbind2 /proj_val.
+rewrite /Xbind2 /proj_val -E0.
 replace (fx - gx - (pfx - pgx))%R with ((fx - pfx) - (gx - pgx))%R by ring.
-rewrite 3!Xreal_sub -E0 -Ef -Eg /pfx /pgx.
-apply: I.sub_correct.
+apply: J.sub_correct.
 move: (Hf2 x Hx).
 by rewrite Ef.
 move: (Hg2 x Hx).
@@ -3194,7 +3192,6 @@ exists Q0 =>//.
 move=> x Hx.
 case Enai: (I.convert (I.add prec (error M0) (error Mg))) => [|el eu] //.
 rewrite -Enai.
-rewrite Xreal_sub.
 case Efx: (f x) => [|fx].
   rewrite I.add_propagate_r //.
   apply/Gnai/contains_Xnan.
@@ -3204,7 +3201,6 @@ case Egfx: (g fx) => [|gfx].
   rewrite I.add_propagate_r //.
   apply: Gdef Egfx.
   rewrite -Efx; exact: inBfMf.
-rewrite -Xreal_sub.
 pose intermed := Ga0.[proj_val (f0 x)].
 rewrite /proj_val.
 replace (gfx - Q0.[(x - x0)%R])%R with

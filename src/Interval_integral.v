@@ -348,7 +348,7 @@ elim: depth a b epsilon Hareal Hbreal => [ | k Hk] a b epsilon Hareal Hbreal Hin
   suff /I.midpoint_correct []:
     exists x : ExtendedR, contains (I.convert (I.bnd a b)) x by move/F_realP.
     by exists (I.convert_bound a); apply: contains_convert_bnd_l => //; exact/F_realP.
- by rewrite Xreal_add; apply: I.add_correct; apply: Hcorrect => // .
+ by apply: J.add_correct; apply: Hcorrect.
 - set midpoint := I.midpoint (I.bnd a b).
 have hIl : ex_RInt f (toR a) (toR midpoint).
   by apply:  (ex_RInt_Chasles_1 _ _ _ (toR b)) => //; apply: midpoint_bnd_in.
