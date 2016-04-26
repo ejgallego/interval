@@ -22,8 +22,6 @@ Require Import Reals.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
-Require Import Interval_generic.
-Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 Require Import Interval_interval.
 
@@ -771,7 +769,7 @@ unfold sign_large.
 case (sign_large_ xl xu) ;
   try intros H [|x] Hx ;
   try (elim Hx ; fail) ;
-  try refl_exists ;
+  try eexists ; repeat split ;
   try apply f_equal ;
   exact (proj1 (H _ Hx)).
 Qed.
@@ -866,7 +864,7 @@ unfold sign_strict.
 case (sign_strict_ xl xu) ;
   try intros H [|x] Hx ;
   try (elim Hx ; fail) ;
-  try refl_exists ;
+  try eexists ; repeat split ;
   try apply f_equal ;
   exact (proj1 (H _ Hx)).
 Qed.

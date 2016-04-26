@@ -25,11 +25,10 @@ Require Import Flocq.Core.Fcore_Raux.
 Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
 Require Import Interval_xreal.
-Require Import Interval_generic Interval_interval.
+Require Import Interval_interval.
 Require Import Interval_definitions.
 Require Import Interval_xreal_derive.
 Require Import Interval_missing.
-Require Import Interval_generic_proof.
 Require Import Rstruct.
 Require Import xreal_ssr_compat.
 Require Import seq_compl.

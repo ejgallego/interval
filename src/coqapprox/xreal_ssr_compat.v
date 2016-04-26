@@ -23,9 +23,9 @@ liability. See the COPYING file for more details.
 Require Import Reals Psatz.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat mathcomp.ssreflect.bigop.
 Require Import Interval_missing.
+Require Import Interval_definitions.
 Require Import Interval_xreal.
 Require Import Interval_interval.
-Require Import Interval_generic_proof.
 Require Import Rstruct.
 
 Set Implicit Arguments.

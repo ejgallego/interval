@@ -24,7 +24,6 @@ Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_xreal_derive.
 Require Import Interval_definitions.
-Require Import Interval_generic_proof.
 Require Import Interval_interval.
 Require Import Interval_taylor_model.
 Require Import coquelicot_compl.

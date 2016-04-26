@@ -82,3 +82,46 @@ Definition FtoX beta (f : float beta) :=
   end.
 
 Implicit Arguments FtoX.
+
+Instance zpos_gt_0 : forall prec, Prec_gt_0 (Zpos prec).
+Proof.
+easy.
+Qed.
+
+Instance valid_rnd_of_mode : forall mode, Valid_rnd (rnd_of_mode mode).
+Proof.
+destruct mode ; simpl ; auto with typeclass_instances.
+Qed.
+
+Lemma FtoR_split :
+  forall beta s m e,
+  FtoR beta s m e = F2R (Fcore_defs.Float beta (cond_Zopp s (Zpos m)) e).
+Proof.
+intros.
+unfold FtoR, F2R, cond_Zopp. simpl.
+case e.
+now rewrite Rmult_1_r.
+intros p.
+now rewrite Z2R_mult.
+now intros p.
+Qed.
+
+Lemma is_zero_correct_zero :
+  is_zero 0 = true.
+Proof.
+destruct (is_zero_spec 0).
+apply refl_equal.
+now elim H.
+Qed.
+
+Lemma is_zero_correct_float :
+  forall beta s m e,
+  is_zero (FtoR beta s m e) = false.
+Proof.
+intros beta s m e.
+rewrite FtoR_split.
+case is_zero_spec ; try easy.
+intros H.
+apply F2R_eq_0_reg in H.
+now destruct s.
+Qed.
