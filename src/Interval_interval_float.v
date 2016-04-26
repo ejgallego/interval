@@ -458,7 +458,7 @@ Ltac xreal_tac2 :=
   end.
 
 Ltac bound_tac :=
-  unfold xround ;
+  unfold Xround, Xbind ;
   match goal with
   | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
     apply Rle_trans with (1 := proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
@@ -1506,7 +1506,7 @@ do 4 rewrite F.mul_correct.
 do 4 rewrite Fmul_correct.
 do 4 xreal_tac2 ;
   try ( split ; simpl ; exact I ).
-unfold xround.
+unfold Xround, Xbind.
 simpl.
 clear_complex.
 destruct (Rle_or_lt x 0) as [Hx|Hx].

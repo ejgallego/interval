@@ -520,23 +520,6 @@ Ltac refl_exists :=
   end ;
   repeat split.
 
-Definition rnd_of_mode mode :=
-  match mode with
-  | rnd_UP => rndUP
-  | rnd_DN => rndDN
-  | rnd_ZR => rndZR
-  | rnd_NE => rndNE
-  end.
-
-Definition round beta mode prec :=
-  round beta (FLX_exp (Zpos prec)) (rnd_of_mode mode).
-
-Definition xround beta mode prec x :=
-  match x with
-  | Xreal v => Xreal (round beta mode prec v)
-  | Xnan => Xnan
-  end.
-
 Instance zpos_gt_0 : forall prec, Prec_gt_0 (Zpos prec).
 Proof.
 easy.
@@ -836,13 +819,13 @@ Qed.
 Lemma Fround_at_prec_pos_Eq :
   forall beta mode prec (x : ufloat beta),
   ufloat_pos_Eq beta x ->
-  FtoX (Fround_at_prec mode prec x) = xround beta mode prec (UtoX x).
+  FtoX (Fround_at_prec mode prec x) = Xround beta mode prec (UtoX x).
 Proof with auto with typeclass_instances.
 intros beta mode prec [| |s m e [| | |]] H ; try elim H ; clear H.
 apply refl_equal.
 simpl. unfold round.
 rewrite round_0...
-unfold xround, UtoX.
+unfold Xround, UtoX.
 rewrite FtoR_split.
 replace (F2R (Fcore_defs.Float beta (cond_Zopp s (Zpos m)) e)) with
   (if s then Ropp (F2R (Fcore_defs.Float beta (Zpos m) e)) else F2R (Fcore_defs.Float beta (Zpos m) e)).
@@ -972,7 +955,7 @@ Qed.
 
 Theorem Fadd_slow_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fadd_slow mode prec x y) = xround beta mode prec (Xadd (FtoX x) (FtoX y)).
+  FtoX (Fadd_slow mode prec x y) = Xround beta mode prec (Xadd (FtoX x) (FtoX y)).
 Proof.
 intros beta mode prec x y.
 unfold Fadd_slow.
@@ -1019,7 +1002,7 @@ Qed.
 
 Theorem Fsub_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fsub mode prec x y) = xround beta mode prec (Xsub (FtoX x) (FtoX y)).
+  FtoX (Fsub mode prec x y) = Xround beta mode prec (Xsub (FtoX x) (FtoX y)).
 Proof.
 intros.
 rewrite Fsub_split.
@@ -1076,7 +1059,7 @@ Qed.
 
 Theorem Fmul_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fmul mode prec x y) = xround beta mode prec (Xmul (FtoX x) (FtoX y)).
+  FtoX (Fmul mode prec x y) = Xround beta mode prec (Xmul (FtoX x) (FtoX y)).
 Proof.
 intros beta mode prec x y.
 unfold Fmul.
@@ -1128,7 +1111,7 @@ Qed.
 
 Theorem Fdiv_correct :
   forall beta mode prec (x y : float beta),
-  FtoX (Fdiv mode prec x y) = xround beta mode prec (Xdiv (FtoX x) (FtoX y)).
+  FtoX (Fdiv mode prec x y) = Xround beta mode prec (Xdiv (FtoX x) (FtoX y)).
 Proof with auto with typeclass_instances.
 intros beta mode prec [ | | sx mx ex] [ | | sy my ey] ;
   simpl ; unfold Xdiv' ;
@@ -1140,7 +1123,7 @@ rewrite Rmult_0_l.
 apply sym_eq.
 apply (f_equal Xreal).
 apply round_0...
-unfold xround, Fdiv, Fdiv_aux.
+unfold Xround, Fdiv, Fdiv_aux.
 generalize (Fcalc_div.Fdiv_core_correct beta (Zpos prec) (Zpos mx) ex (Zpos my) ey (refl_equal Lt)).
 destruct (Fcalc_div.Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey) as ((m', e'), l).
 intros (H3, H4) ; try easy.
@@ -1178,7 +1161,7 @@ Qed.
 
 Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),
-  FtoX (Fsqrt mode prec x) = xround beta mode prec (Xsqrt (FtoX x)).
+  FtoX (Fsqrt mode prec x) = Xround beta mode prec (Xsqrt (FtoX x)).
 Proof with auto with typeclass_instances.
 intros beta mode prec [ | | sx mx ex] ; simpl ; unfold Xsqrt' ; try easy.
 (* *)
@@ -1204,7 +1187,7 @@ intros H.
 elim (Rle_not_lt _ _ H).
 apply FtoR_Rneg.
 intros _.
-unfold xround.
+unfold Xround.
 generalize (Fcalc_sqrt.Fsqrt_core_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
 destruct (Fcalc_sqrt.Fsqrt_core beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
 intros (H3, H4).

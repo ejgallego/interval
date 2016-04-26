@@ -18,7 +18,8 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
-Require Import Flocq.Core.Fcore_Raux.
+Require Import Flocq.Core.Fcore.
+Require Import Interval_xreal.
 
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.
@@ -50,3 +51,34 @@ Definition FtoR (s : bool) m e :=
   end.
 
 End Definitions.
+
+Definition rnd_of_mode mode :=
+  match mode with
+  | rnd_UP => rndUP
+  | rnd_DN => rndDN
+  | rnd_ZR => rndZR
+  | rnd_NE => rndNE
+  end.
+
+Definition round beta mode prec :=
+  round beta (FLX_exp (Zpos prec)) (rnd_of_mode mode).
+
+Definition Xround beta mode prec := Xlift (round beta mode prec).
+
+Inductive float (beta : radix) : Set :=
+  | Fnan : float beta
+  | Fzero : float beta
+  | Float : bool -> positive -> Z -> float beta.
+
+Implicit Arguments Fnan [[beta]].
+Implicit Arguments Fzero [[beta]].
+Implicit Arguments Float [[beta]].
+
+Definition FtoX beta (f : float beta) :=
+  match f with
+  | Fzero => Xreal R0
+  | Fnan => Xnan
+  | Float s m e => Xreal (FtoR beta s m e)
+  end.
+
+Implicit Arguments FtoX.

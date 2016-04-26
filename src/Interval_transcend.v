@@ -79,7 +79,7 @@ Definition sm1 := F.ZtoS (-1).
 Definition sm8 := F.ZtoS (-8).
 
 Ltac bound_tac :=
-  unfold xround ;
+  unfold Xround, Xbind ;
   match goal with
   | |- (round ?r rnd_DN ?p ?v <= ?v)%R =>
     apply (proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
@@ -394,7 +394,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   case_eq (F.toX su).
   easy.
   intros sur Hsu'.
-  unfold Xdiv', Xbind2, xround.
+  unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   easy.
   intros _.
@@ -654,7 +654,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- 2!F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xdiv', Xbind2, xround.
+  unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -1852,7 +1852,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xdiv', Xbind2, xround.
+  unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.
@@ -2398,7 +2398,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold sqrl, sqru.
   rewrite <- F.toF_correct, 2!F.mul_correct, 2!Fmul_correct, F.toF_correct.
   rewrite Rx.
-  unfold Xdiv', Xbind2, xround.
+  unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
   apply (eq_Z2R _ 0) in H'.

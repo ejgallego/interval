@@ -48,11 +48,11 @@ Definition type := s_float smantissa_type exponent_type.
 
 Definition toF (x : type) : float radix :=
   match x with
-  | Fnan => Interval_generic.Fnan
+  | Fnan => Interval_definitions.Fnan
   | Float m e =>
     match mantissa_sign m with
-    | Mzero => Interval_generic.Fzero
-    | Mnumber s p => Interval_generic.Float s (MtoP p) (EtoZ e)
+    | Mzero => Interval_definitions.Fzero
+    | Mnumber s p => Interval_definitions.Float s (MtoP p) (EtoZ e)
     end
   end.
 
@@ -60,12 +60,12 @@ Definition toX (x : type) := FtoX (toF x).
 
 Definition toF_correct := fun x => refl_equal (toX x).
 
-Definition fromF (f : Interval_generic.float radix) :=
+Definition fromF (f : Interval_definitions.float radix) :=
   match f with
-  | Interval_generic.Fnan => Fnan
-  | Interval_generic.Fzero => Float mantissa_zero exponent_zero
-  | Interval_generic.Float false m e => Float (ZtoM (Zpos m)) (ZtoE e)
-  | Interval_generic.Float true m e => Float (ZtoM (Zneg m)) (ZtoE e)
+  | Interval_definitions.Fnan => Fnan
+  | Interval_definitions.Fzero => Float mantissa_zero exponent_zero
+  | Interval_definitions.Float false m e => Float (ZtoM (Zpos m)) (ZtoE e)
+  | Interval_definitions.Float true m e => Float (ZtoM (Zneg m)) (ZtoE e)
   end.
 
 Definition precision := exponent_type.
@@ -147,7 +147,7 @@ Definition float_aux s m e : type :=
 
 Lemma toF_float :
   forall s p e, valid_mantissa p ->
-  toF (float_aux s p e) = Interval_generic.Float s (MtoP p) (EtoZ e).
+  toF (float_aux s p e) = Interval_definitions.Float s (MtoP p) (EtoZ e).
 Proof.
 intros.
 simpl.
@@ -713,8 +713,8 @@ now case (mantissa_sign my).
 intros sx px Hx (Hx1, Hx2).
 rewrite (match_helper_1 _ _ (fun s py => round_aux mode p (Datatypes.xorb sx s) (mantissa_mul px py)
   (exponent_add ex ey) pos_Eq) (fun a => FtoX (toF a))).
-rewrite (match_helper_1 _ _ (fun s p => Interval_generic.Float s (MtoP p) (EtoZ ey))
-  (fun a => FtoX (Fmul mode (prec p) (Interval_generic.Float sx (MtoP px) (EtoZ ex)) a))).
+rewrite (match_helper_1 _ _ (fun s p => Interval_definitions.Float s (MtoP p) (EtoZ ey))
+  (fun a => FtoX (Fmul mode (prec p) (Interval_definitions.Float sx (MtoP px) (EtoZ ex)) a))).
 simpl.
 generalize (mantissa_sign_correct my).
 case (mantissa_sign my).

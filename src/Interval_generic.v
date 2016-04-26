@@ -26,15 +26,6 @@ Require Import Interval_definitions.
 Require Import Flocq.Calc.Fcalc_div.
 Require Import Flocq.Calc.Fcalc_sqrt.
 
-Inductive float (beta : radix) : Set :=
-  | Fnan : float beta
-  | Fzero : float beta
-  | Float : bool -> positive -> Z -> float beta.
-
-Implicit Arguments Fnan [[beta]].
-Implicit Arguments Fzero [[beta]].
-Implicit Arguments Float [[beta]].
-
 Inductive position : Set :=
   pos_Eq | pos_Lo | pos_Mi | pos_Up.
 
@@ -46,15 +37,6 @@ Inductive ufloat (beta : radix) : Set :=
 Implicit Arguments Unan [[beta]].
 Implicit Arguments Uzero [[beta]].
 Implicit Arguments Ufloat [[beta]].
-
-Definition FtoX beta (f : float beta) :=
-  match f with
-  | Fzero => Xreal R0
-  | Fnan => Xnan
-  | Float s m e => Xreal (FtoR beta s m e)
-  end.
-
-Implicit Arguments FtoX.
 
 (*
  * Fneg
