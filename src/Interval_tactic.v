@@ -28,7 +28,6 @@ Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
-Require Import Interval_transcend.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 

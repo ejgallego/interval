@@ -22,7 +22,6 @@ Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
-Require Import Interval_float_sig.
 
 Inductive interval : Set :=
   | Inan : interval
