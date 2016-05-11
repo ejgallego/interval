@@ -95,6 +95,18 @@ testsuite/check: src/Interval_tactic.vo
 testsuite/clean:
 	rm -f testsuite/failures-*.log
 
+deps.dot: $(addprefix src/,$(FILES)) $(addprefix src/coqapprox/,$(CAFILES))
+	(echo "digraph interval_deps {" ;
+	echo "node [shape = ellipse, style=filled, URL=\"Interval.\N.html\", color=black, fillcolor=cornflowerblue];";
+	(cd src ; @COQDEP@ -R . Interval $(FILES) $(addprefix coqapprox/,$(CAFILES))) |
+	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |
+	  while read src dst; do
+	    for d in $dst; do
+	      echo "\"$src\" -> \"${d%.vo}\" ;"
+	    done
+	  done;
+	echo "}") | tred > $@
+
 install:
 	prefix=@prefix@
 	exec_prefix=@exec_prefix@
