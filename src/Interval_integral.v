@@ -134,22 +134,26 @@ Definition div2 f := F.scale2 f (F.ZtoS (-1)).
 
 Fixpoint integral_interval_absolute (depth : nat) (ia ib : I.type) (epsilon : F.type) :=
   let int := I.join ia ib in
-  match depth with
-    | O => let m := I.midpoint' int in
-           I.add prec (est ia m) (est m ib)
-    | S n => let m := I.midpoint' int in
-             let halfeps := div2 epsilon in
-             let roughEstimate_1 := est ia m in
-             let roughEstimate_2 := est m ib in
-             match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
-               | true,true => I.add prec roughEstimate_1 roughEstimate_2
-               | true,false => let int2 := integral_interval_absolute n m ib (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
-               | false,true => let int1 := integral_interval_absolute n ia m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
-               | false,false =>
-                 let i1 := integral_interval_absolute n ia m halfeps in
-                 let i2 := integral_interval_absolute n m ib halfeps in
-                 I.add prec i1 i2
-             end
+  let m := I.midpoint' int in
+  match I.bounded m with
+    | false => I.nai
+    | true =>
+      match depth with
+        | O => I.add prec (est ia m) (est m ib)
+        | S n => let m := I.midpoint' int in
+                 let halfeps := div2 epsilon in
+                 let roughEstimate_1 := est ia m in
+                 let roughEstimate_2 := est m ib in
+                 match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
+                   | true,true => I.add prec roughEstimate_1 roughEstimate_2
+                   | true,false => let int2 := integral_interval_absolute n m ib (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
+                   | false,true => let int1 := integral_interval_absolute n ia m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+                   | false,false =>
+                     let i1 := integral_interval_absolute n ia m halfeps in
+                     let i2 := integral_interval_absolute n m ib halfeps in
+                     I.add prec i1 i2
+                 end
+      end
   end.
 
 Definition integral_interval_relative
@@ -167,23 +171,27 @@ Definition integral_interval_relative
       else integral_interval_absolute (depth-1) ia ib epsilon
   else I.nai.
 
-Lemma integral_interval_absolute_Sn n a b epsilon :
-  let int := I.join a b in
+Lemma integral_interval_absolute_Sn {n ia ib epsilon} :
+  let int := I.join ia ib in
   let m := I.midpoint' int in
   let halfeps := div2 epsilon in
-  let roughEstimate_1 := est a m in
-  let roughEstimate_2 := est m b in
-  integral_interval_absolute (S n) a b epsilon =
+  let roughEstimate_1 := est ia m in
+  let roughEstimate_2 := est m ib in
+  I.bounded m ->
+  integral_interval_absolute (S n) ia ib epsilon =
   match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
     | true,true => I.add prec roughEstimate_1 roughEstimate_2
-    | true,false => let int2 := integral_interval_absolute n m b (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
-    | false,true => let int1 := integral_interval_absolute n a m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+    | true,false => let int2 := integral_interval_absolute n m ib (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
+    | false,true => let int1 := integral_interval_absolute n ia m (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
     | false,false =>
-      let i1 := integral_interval_absolute n a m halfeps in
-      let i2 := integral_interval_absolute n m b halfeps in
+      let i1 := integral_interval_absolute n ia m halfeps in
+      let i2 := integral_interval_absolute n m ib halfeps in
       I.add prec i1 i2
   end.
 Proof.
+(* rewrite /integral_interval_absolute. *)
+rewrite /=.
+move ->.
 by [].
 Qed.
 
@@ -227,20 +235,23 @@ elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
   + apply: (ex_RInt_base_case _ _ ia m') => // .
     move: HnotInan; rewrite /integral_interval_absolute -/m'.
     set I1 := estimator ia m'.
+    case: (I.bounded m'); last by rewrite I.nai_correct.
     by case HI1 : (I.convert I1) => [| l1 u1 ]; first rewrite I.add_propagate_l.
   + apply: (ex_RInt_base_case _ _ m' ib) => // .
     move: HnotInan; rewrite /integral_interval_absolute -/m'.
     set I2 := estimator m' ib.
+    case: (I.bounded m'); last by rewrite I.nai_correct.
     by case HI2 : (I.convert I2) => [| l2 u2 ]; first rewrite I.add_propagate_r.
 - set iab := (I.join ia ib).
   set m' := I.midpoint' iab.
-  have Boundedm' : I.bounded m'. by admit. (* not true but we might want it to be true *)
+  case Hbnded: (I.bounded m'); last first.
+    by rewrite /integral_interval_absolute Hbnded I.nai_correct in HnotInan.
   have Hm'm :  (not_empty (I.convert m')).
   move: (I.midpoint'_correct iab) => [H1 H2].
     by apply: H2; exists a; apply: I.join_correct; left.
   elim: Hm'm => m Hm.
   apply: (ex_RInt_Chasles _ _ m).
-  + rewrite integral_interval_absolute_Sn in HnotInan.
+  + rewrite (integral_interval_absolute_Sn _ Hbnded) in HnotInan.
     move: HnotInan.
     set b1 := (X in if X then _ else _).
     case: b1.
@@ -269,7 +280,7 @@ elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
         set i1 := (X in I.convert X).
         move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
           by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_l.
-  + rewrite integral_interval_absolute_Sn in HnotInan.
+  + rewrite (integral_interval_absolute_Sn _  Hbnded) in HnotInan.
     move: HnotInan.
     set b1 := (X in if X then _ else _).
     case: b1.
@@ -298,7 +309,7 @@ elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
         set i1 := (X in I.convert X).
         move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
         by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_r.
-Admitted.
+Qed.
 
 Lemma integral_interval_absolute_correct (depth : nat) (a b : R) (ia ib : I.type) epsilon :
   I.bounded ia ->
@@ -312,7 +323,8 @@ move => Hiab Hibb Hcontia Hcontib HexRInt.
 elim: depth epsilon a b ia ib Hcontia Hcontib Hiab Hibb HexRInt => [|d Hd] epsilon a b ia ib Hcontia Hcontib Hiab Hibb HexRInt.
 - set iab := (I.join ia ib).
   set m' := I.midpoint' iab.
-  have Boundedm' : I.bounded m' by admit.
+  case Hbnded : (I.bounded m'); last first.
+    by rewrite /integral_interval_absolute Hbnded I.nai_correct.
   move: (I.midpoint'_correct iab) => [H1 H2].
   have Hm'm :  (not_empty (I.convert m')).
     by apply: H2; exists a; apply: I.join_correct; left.
@@ -320,7 +332,6 @@ elim: depth epsilon a b ia ib Hcontia Hcontib Hiab Hibb HexRInt => [|d Hd] epsil
     have hIl : ex_RInt f a m.
     apply:  (ex_RInt_Chasles_1 _ _ _ b) => // .
       by admit. (* not true, thinking about how to go around this *)
-
     (* rewrite /contains in Hm. *)
     have hIr : ex_RInt f m b.
     apply:  (ex_RInt_Chasles_2 f a)=> // .
@@ -328,10 +339,12 @@ elim: depth epsilon a b ia ib Hcontia Hcontib Hiab Hibb HexRInt => [|d Hd] epsil
     have -> : RInt f a b =
             RInt f a m + RInt f m b.
       by rewrite RInt_Chasles // .
+   rewrite /integral_interval_absolute Hbnded.
    by apply: J.add_correct; apply: Hcorrect.
 - set iab := (I.join ia ib).
   set m' := I.midpoint' iab.
-  have Boundedm' : I.bounded m' by admit. (* not true, see previous lemma *)
+  case Hbnded : (I.bounded m'); last first.
+    by rewrite /integral_interval_absolute Hbnded I.nai_correct.
   move: (I.midpoint'_correct iab) => [H1 H2].
   have Hm'm :  (not_empty (I.convert m')).
     by apply: H2; exists a; apply: I.join_correct; left.
@@ -347,7 +360,7 @@ elim: depth epsilon a b ia ib Hcontia Hcontib Hiab Hibb HexRInt => [|d Hd] epsil
     have -> : RInt f a b =
             RInt f a m + RInt f m b.
       by rewrite RInt_Chasles // .
-  rewrite integral_interval_absolute_Sn.
+  rewrite (integral_interval_absolute_Sn _ Hbnded).
   set b1 := (X in if X then _ else _).
   case Hb1: b1.
   + set b2 := (X in if X then _ else _).
