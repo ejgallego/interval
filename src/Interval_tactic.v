@@ -937,7 +937,7 @@ Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
           | H: Rle x ?b |- _ => idtac
           | H: Rle (Rabs x) ?b |- _ => idtac
           end ;
-          fail 100 "Atom" x "is neither a constant value nor bounded by constant values."
+          fail 6 "Atom" x "is neither a constant value nor bounded by constant values."
         | _ =>
           constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x)
         end
@@ -1022,7 +1022,7 @@ Ltac xalgorithm_pre prec :=
     idtac
   | |- (?a <> ?b)%R =>
     apply Rminus_not_eq
-  | _ => fail 100 "Goal is not an inequality with constant bounds."
+  | _ => fail 4 "Goal is not an inequality with constant bounds."
   end.
 
 Ltac xalgorithm lx prec :=
@@ -1136,7 +1136,7 @@ Ltac do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac :=
         || warn_whole lw
       end
     end)) ||
-  fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
+  fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
 
 Ltac do_interval_eval bounds output formula prec depth n :=
   refine (interval_helper_evaluate bounds output formula prec n _).
@@ -1175,14 +1175,14 @@ Ltac do_interval_parse params :=
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
-  | Inan => fail 100 "Nothing known about" t
+  | Inan => fail 4 "Nothing known about" t
   | Ibnd ?l ?u =>
     match goal with
     | |- ?P =>
       match l with
       | Xnan =>
         match u with
-        | Xnan => fail 100 "Nothing known about" t
+        | Xnan => fail 7 "Nothing known about" t
         | Xreal ?u => refine ((_ : (t <= u)%R -> P) _)
         end
       | Xreal ?l =>
