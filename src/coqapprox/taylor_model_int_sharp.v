@@ -111,7 +111,7 @@ Variable Tcoeffs : I.type -> nat -> Pol.T.
 (** The generic functions [TLrem]/[Ztech] are intended to ease the
     computation of the interval remainder for basic functions.
 *)
-Definition TLrem X0 X n :=
+Definition TLrem (X0 X : I.type) n :=
   let N := S n in
   let NthCoeff := Pol.nth (Tcoeffs X N) N in
   let NthPower :=
@@ -119,7 +119,7 @@ Definition TLrem X0 X n :=
   I.mul prec NthCoeff NthPower.
 
 (** The first argument of [Ztech] will be instantiated with [Tcoeffs X0 n]. *)
-Definition Ztech (P : Pol.T) F X0 X n :=
+Definition Ztech (P : Pol.T) F (X0 X : I.type) n :=
   let N := S n in
   let NthCoeff := Pol.nth (Tcoeffs X N) N in
   if isNNegOrNPos NthCoeff && I.bounded X then
@@ -138,26 +138,26 @@ Definition Ztech (P : Pol.T) F X0 X n :=
 End TaylorModel.
 
 (** Note that Zumkeller's technique is not necessary for [TM_cst] & [TM_var]. *)
-Definition TM_cst X c : rpa :=
+Definition TM_cst (X c : I.type) : rpa :=
   RPA (Pol.polyC c) (I.mask (I.mask I.zero X) c).
 
-Definition TM_var X X0 :=
+Definition TM_var (X X0 : I.type) :=
   RPA (Pol.set_nth Pol.polyX 0 X0) (I.mask I.zero X).
 
-Definition TM_exp X0 X (n : nat) : rpa :=
+Definition TM_exp (X0 X : I.type) (n : nat) : rpa :=
   (** Note that this let-in is essential in call-by-value context. *)
   let P := (T_exp prec X0 n) in
   RPA P (Ztech (T_exp prec) P (I.exp prec) X0 X n).
 
-Definition TM_sin X0 X (n : nat) : rpa :=
+Definition TM_sin (X0 X : I.type) (n : nat) : rpa :=
   let P := (T_sin prec X0 n) in
   RPA P (Ztech (T_sin prec) P (I.sin prec) X0 X n).
 
-Definition TM_cos X0 X (n : nat) : rpa :=
+Definition TM_cos (X0 X : I.type) (n : nat) : rpa :=
   let P := (T_cos prec X0 n) in
   RPA P (Ztech (T_cos prec) P (I.cos prec) X0 X n).
 
-Definition TM_atan X0 X (n : nat) : rpa :=
+Definition TM_atan (X0 X : I.type) (n : nat) : rpa :=
   let P := (T_atan prec X0 n) in
   RPA P (Ztech (T_atan prec) P (I.atan prec) X0 X n).
 
@@ -184,7 +184,7 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     & forall x, contains X (Xreal x) ->
       error M >: proj_val (xf x) - (PolR.horner tt Q (x - x0))%R].
 
-Lemma TM_fun_eq f g X0 X TMf :
+Lemma TM_fun_eq f g (X0 X : interval) TMf :
   (forall x, contains X (Xreal x) -> f x = g x) ->
   i_validTM X0 X TMf f -> i_validTM X0 X TMf g.
 Proof.
@@ -412,12 +412,12 @@ End TM_integral.
 
 Section Const_prelim.
 
-Definition is_const (f : R -> ExtendedR) (X c : I.type) : Prop :=
-  exists2 y : ExtendedR, contains (I.convert c) y
-  & forall x : R, contains (I.convert X) (Xreal x) -> f x = y.
+Definition is_const (f : R -> ExtendedR) (X c : interval) : Prop :=
+  exists2 y : ExtendedR, contains c y
+  & forall x : R, contains X (Xreal x) -> f x = y.
 
-Lemma is_const_ext (f g : R -> ExtendedR) X c :
-  (forall x : R, contains (I.convert X) (Xreal x) -> f x = g x) ->
+Lemma is_const_ext (f g : R -> ExtendedR) (X c : interval) :
+  (forall x : R, contains X (Xreal x) -> f x = g x) ->
   is_const f X c -> is_const g X c.
 Proof.
 move=> Hmain [a Ha1 Ha2].
@@ -427,7 +427,7 @@ rewrite -Hmain //.
 exact: Ha2.
 Qed.
 
-Corollary is_const_ext_weak (f g : R -> ExtendedR) X c :
+Corollary is_const_ext_weak (f g : R -> ExtendedR) (X c : interval) :
   (forall x : R, f x = g x) ->
   is_const f X c -> is_const g X c.
 Proof.
@@ -1075,7 +1075,7 @@ Qed.
 
 End GenericProof.
 
-Lemma size_TM_cst X c : Pol.size (approx (TM_cst X c)) = 1.
+Lemma size_TM_cst (X c : I.type) : Pol.size (approx (TM_cst X c)) = 1.
 Proof. by rewrite /TM_cst Pol.polyCE Pol.size_polyCons Pol.size_polyNil. Qed.
 
 Theorem TM_cst_correct (ci X0 X : I.type) (c : ExtendedR) :
@@ -1104,7 +1104,7 @@ Qed.
 Theorem TM_cst_correct_strong (ci X0 X : I.type) (f : R -> ExtendedR) :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
-  is_const f X ci ->
+  is_const f (I.convert X) (I.convert ci) ->
   i_validTM (I.convert X0) (I.convert X) (TM_cst X ci) f.
 Proof.
 move=> Hsubset Hne [c H1 H2].
@@ -1127,7 +1127,7 @@ Definition sizes := (Pol.size_polyNil, Pol.size_polyCons,
                      Pol.size_set_nth, PolR.size_set_nth,
                      Pol.polyCE).
 
-Lemma size_TM_any c X n : Pol.size (approx (TM_any c X n)) = n.+1.
+Lemma size_TM_any (c X : I.type) n : Pol.size (approx (TM_any c X n)) = n.+1.
 Proof.
 rewrite /TM_any /=.
 case: n =>[|n] /=.
@@ -1187,14 +1187,14 @@ rewrite /pol' {pol'} /pol0 /TM_any /=.
   by rewrite PolR.nth_polyNil if_same.
 Qed.
 
-Lemma size_TM_var X X0 : Pol.size (approx (TM_var X X0)) = 2.
+Lemma size_TM_var (X X0 : I.type) : Pol.size (approx (TM_var X X0)) = 2.
 Proof.
 rewrite /TM_var Pol.size_set_nth
 Pol.polyXE Pol.size_lift Pol.oneE Pol.polyCE.
 by rewrite Pol.size_polyCons Pol.size_polyNil.
 Qed.
 
-Lemma TM_var_correct X0 X :
+Lemma TM_var_correct (X0 X : I.type) :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_var X X0) Xreal.
@@ -1212,7 +1212,7 @@ replace (x - _)%R with R0 by ring.
 apply I.mask_correct', J.zero_correct.
 Qed.
 
-Theorem TM_var_correct_strong X0 X (f : R -> ExtendedR) :
+Theorem TM_var_correct_strong (X0 X : I.type) (f : R -> ExtendedR) :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   (forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x) ->
@@ -1223,10 +1223,11 @@ apply: TM_fun_eq; last apply: TM_var_correct Hsubset Hne.
 by move=> *; rewrite Hid.
 Qed.
 
-Lemma size_TM_exp X0 X (n : nat) : Pol.size (approx (TM_exp X0 X n)) = n.+1.
+Lemma size_TM_exp (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_exp X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec1. Qed.
 
-Lemma TM_exp_correct X0 X n :
+Lemma TM_exp_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_exp X0 X n) (fun x => Xreal (exp x)).
@@ -1273,10 +1274,11 @@ elim: k => [|k [IHk0 IHk1]]; first by split.
 split; by [|apply: Hind].
 Qed.
 
-Lemma size_TM_sin X0 X (n : nat) : Pol.size (approx (TM_sin X0 X n)) = n.+1.
+Lemma size_TM_sin (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_sin X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
-Lemma TM_sin_correct X0 X n :
+Lemma TM_sin_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sin X0 X n) (fun x => Xreal (sin x)).
@@ -1326,10 +1328,11 @@ constructor.
 - move=> *; apply/ex_derive_n_is_derive_n/is_derive_n_sin.
 Qed.
 
-Lemma size_TM_cos X0 X (n : nat) : Pol.size (approx (TM_cos X0 X n)) = n.+1.
+Lemma size_TM_cos (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_cos X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_rec2. Qed.
 
-Lemma TM_cos_correct X0 X n :
+Lemma TM_cos_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_cos X0 X n) (fun x => Xreal (cos x)).
@@ -1378,10 +1381,11 @@ constructor.
 - move=> *; apply/ex_derive_n_is_derive_n/is_derive_n_cos.
 Qed.
 
-Lemma size_TM_atan X0 X (n : nat) : Pol.size (approx (TM_atan X0 X n)) = n.+1.
+Lemma size_TM_atan (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_atan X0 X n)) = n.+1.
 Proof. by rewrite Pol.size_grec1. Qed.
 
-Lemma TM_atan_correct X0 X n :
+Lemma TM_atan_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_atan X0 X n) (fun x => Xreal (atan x)).
@@ -1464,17 +1468,18 @@ constructor.
 - by move=> m x Hx; apply: ex_derive_n_is_derive_n (is_derive_n_atan m x).
 Qed.
 
-Definition TM_tan X0 X (n : nat) : rpa :=
+Definition TM_tan (X0 X : I.type) (n : nat) : rpa :=
   let P := (T_tan prec X0 n) in
   let ic := I.cos prec X in
   if apart0 ic
   then RPA P (Ztech (T_tan prec) P (I.tan prec) X0 X n)
   else RPA P I.nai.
 
-Lemma size_TM_tan X0 X (n : nat) : Pol.size (approx (TM_tan X0 X n)) = n.+1.
+Lemma size_TM_tan (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_tan X0 X n)) = n.+1.
 Proof. by rewrite /TM_tan; case: apart0; rewrite Pol.size_grec1. Qed.
 
-Lemma TM_tan_correct X0 X n :
+Lemma TM_tan_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_tan X0 X n) Xtan'.
@@ -1617,20 +1622,21 @@ Definition Ztech_sqrt prec P X0 X :=
   I.join (I.join Da Db) Dx0.
 *)
 
-Definition TM_sqrt X0 X (n : nat) : rpa :=
+Definition TM_sqrt (X0 X : I.type) (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_sqrt prec X0 n) in
   if gt0 X
   then RPA P (Ztech (T_sqrt prec) P (I.sqrt prec) X0 X n)
   else RPA P I.nai.
 
-Lemma size_TM_sqrt X0 X (n : nat) : Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
+Lemma size_TM_sqrt (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_sqrt X0 X n)) = n.+1.
 Proof.
 by rewrite /TM_sqrt;
   case: gt0; rewrite Pol.size_rec1.
 Qed.
 
-Lemma TM_sqrt_correct X0 X n :
+Lemma TM_sqrt_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_sqrt X0 X n) Xsqrt'.
@@ -1726,14 +1732,14 @@ Qed.
 
 Definition I_invsqrt prec x := I.inv prec (I.sqrt prec x).
 
-Definition TM_invsqrt X0 X (n : nat) : rpa :=
+Definition TM_invsqrt (X0 X : I.type) (n : nat) : rpa :=
   (* assuming X0 \subset X *)
   let P := (T_invsqrt prec X0 n) in
   if gt0 X
   then RPA P (Ztech (T_invsqrt prec) P (I_invsqrt prec) X0 X n)
   else RPA P I.nai.
 
-Lemma size_TM_invsqrt X0 X (n : nat) :
+Lemma size_TM_invsqrt (X0 X : I.type) (n : nat) :
   Pol.size (approx (TM_invsqrt X0 X n)) = n.+1.
 Proof. by rewrite /TM_invsqrt; case: gt0; rewrite Pol.size_rec1. Qed.
 
@@ -1741,7 +1747,7 @@ Ltac Inc :=
   rewrite (*?*) INR_IZR_INZ -Z2R_IZR;
   apply: I.fromZ_correct.
 
-Lemma TM_invsqrt_correct X0 X n :
+Lemma TM_invsqrt_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_invsqrt X0 X n)
@@ -1846,7 +1852,7 @@ by apply: J.inv_correct; apply: J.sqrt_correct.
 by rewrite I.nai_correct.
 Qed.
 
-Definition TM_power_int (p : Z) X0 X (n : nat) :=
+Definition TM_power_int (p : Z) (X0 X : I.type) (n : nat) :=
   let P := (T_power_int prec p X0 n) in
   if p is Z.neg _ then
     if apart0 X then
@@ -1856,7 +1862,7 @@ Definition TM_power_int (p : Z) X0 X (n : nat) :=
   else RPA P (Ztech (T_power_int prec p) P
                     (fun x => I.power_int prec x p) X0 X n).
 
-Lemma size_TM_power_int (p : Z) X0 X (n : nat) :
+Lemma size_TM_power_int (p : Z) (X0 X : I.type) (n : nat) :
   Pol.size (approx (TM_power_int p X0 X n)) = n.+1.
 Proof.
 rewrite /TM_power_int.
@@ -1884,7 +1890,7 @@ case: p => [|p|p] Hx.
   by case.
 Qed.
 
-Lemma TM_power_int_correct_aux (p : Z) X0 X n :
+Lemma TM_power_int_correct_aux (p : Z) (X0 X : I.type) n :
   (0 <= p)%Z \/ apart0 X ->
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
@@ -2043,7 +2049,7 @@ constructor.
   by apply: ex_derive_n_powerRZ; right.
 Qed.
 
-Lemma TM_power_int_correct (p : Z) X0 X n :
+Lemma TM_power_int_correct (p : Z) (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_power_int p X0 X n) (fun x => Xpower_int' x p).
@@ -2070,16 +2076,17 @@ exact: J.power_int_correct.
 by move=> x Hx; rewrite I.nai_correct.
 Qed.
 
-Definition TM_inv X0 X (n : nat) :=
+Definition TM_inv (X0 X : I.type) (n : nat) :=
   let P := (T_inv prec X0 n) in
   if apart0 X then
     RPA P (Ztech (T_inv prec) P (I.inv prec) X0 X n)
   else RPA P I.nai.
 
-Lemma size_TM_inv X0 X (n : nat) : Pol.size (approx (TM_inv X0 X n)) = n.+1.
+Lemma size_TM_inv (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_inv X0 X n)) = n.+1.
 Proof. by rewrite /TM_inv; case: apart0 =>/=; rewrite Pol.size_rec1. Qed.
 
-Lemma TM_inv_correct X0 X n :
+Lemma TM_inv_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_inv X0 X n) Xinv'.
@@ -2163,13 +2170,14 @@ exact: J.inv_correct.
 by rewrite I.nai_correct.
 Qed.
 
-Definition TM_ln X0 X (n : nat) : rpa :=
+Definition TM_ln (X0 X : I.type) (n : nat) : rpa :=
   let P := (T_ln prec X0 n) in
   if gt0 X then
     RPA P (Ztech (T_ln prec) P (I.ln prec) X0 X n)
   else RPA P I.nai.
 
-Lemma size_TM_ln X0 X (n : nat) : Pol.size (approx (TM_ln X0 X n)) = n.+1.
+Lemma size_TM_ln (X0 X : I.type) (n : nat) :
+  Pol.size (approx (TM_ln X0 X n)) = n.+1.
 Proof.
 by rewrite /TM_ln; case: gt0; case: n => [|n] /=; rewrite !sizes
   ?(@Pol.size_dotmuldiv n.+1, Pol.size_rec1, size_rec1up, size_behead).
@@ -2184,7 +2192,7 @@ rewrite Rinv_involutive //.
 exact: pow_nonzero.
 Qed.
 
-Lemma TM_ln_correct X0 X n :
+Lemma TM_ln_correct (X0 X : I.type) n :
   subset' (I.convert X0) (I.convert X) ->
   not_empty (I.convert X0) ->
   i_validTM (I.convert X0) (I.convert X) (TM_ln X0 X n) Xln'.
@@ -2323,18 +2331,17 @@ Qed.
 Local Notation "a + b" := (Xadd a b).
 Local Notation "a - b" := (Xsub a b).
 
-Lemma TM_add_correct_gen
-  (smallX0 : interval) (X : I.type) (TMf TMg : rpa) f g :
-  subset' smallX0 (I.convert X) ->
-  i_validTM smallX0 (I.convert X) TMf f ->
-  i_validTM smallX0 (I.convert X) TMg g ->
-  i_validTM smallX0 (I.convert X) (TM_add TMf TMg)
-  (fun xr => Xadd (f xr) (g xr)).
+Lemma TM_add_correct (X0 X : interval) (TMf TMg : rpa) f g :
+  i_validTM X0 X TMf f ->
+  i_validTM X0 X TMg g ->
+  i_validTM X0 X (TM_add TMf TMg)
+    (fun xr => Xadd (f xr) (g xr)).
 Proof.
-move=> HinX [Fdef Fnai Fzero Fsubs Fmain] [Gdef Gnai Gzero Gsubs Gmain].
+move=> [Fdef Fnai Fzero Fsubs Fmain] [Gdef Gnai Gzero Gsubs Gmain].
 have HL :
    forall x : R,
-   X >: x -> Xadd (f x) (g x) = Xnan -> I.convert (I.add prec (error TMf) (error TMg)) = IInan.
+     contains X (Xreal x) ->
+     Xadd (f x) (g x) = Xnan -> I.convert (I.add prec (error TMf) (error TMg)) = IInan.
   move=> x Hx.
   case Ef: (f x) => [|fx].
   rewrite I.add_propagate_l //; exact: Fdef Ef.
@@ -2362,26 +2369,16 @@ rewrite -[gx](f_equal proj_val Eg).
 exact: Hg2.
 Qed.
 
-Lemma TM_add_correct (X0 X : I.type) (TMf TMg : rpa) f g :
-  i_validTM (I.convert X0) (I.convert X) TMf f ->
-  i_validTM (I.convert X0) (I.convert X) TMg g ->
-  i_validTM (I.convert X0) (I.convert X) (TM_add TMf TMg)
-  (fun xr => Xadd (f xr) (g xr)).
-Proof.
-move=> Hf Hg.
-case Hf => [Hdef Hnai Hzero Hsubs Hmain].
-exact: TM_add_correct_gen.
-Qed.
-
 Lemma TM_opp_correct (X0 X : interval) (TMf : rpa) f :
   i_validTM X0 X TMf f ->
   i_validTM X0 X (TM_opp TMf)
-  (fun xr => Xneg (f xr)).
+    (fun xr => Xneg (f xr)).
 Proof.
 move=> [Hdef Hnai Hzero Hsubset /= Hmain].
 have HL :
-   forall x : R,
-   contains X (Xreal x) -> Xneg (f x) = Xnan -> I.convert (I.neg (error TMf)) = IInan.
+  forall x : R,
+    contains X (Xreal x) ->
+    Xneg (f x) = Xnan -> I.convert (I.neg (error TMf)) = IInan.
   move=> x Hx Dx.
   apply J.neg_propagate, (Hdef x Hx).
   by case: (f x) Dx.
@@ -2402,16 +2399,17 @@ replace (- fx - - Q.[x - x0])%R with (-(fx - Q.[x - x0]))%R by ring.
 exact: J.neg_correct.
 Qed.
 
-Lemma TM_sub_correct (X0 X : interval (*I.type?*)) (TMf TMg : rpa) f g :
+Lemma TM_sub_correct (X0 X : interval) (TMf TMg : rpa) f g :
   i_validTM X0 X TMf f ->
   i_validTM X0 X TMg g ->
   i_validTM X0 X (TM_sub TMf TMg)
-  (fun xr => Xsub (f xr) (g xr)).
+    (fun xr => Xsub (f xr) (g xr)).
 Proof.
 move=> [Fdef Fnai Fzero Hsubset /= Fmain] [Gdef Gnai Gzero _ /= Gmain].
 have HL :
-   forall x : R,
-   contains X (Xreal x) -> Xsub (f x) (g x) = Xnan -> I.convert (I.sub prec (error TMf) (error TMg)) = IInan.
+  forall x : R,
+    contains X (Xreal x) ->
+    Xsub (f x) (g x) = Xnan -> I.convert (I.sub prec (error TMf) (error TMg)) = IInan.
   move=> x Hx.
   case Ef: (f x) => [|fx].
   rewrite I.sub_propagate_l //; exact: Fdef Ef.
@@ -2448,19 +2446,19 @@ Definition TM_div_mixed_r (M : rpa) (b : I.type) : rpa :=
   RPA (Pol.map (I.div prec ^~ b) (approx M))
       (I.div prec (error M) b).
 
-Lemma size_TM_mul_mixed a M :
+Lemma size_TM_mul_mixed (a : I.type) M :
   Pol.size (approx (TM_mul_mixed a M)) = Pol.size (approx M).
 Proof. by rewrite Pol.size_map. Qed.
 
-Lemma size_TM_div_mixed_r M b :
+Lemma size_TM_div_mixed_r M (b : I.type) :
   Pol.size (approx (TM_div_mixed_r M b)) = Pol.size (approx M).
 Proof. by rewrite Pol.size_map. Qed.
 
-Lemma TM_mul_mixed_correct a M X0 X f (y : R) :
-  contains (I.convert a) (Xreal y) ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
-  i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
-  (fun x => Xmul (Xreal y) (f x)).
+Lemma TM_mul_mixed_correct (a : I.type) M (X0 X : interval) f (y : R) :
+  a >: y ->
+  i_validTM X0 X M f ->
+  i_validTM X0 X (TM_mul_mixed a M)
+    (fun x => Xmul (Xreal y) (f x)).
 Proof.
 move=> Hy [Hdef Hnai Hzero Hsubs Hmain].
 split=>//.
@@ -2489,22 +2487,22 @@ exists (PolR.map (Rmult y) q).
   exact: J.mul_correct.
 Qed.
 
-Lemma TM_mul_mixed_nai a M f X0 X :
+Lemma TM_mul_mixed_nai (a : I.type) M f (X0 X : interval) :
   contains (I.convert a) Xnan ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
+  i_validTM X0 X M f ->
   I.convert (error (TM_mul_mixed a M)) = IInan.
 Proof.
 move/contains_Xnan => Ha /=.
-case=>[Hnan Hsubst Hmain].
+case=> [Hnan Hsubst Hmain].
 by rewrite I.mul_propagate_l.
 Qed.
 
-Corollary TM_mul_mixed_correct_strong a M X0 X f g :
-  not_empty (I.convert X0) ->
-  is_const f X a ->
-  i_validTM (I.convert X0) (I.convert X) M g ->
-  i_validTM (I.convert X0) (I.convert X) (TM_mul_mixed a M)
-  (fun x => Xmul (f x) (g x)).
+Corollary TM_mul_mixed_correct_strong (a : I.type) M (X0 X : interval) f g :
+  not_empty X0 ->
+  is_const f X (I.convert a) ->
+  i_validTM X0 X M g ->
+  i_validTM X0 X (TM_mul_mixed a M)
+    (fun x => Xmul (f x) (g x)).
 Proof.
 move=> tHt [[|y] Hy1 Hy2] Hg; move: (Hg) => [Hdef Hnai Hnan Hsubset Hmain].
 split=>//.
@@ -2529,11 +2527,11 @@ split=>//.
   by rewrite Hy2.
 Qed.
 
-Lemma TM_div_mixed_r_aux0 M b X0 X f :
-  contains (I.convert b) (Xreal R0) ->
-  i_validTM (I.convert X0) (I.convert X) M f (* hyp maybe too strong *) ->
-  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
-  (fun x => Xdiv (f x) (Xreal R0)).
+Lemma TM_div_mixed_r_aux0 M (b : I.type) (X0 X : interval) f :
+  b >: 0%R ->
+  i_validTM X0 X M f (* hyp maybe too strong *) ->
+  i_validTM X0 X (TM_div_mixed_r M b)
+    (fun x => Xdiv (f x) (Xreal 0)).
 Proof.
 move=> Hb0 [Hdef Hnai Hzero Hsubs /= Hmain].
 have Lem : contains (I.convert (error (TM_div_mixed_r M b))) Xnan.
@@ -2552,11 +2550,11 @@ move=> *; exact: J.div_correct.
 by move=> x Hx; move/contains_Xnan: Lem ->.
 Qed.
 
-Lemma TM_div_mixed_r_correct M b X0 X f (y : R) :
-  contains (I.convert b) (Xreal y) ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
-  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
-  (fun x => Xdiv (f x) (Xreal y)).
+Lemma TM_div_mixed_r_correct M (b : I.type) (X0 X : interval) f (y : R) :
+  b >: y ->
+  i_validTM X0 X M f ->
+  i_validTM X0 X (TM_div_mixed_r M b)
+    (fun x => Xdiv (f x) (Xreal y)).
 Proof.
 have [->|Hy0] := Req_dec y R0.
   exact: TM_div_mixed_r_aux0.
@@ -2587,9 +2585,9 @@ exists (PolR.map (Rdiv ^~ y) q).
   exact: J.div_correct.
 Qed.
 
-Lemma TM_div_mixed_r_nai M b f X0 X :
+Lemma TM_div_mixed_r_nai M (b : I.type) f (X0 X : interval) :
   contains (I.convert b) Xnan ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
+  i_validTM X0 X M f ->
   I.convert (error (TM_div_mixed_r M b)) = IInan.
 Proof.
 move/contains_Xnan => Ha /=.
@@ -2597,12 +2595,12 @@ case=>[Hdef Hnai Hnan Hsubst Hmain].
 exact: I.div_propagate_r.
 Qed.
 
-Corollary TM_div_mixed_r_correct_strong M b X0 X f g :
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) M f ->
-  is_const g X b ->
-  i_validTM (I.convert X0) (I.convert X) (TM_div_mixed_r M b)
-  (fun x => Xdiv (f x) (g x)).
+Corollary TM_div_mixed_r_correct_strong M (b : I.type) (X0 X : interval) f g :
+  not_empty X0 ->
+  i_validTM X0 X M f ->
+  is_const g X (I.convert b) ->
+  i_validTM X0 X (TM_div_mixed_r M b)
+    (fun x => Xdiv (f x) (g x)).
 Proof.
 move=> tHt Hf [[|y] Hy1 Hy2]; move: (Hf) => [Hdef Hnai Hzero Hsubs Hmain].
 split=>//=.
@@ -2626,7 +2624,7 @@ apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR).
 - exact: TM_div_mixed_r_correct.
 Qed.
 
-Definition mul_error prec n (f g : rpa) X0 X :=
+Definition mul_error prec n (f g : rpa) (X0 X : I.type) :=
  let pf := approx f in
  let pg := approx g in
  let sx := (I.sub prec X X0) in
@@ -2638,26 +2636,21 @@ Definition mul_error prec n (f g : rpa) X0 X :=
      (I.add prec (I.mul prec (error g) Bf)
        (I.mul prec (error f) (error g)))).
 
-Definition TM_mul (Mf Mg : rpa) X0 X n : rpa :=
+Definition TM_mul (Mf Mg : rpa) (X0 X : I.type) n : rpa :=
  RPA (Pol.mul_trunc prec n (approx Mf) (approx Mg))
      (mul_error prec n Mf Mg X0 X).
 
-Lemma TM_mul_correct_gen
-  (smallX0 : interval) (TMf TMg : rpa) f g (X0 X : I.type) n :
-  subset' smallX0 (I.convert X0) ->
-  subset' (I.convert X0) (I.convert X) ->
-  not_empty smallX0 ->
-  i_validTM smallX0 (I.convert X) TMf f ->
-  i_validTM smallX0 (I.convert X) TMg g ->
-  i_validTM smallX0 (I.convert X) (TM_mul TMf TMg X0 X n)
-  (fun xr => Xmul (f xr) (g xr)).
+Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
+  not_empty (I.convert X0) ->
+  i_validTM (I.convert X0) (I.convert X) TMf f ->
+  i_validTM (I.convert X0) (I.convert X) TMg g ->
+  i_validTM (I.convert X0) (I.convert X) (TM_mul TMf TMg X0 X n)
+    (fun xr => Xmul (f xr) (g xr)).
 Proof.
-move=> HinX0 HinX [t Ht']
-  [Fdef Fnai Fzero Fsubs Fmain] [Gdef Gnai Gzero _ Gmain].
-have Ht0 : X0 >: t by exact: HinX0.
+move=> [t Ht0] [Fdef Fnai Fzero HinX Fmain] [Gdef Gnai Gzero _ Gmain].
 have Ht : X >: t by exact: HinX.
-have Hf0 := Fmain t Ht'.
-have Hg0 := Gmain t Ht'.
+have Hf0 := Fmain t Ht0.
+have Hg0 := Gmain t Ht0.
 split =>//.
 - move=> x Hx Dx.
   rewrite /= /mul_error.
@@ -2818,17 +2811,6 @@ apply: negbTE; rewrite -ltnNge ltnS.
 exact: leq_trans (ltnW Hi) Hn.
 Qed.
 
-Lemma TM_mul_correct (X0 X : I.type) (TMf TMg : rpa) f g n :
-  not_empty (I.convert X0) ->
-  i_validTM (I.convert X0) (I.convert X) TMf f ->
-  i_validTM (I.convert X0) (I.convert X) TMg g ->
-  i_validTM (I.convert X0) (I.convert X) (TM_mul TMf TMg X0 X n)
-  (fun xr => Xmul (f xr) (g xr)).
-Proof.
-move=> Ht [Hdf Hef H0 Hf] Hg.
-exact: TM_mul_correct_gen.
-Qed.
-
 Lemma size_TM_add Mf Mg :
   Pol.size (approx (TM_add Mf Mg)) =
   maxn (Pol.size (approx Mf)) (Pol.size (approx Mg)).
@@ -2836,7 +2818,7 @@ Proof.
 by rewrite /TM_add /= Pol.size_add.
 Qed.
 
-Lemma size_TM_mul Mf Mg n X0 X :
+Lemma size_TM_mul Mf Mg n (X0 X : I.type) :
   Pol.size (approx (TM_mul Mf Mg X0 X n)) = n.+1.
 Proof. by rewrite /TM_mul /= Pol.size_mul_trunc. Qed.
 
@@ -2854,7 +2836,7 @@ Definition TM_horner n p (Mf : rpa) (X0 X : I.type) : rpa :=
   (fun a b => (TM_add (TM_cst X a) (TM_mul b Mf X0 X n)))
   (TM_cst X I.zero) p.
 
-Lemma size_TM_horner n p Mf X0 X :
+Lemma size_TM_horner n p Mf (X0 X : I.type) :
   Pol.size (approx (TM_horner n p Mf X0 X)) = (if 0 < Pol.size p then n else 0).+1.
 Proof.
 rewrite /TM_horner.
@@ -2941,7 +2923,7 @@ Definition TM_type := I.type -> I.type -> nat -> rpa.
 Definition TMset0 (Mf : rpa) t :=
   RPA (Pol.set_nth (approx Mf) 0 t) (error Mf).
 
-Definition TM_comp (TMg : TM_type) (Mf : rpa) X0 X n :=
+Definition TM_comp (TMg : TM_type) (Mf : rpa) (X0 X : I.type) n :=
   let Bf := Bnd.ComputeBound prec (approx Mf) (I.sub prec X X0) in
   let A0 := Pol.nth (approx Mf) 0 in
   let a0 := Imid A0 in
@@ -3122,7 +3104,7 @@ rewrite -Efx.
 exact: inBfMf.
 Qed.
 
-Definition TM_inv_comp Mf X0 X (n : nat) := TM_comp TM_inv Mf X0 X n.
+Definition TM_inv_comp Mf (X0 X : I.type) (n : nat) := TM_comp TM_inv Mf X0 X n.
 
 Lemma TM_inv_comp_correct (X0 X : I.type) (TMf : rpa) f :
   not_empty (I.convert X0) ->
@@ -3138,7 +3120,7 @@ move=> Y0 Y k HY HY0.
 exact: TM_inv_correct.
 Qed.
 
-Definition TM_div Mf Mg X0 X n :=
+Definition TM_div Mf Mg (X0 X : I.type) n :=
    TM_mul Mf (TM_inv_comp Mg X0 X n) X0 X n.
 
 Lemma TM_div_correct (X0 X : I.type) (TMf TMg : rpa) f g n :

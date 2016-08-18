@@ -104,7 +104,7 @@ Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
   not_nil tf /\
   match tf with
   | Dummy => True
-  | Const c => is_const f X c
+  | Const c => is_const f (I.convert X) (I.convert c)
   | Var =>
     forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x
   | Tm tm =>
