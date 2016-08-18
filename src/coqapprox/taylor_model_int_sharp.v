@@ -182,7 +182,7 @@ Definition i_validTM (X0 X : interval (* not I.type *) )
     forall x0, contains X0 (Xreal x0) ->
     exists2 Q, approx M >:: Q
     & forall x, contains X (Xreal x) ->
-      error M >: proj_val (xf x) - (PolR.horner tt Q (x - x0))%R].
+      error M >: proj_val (xf x) - Q.[x - x0]].
 
 Lemma TM_fun_eq f g (X0 X : interval) TMf :
   (forall x, contains X (Xreal x) -> f x = g x) ->
@@ -234,7 +234,7 @@ Definition TM_integral_error R :=
 Local Open Scope R_scope.
 
 Lemma pol_int_sub pol x1 x2 x3 :
-  ex_RInt (fun y : R => PolR.horner tt pol (y - x3)) x1 x2.
+  ex_RInt (fun y : R => pol.[y - x3]) x1 x2.
 Proof.
 have -> : x1 = x1 - x3 + x3 by ring.
 have -> : x2 = x2 - x3 + x3 by ring.
@@ -267,10 +267,10 @@ Lemma integralEnclosure_correct :
 Proof.
 move => [Hdef Hnai Hcontains0 HX0X H].
 have {H} [q HMfq Herror] := H x0 Hx0.
-have HI: ex_RInt (fun x => PolR.horner tt q (x - x0)) a b by exact: pol_int_sub.
+have HI: ex_RInt (fun x => q.[x - x0]) a b by exact: pol_int_sub.
 have ->: RInt f a b =
-    RInt (fun x => PolR.horner tt q (x - x0)) a b +
-    RInt (fun x => f x - PolR.horner tt q (x - x0)) a b.
+    RInt (fun x => q.[x - x0]) a b +
+    RInt (fun x => f x - q.[x - x0]) a b.
   rewrite RInt_minus //.
   ring.
 apply: J.add_correct.
@@ -342,12 +342,12 @@ exists (PolR.primitive tt 0 p1).
   have <- : RInt f x0 x1 + RInt f x1 x = RInt f x0 x.
   + apply: RInt_Chasles; apply: f_int => //.
     exact: HX0X.
-  have -> : PolR.horner tt (PolR.primitive tt 0 p1) (x - x1) =
-            RInt (fun t => PolR.horner tt p1 (t - x1)) x1 x.
+  have -> : (PolR.primitive tt 0 p1).[x - x1] =
+            RInt (fun t => p1.[t - x1]) x1 x.
   + rewrite RInt_translation_sub.
-      have -> : PolR.horner tt (PolR.primitive tt 0 p1) (x - x1) =
-            PolR.horner tt (PolR.primitive tt 0 p1) (x - x1) -
-            PolR.horner tt (PolR.primitive tt 0 p1) (x1 - x1).
+      have -> : (PolR.primitive tt 0 p1).[x - x1] =
+            (PolR.primitive tt 0 p1).[x - x1] -
+            (PolR.primitive tt 0 p1).[x1 - x1].
       * have -> : x1 - x1 = 0 by ring.
         set t0 := (X in (_ = _ - X)).
         have->: t0 = 0; last by rewrite Rminus_0_r.
@@ -362,7 +362,7 @@ set rem := (X in X + _ - _).
 set i1 := (X in (rem + X - _)).
 set i2 := (X in (rem + _ - X)).
 have -> : rem + i1 - i2 = rem + (i1 - i2) by ring.
-have -> : i1 - i2 = RInt (fun t => f t - PolR.horner tt p1 (t - x1)) x1 x.
+have -> : i1 - i2 = RInt (fun t => f t - p1.[t - x1]) x1 x.
     rewrite -RInt_minus; first by [].
     + by apply: f_int.
     + have {2}-> : x1 = (0 + x1) by ring.
@@ -371,9 +371,9 @@ have -> : i1 - i2 = RInt (fun t => f t - PolR.horner tt p1 (t - x1)) x1 x.
         exact: Rpol_integrable.
 rewrite /TM_integral_error {i1 i2}.
 rewrite Rplus_comm.
-have {rem} -> : rem = RInt (fun t => PolR.horner tt p (t - x0)) x0 x1
-                      + (RInt f x0 x1 -
-          RInt (fun t => PolR.horner tt p (t - x0)) x0 x1) by rewrite /rem; ring.
+have {rem} -> : rem = RInt (fun t => p.[t - x0]) x0 x1
+                     + (RInt f x0 x1 - RInt (fun t => p.[t - x0]) x0 x1)
+  by rewrite /rem; ring.
 apply: J.add_correct.
   apply: J.contains_RInt => //.
     apply: ex_RInt_minus.
@@ -1412,7 +1412,7 @@ constructor.
       set qk := iteri k
         (fun i c => PolR.div_mixed_r tt _ (INR (i + 1).+1)) PolR.one in IHk *.
       rewrite (@Derive_ext _
-        (fun x => PolR.horner tt qk x / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
+        (fun x => qk.[x] / (1+x*x) ^ (k+1) * INR (fact k.+1))%R);
         first last.
         move=> t; move/(_ t) in IHk; rewrite -pow_powerRZ in IHk.
         rewrite IHk /Rdiv Rmult_assoc Rinv_l ?Rmult_1_r //.
@@ -2668,7 +2668,7 @@ split =>//.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
   apply: J.add_correct.
     apply: (mul_0_contains_0_r _
-      (y := (Xreal (PolR.horner tt (PolR.mul_tail tt n qf qg) (t - t)%R))));
+      (y := (Xreal (PolR.mul_tail tt n qf qg).[t - t])));
       last first.
       apply: pow_contains_0 =>//.
       exact: subset_sub_contains_0 Ht0 HinX.
@@ -2678,13 +2678,13 @@ split =>//.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
   apply: J.add_correct.
     apply: (mul_0_contains_0_l _
-      (y := (Xreal (PolR.horner tt qg (t - t)%R)))) =>//.
+      (y := (Xreal qg.[t - t]))) =>//.
     apply: Bnd.ComputeBound_correct=>//.
     exact: J.sub_correct.
   step_xr (Xreal 0 + Xreal 0)%XR; last by rewrite /= Rplus_0_l.
   apply: J.add_correct.
     apply: (mul_0_contains_0_l _
-      (y := (Xreal (PolR.horner tt qf (t - t)%R)))) =>//.
+      (y := (Xreal qf.[t - t]))) =>//.
     apply: Bnd.ComputeBound_correct=>//.
     exact: J.sub_correct.
   exact: (mul_0_contains_0_l _ (*!*) (y := Xreal 0)).
@@ -2967,7 +2967,7 @@ Proof.
   by move ->.
   intros _.
   rewrite /Xbind2 /proj_val.
-  replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[(x - x1)%R]
+  replace (PolR.set_nth Q 0 (PolR.nth Q 0 - alpha0)%R).[x - x1]
     with (Q.[x - x1] - alpha0)%R.
   replace (fx - alpha0 - (Q.[x - x1] - alpha0))%R
     with (fx - Q.[x - x1])%R by ring.
@@ -3029,7 +3029,7 @@ have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f x).
   have [t Ht] := Hne.
   have [qf hq1 hq2] := Fmain t Ht.
   move/(_ x Hx) in hq2.
-  step_xr (Xreal (qf.[(x - t)%R]) + (f x - Xreal (qf.[(x - t)%R])))%XR =>//.
+  step_xr (Xreal (qf.[x - t]) + (f x - Xreal (qf.[x - t])))%XR =>//.
   apply: I.add_correct.
   apply: Bnd.ComputeBound_correct =>//.
   exact: J.sub_correct.
@@ -3093,8 +3093,8 @@ case Egfx: (g fx) => [|gfx].
   rewrite -Efx; exact: inBfMf.
 pose intermed := Ga0.[proj_val (f0 x)].
 rewrite /proj_val.
-replace (gfx - Q0.[(x - x0)%R])%R with
-  (intermed - Q0.[(x - x0)%R] + (gfx - intermed))%R by ring.
+replace (gfx - Q0.[x - x0])%R with
+  (intermed - Q0.[x - x0] + (gfx - intermed))%R by ring.
 apply: J.add_correct.
 exact: HQ0'.
 rewrite /intermed /f0 Efx /=.
