@@ -808,10 +808,10 @@ Ltac warn_whole l :=
   | nil => idtac
   | cons _ nil =>
     idtac "Warning: Silently use the whole real line for the following term:" ;
-    list_warn_rev l ; idtac "You may need to unfold this term."
+    list_warn_rev l ; idtac "You may need to unfold this term, or provide a bound."
   | cons _ _ =>
     idtac "Warning: Silently use the whole real line for the following terms:" ;
-    list_warn_rev l ; idtac "You may need to unfold some of these terms."
+    list_warn_rev l ; idtac "You may need to unfold some of these terms, or provide a bound."
   end.
 
 Ltac get_trivial_bounds l prec :=
@@ -930,14 +930,6 @@ Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
         | _ =>
           let v := get_bounds_aux x prec in
           constr:(v, @None R)
-        | _ =>
-          match goal with
-          | H: Rle ?a x /\ Rle x ?b |- _ => idtac
-          | H: Rle ?a x |- _ => idtac
-          | H: Rle x ?b |- _ => idtac
-          | H: Rle (Rabs x) ?b |- _ => idtac
-          end ;
-          fail 6 "Atom" x "is neither a constant value nor bounded by constant values"
         | _ =>
           constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x)
         end
