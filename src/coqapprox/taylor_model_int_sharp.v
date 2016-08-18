@@ -231,58 +231,10 @@ Definition TM_integral_error R :=
   Iadd (Imul (Isub X X0) (error Mf)) ((Iadd (Bnd.ComputeBound (*Pol.horner?*) prec R (Isub X0 X0)))
     (Imul (Isub X0 X0) (error Mf))).
 
-Section Extra_RInt.
-
-Local Open Scope R_scope.
-Lemma RInt_translation_add g a b x :
-  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
-Proof.
-have -> : a + x = (1 * a + x) by ring.
-have -> : b + x = (1 * b + x) by ring.
-rewrite -RInt_comp_lin.
-by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
-Qed.
-
-Lemma RInt_translation_sub g x a b :
-  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
-Proof.
-have -> : a - x = a + (-x) by ring.
-have -> : b - x = b + (-x) by ring.
-rewrite -RInt_translation_add.
-apply: RInt_ext => x0 _; by congr (g _).
-Qed.
-
-Lemma ex_RInt_translation_add V g x a b :
-  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
-Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
-have -> : 1 * x0 + x = x0 + x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a - x) + x ) = a. by ring.
-have -> : (1 * (b - x) + x ) = b. by ring.
-by [].
-Qed.
-
-Lemma ex_RInt_translation_sub V g a b x :
-  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
-Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
-have -> : 1 * x0 - x = x0 - x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a + x) + -x ) = a. by ring.
-have -> : (1 * (b + x) + -x ) = b. by ring.
-by [].
-Qed.
-
-End Extra_RInt.
-
 Local Open Scope R_scope.
 
-Lemma pol_int_sub pol x1 x2 x3:  ex_RInt (fun y : R => PolR.horner tt pol (y - x3)) x1 x2.
+Lemma pol_int_sub pol x1 x2 x3 :
+  ex_RInt (fun y : R => PolR.horner tt pol (y - x3)) x1 x2.
 Proof.
 have -> : x1 = x1 - x3 + x3 by ring.
 have -> : x2 = x2 - x3 + x3 by ring.
@@ -458,8 +410,7 @@ Qed.
 
 End TM_integral.
 
-Section Misc.
-(* Note: some of these lemmas might be moved in a better place *)
+Section Const_prelim.
 
 Definition is_const (f : R -> ExtendedR) (X c : I.type) : Prop :=
   exists2 y : ExtendedR, contains (I.convert c) y
@@ -485,50 +436,7 @@ apply: is_const_ext.
 move=> x _; exact: Hmain.
 Qed.
 
-Lemma Rdiv_pos_compat (x y : R) :
-  (0 <= x -> 0 < y -> 0 <= x / y)%R.
-Proof.
-move=> Hx Hy.
-rewrite /Rdiv -(@Rmult_0_l (/ y)).
-apply: Rmult_le_compat_r =>//.
-by left; apply: Rinv_0_lt_compat.
-Qed.
-
-Lemma Rlt_neq_sym (x y : R) :
-  (x < y -> y <> x)%R.
-Proof. by move=> Hxy Keq; rewrite Keq in Hxy; apply: (Rlt_irrefl _ Hxy). Qed.
-
-Lemma Rdiv_pos_compat_rev (x y : R) :
-  (0 <= x / y -> 0 < y -> 0 <= x)%R.
-Proof.
-move=> Hx Hy.
-rewrite /Rdiv -(@Rmult_0_l y) -(@Rmult_1_r x).
-rewrite -(Rinv_r y); last exact: Rlt_neq_sym.
-rewrite (Rmult_comm y) -Rmult_assoc.
-by apply: Rmult_le_compat_r =>//; left.
-Qed.
-
-Lemma Rdiv_neg_compat (x y : R) :
-  (x <= 0 -> 0 < y -> x / y <= 0)%R.
-Proof.
-move=> Hx Hy.
-rewrite /Rdiv -(@Rmult_0_l (/ y)).
-apply: Rmult_le_compat_r =>//.
-by left; apply Rinv_0_lt_compat.
-Qed.
-
-Lemma Rdiv_neg_compat_rev (x y : R) :
-  (x / y <= 0 -> 0 < y -> x <= 0)%R.
-Proof.
-move=> Hx Hy.
-rewrite -(@Rmult_0_l y) -(@Rmult_1_r x).
-rewrite <- (Rinv_r y); last by apply Rlt_neq_sym.
-rewrite (Rmult_comm y) -Rmult_assoc.
-apply: Rmult_le_compat_r =>//.
-by left.
-Qed.
-
-End Misc.
+End Const_prelim.
 
 Section GenericProof.
 (** Generic proof for [TLrem] and [Ztech]. *)

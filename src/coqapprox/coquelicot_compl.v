@@ -166,6 +166,56 @@ Qed.
 
 End MissingContinuity.
 
+Section Extra_RInt.
+
+Local Open Scope R_scope.
+
+Lemma RInt_translation_add g a b x :
+  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
+Proof.
+have -> : a + x = (1 * a + x) by ring.
+have -> : b + x = (1 * b + x) by ring.
+rewrite -RInt_comp_lin.
+by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
+Qed.
+
+Lemma RInt_translation_sub g x a b :
+  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
+Proof.
+have -> : a - x = a + (-x) by ring.
+have -> : b - x = b + (-x) by ring.
+rewrite -RInt_translation_add.
+apply: RInt_ext => x0 _; by congr (g _).
+Qed.
+
+Lemma ex_RInt_translation_add V g x a b :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
+have -> : 1 * x0 + x = x0 + x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a - x) + x ) = a. by ring.
+have -> : (1 * (b - x) + x ) = b. by ring.
+by [].
+Qed.
+
+Lemma ex_RInt_translation_sub V g a b x :
+  @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
+Proof.
+move => Hgab.
+apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
+have -> : 1 * x0 - x = x0 - x; first by ring.
+by rewrite scal_one.
+apply: ex_RInt_comp_lin.
+have -> : (1 * (a + x) + -x ) = a. by ring.
+have -> : (1 * (b + x) + -x ) = b. by ring.
+by [].
+Qed.
+
+End Extra_RInt.
+
 (* Below : a couple of helper lemmas about maj/min of integrals *)
 (* We should probably also add the more general case of ra <= rb *)
 Section IntegralEstimation.
