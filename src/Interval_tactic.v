@@ -421,12 +421,37 @@ apply: (Int.integral_interval_relative_ex_RInt _ _ iF) => // .
 split => // .
 case Hi : (I.convert i) => [| l u ] // .
 rewrite -Hi.
-apply: (Int.integral_interval_relative_correct _ _ iF) => // .
+apply: (Int.integral_interval_relative_contains _ _ iF) => // .
   - by move => xi x; apply: contains_eval_arg.
   - by apply: contains_eval.
   - by apply: contains_eval.
-by apply: Hex_RInt; rewrite Hi.
+rewrite -/i.
+by rewrite Hi.
 Qed.
+
+
+(* Lemma integral_epsilon_correct : *)
+(*   forall (depth : nat) epsilon, *)
+(*   let i := Int.integral_interval_relative prec (* iF *) estimator depth ia ib epsilon in *)
+(*   Int.ex_RInt_base_case f estimator -> *)
+(*   (I.convert i <> Inan -> ex_RInt f a b) /\ *)
+(*   contains (I.convert i) (Xreal (RInt f a b)). *)
+(* Proof. *)
+(* move => depth epsilon i ex_RInt_base_case. *)
+(* have Hex_RInt : I.convert i <> Inan -> ex_RInt f a b. *)
+(* apply: (Int.integral_interval_relative_ex_RInt _ _ iF) => // . *)
+(*   - by move => xi x; apply: contains_eval_arg. *)
+(*   - by apply: contains_eval. *)
+(*   - by apply: contains_eval. *)
+(* split => // . *)
+(* case Hi : (I.convert i) => [| l u ] // . *)
+(* rewrite -Hi. *)
+(* apply: (Int.integral_interval_relative_correct _ _ iF) => // . *)
+(*   - by move => xi x; apply: contains_eval_arg. *)
+(*   - by apply: contains_eval. *)
+(*   - by apply: contains_eval. *)
+(* by apply: Hex_RInt; rewrite Hi. *)
+(* Qed. *)
 
 End IntegralProg.
 
