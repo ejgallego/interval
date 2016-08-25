@@ -414,15 +414,13 @@ Lemma integral_epsilon_correct :
 Proof.
 move => depth epsilon i ex_RInt_base_case.
 have Hex_RInt : I.convert i <> Inan -> ex_RInt f a b.
-apply: (Int.integral_interval_relative_ex_RInt _ _ iF) => // .
-  - by move => xi x; apply: contains_eval_arg.
+apply: (Int.integral_interval_relative_ex_RInt _ _) => // .
   - by apply: contains_eval.
   - by apply: contains_eval.
 split => // .
 case Hi : (I.convert i) => [| l u ] // .
 rewrite -Hi.
-apply: (Int.integral_interval_relative_contains _ _ iF) => // .
-  - by move => xi x; apply: contains_eval_arg.
+apply: (Int.integral_interval_relative_contains _ _) => // .
   - by apply: contains_eval.
   - by apply: contains_eval.
 rewrite -/i.
