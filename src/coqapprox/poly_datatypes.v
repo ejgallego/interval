@@ -47,8 +47,8 @@ Reserved Notation "p .[ x ]"
 Reserved Notation "a ^` ()" (at level 8, format "a ^` ()").
 
 Module Type BaseOps.
-Parameter U : Type.
-Parameter T : Type.
+Parameter Inline U : Type.
+Parameter Inline T : Type.
 Parameter Inline zero : T.
 Parameter Inline one : T.
 Parameter Inline opp : T -> T.

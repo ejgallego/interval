@@ -763,10 +763,10 @@ Ltac warn_whole l :=
   | nil => idtac
   | cons _ nil =>
     idtac "Warning: Silently use the whole real line for the following term:" ;
-    list_warn_rev l ; idtac "You may need to unfold this term."
+    list_warn_rev l ; idtac "You may need to unfold this term, or provide a bound."
   | cons _ _ =>
     idtac "Warning: Silently use the whole real line for the following terms:" ;
-    list_warn_rev l ; idtac "You may need to unfold some of these terms."
+    list_warn_rev l ; idtac "You may need to unfold some of these terms, or provide a bound."
   end.
 
 Ltac get_trivial_bounds l prec :=
@@ -886,14 +886,6 @@ Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
           let v := get_bounds_aux x prec in
           constr:(v, @None R)
         | _ =>
-          match goal with
-          | H: Rle ?a x /\ Rle x ?b |- _ => idtac
-          | H: Rle ?a x |- _ => idtac
-          | H: Rle x ?b |- _ => idtac
-          | H: Rle (Rabs x) ?b |- _ => idtac
-          end ;
-          fail 100 "Atom" x "is neither a constant value nor bounded by constant values."
-        | _ =>
           constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x)
         end
       end in
@@ -977,7 +969,7 @@ Ltac xalgorithm_pre prec :=
     idtac
   | |- (?a <> ?b)%R =>
     apply Rminus_not_eq
-  | _ => fail 100 "Goal is not an inequality with constant bounds."
+  | _ => fail 4 "Goal is not an inequality with constant bounds"
   end.
 
 Ltac xalgorithm lx prec :=
@@ -1091,7 +1083,7 @@ Ltac do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac :=
         || warn_whole lw
       end
     end)) ||
-  fail 100 "Numerical evaluation failed to conclude. You may want to adjust some parameters.".
+  fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters".
 
 Ltac do_interval_eval bounds output formula prec depth n :=
   refine (interval_helper_evaluate bounds output formula prec n _).
@@ -1109,7 +1101,7 @@ Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
   | ?b => constr:(b :: l)
-  | ?z => fail 100 "Unknown tactic parameter" z "."
+  | ?z => fail 100 "Unknown tactic parameter" z
   end.
 
 Ltac do_interval_parse params :=
@@ -1124,20 +1116,20 @@ Ltac do_interval_parse params :=
     | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
     | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
     | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
-    | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
   aux (@nil R) 30%nat 15%nat 3%nat 10%nat 10%nat do_interval_eval params.
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
-  | Inan => fail 100 "Nothing known about" t
+  | Inan => fail 4 "Nothing known about" t
   | Ibnd ?l ?u =>
     match goal with
     | |- ?P =>
       match l with
       | Xnan =>
         match u with
-        | Xnan => fail 100 "Nothing known about" t
+        | Xnan => fail 7 "Nothing known about" t
         | Xreal ?u => refine ((_ : (t <= u)%R -> P) _)
         end
       | Xreal ?l =>
@@ -1205,7 +1197,7 @@ Ltac do_interval_intro_parse t_ extend params_ :=
     | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
     | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p rint_deg eval_tac t
     | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p eval_tac t
-    | cons ?h _ => fail 100 "Unknown tactic parameter" h "."
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
   aux (@nil R) 30%nat 5%nat 3%nat 10%nat 10%nat do_interval_intro_eval params_.
 

@@ -1267,6 +1267,49 @@ now rewrite Heq.
 now apply Rmult_neq0.
 Qed.
 
+Lemma Rlt_neq_sym (x y : R) :
+  (x < y -> y <> x)%R.
+Proof. now intros Hxy Keq; rewrite Keq in Hxy; apply (Rlt_irrefl _ Hxy). Qed.
+
+Lemma Rdiv_pos_compat (x y : R) :
+  (0 <= x -> 0 < y -> 0 <= x / y)%R.
+Proof.
+intros Hx Hy.
+unfold Rdiv; rewrite <- (@Rmult_0_l (/ y)).
+apply Rmult_le_compat_r; trivial.
+now left; apply Rinv_0_lt_compat.
+Qed.
+
+Lemma Rdiv_pos_compat_rev (x y : R) :
+  (0 <= x / y -> 0 < y -> 0 <= x)%R.
+Proof.
+intros Hx Hy.
+unfold Rdiv; rewrite <-(@Rmult_0_l y), <-(@Rmult_1_r x).
+rewrite <-(Rinv_r y); [|now apply Rlt_neq_sym].
+rewrite (Rmult_comm y), <-Rmult_assoc.
+now apply Rmult_le_compat_r; trivial; left.
+Qed.
+
+Lemma Rdiv_neg_compat (x y : R) :
+  (x <= 0 -> 0 < y -> x / y <= 0)%R.
+Proof.
+intros Hx Hy.
+unfold Rdiv; rewrite <-(@Rmult_0_l (/ y)).
+apply Rmult_le_compat_r; trivial.
+now left; apply Rinv_0_lt_compat.
+Qed.
+
+Lemma Rdiv_neg_compat_rev (x y : R) :
+  (x / y <= 0 -> 0 < y -> x <= 0)%R.
+Proof.
+intros Hx Hy.
+rewrite <-(@Rmult_0_l y), <-(@Rmult_1_r x).
+rewrite <-(Rinv_r y); [|now apply Rlt_neq_sym].
+rewrite (Rmult_comm y), <-Rmult_assoc.
+apply Rmult_le_compat_r; trivial.
+now left.
+Qed.
+
 (** The following definition can be used by doing [rewrite !Rsimpl] *)
 Definition Rsimpl :=
   (Rplus_0_l, Rplus_0_r, Rmult_1_l, Rmult_1_r, Rmult_0_l, Rmult_0_r, Rdiv_1).
@@ -1308,3 +1351,4 @@ split; now apply Rlt_le.
 Qed.
 
 End Integral.
+
