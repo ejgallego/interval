@@ -370,35 +370,7 @@ Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_fro
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Hypothesis Hcorrect : Int.integralEstimatorCorrect f estimator.
-
-Lemma all_integrals_correct_prog :
-  forall ia ib a b,
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  I.convert (Int.naive_integral prec iF ia ib) <> Inan ->
-  ex_RInt f a b.
-Proof.
-move => ia1 ib1 a1 b1 Hconta1 Hcontb1.
-rewrite /Int.naive_integral.
-set iFab := (X in I.mul _ X _).
-rewrite /f /iFab.
-rewrite /iFab => HnotInan.
-apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (I.join ia1 ib1)) => //.
-move => x Hx.
-case: (Rle_dec a1 b1) => [Hleab | Hltba].
-- apply: (contains_connected _ a1 b1); try apply: I.join_correct.
-  + by left.
-  + by right.
-  by rewrite Rmin_left // Rmax_right // in Hx.
-- have Hltba1 := (Rlt_le _ _  (Rnot_le_lt _ _ Hltba)).
-  apply: (contains_connected _ b1 a1); try apply: I.join_correct.
-  + by right.
-  + by left.
-  by rewrite Rmin_right // Rmax_left // in Hx.
-contradict HnotInan.
-now apply I.mul_propagate_r.
-Qed.
+Definition correct_estimator := Int.integralEstimatorCorrect f estimator.
 
 Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
 Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
@@ -407,8 +379,8 @@ Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb))
 
 Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
-  let i := Int.integral_interval_relative prec (* iF *) estimator depth ia ib epsilon in
-  Int.ex_RInt_base_case f estimator ->
+  let i := Int.integral_interval_relative prec estimator depth ia ib epsilon in
+  Int.ex_RInt_base_case f estimator /\ correct_estimator ->
   (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
@@ -426,30 +398,6 @@ apply: (Int.integral_interval_relative_contains _ _) => // .
 rewrite -/i.
 by rewrite Hi.
 Qed.
-
-
-(* Lemma integral_epsilon_correct : *)
-(*   forall (depth : nat) epsilon, *)
-(*   let i := Int.integral_interval_relative prec (* iF *) estimator depth ia ib epsilon in *)
-(*   Int.ex_RInt_base_case f estimator -> *)
-(*   (I.convert i <> Inan -> ex_RInt f a b) /\ *)
-(*   contains (I.convert i) (Xreal (RInt f a b)). *)
-(* Proof. *)
-(* move => depth epsilon i ex_RInt_base_case. *)
-(* have Hex_RInt : I.convert i <> Inan -> ex_RInt f a b. *)
-(* apply: (Int.integral_interval_relative_ex_RInt _ _ iF) => // . *)
-(*   - by move => xi x; apply: contains_eval_arg. *)
-(*   - by apply: contains_eval. *)
-(*   - by apply: contains_eval. *)
-(* split => // . *)
-(* case Hi : (I.convert i) => [| l u ] // . *)
-(* rewrite -Hi. *)
-(* apply: (Int.integral_interval_relative_correct _ _ iF) => // . *)
-(*   - by move => xi x; apply: contains_eval_arg. *)
-(*   - by apply: contains_eval. *)
-(*   - by apply: contains_eval. *)
-(* by apply: Hex_RInt; rewrite Hi. *)
-(* Qed. *)
 
 End IntegralProg.
 
@@ -511,6 +459,7 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
 Proof.
 move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF'' iF' iF a b ia ib estimator i.
 apply: integral_epsilon_correct.
+split; last first.
 move => fa fb (* Hint *) (* Hle *) Hra Hrb Hconta Hcontb Hint.
 apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   move => x xi Hxi.

@@ -204,7 +204,7 @@ Section Proofs.
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Hypothesis Hcorrect : integralEstimatorCorrect estimator.
+Definition correct_estimator := integralEstimatorCorrect estimator.
 
 Definition ex_RInt_base_case :=
   forall a b ia ib,
@@ -215,7 +215,7 @@ Definition ex_RInt_base_case :=
 
 
 Lemma integral_interval_absolute_correct (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.bounded ia ->
   I.bounded ib ->
   contains (I.convert ia) (Xreal a) ->
@@ -224,7 +224,7 @@ Lemma integral_interval_absolute_correct (depth : nat) ia ib a b epsilon :
   ex_RInt f a b /\ contains (I.convert (integral_interval_absolute estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
 Proof.
 
-move => ex_RInt_base_case Hboundia Hboundib Hia Hib HnotInan.
+move => [ex_RInt_base_case Hcorrect] Hboundia Hboundib Hia Hib HnotInan.
 elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
 [|d Hd] epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib.
 - set iab := (I.join ia ib).
@@ -327,7 +327,6 @@ elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
   have Hf_int_ab : ex_RInt f a b.
   apply: (ex_RInt_Chasles _ _ m) => // .
   split => // .
-  
       have -> : RInt f a b =
             RInt f a m + RInt f m b.
       by rewrite RInt_Chasles // .
@@ -367,7 +366,7 @@ elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
 Qed.
 
 Lemma integral_interval_absolute_ex_RInt (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.bounded ia ->
   I.bounded ib ->
   contains (I.convert ia) (Xreal a) ->
@@ -375,13 +374,13 @@ Lemma integral_interval_absolute_ex_RInt (depth : nat) ia ib a b epsilon :
   I.convert (integral_interval_absolute estimator depth ia ib epsilon) <> IInan ->
   ex_RInt f a b.
 Proof.
-move => Hbase Hia Hib Hcontia Hcontib HnotInan.
-have := (integral_interval_absolute_correct depth ia ib a b epsilon Hbase Hia Hib Hcontia Hcontib HnotInan).
+move => Hbase_correct Hia Hib Hcontia Hcontib HnotInan.
+have := (integral_interval_absolute_correct depth ia ib a b epsilon Hbase_correct Hia Hib Hcontia Hcontib HnotInan).
 by case.
 Qed.
 
 Lemma integral_interval_absolute_contains (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.bounded ia ->
   I.bounded ib ->
   contains (I.convert ia) (Xreal a) ->
@@ -397,11 +396,11 @@ Qed.
 Lemma integral_interval_relative_correct (depth : nat) a b ia ib epsilon :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
   ex_RInt f a b /\ contains (I.convert (integral_interval_relative estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
 Proof.
-move => Hcontia Hcontib ex_RInt_base_case HnotInan.
+move => Hcontia Hcontib [ex_RInt_base_case Hcorrect] HnotInan.
 move: HnotInan.
 rewrite /integral_interval_relative.
 case Hiab: (I.bounded ia);
@@ -426,7 +425,7 @@ Qed.
 Lemma integral_interval_relative_ex_RInt (depth : nat) a b ia ib epsilon :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
   ex_RInt f a b.
 Proof.
@@ -438,7 +437,7 @@ Qed.
 Lemma integral_interval_relative_contains (depth : nat) a b ia ib epsilon :
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case ->
+  ex_RInt_base_case /\ correct_estimator ->
   I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
  contains (I.convert (integral_interval_relative estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
 Proof.
@@ -446,44 +445,6 @@ move => Hcontia Hcontib Hbase HnotInan.
 move: (integral_interval_relative_correct depth a b ia ib epsilon Hcontia Hcontib Hbase HnotInan).
 by case.
 Qed.
-
-
-(* Lemma integral_interval_relative_ex_RInt (depth : nat) a b ia ib epsilon : *)
-(*   contains (I.convert ia) (Xreal a) -> *)
-(*   contains (I.convert ib) (Xreal b) -> *)
-(*   ex_RInt_base_case -> *)
-(*   I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan -> *)
-(*   ex_RInt f a b. *)
-(* Proof. *)
-(* move => Hcontia Hcontib ex_RInt_base_case HnotInan. *)
-(* move: HnotInan. *)
-(* rewrite /integral_interval_relative. *)
-(* case Hiab: (I.bounded ia); *)
-(* case Hibb: (I.bounded ib); rewrite ?I.nai_correct => //= . *)
-(* case: depth => [|depth]. *)
-(* by apply: ex_RInt_base_case. *)
-(* set b1 := (X in if X then _ else _). *)
-(* case Hb1 : b1; first by apply: ex_RInt_base_case. *)
-
-(* by apply: integral_interval_absolute_ex_RInt. *)
-(* Qed. *)
-
-(* Lemma integral_interval_relative_correct (depth : nat)  a b ia ib epsilon : *)
-(*   contains (I.convert ia) (Xreal a) -> *)
-(*   contains (I.convert ib) (Xreal b) -> *)
-(*   ex_RInt f a b -> *)
-(*   contains (I.convert (integral_interval_relative estimator depth ia ib epsilon)) (Xreal (RInt f a b)). *)
-(* Proof. *)
-(* move => Hcontia Hcontib Hex_RInt. *)
-(* rewrite /integral_interval_relative. *)
-(* case Hiab: (I.bounded ia); *)
-(* case Hibb: (I.bounded ib); rewrite ?I.nai_correct => //= . *)
-(* case: depth => [|depth]. *)
-(*   by apply: Hcorrect. *)
-(* set b1 := (X in if X then _ else _). *)
-(* case Hb1 : b1; first by apply: Hcorrect. *)
-(* by apply: integral_interval_absolute_correct. *)
-(* Qed. *)
 
 Lemma naive_integral_correct (ia ib: I.type) (a b : R) :
   contains (I.convert ia) (Xreal a) ->
@@ -507,19 +468,6 @@ move: (F.real_correct a).
 rewrite -F.toF_correct.
 by case: (F.toF a).
 Qed.
-
-(* Lemma integral_epsilon_correct (depth : nat) (a b : R) (ia ib : I.type) epsilon : *)
-(*   contains (I.convert ia) (Xreal a) -> *)
-(*   contains (I.convert ib) (Xreal b) -> *)
-(*   ex_RInt f a b -> *)
-(*   contains *)
-(*     (I.convert (integral_interval_relative estimator depth ia ib epsilon)) *)
-(*     (Xreal (RInt f a b)). *)
-(* Proof. *)
-(* move => Hconta Hcontb HFInt. *)
-(* apply: (integral_interval_relative_contains depth) => // . *)
-(* move => u v iu iv Hcontiu Hcontiv HnotInan. *)
-(* Qed. *)
 
 End Proofs.
 
