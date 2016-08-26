@@ -1053,21 +1053,39 @@ Ltac tuple_to_list params l :=
   | ?z => fail 100 "Unknown tactic parameter" z
   end.
 
+Inductive interval_tac_method :=
+  | itm_eval : interval_tac_method
+  | itm_bisect : interval_tac_method
+  | itm_bisect_diff : interval_tac_method
+  | itm_bisect_taylor : nat -> interval_tac_method.
+
+Ltac tac_of_itm itm :=
+  match itm with
+  | itm_eval => do_interval_eval
+  | itm_bisect => do_interval_bisect
+  | itm_bisect_diff => do_interval_bisect_diff
+  | itm_bisect_taylor ?d => do_interval_bisect_taylor d
+  end.
+
 Ltac do_interval_parse params :=
-  let rec aux vars prec depth rint_depth rint_prec rint_deg eval_tac params :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
     match params with
-    | nil => do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg ltac:(do_interval_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg eval_tac t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
-    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
-    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg eval_tac t
+    | nil => constr:(vars, prec, depth, rint_depth, rint_prec, rint_deg, itm)
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg (itm_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg itm t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg itm t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec rint_deg itm t
+    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%nat 15%nat 3%nat 10%nat 10%nat do_interval_eval params.
+  match aux (@nil R) 30%nat 15%nat 3%nat 10%nat 10%nat itm_eval params with
+  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
+    let eval_tac := tac_of_itm itm in
+    do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac
+  end.
 
 Ltac do_interval_generalize t b :=
   match eval vm_compute in (I.convert b) with
@@ -1134,21 +1152,33 @@ Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec rint
     end
   end.
 
+Ltac intro_tac_of_itm itm :=
+  match itm with
+  | itm_eval => do_interval_intro_eval
+  | itm_bisect => do_interval_intro_bisect
+  | itm_bisect_diff => do_interval_intro_bisect_diff
+  | itm_bisect_taylor ?d => do_interval_intro_bisect_taylor d
+  end.
+
 Ltac do_interval_intro_parse t_ extend params_ :=
-  let rec aux vars prec depth rint_depth rint_prec rint_deg eval_tac params :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
     match params with
-    | nil => do_interval_intro t_ extend params_ vars prec depth rint_depth rint_prec rint_deg eval_tac
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg eval_tac t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_intro_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg do_interval_intro_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg ltac:(do_interval_intro_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg eval_tac t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg eval_tac t
-    | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p rint_deg eval_tac t
-    | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p eval_tac t
+    | nil => constr:(t_, extend, params_, vars, prec, depth, rint_depth, rint_prec, rint_deg, itm)
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg (itm_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg itm t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg itm t
+    | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p rint_deg itm t
+    | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%nat 5%nat 3%nat 10%nat 10%nat do_interval_intro_eval params_.
+  match aux (@nil R) 30%nat 5%nat 3%nat 10%nat 10%nat itm_eval params_ with
+  | (?t_, ?extend, ?params_, ?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
+    let eval_tac := intro_tac_of_itm itm in
+    do_interval_intro t_ extend params_ vars prec depth rint_depth rint_prec rint_deg eval_tac
+  end.
 
 End Private.
 
@@ -1265,7 +1295,8 @@ Lemma blo5 :
 Proof.
 intros.
 interval_intro (1 + x)%R with (i_bisect_taylor x 2).
-interval with (i_bisect_taylor x 2).
+split; try interval with (i_bisect_taylor x 2).
+interval with (i_bisect_diff x).
 Qed.
 *)
 
