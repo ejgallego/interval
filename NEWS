@@ -1,3 +1,6 @@
+Pending release:
+ - improved tactic so that it can be used with backtracking tacticals (try, ||)
+
 Version 3.0.0:
  - added support for integrals using Coquelicot's RInt operator
  - improved support for Taylor models
