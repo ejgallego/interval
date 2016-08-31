@@ -525,7 +525,7 @@ Definition Fadd_fast_aux1 beta s m1 m2 e d2 u2 e1 e2 : ufloat beta :=
     match (e - e2)%Z with
     | Zpos p =>
       let (n2, pos) := truncate beta m2 p in
-      let n1 := 
+      let n1 :=
         match (e1 - e)%Z with
         | Zpos q => (shift beta m1 q)
         | Z0 => m1
@@ -546,7 +546,7 @@ Definition Fsub_fast_aux1 beta s m1 m2 e e1 e2 : ufloat beta :=
       | (n, pos_Mi) => (Psucc n, pos_Mi)
       | (n, pos_Up) => (Psucc n, pos_Lo)
       end in
-    let n1 := 
+    let n1 :=
       match (e1 - e)%Z with
       | Zpos q => (shift beta m1 q)
       | Z0 => m1
@@ -581,7 +581,7 @@ Definition Fsub_fast_aux2 beta prec s m1 m2 u1 u2 e1 e2 :=
     match (e - e1)%Z with
     | Zpos p =>
       let (n1, pos) := truncate beta m1 p in
-      let n2 := 
+      let n2 :=
         match (e2 - e)%Z with
         | Zpos q => (shift beta m2 q)
         | Z0 => m2

@@ -112,7 +112,7 @@ rewrite Derive_plus; [ |by apply: ex_derive_const |].
 - congr (_ + _); first by apply: Derive_const.
 rewrite derive_big.
 rewrite [LHS]big_nat_cond /X [RHS]big_nat_cond.
-apply: eq_bigr => i; rewrite andbT => Hi. 
+apply: eq_bigr => i; rewrite andbT => Hi.
 rewrite Derive_mult.
 have -> :
   Derive (fun _ : Rdefinitions.R => nth (primitive tt c p) i.+1) x = 0.

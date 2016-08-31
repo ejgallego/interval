@@ -1,5 +1,6 @@
-Pending release:
+Version 3.1.0:
  - improved tactic so that it can be used with backtracking tacticals (try, ||)
+ - fixed ineffective computation of integrals with reverted or overlapping bounds
 
 Version 3.0.0:
  - added support for integrals using Coquelicot's RInt operator
