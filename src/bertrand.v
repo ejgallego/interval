@@ -3,6 +3,7 @@ Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.s
 Require Import coquelicot_compl Interval_missing.
 Require Import mathcomp.ssreflect.bigop.
 Require Import ZArith Psatz.
+Require Import Fourier_util.
 
 Fixpoint f (alpha : Z) (beta : nat) (A B : R) {struct beta} :=
   match beta with
@@ -302,17 +303,16 @@ Qed.
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
 Proof.
-  apply: (is_lim_ext (fun x => 1 / x)).
-    move => y. rewrite -Rinv_Rdiv ?Rdiv_1 // .
-    admit.
-    exact: R1_neq_R0.
-Admitted.
+suff -> : 0 = Rbar_inv p_infty => // .
+apply: (is_lim_inv (fun x => x) p_infty p_infty) => // .
+Qed.
 
 Lemma is_lim_powerRZ_0 alpha (Halpha : (alpha < 0)%Z) :
   is_lim (powerRZ^~ (alpha)%Z) p_infty (0%R).
 Proof.
 apply: (powerRZ_ind (fun n f => (n < 0)%Z -> is_lim f p_infty (0%R))) => // [n Hn|n Hn|].
-- admit. (* absurd hypothesis, TODO *)
+- move: Hn. have -> : 0%Z = (Z.of_nat 0%N)%Z by [].
+  rewrite -Nat2Z.inj_lt; lia.
 - elim: n Hn => [|m Hm Hn] // .
   rewrite /= .
   apply: (is_lim_ext (fun x => / x * / x^m)).
@@ -332,8 +332,9 @@ apply: (powerRZ_ind (fun n f => (n < 0)%Z -> is_lim f p_infty (0%R))) => // [n H
   (* why so much detail needed ? *)
   apply: (is_lim_mult (fun x => / x) (fun x => / x^m.+1) p_infty 0 0) => // .
   exact: is_lim_RInv_p_infty.
-  apply: Hm. rewrite Z.opp_neg_pos. rewrite /Z.of_nat. admit. (* :-( *)
-
+  apply: Hm. rewrite Z.opp_neg_pos.
+  have -> : 0%Z = (Z.of_nat 0%N)%Z by [].
+  by rewrite -Nat2Z.inj_lt; lia.
 move => f g Hfg n H1 H2.
 apply: (is_lim_ext f g _ _ Hfg).
 by apply: H1.
@@ -346,10 +347,69 @@ apply: is_lim_powerRZ_0.
 by lia.
 Qed.
 
-Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
-  is_lim (fun x => powerRZ x (alpha + 1)%Z * (pow (ln x) beta)) p_infty (0%R).
+Lemma Rpower_pos {x y} (Hx : 0 < x) (Hy : 0 <= y) : Rpower x y > 0.
 Proof.
-(* apply: (is_lim_ext *)
+Admitted.
+
+Search _ "derive" Rpower.
+
+Lemma is_derive_Rpower {x y} (Hx : 0 < x) (Hy : 0 <= y) :
+  is_derive (fun t => Rpower t y) x (y * Rpower x (y - 1)).
+Proof.
+move: (is_derive_n_Rpower 1 y x Hx) => /=.
+by rewrite big_ord_recl big_ord0 /= Rminus_0_r Rmult_1_r.
+Qed.
+
+Lemma Rpower_exp_ln {y} (Hy : 0 <= y) :
+ forall x, (0 < x) -> Rpower x y = exp (y * ln x).
+Proof.
+Admitted.
+
+Lemma ln_power x y (Hx : 0 < x) (Hy : 0 <= y) : ln (Rpower x y) = y * ln x.
+Proof.
+rewrite Rpower_exp_ln // .
+by rewrite ln_exp.
+Qed.
+
+Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
+  is_lim (fun x => powerRZ x (alpha + 1)%Z * (pow (ln x) beta.+1)) p_infty (0%R).
+Proof.
+have Halpah1 : IZR (alpha + 1) < 0.
+  have {1}-> : 0 = IZR 0 by [].
+  apply: IZR_lt; lia.
+have Hbeta1 : INR beta.+1 > 0.
+  apply: lt_0_INR.
+  exact: Nat.lt_0_succ.
+set X := fun x => Rpower x ((IZR (Z.opp (alpha + 1))) / INR beta.+1).
+have Htransform: forall x, x > 0 ->  powerRZ x (alpha + 1) * ln x ^ beta.+1 =
+                pow (-((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) * / (X x))) beta.+1.
+move => x Hx.
+have HXgt0 : X x > 0.
+  apply: Rpower_pos => // .
+  apply: Rle_mult_inv_pos.
+  have -> : 0 = IZR 0 by [].
+  by apply: IZR_le; lia.
+  apply: lt_0_INR.
+  exact: Nat.lt_0_succ.
+have -> : -((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) / (X x)) =
+          (-((INR beta.+1) / IZR (alpha + 1)) * ln (X x)) / (X x).
+field.
+  by split; lra.
+rewrite -ln_power ?Rpow_mult_distr => // .
+have -> : Rpower (X x) (-(INR beta.+1 / IZR (alpha + 1))) =
+          x.
+rewrite Rpower_mult.
+rewrite opp_IZR.
+have -> : (- IZR ((alpha + 1)) / INR beta.+1 * -(INR beta.+1 / IZR (alpha + 1))) = 1. field; lra.
+exact: Rpower_1.
+rewrite Rmult_comm.
+congr (_ * _).
+Search _ ((/ _) ^_).
+rewrite -Rinv_pow /X.
+Search _ Rpower pow.
+rewrite -Rpower_pow ?Rpower_mult -?Rpower_Ropp.
+have -> : (- (IZR (- (alpha + 1)) / INR beta.+1 * INR beta.+1)) = IZR (alpha + 1)%Z.
+rewrite opp_IZR. field; lra.
 Admitted.
 
 Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
@@ -365,7 +425,7 @@ split.
   apply: f_correct.
   + by lra.
   + by apply: Zlt_not_eq.
-rewrite prod_to_single.
+rewrite prod_to_single_normedmodule.
 elim: beta => [ | beta Hbeta].
 rewrite /f /f_lim /Rdiv /Rminus.
 rewrite -[locally _]/(Rbar_locally (Rbar_mult (Finite _) (Finite _))).
