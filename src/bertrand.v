@@ -247,7 +247,8 @@ move => x Hx. apply: eq_sym.
 apply: (ball_eq _ _ Hx).
 Qed.
 
-Lemma prod_to_single (K : AbsRing) {T U V : NormedModule K} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
+
+Lemma prod_to_single_general {T U V : UniformSpace} (HTSeparable : forall c t, (forall eps : posreal, @ball T c eps t) -> t=c) A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
 filterlim (fun xtu : T * U => f xtu.1 xtu.2)
           (filter_prod (at_point A) F) G
 <->
@@ -274,55 +275,29 @@ split => H.
   move: (H P GP).
   rewrite /filtermap => HFP.
   set R := (fun x : U => P (f A x)).
-  set Q := (fun x => A = x).
+  set Q := (fun x => x = A).
   apply: (Filter_prod _ _ _ Q R) => //= ; last first.
   move => t u.
   rewrite /Q.
   move => HQt /= HPfAu.
-  rewrite -HQt.
+  rewrite HQt.
   exact: HPfAu.
   move => t Heps.
   rewrite /Q.
-  exact: ball_eq.
+  exact: HTSeparable.
 Qed.
 
-(* Lemma prod_to_single_false {T U V : UniformSpace} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) (G : (V -> Prop) -> Prop) : *)
-(* filterlim (fun xtu : T * U => f xtu.1 xtu.2) *)
-(*           (filter_prod (at_point A) F) G *)
-(* <-> *)
-(* filterlim (fun u : U => f A u) F G. *)
-(* Proof. *)
-(* split => H. *)
-(* - move => P GP. *)
-(*   rewrite /filtermap. *)
-(*   move: (filter_prod_ind T U (at_point A) F (fun x => P (f (fst x) (snd x)))). *)
-(*   case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy. *)
-(*   apply => /= . *)
-(*   move => Q R HAQ HFR HPf. *)
-(*   eapply filter_imp. *)
-(*   2: exact: HFR. *)
-(*   move => x HRx. *)
-(*   apply: HPf => // . *)
-(*   apply: HAQ => eps // ; exact: ball_center. *)
-(*   econstructor. *)
-(*   exact: HAQ1. *)
-(*   exact: HFR1. *)
-(*   exact: HPfxy. *)
-(* - move => P GP. *)
-(*   rewrite /filtermap. *)
-(*   move: (H P GP). *)
-(*   rewrite /filtermap => HFP. *)
-(*   set R := (fun x : U => P (f A x)). *)
-(*   set Q := (fun x => x = A). *)
-(*   apply: (Filter_prod _ _ _ Q R) => //= ; last first. *)
-(*   move => t u. *)
-(*   rewrite /Q. *)
-(*   move => HQt /= HPfAu. *)
-(*   rewrite HQt. *)
-(*   exact: HPfAu. *)
-(*   move => t Heps. *)
-(*   rewrite /Q. *)
-(* Admitted. *)
+Lemma prod_to_single_normedmodule (K : AbsRing) {T U V : NormedModule K} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
+filterlim (fun xtu : T * U => f xtu.1 xtu.2)
+          (filter_prod (at_point A) F) G
+<->
+filterlim (fun u : U => f A u) F G.
+Proof.
+apply: prod_to_single_general.
+move => c t Hct.
+apply: eq_sym.
+exact: ball_eq.
+Qed.
 
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
