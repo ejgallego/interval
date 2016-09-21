@@ -29,30 +29,6 @@ Definition Bertrand alpha beta A B (I : R) :=
 Definition Bertrand_lim alpha beta (A : R) (I : R) :=
   is_RInt_gen (fun x => powerRZ x alpha * (pow (ln x) beta)) (at_point A) (Rbar_locally p_infty) I.
 
-Lemma one_step_by_parts alpha beta (A : R) (B : R) (H : 0 < A <= B) :
-  forall I, Bertrand alpha beta A B I ->
-  Bertrand alpha (S beta) A B
-     ((powerRZ B (alpha+1) * (pow (ln B) (S beta)) -
-       powerRZ A (alpha+1) * (pow (ln A) (S beta))) / (IZR (alpha + 1)) -
-      (INR (S beta)) / (IZR (alpha+1)) * I).
-Proof.
-Admitted.
-
-(* Lemma powerRZ_pow x (n : nat) : powerRZ x (Z.of_nat n) = pow x n. *)
-(* Proof. *)
-(* by rewrite pow_powerRZ. *)
-(* elim: n => [|n Hn] // . *)
-(* rewrite Nat2Z.inj_succ /=. *)
-(* case: (Req_dec x 0) => Hx. *)
-(*   rewrite Hx Rmult_0_l. *)
-(*   rewrite /powerRZ. *)
-(*   rewrite -Zpos_P_of_succ_nat. *)
-(*   by rewrite SuccNat2Pos.id_succ /= Rmult_0_l. *)
-(* rewrite powerRZ_add // -Hn. *)
-(* rewrite Rmult_comm {1}/powerRZ /= . *)
-(* by rewrite Rmult_1_r.                             *)
-(* Qed. *)
-
 Lemma powerRZ_ind (P : Z -> (R -> R) -> Prop) :
   P 0%Z (fun x => 1) ->
   (forall n, P (Z.of_nat n) (fun x => x ^ n)) ->
@@ -104,13 +80,31 @@ Lemma is_derive_powerRZS (n : Z) (x : R):
 Proof.
 move => Hnx.
 move: (is_derive_powerRZ (n+1) x).
-Search _ (_ + _ - _)%Z.
 rewrite Z.add_simpl_r // ; apply.
 case: Hnx => [Hn | Hx].
-  left; psatz Z.
+  left; lia.
 by right.
 Qed.
 
+Lemma ex_derive_powerRZ (n : Z) (x : R):
+  ((0 <= n)%Z \/ x <> 0) ->
+  ex_derive (fun x : R => powerRZ x n) x.
+Proof.
+move => H.
+apply: (ex_derive_is_derive ((fun x : R => powerRZ x (n)))).
+exact: is_derive_powerRZ.
+Qed.
+
+Lemma ex_derive_powerRZS (n : Z) (x : R):
+  ((1 <= n)%Z \/ x <> 0) ->
+  ex_derive (fun x : R => powerRZ x (n+1)) x.
+Proof.
+move => H.
+apply: ex_derive_powerRZ.
+case: H => [Hn | Hx].
+  left; lia.
+by right.
+Qed.
 
 Lemma is_RInt_powerRZ (alpha : Z) (a b : R) (HneqN1 : alpha <> (-1)%Z) (H : 0 < a <= b) :
 is_RInt (powerRZ^~ alpha) a b
@@ -141,6 +135,85 @@ apply: (ex_derive_n_powerRZ alpha 1).
 by right; apply xneq0.
 Qed.
 
+(* this one should be in Coquelicot to relieve users *)
+Lemma continuous_Rdiv_1_x x (H : x <> 0) : continuous (Rdiv 1) x.
+Proof.
+apply: (continuous_ext (fun (x : R) => (/ x))).
+  by move => x0; rewrite /Rdiv Rmult_1_l.
+exact: continuous_Rinv.
+Qed.
+
+Lemma one_step_by_parts alpha beta (A : R) (B : R) (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
+  forall I, Bertrand alpha beta A B I ->
+  Bertrand alpha (S beta) A B
+     ((powerRZ B (alpha+1) * (pow (ln B) (S beta)) -
+       powerRZ A (alpha+1) * (pow (ln A) (S beta))) / (IZR (alpha + 1)) -
+      (INR (S beta)) / (IZR (alpha+1)) * I).
+Proof.
+have Salpha_neq_0 :   IZR (alpha + 1) <> 0.
+  by apply: not_0_IZR; lia.
+move => I HABI.
+rewrite/Bertrand.
+pose f := (fun x => Rdiv (powerRZ x (alpha+1)) (IZR(alpha+1))).
+pose f' := (fun x => powerRZ x alpha).
+pose g := (fun x => pow (ln x) (beta.+1)).
+pose g' := (fun x => (1 / x) * (INR (beta.+1) * pow (ln x) beta)).
+set f'g := (fun x : R => scal (f' x) (g x)).
+pose fg' := (fun t => scal (f t) (g' t)).
+pose f'gplusfg' := (fun t : R => plus (f'g t) (fg' t)).
+apply (is_RInt_ext (fun x => minus (f'gplusfg' x) (fg' x))) => [x HX|].
+rewrite /f'gplusfg' /fg' /f /g /f'g.
+by rewrite /minus -plus_assoc plus_opp_r plus_zero_r /scal.
+apply: is_RInt_minus.
+- apply: (is_RInt_ext (fun t : R => plus (scal (f' t) (g t)) (scal (f t) (g' t)))) =>[x Hx|].
+    by [].
+  have -> : ((powerRZ B (alpha + 1) * ln B ^ beta.+1 -
+      powerRZ A (alpha + 1) * ln A ^ beta.+1) / IZR (alpha + 1)) = (minus (scal (f B) (g B)) (scal (f A) (g A))).
+    rewrite /f /g /minus /opp /plus /scal /mult  /= /mult /= .
+    by field.
+  apply: (is_RInt_scal_derive f g f' g' A B) => x Hx.
+  have xgt0 : x > 0 by case: Hx; rewrite Rmin_left; lra.
+  + rewrite /f /f'.
+    apply: (is_derive_ext (fun x0 => scal (powerRZ x0 (alpha + 1)) (1 / IZR (alpha + 1)))) => [t|].
+      by rewrite /scal /= /mult /=;field.
+    have -> : powerRZ x alpha = scal (IZR (alpha+1) * (powerRZ x alpha)) (1 / IZR (alpha + 1)).
+      by rewrite /scal /mult /= /mult /=; field.
+    apply: is_derive_scal_l.
+    apply: (is_derive_powerRZS alpha x).
+    by lra.
+  + rewrite /g /g'.
+    have -> : (1 / x * (INR beta.+1 * ln x ^ beta)) = (INR beta.+1 * ( / x) * ln x ^ beta.+1.-1).
+      rewrite -pred_Sn; field.
+      by case: Hx; rewrite Rmin_left; lra.
+    apply: (is_derive_pow).
+    apply: is_derive_ln.
+    by case: Hx; rewrite Rmin_left; lra.
+  + have Hxneq0 : x <> 0 by rewrite Rmin_left in Hx; lra.
+    apply: ex_derive_continuous.
+    apply: ex_derive_powerRZ; right => // .
+  + have Hxgt0 : x > 0 by rewrite Rmin_left in Hx; lra.
+    have Hxneq0 : x <> 0 by lra.
+    apply: continuous_mult.
+    apply: continuous_Rdiv_1_x => // .
+    apply: continuous_mult; first exact: continuous_const.
+    (* intermediary lemmas needed here *)
+    apply: ex_derive_continuous.
+    apply: ex_derive_is_derive.
+    apply: is_derive_pow.
+    by apply: is_derive_ln.
+    move: HABI; rewrite /Bertrand.
+    suff Hx : forall x, Rmin A B < x < Rmax A B -> (fun x => scal (INR beta.+1 / IZR (alpha + 1)) (powerRZ x alpha * ln x ^ beta)) x = fg' x => [HABI|t HAtB].
+      apply: is_RInt_ext.
+      exact: Hx.
+      apply: is_RInt_scal => // .
+    have Hxgt0 : t > 0 by rewrite Rmin_left in HAtB; lra.
+    have Hxneq0 : t <> 0 by lra.
+    rewrite /fg' /f /g'.
+    rewrite powerRZ_add // .
+    rewrite /scal /= /mult /=.
+    field; lra.
+Qed.
+
 Lemma Bertrand_beta0 alpha (A : R) (B : R) (HneqN1 : alpha <> (-1)%Z) (H : 0 < A <= B) :
   Bertrand alpha 0 A B ((powerRZ B (alpha+1)- powerRZ A (alpha+1)) / (IZR (alpha + 1))).
 Proof.
@@ -165,7 +238,7 @@ elim: beta => [|m HIm] // .
   apply: (is_RInt_ext (fun x => powerRZ x alpha)).
   + by move => x Hx; rewrite pow_O Rmult_1_r.
   exact: int_x_alpha.
-by move: (one_step_by_parts alpha m A B H _ HIm).
+by move: (one_step_by_parts alpha m A B H Halpha _ HIm).
 Qed.
 
 Lemma at_point_refl (a : R) : at_point a (eq^~ a).
@@ -213,43 +286,43 @@ split => H.
   exact: ball_eq.
 Qed.
 
-Lemma prod_to_single_false {T U V : UniformSpace} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) (G : (V -> Prop) -> Prop) :
-filterlim (fun xtu : T * U => f xtu.1 xtu.2)
-          (filter_prod (at_point A) F) G
-<->
-filterlim (fun u : U => f A u) F G.
-Proof.
-split => H.
-- move => P GP.
-  rewrite /filtermap.
-  move: (filter_prod_ind T U (at_point A) F (fun x => P (f (fst x) (snd x)))).
-  case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy.
-  apply => /= .
-  move => Q R HAQ HFR HPf.
-  eapply filter_imp.
-  2: exact: HFR.
-  move => x HRx.
-  apply: HPf => // .
-  apply: HAQ => eps // ; exact: ball_center.
-  econstructor.
-  exact: HAQ1.
-  exact: HFR1.
-  exact: HPfxy.
-- move => P GP.
-  rewrite /filtermap.
-  move: (H P GP).
-  rewrite /filtermap => HFP.
-  set R := (fun x : U => P (f A x)).
-  set Q := (fun x => x = A).
-  apply: (Filter_prod _ _ _ Q R) => //= ; last first.
-  move => t u.
-  rewrite /Q.
-  move => HQt /= HPfAu.
-  rewrite HQt.
-  exact: HPfAu.
-  move => t Heps.
-  rewrite /Q.
-Admitted.
+(* Lemma prod_to_single_false {T U V : UniformSpace} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) (G : (V -> Prop) -> Prop) : *)
+(* filterlim (fun xtu : T * U => f xtu.1 xtu.2) *)
+(*           (filter_prod (at_point A) F) G *)
+(* <-> *)
+(* filterlim (fun u : U => f A u) F G. *)
+(* Proof. *)
+(* split => H. *)
+(* - move => P GP. *)
+(*   rewrite /filtermap. *)
+(*   move: (filter_prod_ind T U (at_point A) F (fun x => P (f (fst x) (snd x)))). *)
+(*   case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy. *)
+(*   apply => /= . *)
+(*   move => Q R HAQ HFR HPf. *)
+(*   eapply filter_imp. *)
+(*   2: exact: HFR. *)
+(*   move => x HRx. *)
+(*   apply: HPf => // . *)
+(*   apply: HAQ => eps // ; exact: ball_center. *)
+(*   econstructor. *)
+(*   exact: HAQ1. *)
+(*   exact: HFR1. *)
+(*   exact: HPfxy. *)
+(* - move => P GP. *)
+(*   rewrite /filtermap. *)
+(*   move: (H P GP). *)
+(*   rewrite /filtermap => HFP. *)
+(*   set R := (fun x : U => P (f A x)). *)
+(*   set Q := (fun x => x = A). *)
+(*   apply: (Filter_prod _ _ _ Q R) => //= ; last first. *)
+(*   move => t u. *)
+(*   rewrite /Q. *)
+(*   move => HQt /= HPfAu. *)
+(*   rewrite HQt. *)
+(*   exact: HPfAu. *)
+(*   move => t Heps. *)
+(*   rewrite /Q. *)
+(* Admitted. *)
 
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
@@ -295,7 +368,7 @@ Lemma x_alpha_0 alpha (Halpha : (alpha < -1)%Z) :
   is_lim (powerRZ^~ (alpha + 1)%Z) p_infty (0%R).
 Proof.
 apply: is_lim_powerRZ_0.
-by psatz Z.
+by lia.
 Qed.
 
 Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
