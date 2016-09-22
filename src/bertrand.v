@@ -315,12 +315,12 @@ apply: (powerRZ_ind (fun n f => (n < 0)%Z -> is_lim f p_infty (0%R))) => // [n H
   rewrite -Nat2Z.inj_lt; lia.
 - elim: n Hn => [|m Hm Hn] // .
   rewrite /= .
-  apply: (is_lim_ext (fun x => / x * / x^m)).
-    move => y; rewrite Rinv_mult_distr // .
-    (* we should be able to say that for y big enough, this is true *)
-    (* there probably needs to be another is_lim_ext for this case  *)
-    admit.
-    admit.
+  apply: (is_lim_ext_loc (fun x => / x * / x^m)).
+    exists 0 => x Hx.
+    field.
+    split.
+      by apply: pow_nonzero; lra.
+      by lra.
   case: m Hm Hn => [|m Hm] Hn.
   + move => _ /=.
     have -> : 0 = Rbar_mult (Finite 0) (Finite 1) by rewrite /= Rmult_0_l.
@@ -338,7 +338,64 @@ apply: (powerRZ_ind (fun n f => (n < 0)%Z -> is_lim f p_infty (0%R))) => // [n H
 move => f g Hfg n H1 H2.
 apply: (is_lim_ext f g _ _ Hfg).
 by apply: H1.
-Admitted.
+Qed.
+
+Lemma is_lim_pow_infty n : is_lim (fun x => x^n.+1) p_infty p_infty.
+Proof.
+elim: n => [|n Hn].
+- apply: (is_lim_ext id) => // .
+  by move => y; rewrite pow_1.
+- apply: (is_lim_ext (fun x => x * x^n.+1)).
+    by move => y.
+  have {2}-> : p_infty = Rbar_mult p_infty p_infty => // .
+  apply: is_lim_mult => // .
+Qed.
+
+Lemma is_lim_pow_0 (f : R -> R) n :
+  is_lim f p_infty 0 ->
+  is_lim (fun x => (f x)^n.+1) p_infty 0.
+Proof.
+elim: n => [|n Hn].
+- apply: (is_lim_ext f) => // .
+  by move => y; rewrite pow_1.
+- move =>  Hf0.
+apply: (is_lim_ext (fun x => (f x) * (f x)^n.+1)).
+  by move => y.
+have {1}-> : 0 = Rbar_mult 0 0 by rewrite /= Rmult_0_l.
+apply: (is_lim_mult f (fun x => (f x)^n.+1) p_infty 0 0) => // .
+exact: Hn.
+Qed.
+
+
+Lemma Rbar_mult_p_l y (Hy : 0 < y) :
+  Rbar_mult y p_infty = p_infty.
+Proof.
+rewrite /Rbar_mult /Rbar_mult'.
+case: (Rle_dec 0 y) => Hy1; last by lra.
+by case: (Rle_lt_or_eq_dec 0 y Hy1) => // ; lra.
+Qed.
+
+Lemma Rbar_mult_p_r y (Hy : 0 < y) :
+  Rbar_mult p_infty y = p_infty.
+Proof.
+by rewrite Rbar_mult_comm; exact: Rbar_mult_p_l.
+Qed.
+
+(* TODO: variant with a composition *)
+Lemma is_lim_Rpower y (Hy : 0 < y) :
+  is_lim (fun x => Rpower x y) p_infty p_infty.
+Proof.
+rewrite /Rpower.
+apply: is_lim_comp => // .
+exact: is_lim_exp_p.
+apply: (is_lim_ext (fun x => scal y (ln x))).
+  by move => x0.
+have {2}-> :  p_infty = Rbar_mult y p_infty.
+  by rewrite Rbar_mult_p_l.
+apply (is_lim_scal_l ln y p_infty p_infty).
+exact: is_lim_ln_p.
+exists 0 => x0 Hx0 //.
+Qed.
 
 Lemma x_alpha_0 alpha (Halpha : (alpha < -1)%Z) :
   is_lim (powerRZ^~ (alpha + 1)%Z) p_infty (0%R).
@@ -349,9 +406,9 @@ Qed.
 
 Lemma Rpower_pos {x y} (Hx : 0 < x) (Hy : 0 <= y) : Rpower x y > 0.
 Proof.
-Admitted.
-
-Search _ "derive" Rpower.
+rewrite /Rpower.
+by apply: exp_pos.
+Qed.
 
 Lemma is_derive_Rpower {x y} (Hx : 0 < x) (Hy : 0 <= y) :
   is_derive (fun t => Rpower t y) x (y * Rpower x (y - 1)).
@@ -360,15 +417,36 @@ move: (is_derive_n_Rpower 1 y x Hx) => /=.
 by rewrite big_ord_recl big_ord0 /= Rminus_0_r Rmult_1_r.
 Qed.
 
-Lemma Rpower_exp_ln {y} (Hy : 0 <= y) :
- forall x, (0 < x) -> Rpower x y = exp (y * ln x).
+Lemma ln_Rpower x y (Hx : 0 < x) (Hy : 0 <= y) : ln (Rpower x y) = y * ln x.
 Proof.
-Admitted.
-
-Lemma ln_power x y (Hx : 0 < x) (Hy : 0 <= y) : ln (Rpower x y) = y * ln x.
-Proof.
-rewrite Rpower_exp_ln // .
+rewrite /Rpower // .
 by rewrite ln_exp.
+Qed.
+
+Lemma powerRZ_Rpower (x : R) (H : 0 < x) (z : Z) :
+  powerRZ x z = Rpower x (IZR z).
+Proof.
+Search _ powerRZ "ind".
+apply: (powerRZ_ind (fun n f => f x = Rpower x (IZR n))) => // .
+- by rewrite Rpower_O.
+- move => n.
+  by rewrite -Rpower_pow // INR_IZR_INZ.
+- move => n.
+  by rewrite opp_IZR Rpower_Ropp -Rpower_pow // INR_IZR_INZ.
+- move => f g Hfg n Hfxn.
+  by rewrite Hfg in Hfxn; rewrite Hfxn.
+Qed.
+
+Lemma Rinv_neg_lt_0 (x : R) : x < 0 -> / x < 0.
+Proof.
+move => Hx.
+exact: Rinv_lt_0_compat.
+Qed.
+
+Lemma Rinv_neg_le_0 (x : R) (Hx : x < 0) : / x <= 0.
+Proof.
+have := (Rinv_lt_0_compat x Hx).
+apply: Rlt_le.
 Qed.
 
 Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
@@ -380,22 +458,20 @@ have Halpah1 : IZR (alpha + 1) < 0.
 have Hbeta1 : INR beta.+1 > 0.
   apply: lt_0_INR.
   exact: Nat.lt_0_succ.
+have foo :  0 < IZR (- (alpha + 1)) / INR beta.+1.
+  rewrite opp_IZR.
+  apply: RIneq.Rdiv_lt_0_compat => // ; lra.
 set X := fun x => Rpower x ((IZR (Z.opp (alpha + 1))) / INR beta.+1).
 have Htransform: forall x, x > 0 ->  powerRZ x (alpha + 1) * ln x ^ beta.+1 =
                 pow (-((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) * / (X x))) beta.+1.
 move => x Hx.
 have HXgt0 : X x > 0.
-  apply: Rpower_pos => // .
-  apply: Rle_mult_inv_pos.
-  have -> : 0 = IZR 0 by [].
-  by apply: IZR_le; lia.
-  apply: lt_0_INR.
-  exact: Nat.lt_0_succ.
+  apply: Rpower_pos => // . lra.
 have -> : -((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) / (X x)) =
           (-((INR beta.+1) / IZR (alpha + 1)) * ln (X x)) / (X x).
 field.
   by split; lra.
-rewrite -ln_power ?Rpow_mult_distr => // .
+rewrite -ln_Rpower ?Rpow_mult_distr => // .
 have -> : Rpower (X x) (-(INR beta.+1 / IZR (alpha + 1))) =
           x.
 rewrite Rpower_mult.
@@ -404,13 +480,30 @@ have -> : (- IZR ((alpha + 1)) / INR beta.+1 * -(INR beta.+1 / IZR (alpha + 1)))
 exact: Rpower_1.
 rewrite Rmult_comm.
 congr (_ * _).
-Search _ ((/ _) ^_).
-rewrite -Rinv_pow /X.
-Search _ Rpower pow.
-rewrite -Rpower_pow ?Rpower_mult -?Rpower_Ropp.
+have Hpow_pos :  Rpower x (IZR (- (alpha + 1)) / INR beta.+1) > 0.
+  apply: Rpower_pos => // ; lra.
+rewrite -Rinv_pow /X; try lra.
+rewrite -Rpower_pow ?Rpower_mult -?Rpower_Ropp // .
 have -> : (- (IZR (- (alpha + 1)) / INR beta.+1 * INR beta.+1)) = IZR (alpha + 1)%Z.
 rewrite opp_IZR. field; lra.
-Admitted.
+by rewrite powerRZ_Rpower.
+apply: Ropp_0_ge_le_contravar.
+apply: Rle_ge.
+rewrite /Rdiv.
+apply: Rmult_le_pos_neg => // ; try lra.
+by apply: Rlt_le; apply: Rinv_lt_0_compat.
+apply: (is_lim_ext_loc (fun x => (- (INR beta.+1 / IZR (alpha + 1)) * (ln (X x) * / X x))
+               ^ beta.+1) ).
+  exists 0. move => x Hx ; rewrite Htransform // .
+apply: is_lim_pow_0.
+have -> : 0 = Rbar_mult (- (INR beta.+1 / IZR (alpha + 1))) 0.
+  by rewrite /Rbar_mult /Rbar_mult' Rmult_0_r.
+apply (is_lim_scal_l (fun (x : R) => (ln (X x) * / X x)) (- (INR beta.+1 / IZR (alpha + 1))) p_infty 0).
+apply: (is_lim_comp (fun x => ln x / x) X p_infty 0 p_infty).
+exact: is_lim_div_ln_p.
+apply: is_lim_Rpower => // .
+exists 0 => x Hx // .
+Qed.
 
 Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
  Bertrand_lim alpha beta A (f_lim alpha beta A).
