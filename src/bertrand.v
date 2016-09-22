@@ -466,9 +466,9 @@ have foo :  0 < IZR (- (alpha + 1)) / INR beta.+1.
   by apply: RIneq.Rdiv_lt_0_compat => // ; lra.
 set X := fun x => Rpower x ((IZR (Z.opp (alpha + 1))) / INR beta.+1).
 (* First we rewrite our function *)
-have Htransform: 
-  forall x, 
-    x > 0 -> 
+have Htransform:
+  forall x,
+    x > 0 ->
     powerRZ x (alpha + 1) * ln x ^ beta.+1 =
     pow (-((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) * / (X x))) beta.+1.
   move => x Hx.
@@ -557,3 +557,112 @@ elim: beta => [ | beta Hbeta].
     * done.
   + by rewrite Rplus_0_l.
 Qed.
+
+Require Import Interval_xreal.
+Require Import Interval_float_sig.
+Require Import Interval_interval.
+
+Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
+
+Variable prec : F.precision.
+
+(* (* Function computing the limit of the Bertrand integral *) *)
+(* Fixpoint f_lim (alpha : Z) (beta : nat) (A : R) {struct beta} := *)
+(*   match beta with *)
+(*     | 0 => (- powerRZ A (alpha+1)) / (IZR (alpha + 1)) *)
+(*     | S m => *)
+(*        - ( powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) - *)
+(*       (INR beta) / (IZR (alpha+1)) * f_lim alpha m A end. *)
+
+Search "power".
+
+Variable a : R.
+Variable A : I.type.
+Definition iA := I.convert A.
+
+Hypothesis Hcontainsa : contains iA (Xreal a).
+
+Search _ I.type Xpower_int.
+
+Fixpoint f_int (alpha : Z) (beta : nat) {struct beta} : I.type :=
+  match beta with
+    | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
+    | S m =>
+       I.sub prec (I.div prec (I.neg (I.mul prec (I.power_int prec A (alpha+1)) (I.power_int prec (I.ln prec A) (Z.of_nat beta)))) (I.fromZ (alpha + 1)))
+      (I.mul prec (I.div prec (I.fromZ (Z.of_nat beta)) (I.fromZ (alpha+1))) (f_int alpha m)) end.
+
+Lemma f_int_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) :
+  contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)).
+Proof.
+have Salphaneq0 : IZR (alpha + 1) <> 0.
+  apply: not_0_IZR.
+  by rewrite Z.add_move_0_r.
+have an0 : not (is_zero a).
+  by move: is_zero_spec; case => // ; lra.
+have Salphaneq01: not (is_zero (IZR (alpha + 1))).
+  move: (is_zero_spec (IZR (alpha + 1))).
+  case => // .
+elim: beta => [|m HIm].
+- rewrite /= .
+  have -> :
+    (Xreal (- powerRZ a (alpha + 1) / IZR (alpha + 1))) =
+    (Xdiv (Xreal (- powerRZ a (alpha + 1))) (Xreal (IZR (alpha + 1)))).
+    rewrite /= /Xdiv'.
+    move: (is_zero_spec (IZR (alpha + 1))).
+    by case => // .
+  apply: I.div_correct.
+    have -> : Xreal (-powerRZ a (alpha + 1)) = Xneg (Xreal (powerRZ a (alpha + 1))).
+      by [].
+    apply: I.neg_correct.
+    have -> : (Xreal (powerRZ a (alpha + 1))) = Xpower_int (Xreal a) (alpha + 1).
+      rewrite /Xpower_int /= /Xpower_int' /powerRZ.
+      case: (alpha + 1)%Z => // .
+      by move => p; move: an0; (case: (is_zero a)) => // .
+  by apply: I.power_int_correct => // ; exact: Hcontainsa.
+by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+- rewrite /f_int -/f_int /f_lim -/f_lim.
+  set u := (X in Xreal ((- (X * _) / _) - _)).
+  set v := (X in Xreal ((- (_ * X) / _) - _)).
+  set w := (X in Xreal ((- (_ * _) / X) - _)).
+  set x := (X in Xreal ((- (_ * _) / _) - X)).
+  have -> : Xreal (- (u * v) / w - x) = Xsub (Xdiv (Xneg (Xmul (Xreal u) (Xreal v))) (Xreal w)) (Xreal x).
+    rewrite /= /Xdiv'.
+    rewrite /w; move: Salphaneq01; case: (is_zero (IZR (alpha + 1))) => // .
+  apply: I.sub_correct.
+  + apply: I.div_correct.
+    * apply: I.neg_correct.
+      apply: I.mul_correct.
+        - have -> : Xreal u = Xpower_int (Xreal a) (alpha + 1).
+            rewrite /u /Xpower_int /= /Xpower_int' /powerRZ.
+            case: (alpha + 1)%Z => // .
+            move => p; move: an0; (case: (is_zero a)) => // .
+          by apply: I.power_int_correct; exact: Hcontainsa.
+        - have -> : Xreal v = Xpower_int (Xreal (ln a)) (Z.of_nat (m.+1)).
+            rewrite /v pow_powerRZ.
+            by rewrite /Xpower_int /= /Xpower_int'.
+          apply: I.power_int_correct.
+            have -> : Xreal (ln a) = Xln (Xreal a).
+              rewrite /Xln /Xln'. Search _ is_positive.
+              by rewrite (xreal_ssr_compat.positiveT H).
+            apply: I.ln_correct; apply: Hcontainsa.
+    * rewrite /w -Z2R_IZR.
+      exact: I.fromZ_correct.
+- have -> :
+    Xreal x = Xmul (Xdiv (Xreal (INR m.+1)) (Xreal (IZR (alpha + 1)))) (Xreal (f_lim alpha m a)).
+    rewrite /x /= .
+    rewrite /Xdiv';  move: Salphaneq01; case: (is_zero (IZR (alpha + 1))) =>// .
+  apply: I.mul_correct => // .
+  + apply: I.div_correct.
+    * by rewrite INR_Z2R; apply: I.fromZ_correct.
+    * by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+Qed.
+
+Lemma f_int_bertrand alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) (I : R) :
+is_RInt_gen (fun x => powerRZ x alpha * (pow (ln x) beta)) (at_point a) (Rbar_locally p_infty) I ->
+contains (I.convert (f_int alpha beta)) (Xreal I) .
+Proof.
+(* not so clear that we can prove this for now, because we don't know *)
+(* that is_RInt_gen has a unique possible I.. *)
+Abort.
+
+End BertrandInterval.
