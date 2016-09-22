@@ -566,23 +566,11 @@ Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : I
 
 Variable prec : F.precision.
 
-(* (* Function computing the limit of the Bertrand integral *) *)
-(* Fixpoint f_lim (alpha : Z) (beta : nat) (A : R) {struct beta} := *)
-(*   match beta with *)
-(*     | 0 => (- powerRZ A (alpha+1)) / (IZR (alpha + 1)) *)
-(*     | S m => *)
-(*        - ( powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) - *)
-(*       (INR beta) / (IZR (alpha+1)) * f_lim alpha m A end. *)
-
-Search "power".
-
 Variable a : R.
 Variable A : I.type.
 Definition iA := I.convert A.
 
 Hypothesis Hcontainsa : contains iA (Xreal a).
-
-Search _ I.type Xpower_int.
 
 Fixpoint f_int (alpha : Z) (beta : nat) {struct beta} : I.type :=
   match beta with
@@ -666,3 +654,50 @@ Proof.
 Abort.
 
 End BertrandInterval.
+
+Section ZeroToEpsilon.
+
+(*
+The following definition stems from the fact that
+'RInt (x^alpha * (ln x)^beta) 0 eps' =
+RInt_gen (u^(2 - alpha) * (ln u) ^ beta) (1/eps) p_infty
+*)
+
+Definition f0eps (alpha : Z) (beta : nat) (epsilon : R) :=
+  f_lim (2 - alpha) beta (1 / epsilon).
+
+Lemma f0eps_correct alpha beta epsilon (Heps : 0 < epsilon) (Halpha : 1 < IZR alpha) :
+  is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps alpha beta epsilon).
+Proof.
+rewrite /is_RInt_gen.
+exists (fun xab => RInt (fun x => powerRZ x alpha * (pow (ln x) beta)) (fst xab) (snd xab)).
+split.
+- econstructor.
+  pose Q := (fun x => x > 0).
+  have : at_right 0 Q.
+  rewrite /at_right /within /locally.
+  exists (mkposreal epsilon Heps).
+  by move => y _.
+  apply.
+  exact: at_point_refl.
+  move => /= x y Hx Hy.
+  rewrite /= .
+  apply: RInt_correct.
+  apply: ex_RInt_continuous => z Hz.
+  apply: continuous_mult.
+  apply: ex_derive_continuous.
+  apply: ex_derive_powerRZ.
+  Search _ (Rmin _ _ <= _).
+  case: Hz.
+  have := (Rmin_Rle x y z).
+  lra.
+  apply: ex_derive_continuous.
+  apply: ex_derive_pow.
+  apply: ex_derive_is_derive.
+  apply: is_derive_ln.
+  case: Hz.
+  have := (Rmin_Rle x y z). lra.
+(* Here I realize we do not have a theorem for changing bounds *)
+Abort.
+
+End ZeroToEpsilon.
