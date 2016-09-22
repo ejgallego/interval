@@ -5,30 +5,7 @@ Require Import mathcomp.ssreflect.bigop.
 Require Import ZArith Psatz.
 Require Import Fourier_util.
 
-Fixpoint f (alpha : Z) (beta : nat) (A B : R) {struct beta} :=
-  match beta with
-    | 0 => (powerRZ B (alpha+1)- powerRZ A (alpha+1)) / (IZR (alpha + 1))
-    | S m =>
-      (powerRZ B (alpha+1) * (pow (ln B) (beta)) -
-       powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) -
-      (INR beta) / (IZR (alpha+1)) * f alpha m A B end.
-
-Fixpoint f_lim (alpha : Z) (beta : nat) (A : R) {struct beta} :=
-  match beta with
-    | 0 => (- powerRZ A (alpha+1)) / (IZR (alpha + 1))
-    | S m =>
-       - ( powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) -
-      (INR beta) / (IZR (alpha+1)) * f_lim alpha m A end.
-
-Variables (A B : R).
-
-Eval vm_compute in f 1 1 A B.
-
-Definition Bertrand alpha beta A B (I : R) :=
-  is_RInt (fun x => powerRZ x alpha * (pow (ln x) beta)) A B I.
-
-Definition Bertrand_lim alpha beta (A : R) (I : R) :=
-  is_RInt_gen (fun x => powerRZ x alpha * (pow (ln x) beta)) (at_point A) (Rbar_locally p_infty) I.
+Section powerRZMissing.
 
 Lemma powerRZ_ind (P : Z -> (R -> R) -> Prop) :
   P 0%Z (fun x => 1) ->
@@ -136,6 +113,23 @@ apply: (ex_derive_n_powerRZ alpha 1).
 by right; apply xneq0.
 Qed.
 
+Lemma int_x_alpha alpha A B (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
+is_RInt (powerRZ^~ alpha) A B
+((powerRZ B (alpha + 1) - powerRZ A (alpha + 1)) / IZR (alpha + 1)).
+Proof.
+apply: is_RInt_powerRZ => // .
+Qed.
+
+End powerRZMissing.
+
+Section CoquelicotMissing.
+
+Lemma at_point_refl (a : R) : at_point a (eq^~ a).
+Proof.
+move => x Hx. apply: eq_sym.
+apply: (ball_eq _ _ Hx).
+Qed.
+
 (* this one should be in Coquelicot to relieve users *)
 Lemma continuous_Rdiv_1_x x (H : x <> 0) : continuous (Rdiv 1) x.
 Proof.
@@ -143,6 +137,40 @@ apply: (continuous_ext (fun (x : R) => (/ x))).
   by move => x0; rewrite /Rdiv Rmult_1_l.
 exact: continuous_Rinv.
 Qed.
+
+End CoquelicotMissing.
+
+(* Bertrand Integral:                          *)
+(* RInt (fun x=> x^alpha (ln x)^beta A B for   *)
+(* alpha in Z, beta in N, A, B (finite) reals  *)
+Definition Bertrand alpha beta A B (I : R) :=
+  is_RInt (fun x => powerRZ x alpha * (pow (ln x) beta)) A B I.
+
+(* Function computing the Bertrand integral:   *)
+
+Fixpoint f (alpha : Z) (beta : nat) (A B : R) {struct beta} :=
+  match beta with
+    | 0 => (powerRZ B (alpha+1)- powerRZ A (alpha+1)) / (IZR (alpha + 1))
+    | S m =>
+      (powerRZ B (alpha+1) * (pow (ln B) (beta)) -
+       powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) -
+      (INR beta) / (IZR (alpha+1)) * f alpha m A B end.
+
+(* limit of the Bertrand integral              *)
+Definition Bertrand_lim alpha beta (A : R) (I : R) :=
+  is_RInt_gen (fun x => powerRZ x alpha * (pow (ln x) beta)) (at_point A) (Rbar_locally p_infty) I.
+
+(* Function computing the limit of the Bertrand integral *)
+Fixpoint f_lim (alpha : Z) (beta : nat) (A : R) {struct beta} :=
+  match beta with
+    | 0 => (- powerRZ A (alpha+1)) / (IZR (alpha + 1))
+    | S m =>
+       - ( powerRZ A (alpha+1) * (pow (ln A) beta)) / (IZR (alpha + 1)) -
+      (INR beta) / (IZR (alpha+1)) * f_lim alpha m A end.
+
+(* Variables (A B : R). *)
+
+(* Eval vm_compute in f 1 1 A B. *)
 
 Lemma one_step_by_parts alpha beta (A : R) (B : R) (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
   forall I, Bertrand alpha beta A B I ->
@@ -224,12 +252,6 @@ by move => x Hx; rewrite pow_O Rmult_1_r.
 apply: is_RInt_powerRZ => // .
 Qed.
 
-Lemma int_x_alpha alpha A B (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
-is_RInt (powerRZ^~ alpha) A B
-((powerRZ B (alpha + 1) - powerRZ A (alpha + 1)) / IZR (alpha + 1)).
-Proof.
-apply: is_RInt_powerRZ => // .
-Qed.
 
 Lemma f_correct alpha beta A B (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
  Bertrand alpha beta A B (f alpha beta A B).
@@ -241,13 +263,6 @@ elim: beta => [|m HIm] // .
   exact: int_x_alpha.
 by move: (one_step_by_parts alpha m A B H Halpha _ HIm).
 Qed.
-
-Lemma at_point_refl (a : R) : at_point a (eq^~ a).
-Proof.
-move => x Hx. apply: eq_sym.
-apply: (ball_eq _ _ Hx).
-Qed.
-
 
 Lemma prod_to_single_general {T U V : UniformSpace} (HTSeparable : forall c t, (forall eps : posreal, @ball T c eps t) -> t=c) A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
 filterlim (fun xtu : T * U => f xtu.1 xtu.2)
@@ -437,72 +452,65 @@ apply: (powerRZ_ind (fun n f => f x = Rpower x (IZR n))) => // .
   by rewrite Hfg in Hfxn; rewrite Hfxn.
 Qed.
 
-Lemma Rinv_neg_lt_0 (x : R) : x < 0 -> / x < 0.
-Proof.
-move => Hx.
-exact: Rinv_lt_0_compat.
-Qed.
-
-Lemma Rinv_neg_le_0 (x : R) (Hx : x < 0) : / x <= 0.
-Proof.
-have := (Rinv_lt_0_compat x Hx).
-apply: Rlt_le.
-Qed.
-
 Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
   is_lim (fun x => powerRZ x (alpha + 1)%Z * (pow (ln x) beta.+1)) p_infty (0%R).
 Proof.
 have Halpah1 : IZR (alpha + 1) < 0.
   have {1}-> : 0 = IZR 0 by [].
-  apply: IZR_lt; lia.
+  by apply: IZR_lt; lia.
 have Hbeta1 : INR beta.+1 > 0.
   apply: lt_0_INR.
   exact: Nat.lt_0_succ.
 have foo :  0 < IZR (- (alpha + 1)) / INR beta.+1.
   rewrite opp_IZR.
-  apply: RIneq.Rdiv_lt_0_compat => // ; lra.
+  by apply: RIneq.Rdiv_lt_0_compat => // ; lra.
 set X := fun x => Rpower x ((IZR (Z.opp (alpha + 1))) / INR beta.+1).
-have Htransform: forall x, x > 0 ->  powerRZ x (alpha + 1) * ln x ^ beta.+1 =
-                pow (-((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) * / (X x))) beta.+1.
-move => x Hx.
-have HXgt0 : X x > 0.
-  apply: Rpower_pos => // . lra.
-have -> : -((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) / (X x)) =
+(* First we rewrite our function *)
+have Htransform: 
+  forall x, 
+    x > 0 -> 
+    powerRZ x (alpha + 1) * ln x ^ beta.+1 =
+    pow (-((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) * / (X x))) beta.+1.
+  move => x Hx.
+  have HXgt0 : X x > 0.
+    by apply: Rpower_pos => // ; lra.
+  have -> : -((INR beta.+1) / IZR (alpha + 1)) * (ln (X x) / (X x)) =
           (-((INR beta.+1) / IZR (alpha + 1)) * ln (X x)) / (X x).
-field.
-  by split; lra.
-rewrite -ln_Rpower ?Rpow_mult_distr => // .
-have -> : Rpower (X x) (-(INR beta.+1 / IZR (alpha + 1))) =
+    field.
+    by split; lra.
+  rewrite -ln_Rpower ?Rpow_mult_distr => // .
+  + have -> : Rpower (X x) (-(INR beta.+1 / IZR (alpha + 1))) =
           x.
-rewrite Rpower_mult.
-rewrite opp_IZR.
-have -> : (- IZR ((alpha + 1)) / INR beta.+1 * -(INR beta.+1 / IZR (alpha + 1))) = 1. field; lra.
-exact: Rpower_1.
-rewrite Rmult_comm.
-congr (_ * _).
-have Hpow_pos :  Rpower x (IZR (- (alpha + 1)) / INR beta.+1) > 0.
-  apply: Rpower_pos => // ; lra.
-rewrite -Rinv_pow /X; try lra.
-rewrite -Rpower_pow ?Rpower_mult -?Rpower_Ropp // .
-have -> : (- (IZR (- (alpha + 1)) / INR beta.+1 * INR beta.+1)) = IZR (alpha + 1)%Z.
-rewrite opp_IZR. field; lra.
-by rewrite powerRZ_Rpower.
-apply: Ropp_0_ge_le_contravar.
-apply: Rle_ge.
-rewrite /Rdiv.
-apply: Rmult_le_pos_neg => // ; try lra.
-by apply: Rlt_le; apply: Rinv_lt_0_compat.
+      rewrite Rpower_mult.
+      rewrite opp_IZR.
+      have -> : (- IZR ((alpha + 1)) / INR beta.+1 * -(INR beta.+1 / IZR (alpha + 1))) = 1 by field; lra.
+      exact: Rpower_1.
+  + rewrite Rmult_comm.
+    congr (_ * _).
+    have Hpow_pos :  Rpower x (IZR (- (alpha + 1)) / INR beta.+1) > 0.
+      by apply: Rpower_pos => // ; lra.
+    rewrite -Rinv_pow /X; try lra.
+    rewrite -Rpower_pow ?Rpower_mult -?Rpower_Ropp // .
+    have -> : (- (IZR (- (alpha + 1)) / INR beta.+1 * INR beta.+1)) = IZR (alpha + 1)%Z.
+      by rewrite opp_IZR; field; lra.
+    by rewrite powerRZ_Rpower.
+  apply: Ropp_0_ge_le_contravar.
+  apply: Rle_ge.
+  rewrite /Rdiv.
+  apply: Rmult_le_pos_neg => // ; try lra.
+  by apply: Rlt_le; apply: Rinv_lt_0_compat.
+(* now we can show its limit *)
 apply: (is_lim_ext_loc (fun x => (- (INR beta.+1 / IZR (alpha + 1)) * (ln (X x) * / X x))
                ^ beta.+1) ).
-  exists 0. move => x Hx ; rewrite Htransform // .
+  by exists 0; move => x Hx ; rewrite Htransform // .
 apply: is_lim_pow_0.
 have -> : 0 = Rbar_mult (- (INR beta.+1 / IZR (alpha + 1))) 0.
   by rewrite /Rbar_mult /Rbar_mult' Rmult_0_r.
 apply (is_lim_scal_l (fun (x : R) => (ln (X x) * / X x)) (- (INR beta.+1 / IZR (alpha + 1))) p_infty 0).
 apply: (is_lim_comp (fun x => ln x / x) X p_infty 0 p_infty).
-exact: is_lim_div_ln_p.
-apply: is_lim_Rpower => // .
-exists 0 => x Hx // .
+  + exact: is_lim_div_ln_p.
+  + apply: is_lim_Rpower => // .
+  + exists 0 => x Hx // .
 Qed.
 
 Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
@@ -520,33 +528,32 @@ split.
   + by apply: Zlt_not_eq.
 rewrite prod_to_single_normedmodule.
 elim: beta => [ | beta Hbeta].
-rewrite /f /f_lim /Rdiv /Rminus.
-rewrite -[locally _]/(Rbar_locally (Rbar_mult (Finite _) (Finite _))).
-rewrite -[filterlim _ _ _]/(is_lim _ p_infty _).
-apply: is_lim_mult.
-apply: is_lim_plus.
-exact: x_alpha_0.
-exact: is_lim_const.
-rewrite /is_Rbar_plus /=.
-apply f_equal, f_equal, Rplus_0_l.
-apply is_lim_const.
-done.
-rewrite /f /f_lim -/f -/f_lim /Rdiv /Rminus.
-rewrite -[locally _]/(Rbar_locally (Finite _)).
-rewrite -[filterlim _ _ _]/(is_lim _ p_infty _).
-apply: is_lim_plus.
-apply: is_lim_mult.
-apply: is_lim_plus.
-exact: x_alpha_beta.
-exact: is_lim_const.
-done.
-exact: is_lim_const.
-done.
-apply: is_lim_opp.
-apply: is_lim_mult.
-exact: is_lim_const.
-rewrite -[locally _]/(Rbar_locally (Finite _)) in Hbeta.
-exact Hbeta.
-done.
-by rewrite Rplus_0_l.
+- rewrite /f /f_lim /Rdiv /Rminus.
+  rewrite -[locally _]/(Rbar_locally (Rbar_mult (Finite _) (Finite _))).
+  rewrite -[filterlim _ _ _]/(is_lim _ p_infty _).
+  apply: is_lim_mult => // .
+  + apply: is_lim_plus.
+    * exact: x_alpha_0.
+    * exact: is_lim_const.
+    * rewrite /is_Rbar_plus /= .
+      by apply f_equal, f_equal, Rplus_0_l.
+  + apply is_lim_const.
+- rewrite /f /f_lim -/f -/f_lim /Rdiv /Rminus.
+  rewrite -[locally _]/(Rbar_locally (Finite _)).
+  rewrite -[filterlim _ _ _]/(is_lim _ p_infty _).
+  apply: is_lim_plus.
+  + apply: is_lim_mult.
+    * apply: is_lim_plus.
+        - exact: x_alpha_beta.
+        - exact: is_lim_const.
+        - done.
+    * exact: is_lim_const.
+    * done.
+  + apply: is_lim_opp.
+    apply: is_lim_mult.
+    * exact: is_lim_const.
+    * rewrite -[locally _]/(Rbar_locally (Finite _)) in Hbeta.
+      exact Hbeta.
+    * done.
+  + by rewrite Rplus_0_l.
 Qed.
