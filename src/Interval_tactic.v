@@ -370,7 +370,8 @@ Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_fro
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Definition correct_estimator := Int.integralEstimatorCorrect f estimator.
+Definition correct_estimator :=
+  forall ia ib, Int.integralEstimatorCorrect f (estimator ia ib) ia ib.
 
 Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
 Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
@@ -380,62 +381,28 @@ Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb))
 Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
   let i := Int.integral_interval_relative prec estimator depth ia ib epsilon in
-  Int.ex_RInt_base_case f estimator /\ correct_estimator ->
+  correct_estimator ->
   (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
-move => depth epsilon i ex_RInt_base_case.
-have Hex_RInt : I.convert i <> Inan -> ex_RInt f a b.
-apply: (Int.integral_interval_relative_ex_RInt _ _) => // .
-  - by apply: contains_eval.
-  - by apply: contains_eval.
-split => // .
-case Hi : (I.convert i) => [| l u ] // .
-rewrite -Hi.
-apply: (Int.integral_interval_relative_contains _ _) => // .
-  - by apply: contains_eval.
-  - by apply: contains_eval.
-rewrite -/i.
-by rewrite Hi.
+move => depth epsilon i base_case.
+case H: (I.convert i).
+  by split.
+rewrite -H.
+case: (Int.integral_interval_relative_correct prec f estimator depth ia ib epsilon base_case a b).
+- exact: contains_eval.
+- exact: contains_eval.
+- by rewrite H.
+intros I [If Cf].
+split.
+move => _.
+by exists I.
+by rewrite (is_RInt_unique _ _ _ _ If).
 Qed.
 
 End IntegralProg.
 
 Section Correction_lemmas_integral_for_tactic.
-
-Lemma ex_RInt_base_case_taylor_integral_naive_intersection :
-  forall prec deg prog bounds,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi
-    (nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
-        map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)) A.TaylorValuator.TM.dummy) in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let estimator := fun fa fb =>
-    let xi := I.join fa fb in
-    Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb in
-  Int.ex_RInt_base_case f estimator.
-Proof.
-move => prec deg prog bounds f iF' iF estimator.
-move => a b ia ib Hconta Hcontb.
-rewrite /estimator /Int'.taylor_integral_naive_intersection /I.subset /=.
-case E: I.mul => [//|l u] HnotInan.
-apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (I.join ia ib)).
-- move => x.
-  apply: contains_connected.
-    rewrite /Rmin; case: (Rle_dec a b) => _.
-    + by apply : (I.join_correct ia ib (Xreal a)); left.
-    + by apply : (I.join_correct ia ib (Xreal b)); right.
-  rewrite /Rmax /=; case: (Rle_dec a b) => _.
-  + by apply : (I.join_correct ia ib (Xreal b)); right.
-  + by apply : (I.join_correct ia ib (Xreal a)); left.
-- move: HnotInan.
-  rewrite -E.
-  move: E.
-  rewrite /iF.
-  set j := nth _ _ _.
-  case: j => //.
-  by case: I.sub.
-Qed.
 
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
@@ -459,20 +426,40 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
 Proof.
 move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF'' iF' iF a b ia ib estimator i.
 apply: integral_epsilon_correct.
-split; last first.
-move => fa fb (* Hint *) (* Hle *) Hra Hrb Hconta Hcontb Hint.
+clear -f.
+move => ia ib a b Hconta Hcontb Hint.
+have Hfint: ex_RInt f a b.
+  apply: (A.BndValuator.ex_RInt_eval prec _ _ _ _ _ (I.join ia ib)).
+  + move => x.
+    apply: contains_connected.
+    rewrite /Rmin; case: (Rle_dec a b) => _.
+    * by apply : (I.join_correct ia ib (Xreal a)); left.
+    * by apply : (I.join_correct ia ib (Xreal b)); right.
+    rewrite /Rmax /=; case: (Rle_dec a b) => _.
+    * by apply : (I.join_correct ia ib (Xreal b)); right.
+    * by apply : (I.join_correct ia ib (Xreal a)); left.
+  + move: Hint.
+    rewrite /estimator /Int'.taylor_integral_naive_intersection.
+    case E: I.mul => [//|l u] _.
+    rewrite -/(iF (I.join ia ib)).
+    move /(I.mul_propagate_r prec (I.sub prec ib ia)).
+    by rewrite E.
+exists (RInt f a b).
+split.
+  exact: RInt_correct.
 apply: (Int'.taylor_integral_naive_intersection_correct prec f) => // .
   move => x xi Hxi.
   by apply (contains_eval_arg prec prog bounds 0).
 rewrite /f.
-have: (Int'.TM.TMI.i_validTM (Int'.iX0 (I.join fa fb)) (Int'.iX (I.join fa fb)) (iF' (I.join fa fb))
+set iab := I.join ia ib.
+have: (Int'.TM.TMI.i_validTM (Int'.iX0 iab) (Int'.iX iab) (iF' iab)
     (fun x => nth 0 (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan)).
   have H := (@A.TaylorValuator.TM.get_tm_correct _ _ _ (fun x => nth 0 (eval_ext prog (Xreal x :: map A.xreal_from_bp bounds)) Xnan) _).
   apply H.
   apply: A.TaylorValuator.eval_correct_aux.
-    by exists Hra; apply: I.join_correct; left.
+    by exists a; apply: I.join_correct; left.
 rewrite /Int'.TM.TMI.i_validTM.
-case: (I.convert (taylor_model_int_sharp.error (iF' (I.join fa fb)))).
+case: (I.convert (taylor_model_int_sharp.error (iF' iab))).
   by case.
 move => l u [H1 H0 H2 H3 H4].
 split => //.
@@ -481,7 +468,7 @@ case: (H4 x0 Hx0) => {H4} [Q H4 H4'].
 exists Q => //.
 move => x Hx.
 move: (H1 x Hx) (H4' x Hx) => {H1 H4'}.
-set bx := A.Bproof x (I.join fa fb) Hx.
+set bx := A.Bproof x iab Hx.
 rewrite -[_::map _ _]/(map _ (bx::_)).
 rewrite -[_::map _ _]/(map A.real_from_bp (bx::_)).
 case E: (nth 0 _ Xnan) => H.
@@ -495,7 +482,6 @@ apply map_ext.
 by case.
   by apply: I.join_correct; left.
   by apply: I.join_correct; right.
-exact: ex_RInt_base_case_taylor_integral_naive_intersection.
 Qed.
 
 End Correction_lemmas_integral_for_tactic.
