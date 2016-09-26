@@ -117,12 +117,14 @@ Variables (f : R -> R) (iF : I.type -> I.type).
 
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
 
-Definition integralEstimatorCorrect (estimator : I.type -> I.type -> I.type) :=
-  forall ia ib a b,
+Definition integralEstimatorCorrect (estimator : I.type) ia ib :=
+  forall a b,
   contains (I.convert ia) (Xreal a) ->
   contains (I.convert ib) (Xreal b) ->
-  ex_RInt f a b ->
-  contains (I.convert (estimator ia ib)) (Xreal (RInt f a b)).
+  I.convert estimator <> IInan ->
+  exists I : R,
+  is_RInt f a b I /\
+  contains (I.convert estimator) (Xreal I).
 
 Section Functions.
 
@@ -189,7 +191,6 @@ Lemma integral_interval_absolute_Sn {n ia ib epsilon} :
       I.add prec i1 i2
   end.
 Proof.
-(* rewrite /integral_interval_absolute. *)
 rewrite /=.
 move ->.
 by [].
@@ -204,246 +205,95 @@ Section Proofs.
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Definition correct_estimator := integralEstimatorCorrect estimator.
-
-Definition ex_RInt_base_case :=
-  forall a b ia ib,
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  I.convert (estimator ia ib) <> IInan ->
-  ex_RInt f a b.
-
-
-Lemma integral_interval_absolute_correct (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case /\ correct_estimator ->
+Lemma integral_interval_absolute_correct (depth : nat) ia ib epsilon :
+  (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
   I.bounded ia ->
   I.bounded ib ->
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  I.convert (integral_interval_absolute estimator depth ia ib epsilon) <> IInan ->
-  ex_RInt f a b /\ contains (I.convert (integral_interval_absolute estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
+  integralEstimatorCorrect (integral_interval_absolute estimator depth ia ib epsilon) ia ib.
 Proof.
-
-move => [ex_RInt_base_case Hcorrect] Hboundia Hboundib Hia Hib HnotInan.
-elim: depth epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib =>
-[|d Hd] epsilon a b ia ib HnotInan Hboundia Hboundib Hia Hib.
-- set iab := (I.join ia ib).
+move => base_case Hboundia Hboundib.
+elim: depth epsilon ia ib Hboundia Hboundib =>
+[|d Hd] epsilon ia ib Hboundia Hboundib a b Hia Hib HnotInan.
+- move: HnotInan.
+  set iab := (I.join ia ib).
+  rewrite /integral_interval_absolute.
   set m' := I.midpoint' iab.
-  have Hm'm :  (not_empty (I.convert m')).
-  move: (I.midpoint'_correct iab) => [H1 H2].
+  case: (I.bounded m'); last by rewrite I.nai_correct.
+  have [m Hm]:  (not_empty (I.convert m')).
+    move: (I.midpoint'_correct iab) => [H1 H2].
     by apply: H2; exists a; apply: I.join_correct; left.
-  elim: Hm'm => m Hm.
-  have Hfintam : ex_RInt f a m.
-    apply: (ex_RInt_base_case _ _ ia m') => // .
-    move: HnotInan; rewrite /integral_interval_absolute -/m'.
-    set I1 := estimator ia m'.
-    case: (I.bounded m'); last by rewrite I.nai_correct.
-    by case HI1 : (I.convert I1) => [| l1 u1 ]; first rewrite I.add_propagate_l.
-  have Hfintmb : ex_RInt f m b.
-    apply: (ex_RInt_base_case _ _ m' ib) => // .
-    move: HnotInan; rewrite /integral_interval_absolute -/m'.
-    set I2 := estimator m' ib.
-    case: (I.bounded m'); last by rewrite I.nai_correct.
-    by case HI2 : (I.convert I2) => [| l2 u2 ]; first rewrite I.add_propagate_r.
-  have Hfint : ex_RInt f a b.
-  apply: (ex_RInt_Chasles _ _ m) => // .
-  split => // .
-  case Hbnded : (I.bounded m'); last first.
-    by rewrite /integral_interval_absolute Hbnded I.nai_correct.
-  have -> : RInt f a b =
-            RInt f a m + RInt f m b.
-      by rewrite RInt_Chasles // .
-   rewrite /integral_interval_absolute Hbnded.
-   by apply: J.add_correct; apply: Hcorrect.
+  move => HnotInan.
+  case: (base_case ia m' a m) => // [M|Iam [Ham Cam]].
+    apply: HnotInan.
+    exact: I.add_propagate_l.
+  case: (base_case m' ib m b) => // [M|Imb [Hmb Cmb]].
+    apply: HnotInan.
+    exact: I.add_propagate_r.
+  exists (Iam + Imb).
+  split.
+  exact: is_RInt_Chasles Ham Hmb.
+  exact: J.add_correct.
 - set iab := (I.join ia ib).
   set m' := I.midpoint' iab.
   case Hbnded: (I.bounded m'); last first.
     by rewrite /integral_interval_absolute Hbnded I.nai_correct in HnotInan.
-  have Hm'm :  (not_empty (I.convert m')).
-  move: (I.midpoint'_correct iab) => [H1 H2].
+  rewrite (integral_interval_absolute_Sn _ Hbnded) in HnotInan |- *.
+  have [m Hm]: (not_empty (I.convert m')).
+    move: (I.midpoint'_correct iab) => [H1 H2].
     by apply: H2; exists a; apply: I.join_correct; left.
-  elim: Hm'm => m Hm.
-  have Hf_int_am : ex_RInt f a m.
-    rewrite (integral_interval_absolute_Sn _ Hbnded) in HnotInan.
-    move: HnotInan.
-    set b1 := (X in if X then _ else _).
-    case: b1.
-    * set b2 := (X in if X then _ else _).
-      case Hb2 : b2 => HnotInan.
-      apply: (ex_RInt_base_case _ _ ia m') => // .
-      move: HnotInan.
-      set I1 := estimator ia m'.
-        by case HI1 : (I.convert I1) => [| l1 u1 ];
-          first rewrite I.add_propagate_l.
-     apply: (ex_RInt_base_case _ _ ia m') => // .
-     move: HnotInan.
-     set I1 := estimator ia m'.
-       by case HI1 : (I.convert I1) => [| l1 u1 ];
-         first rewrite I.add_propagate_l.
-    * set b2 := (X in if X then _ else _).
-      case Hb2 : b2 => HnotInan.
-        - set epsilon1 := (F.sub_exact epsilon
-                       (diam (estimator (I.midpoint' (I.join ia ib)) ib))).
-        (* rewrite -/m' -/epsilon1 in HnotInan. *)
-        apply (Hd epsilon1 a m ia m') => // . (* _ Hboundia Hbnded Hia Hm). *)
-        set i1 := (X in I.convert X).
-        move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
-          by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_l.
-        - set epsilon1 := (div2 epsilon).
-        apply (Hd epsilon1 a m ia m') => // .
-        set i1 := (X in I.convert X).
-        move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
-          by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_l.
-  have Hf_int_mb : ex_RInt f m b.
-    rewrite (integral_interval_absolute_Sn _  Hbnded) in HnotInan.
-    move: HnotInan.
-    set b1 := (X in if X then _ else _).
-    case: b1.
-    * set b2 := (X in if X then _ else _).
-      case: b2 => HnotInan.
-        apply: (ex_RInt_base_case _ _ m' ib) => // .
-        move: HnotInan.
-        set I1 := estimator m' ib.
-        by case HI1 : (I.convert I1) => [| l1 u1 ];
-                            first rewrite I.add_propagate_r.
-        set epsilon1 := (F.sub_exact epsilon
-                       (diam (estimator ia (I.midpoint' (I.join ia ib))))).
-        apply (Hd epsilon1 m b m' ib) => // .
-        set i1 := (X in I.convert X).
-        move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
-        by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_r.
-    * set b2 := (X in if X then _ else _).
-      case: b2 => HnotInan.
-      apply: (ex_RInt_base_case _ _ m' ib) => // .
-      move: HnotInan.
-      set I1 := estimator m' ib.
-        by case HI1 : (I.convert I1) => [| l1 u1 ];
-                            first rewrite I.add_propagate_r.
-      set epsilon1 := div2 epsilon.
-      apply (Hd epsilon1 m b m' ib) => // .
-        set i1 := (X in I.convert X).
-        move: HnotInan; rewrite (* -/m' -/epsilon1 *) -/i1.
-        by case HI1 : (I.convert i1) => [| l1 u1 ]; first rewrite I.add_propagate_r.
-  have Hf_int_ab : ex_RInt f a b.
-  apply: (ex_RInt_Chasles _ _ m) => // .
-  split => // .
-      have -> : RInt f a b =
-            RInt f a m + RInt f m b.
-      by rewrite RInt_Chasles // .
-  rewrite (integral_interval_absolute_Sn _ Hbnded).
+  have K: (forall i1 i2,
+      I.convert i1 <> Inan ->
+      I.convert i2 <> Inan ->
+      integralEstimatorCorrect i1 ia m' ->
+      integralEstimatorCorrect i2 m' ib ->
+      exists I : R, is_RInt f a b I /\ contains (I.convert (I.add prec i1 i2)) (Xreal I)).
+    move => i1 i2 N1 N2 H1 H2.
+    case: (H1 a m) => {H1} // [I1 [H1 C1]].
+    case: (H2 m b) => {H2} // [I2 [H2 C2]].
+    exists (I1 + I2).
+    split.
+    exact: is_RInt_Chasles H1 H2.
+    exact: J.add_correct.
+  move: HnotInan.
   set b1 := (X in if X then _ else _).
-  case Hb1: b1.
+  case: b1.
   + set b2 := (X in if X then _ else _).
-    case Hb2: b2.
-    * by apply: J.add_correct; apply: Hcorrect.
-    * apply: J.add_correct; first by apply: Hcorrect.
-        apply Hd => // .
-          move: HnotInan.
-          rewrite (integral_interval_absolute_Sn _ Hbnded) -/b1 Hb1 -/b2 Hb2.
-          set I := (X in _ -> I.convert X <> Inan).
-          rewrite -/I.
-          by case HI: (I.convert I) => [|l1 u1]; first rewrite I.add_propagate_r.
+    case Hb2 : b2 => HnotInan.
+    * apply: K => // [L|L] ; apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+    * apply: K => // [L|L|] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: Hd.
   + set b2 := (X in if X then _ else _).
-    case Hb2: b2.
-    * apply: J.add_correct; first (apply Hd) => // .
-        move: HnotInan.
-        rewrite (integral_interval_absolute_Sn _ Hbnded) -/b1 Hb1 -/b2 Hb2.
-        set I := (X in _ -> I.convert X <> Inan).
-        rewrite -/I.
-        by case HI: (I.convert I) => [|l1 u1]; first rewrite I.add_propagate_l.
-        by apply: Hcorrect.
-    * apply: J.add_correct; apply Hd => // .
-        move: HnotInan.
-        rewrite (integral_interval_absolute_Sn _ Hbnded) -/b1 Hb1 -/b2 Hb2.
-        set I := (X in _ -> I.convert X <> Inan).
-        rewrite -/I.
-        by case HI: (I.convert I) => [|l1 u1]; first rewrite I.add_propagate_l.
-      move: HnotInan.
-      rewrite (integral_interval_absolute_Sn _ Hbnded) -/b1 Hb1 -/b2 Hb2.
-      set I := (X in _ -> I.convert X <> Inan).
-      rewrite -/I.
-      by case HI: (I.convert I) => [|l1 u1]; first rewrite I.add_propagate_r.
+    case: b2 => HnotInan.
+    * apply: K => // [L|L|] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: Hd.
+    * apply: K => // [L|L||] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: Hd.
+      exact: Hd.
 Qed.
 
-Lemma integral_interval_absolute_ex_RInt (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case /\ correct_estimator ->
-  I.bounded ia ->
-  I.bounded ib ->
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  I.convert (integral_interval_absolute estimator depth ia ib epsilon) <> IInan ->
-  ex_RInt f a b.
+Lemma integral_interval_relative_correct (depth : nat) ia ib epsilon :
+  (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
+  integralEstimatorCorrect (integral_interval_relative estimator depth ia ib epsilon) ia ib.
 Proof.
-move => Hbase_correct Hia Hib Hcontia Hcontib HnotInan.
-have := (integral_interval_absolute_correct depth ia ib a b epsilon Hbase_correct Hia Hib Hcontia Hcontib HnotInan).
-by case.
-Qed.
-
-Lemma integral_interval_absolute_contains (depth : nat) ia ib a b epsilon :
-  ex_RInt_base_case /\ correct_estimator ->
-  I.bounded ia ->
-  I.bounded ib ->
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  I.convert (integral_interval_absolute estimator depth ia ib epsilon) <> IInan ->
-contains (I.convert (integral_interval_absolute estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
-Proof.
-move => Hbase Hia Hib Hcontia Hcontib HnotInan.
-have := (integral_interval_absolute_correct depth ia ib a b epsilon Hbase Hia Hib Hcontia Hcontib HnotInan).
-by case.
-Qed.
-
-Lemma integral_interval_relative_correct (depth : nat) a b ia ib epsilon :
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case /\ correct_estimator ->
-  I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
-  ex_RInt f a b /\ contains (I.convert (integral_interval_relative estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
-Proof.
-move => Hcontia Hcontib [ex_RInt_base_case Hcorrect] HnotInan.
-move: HnotInan.
+move => base_case.
 rewrite /integral_interval_relative.
 case Hiab: (I.bounded ia);
-case Hibb: (I.bounded ib); rewrite ?I.nai_correct => //= .
+  case Hibb: (I.bounded ib) => /=;
+  try (move => a b _ _ ; by rewrite I.nai_correct).
 case: depth => [|depth].
-move => HnotInan.
-have Hfint : ex_RInt f a b.
- by apply : (ex_RInt_base_case _ _ _ _ Hcontia Hcontib HnotInan).
-split => // .
-apply: Hcorrect => // .
+exact: base_case.
 set b1 := (X in if X then _ else _).
 case Hb1 : b1.
-move => HnotInan.
-have Hfint : ex_RInt f a b.
- by apply : (ex_RInt_base_case _ _ _ _ Hcontia Hcontib HnotInan).
-split => // .
-apply: Hcorrect => // .
-move => HnotInan.
-apply: integral_interval_absolute_correct => // .
-Qed.
-
-Lemma integral_interval_relative_ex_RInt (depth : nat) a b ia ib epsilon :
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case /\ correct_estimator ->
-  I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
-  ex_RInt f a b.
-Proof.
-move => Hcontia Hcontib Hbase HnotInan.
-move: (integral_interval_relative_correct depth a b ia ib epsilon Hcontia Hcontib Hbase HnotInan).
-by case.
-Qed.
-
-Lemma integral_interval_relative_contains (depth : nat) a b ia ib epsilon :
-  contains (I.convert ia) (Xreal a) ->
-  contains (I.convert ib) (Xreal b) ->
-  ex_RInt_base_case /\ correct_estimator ->
-  I.convert (integral_interval_relative estimator depth ia ib epsilon) <> IInan ->
- contains (I.convert (integral_interval_relative estimator depth ia ib epsilon)) (Xreal (RInt f a b)).
-Proof.
-move => Hcontia Hcontib Hbase HnotInan.
-move: (integral_interval_relative_correct depth a b ia ib epsilon Hcontia Hcontib Hbase HnotInan).
-by case.
+exact: base_case.
+exact: integral_interval_absolute_correct.
 Qed.
 
 Lemma naive_integral_correct (ia ib: I.type) (a b : R) :
