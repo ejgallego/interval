@@ -4,6 +4,52 @@ Require Import coquelicot_compl Interval_missing.
 Require Import mathcomp.ssreflect.bigop.
 Require Import ZArith Psatz.
 Require Import Fourier_util.
+Require Import interval_compl.
+
+Section RInt_gen_missing.
+
+Lemma is_RInt_gen_0 {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : Filter Fa} {FFb : Filter Fb} :
+  is_RInt_gen (fun y => 0) Fa Fb zero.
+Proof.
+  exists (fun x => 0).
+  split.
+  econstructor; last first.
+  move => x y HQx HRy.
+  have {2}-> :  0 = scal (y - x) 0 by rewrite scal_zero_r.
+  exact: is_RInt_const.
+  exact: filter_true.
+  exact: filter_true.
+  exact: filterlim_const.
+Qed.
+
+Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (g : R -> R) (lf : R) (lg : R) :
+  filter_prod Fa Fb (fun ab => fst ab <= snd ab)
+  -> filter_prod Fa Fb (fun ab => forall x, fst ab <= x <= snd ab -> f x <= g x)
+  -> is_RInt_gen f Fa Fb lf -> is_RInt_gen g Fa Fb lg
+    -> lf <= lg.
+Proof.
+move => Hab Hle.
+case => If [Hf Hlf].
+case => Ig [Hg Hlg].
+apply (filterlim_le (F := filter_prod Fa Fb) (fun x => If x) Ig lf lg).
+generalize (filter_and _ _ Hab Hle) => {Hab Hle} H.
+generalize (filter_and _ _ H Hf) => {H Hf} H.
+generalize (filter_and _ _ H Hg) => {H Hg}.
+apply filter_imp => x [[[Hab Hle] Hf] Hg].
+apply: is_RInt_le.
+  Focus 2.
+  exact: Hf.
+  exact: Hab.
+  exact: Hg.
+move => x0 Hx.
+apply: Hle. split; case: Hx => H1 H2; by apply: Rlt_le.
+exact: Hlf.
+exact: Hlg.
+Qed.
+
+End RInt_gen_missing.
 
 Section powerRZMissing.
 
@@ -441,7 +487,6 @@ Qed.
 Lemma powerRZ_Rpower (x : R) (H : 0 < x) (z : Z) :
   powerRZ x z = Rpower x (IZR z).
 Proof.
-Search _ powerRZ "ind".
 apply: (powerRZ_ind (fun n f => f x = Rpower x (IZR n))) => // .
 - by rewrite Rpower_O.
 - move => n.
@@ -566,7 +611,8 @@ Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : I
 
 Module J := IntervalExt I.
 
-Section Coucou.
+Section EffectiveBertrand.
+(* TODO: factor out the A^alpha+1 and compute ln A only once for efficiency *)
 
 Variable prec : F.precision.
 
@@ -624,13 +670,146 @@ Proof.
 (* that is_RInt_gen has a unique possible I.. *)
 Abort.
 
-End Coucou.
+End EffectiveBertrand.
+
+Section EstimateAtInfty.
+
+Variables f g : R -> R.
+
+Variable iF : I.type -> I.type.
+Hypothesis HiF : forall x xi, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
+
+Variable prec : F.precision.
+
+Variable a : R.
+Variable ia : I.type.
+Hypothesis Hcontainsia : contains (I.convert ia) (Xreal a).
+
+(* this can probably be significantly shortened *)
+Lemma bounded_ex {xi} (Hbnded : I.bounded xi) : (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
+Proof.
+exists (proj_val (I.convert_bound (I.lower xi))).
+exists (proj_val (I.convert_bound (I.upper xi))).
+have := (I.bounded_correct xi).
+rewrite Hbnded; case => // .
+move => Hlb Hub.
+case: (I.lower_bounded_correct xi Hlb) => <- => /= HbndedProp.
+case: (I.upper_bounded_correct xi Hub) => <-.
+by rewrite /I.bounded_prop => /= -> /=.
+Qed.
+
+Lemma estimate_infty (intg intfg : R) (Int : I.type) :
+  contains (I.convert Int) (Xreal intg) ->
+  I.bounded (iF (I.upper_extent ia)) ->
+  (forall x, a <= x -> 0 <= g x) ->
+  is_RInt_gen g (at_point a) (Rbar_locally p_infty) intg ->
+  is_RInt_gen (fun x => f x * g x) (at_point a) (Rbar_locally p_infty) (intfg) ->
+  contains (I.convert (I.mul prec (iF (I.upper_extent ia)) Int)) (Xreal intfg).
+Proof.
+move => Hintg Hbounded Hgpos HRintg HRintfg.
+case HiFia : (I.convert (iF (I.upper_extent ia))) => [| l u ].
+  by rewrite I.mul_propagate_l.
+move: (bounded_ex (Hbounded)) => [] x [] y.
+case Hl : l HiFia => [|l1] HiFia; rewrite HiFia // .
+case Hu : u HiFia => [|u1] => HiFia // _.
+have HIntl : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) (scal l1 intg).
+  by apply: is_RInt_gen_scal.
+have HIntu : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) (scal u1 intg).
+  by apply: is_RInt_gen_scal.
+have Hgoodorder : l1 <= u1.
+  move: (contains_le (Xreal l1) (Xreal u1) (Xreal (f a))).
+  case.
+  rewrite -HiFia.
+  set fia := (iF (I.upper_extent ia)).
+  move: (I.upper_extent_correct (ia) (a) (a) Hcontainsia (Rle_refl _)).
+  apply: HiF. rewrite /le_lower /le_upper /=. by lra.
+have Hgoodorder_bis : forall x, a <= x -> l1 <= f x <= u1.
+  move => x0 Hax0.
+  move: (contains_le (Xreal l1) (Xreal u1) (Xreal (f x0))).
+  case.
+  rewrite -HiFia.
+  apply: HiF.
+  exact:(I.upper_extent_correct (ia) x0 a Hcontainsia Hax0).
+  rewrite /le_lower /le_upper /=. by lra.
+have filter_le : filter_prod (at_point a) (Rbar_locally p_infty)
+    (fun ab : R * R => ab.1 <= ab.2).
+econstructor.
+  exact: at_point_refl.
+  set R := fun x => a <= x.
+  Focus 2.
+  move => /= x0 y0 Hax0 HRx0.
+  rewrite Hax0.
+  exact: HRx0.
+  exists a. move => x1. exact: Rlt_le.
+
+have intgpos : 0 <= intg.
+  have -> : 0 = norm 0 by rewrite norm_zero.
+  apply: (RInt_gen_norm (fun _ => 0) g 0 intg _ _ _ HRintg) => //= .
+  + econstructor.
+    exact: at_point_refl.
+    set R := fun x => a <= x.
+    Focus 2.
+    move => /= x0 y0 Hax0 HRx0.
+    rewrite Hax0.
+    exact: HRx0.
+    exists a. move => x1 _ x2 Ha. rewrite norm_zero. apply: Hgpos; by case: Ha.
+  + exact: is_RInt_gen_0. (* special lemma to do, but trivial *)
+
+have Hlescal : scal l1 intg <= scal u1 intg.
+  rewrite /scal /= /mult /= .
+  apply: Rmult_le_compat_r => // .
+apply: (contains_connected _ (scal l1 intg) (scal u1 intg)).
+apply: J.mul_correct => // .
+  rewrite HiFia.
+  by rewrite /contains; lra.
+apply: J.mul_correct => // .
+  rewrite HiFia.
+  by rewrite /contains; lra.
+have HIntl1 : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal l1 intg)).
+  exact: is_RInt_gen_scal => // .
+have HIntu1 : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal u1 intg)).
+  exact: is_RInt_gen_scal => // .
+split.
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l1 (g x)) (fun x => scal (f x) (g x)) _ _) => // .
+  econstructor.
+  exact: at_point_refl.
+  set R := fun x => a <= x.
+  Focus 2.
+  move => /= x0 y0 Hax0 HRx0.
+  rewrite Hax0.
+  exact: HRx0.
+  exists a. move => x0 Hax0 x1 Hx1.
+  rewrite /scal /= /mult /= .
+  apply: Rmult_le_compat_r => // .
+    apply: Hgpos; by case: Hx1.
+    move: (Hgoodorder_bis x1); lra.
+
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x) (g x)) (fun x => scal u1 (g x)) _ _) => // .
+  econstructor.
+  exact: at_point_refl.
+  set R := fun x => a <= x.
+  Focus 2.
+  move => /= x0 y0 Hax0 HRx0.
+  rewrite Hax0.
+  exact: HRx0.
+  exists a. move => x0 Hax0 x1 Hx1.
+  rewrite /scal /= /mult /= .
+  apply: Rmult_le_compat_r => // .
+    apply: Hgpos; by case: Hx1.
+    move: (Hgoodorder_bis x1); lra.
+
+Qed.
+
+End EstimateAtInfty.
 
 End BertrandInterval.
+
+Module NumericTests.
 
 Require Import Interval_interval_float_full.
 Require Import Interval_bigint_carrier.
 Require Import Interval_specific_ops.
+Require Import Interval_bisect Interval_integral.
 Module SFBI2 := SpecificFloat BigIntRadix2.
 Module I := FloatIntervalFull SFBI2.
 
@@ -638,9 +817,77 @@ Module MyBertrand := BertrandInterval SFBI2 I.
 
 About MyBertrand.f_int.
 
-Eval vm_compute in MyBertrand.f_int (SFBI2.PtoP 50) (I.fromZ 100000%Z) (-2%Z) (2). 
+Eval vm_compute in MyBertrand.f_int (SFBI2.PtoP 50) (I.fromZ 100000%Z) (-2%Z) (2).
+
+Module II := IntegralTactic SFBI2 I.
+Module IT := IntegralTaylor I.
+Module IA := IntervalAlgos I.
+
+Definition prec := SFBI2.PtoP 30.
+
+Definition est a b :=
+  II.naive_integral prec (fun x =>
+    I.mul prec (I.sqr prec (I.cos prec x))
+    (I.mul prec (I.power_int prec x (-2)) (I.power_int prec (I.ln prec x) 3)))
+  a b.
+
+Definition est_i x :=
+  I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3).
+
+Definition eps := SFBI2.scale2 (SFBI2.fromZ 1) (SFBI2.ZtoS (-12)).
+
+Definition v1 := II.integral_interval_relative prec est  5 (I.fromZ 1) (I.fromZ 3) eps.
+
+Definition v2 := II.integral_interval_relative_infty prec est est_i 15 (I.fromZ 1) eps.
+
+Definition prog :=
+  (Unary Ln 0
+         :: Unary (PowerInt 3) 0
+            :: Unary (PowerInt (-2)) 2
+               :: Unary Cos 3
+                  :: Unary Sqr 0
+                     :: Binary Mul 0 2 :: Binary Mul 0 4 :: Datatypes.nil)%list.
+
+Import List.
+
+Definition prog' := Unary Ln 0
+        :: Unary (PowerInt 3) 0
+           :: Unary (PowerInt (-2)) 2
+              :: Unary Atan 3
+                 :: Binary Mul 0 1 :: Binary Mul 0 3 :: Datatypes.nil.
+
+Definition est_i' x :=
+  I.mul prec (I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3)) (I.div prec (I.pi prec) (I.fromZ 2)).
 
 
+Definition est' :=
+  let deg := 10%nat in
+  let bounds := nil in
+  let prog := prog' in
+  let iF'' := fun xi =>
+    nth 0 (IA.TaylorValuator.eval prec deg xi prog (IA.TaylorValuator.TM.var ::
+      map (fun b => IA.TaylorValuator.TM.const (IA.interval_from_bp b)) bounds)
+) IA.TaylorValuator.TM.dummy in
+  let iF' := fun xi => IA.TaylorValuator.TM.get_tm (prec, deg) xi (iF'' xi) in
+  let iF := fun xi => nth 0 (IA.BndValuator.eval prec prog (xi::map IA.interval_from_bp bounds)) I.nai in
+  fun fa fb =>
+    let xi := I.join fa fb in
+    IT.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb.
+
+Definition v3 :=
+  II.integral_interval_relative_infty prec est' est_i' 30 (I.fromZ 1) eps.
+
+(* Eval vm_compute in v3. *)
+
+
+Require Import Interval_tactic.
+
+Goal forall x:R, True.
+intros x.
+let v := Private.extract_algorithm ((atan x) * (powerRZ x (-2)) * powerRZ (ln x) 3)%R (List.cons x List.nil) in set (w := v).
+Abort.
+
+End NumericTests.
 
 Section ZeroToEpsilon.
 
@@ -674,7 +921,6 @@ split.
   apply: continuous_mult.
   apply: ex_derive_continuous.
   apply: ex_derive_powerRZ.
-  Search _ (Rmin _ _ <= _).
   case: Hz.
   have := (Rmin_Rle x y z).
   lra.
