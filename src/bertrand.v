@@ -564,6 +564,10 @@ Require Import Interval_interval.
 
 Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
 
+Module J := IntervalExt I.
+
+Section Coucou.
+
 Variable prec : F.precision.
 
 Variable a : R.
@@ -592,57 +596,24 @@ have Salphaneq01: not (is_zero (IZR (alpha + 1))).
   case => // .
 elim: beta => [|m HIm].
 - rewrite /= .
-  have -> :
-    (Xreal (- powerRZ a (alpha + 1) / IZR (alpha + 1))) =
-    (Xdiv (Xreal (- powerRZ a (alpha + 1))) (Xreal (IZR (alpha + 1)))).
-    rewrite /= /Xdiv'.
-    move: (is_zero_spec (IZR (alpha + 1))).
-    by case => // .
-  apply: I.div_correct.
-    have -> : Xreal (-powerRZ a (alpha + 1)) = Xneg (Xreal (powerRZ a (alpha + 1))).
-      by [].
-    apply: I.neg_correct.
-    have -> : (Xreal (powerRZ a (alpha + 1))) = Xpower_int (Xreal a) (alpha + 1).
-      rewrite /Xpower_int /= /Xpower_int' /powerRZ.
-      case: (alpha + 1)%Z => // .
-      by move => p; move: an0; (case: (is_zero a)) => // .
-  by apply: I.power_int_correct => // ; exact: Hcontainsa.
-by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+  apply: J.div_correct.
+  apply: J.neg_correct.
+  apply: J.power_int_correct => // ; apply: Hcontainsa.
+    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
 - rewrite /f_int -/f_int /f_lim -/f_lim.
-  set u := (X in Xreal ((- (X * _) / _) - _)).
-  set v := (X in Xreal ((- (_ * X) / _) - _)).
-  set w := (X in Xreal ((- (_ * _) / X) - _)).
-  set x := (X in Xreal ((- (_ * _) / _) - X)).
-  have -> : Xreal (- (u * v) / w - x) = Xsub (Xdiv (Xneg (Xmul (Xreal u) (Xreal v))) (Xreal w)) (Xreal x).
-    rewrite /= /Xdiv'.
-    rewrite /w; move: Salphaneq01; case: (is_zero (IZR (alpha + 1))) => // .
-  apply: I.sub_correct.
-  + apply: I.div_correct.
-    * apply: I.neg_correct.
-      apply: I.mul_correct.
-        - have -> : Xreal u = Xpower_int (Xreal a) (alpha + 1).
-            rewrite /u /Xpower_int /= /Xpower_int' /powerRZ.
-            case: (alpha + 1)%Z => // .
-            move => p; move: an0; (case: (is_zero a)) => // .
-          by apply: I.power_int_correct; exact: Hcontainsa.
-        - have -> : Xreal v = Xpower_int (Xreal (ln a)) (Z.of_nat (m.+1)).
-            rewrite /v pow_powerRZ.
-            by rewrite /Xpower_int /= /Xpower_int'.
-          apply: I.power_int_correct.
-            have -> : Xreal (ln a) = Xln (Xreal a).
-              rewrite /Xln /Xln'. Search _ is_positive.
-              by rewrite (xreal_ssr_compat.positiveT H).
-            apply: I.ln_correct; apply: Hcontainsa.
-    * rewrite /w -Z2R_IZR.
-      exact: I.fromZ_correct.
-- have -> :
-    Xreal x = Xmul (Xdiv (Xreal (INR m.+1)) (Xreal (IZR (alpha + 1)))) (Xreal (f_lim alpha m a)).
-    rewrite /x /= .
-    rewrite /Xdiv';  move: Salphaneq01; case: (is_zero (IZR (alpha + 1))) =>// .
-  apply: I.mul_correct => // .
-  + apply: I.div_correct.
-    * by rewrite INR_Z2R; apply: I.fromZ_correct.
-    * by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+  apply: J.sub_correct.
+  apply: J.div_correct.
+  apply: J.neg_correct.
+  apply: J.mul_correct.
+  apply: J.power_int_correct; apply: Hcontainsa.
+  rewrite pow_powerRZ.
+  apply: J.power_int_correct.
+  apply: J.ln_correct; apply: Hcontainsa.
+    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+    apply: J.mul_correct => // .
+    apply: J.div_correct.
+  by rewrite INR_Z2R; apply: I.fromZ_correct.
+  by rewrite -Z2R_IZR; apply: I.fromZ_correct.
 Qed.
 
 Lemma f_int_bertrand alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) (I : R) :
@@ -653,7 +624,23 @@ Proof.
 (* that is_RInt_gen has a unique possible I.. *)
 Abort.
 
+End Coucou.
+
 End BertrandInterval.
+
+Require Import Interval_interval_float_full.
+Require Import Interval_bigint_carrier.
+Require Import Interval_specific_ops.
+Module SFBI2 := SpecificFloat BigIntRadix2.
+Module I := FloatIntervalFull SFBI2.
+
+Module MyBertrand := BertrandInterval SFBI2 I.
+
+About MyBertrand.f_int.
+
+Eval vm_compute in MyBertrand.f_int (SFBI2.PtoP 50) (I.fromZ 100000%Z) (-2%Z) (2). 
+
+
 
 Section ZeroToEpsilon.
 
