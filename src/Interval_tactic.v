@@ -28,6 +28,7 @@ Require Import Interval_interval.
 Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
+Require Import bertrand.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -47,6 +48,7 @@ Module I := FloatIntervalFull F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
 Module Int' := IntegralTaylor I.
+Module Bertrand := BertrandInterval F I.
 
 Ltac get_float t :=
   let get_mantissa t :=
@@ -400,6 +402,34 @@ by exists I.
 by rewrite (is_RInt_unique _ _ _ _ If).
 Qed.
 
+Section InfiniteIntegralProg.
+
+Variable estimator_infty : I.type -> I.type.
+
+Definition correct_estimator_infty :=
+  forall ia, Int.integralEstimatorCorrect_infty f (estimator_infty ia) ia.
+
+(* Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0. *)
+(* Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai. *)
+
+Lemma integral_epsilon_infty_correct :
+  forall (depth : nat) epsilon,
+  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  IntegralProg.correct_estimator ->
+  correct_estimator_infty ->
+  (I.convert i <> Inan -> exists I, is_RInt_gen f (at_point a) (Rbar_locally p_infty) I /\
+  contains (I.convert i) (Xreal I)).
+Proof.
+move => depth epsilon i Hc Hc_infty.
+case H: (I.convert i) => [| l u]// _ .
+rewrite -H.
+apply: (Int.integral_interval_relative_infty_correct prec f estimator estimator_infty depth ia epsilon Hc Hc_infty).
+- exact: contains_eval.
+- by rewrite H.
+Qed.
+
+End InfiniteIntegralProg.
+
 End IntegralProg.
 
 Section Correction_lemmas_integral_for_tactic.
@@ -483,6 +513,50 @@ by case.
   by apply: I.join_correct; left.
   by apply: I.join_correct; right.
 Qed.
+
+Section Correction_lemmas_integral_infinity.
+
+Import Bertrand.
+
+Lemma remainder_correct :
+  forall prec proga boundsa prog bounds alpha beta,
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let int_bertrand := Bertrand.f_int prec ia alpha beta in
+  let estimator := fun ia => ((I.mul prec (iF (I.upper_extent ia)) int_bertrand)) in
+  (a > 0) ->
+  (alpha < -1)%Z ->
+  I.bounded (iF (I.upper_extent ia)) ->
+  Int.integralEstimatorCorrect_infty (fun x => (f x) * powerRZ x alpha * (pow (ln x) beta)) (estimator ia) ia.
+Proof.
+move => prec proga boundsa prog bounds alpha beta f iF a ia int_bertrand estimator Hapos Halpha Hbnded.
+rewrite /Int.integralEstimatorCorrect_infty.
+move => a0 Ha0 HnotInan.
+
+suff: ex_RInt_gen (fun x : R => f x * powerRZ x alpha * ln x ^ beta) (at_point a0) (Rbar_locally p_infty).
+- case => /= Intfg HIntfg.
+  exists Intfg; split => // .
+  apply: (estimate_infty f (fun x => powerRZ x alpha * pow (ln x) beta) iF _ prec a ia _).
+  + by move => x xi Hxxi; by apply: contains_eval_arg.
+  + by apply: contains_eval.
+  + eapply (Bertrand.f_int_bertrand  prec a ia _ alpha beta _ _ (f_lim alpha beta a)).
+    * exact: f_lim_correct.
+  + exact: Hbnded. (* TODO:  remove Ha0, Hbnded and Halpha from theorem and move them to boolean tests directly in the estimator *)
+  + move => x Hax. admit. (* TODO, easy *)
+  + exact: f_lim_correct.
+  + admit. (* at_point a and at_point a0 are the same, so HIntfg should apply *)
+- admit.
+  (* visibly some lemmas are still missing. f x^alpha ln^beta(x) is integrable *)
+  (* because:
+     - f is continuous and bounded because iF (I.upper_extent ia) is not Inan (it is bounded)
+     - x^alpha ln^beta(x) is integrable
+ *)
+Admitted.
+
+
+End Correction_lemmas_integral_infinity.
 
 End Correction_lemmas_integral_for_tactic.
 

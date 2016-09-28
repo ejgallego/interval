@@ -116,7 +116,7 @@ Variable prec : F.precision.
 Variables (f : R -> R) (iF : I.type -> I.type).
 
 Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
-Search _ contains.
+
 Definition integralEstimatorCorrect (estimator : I.type) ia ib :=
   forall a b,
   contains (I.convert ia) (Xreal a) ->

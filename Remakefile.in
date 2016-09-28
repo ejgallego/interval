@@ -19,7 +19,8 @@ FILES = \
 	Interval_transcend.v \
 	Interval_univariate.v \
 	Interval_xreal.v \
-	Interval_xreal_derive.v
+	Interval_xreal_derive.v \
+	bertrand.v
 
 CAFILES = \
 	basic_rec.v \
