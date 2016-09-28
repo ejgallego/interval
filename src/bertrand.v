@@ -889,6 +889,51 @@ Abort.
 
 End NumericTests.
 
+Section VariableChange.
+
+Lemma RInt_substitution f phi phi' a b :
+(forall x, Rmin a b <= x <= Rmax a b -> continuous f x) ->
+(forall x, Rmin a b <= x <= Rmax a b -> continuous f (phi x)) ->
+(forall x, Rmin a b <= x <= Rmax a b -> is_derive phi x (phi' x)) ->
+(forall x, Rmin a b <= x <= Rmax a b -> continuous phi' x) ->
+(ex_RInt phi' a b) ->
+RInt f (phi a) (phi b) = RInt (fun x => scal (phi' x) (f (phi x))) a b.
+Proof.
+move => Hf Hfphi Hphi Hphi'cont Hexphi'.
+have H1 : forall x : R,
+  Rmin a b <= x <= Rmax a b ->
+  continuous (fun x0 : R => scal (phi' x0) (f (phi x0))) x.
+    move => x Hx; apply: continuous_scal.
+      by apply: Hphi'cont.
+      apply: continuous_comp.
+        apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi.
+        exact: Hfphi.
+suff:
+  is_RInt (fun x => scal (phi' x) (f (phi x))) a b (RInt f (phi a) (phi b)).
+  move => H.
+  apply: eq_sym.
+  exact: is_RInt_unique.
+pose F := fun x => RInt f (phi a) x.
+pose G := fun x => F (phi x).
+suff HderFphi :
+  forall x, Rmin a b <= x <= Rmax a b ->
+            is_derive G x (scal (phi' x) (f (phi x))).
+- have -> : RInt f (phi a) (phi b) = G b - G a.
+    by rewrite /G /F RInt_point Rminus_0_r.
+  apply: (is_RInt_derive _ _ _ _ HderFphi).
+    + move => x Hx; apply: continuous_scal.
+        by apply: Hphi'cont.
+      apply: continuous_comp.
+        by apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi.
+      exact: Hfphi.
+- move => x Hx.
+  rewrite /G.
+  apply: (is_derive_comp F phi x (f (phi x)) (phi' x)); last exact: Hphi.
+  apply: is_derive_RInt => //; last exact: Hfphi.
+Admitted. (* Something is missing somewhere in the hypotheses *)
+
+End VariableChange.
+
 Section ZeroToEpsilon.
 
 (*
