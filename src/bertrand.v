@@ -6,51 +6,6 @@ Require Import ZArith Psatz.
 Require Import Fourier_util.
 Require Import interval_compl.
 
-Section RInt_gen_missing.
-
-Lemma is_RInt_gen_0 {Fa Fb : (R -> Prop) -> Prop}
-  {FFa : Filter Fa} {FFb : Filter Fb} :
-  is_RInt_gen (fun y => 0) Fa Fb zero.
-Proof.
-  exists (fun x => 0).
-  split.
-  econstructor; last first.
-  move => x y HQx HRy.
-  have {2}-> :  0 = scal (y - x) 0 by rewrite scal_zero_r.
-  exact: is_RInt_const.
-  exact: filter_true.
-  exact: filter_true.
-  exact: filterlim_const.
-Qed.
-
-Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
-  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (g : R -> R) (lf : R) (lg : R) :
-  filter_prod Fa Fb (fun ab => fst ab <= snd ab)
-  -> filter_prod Fa Fb (fun ab => forall x, fst ab <= x <= snd ab -> f x <= g x)
-  -> is_RInt_gen f Fa Fb lf -> is_RInt_gen g Fa Fb lg
-    -> lf <= lg.
-Proof.
-move => Hab Hle.
-case => If [Hf Hlf].
-case => Ig [Hg Hlg].
-apply (filterlim_le (F := filter_prod Fa Fb) (fun x => If x) Ig lf lg).
-generalize (filter_and _ _ Hab Hle) => {Hab Hle} H.
-generalize (filter_and _ _ H Hf) => {H Hf} H.
-generalize (filter_and _ _ H Hg) => {H Hg}.
-apply filter_imp => x [[[Hab Hle] Hf] Hg].
-apply: is_RInt_le.
-  Focus 2.
-  exact: Hf.
-  exact: Hab.
-  exact: Hg.
-move => x0 Hx.
-apply: Hle. split; case: Hx => H1 H2; by apply: Rlt_le.
-exact: Hlf.
-exact: Hlg.
-Qed.
-
-End RInt_gen_missing.
-
 Section powerRZMissing.
 
 Lemma powerRZ_ind (P : Z -> (R -> R) -> Prop) :
@@ -618,7 +573,7 @@ Variable prec : F.precision.
 
 Variable a : R.
 Variable A : I.type.
-Definition iA := I.convert A.
+Let iA := I.convert A.
 
 Hypothesis Hcontainsa : contains iA (Xreal a).
 
@@ -672,138 +627,9 @@ Abort.
 
 End EffectiveBertrand.
 
-Section EstimateAtInfty.
-
-Variables f g : R -> R.
-
-Variable iF : I.type -> I.type.
-Hypothesis HiF : forall x xi, contains (I.convert xi) (Xreal x) -> contains (I.convert (iF xi)) (Xreal (f x)).
-
-Variable prec : F.precision.
-
-Variable a : R.
-Variable ia : I.type.
-Hypothesis Hcontainsia : contains (I.convert ia) (Xreal a).
-
-(* this can probably be significantly shortened *)
-Lemma bounded_ex {xi} (Hbnded : I.bounded xi) : (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
-Proof.
-exists (proj_val (I.convert_bound (I.lower xi))).
-exists (proj_val (I.convert_bound (I.upper xi))).
-have := (I.bounded_correct xi).
-rewrite Hbnded; case => // .
-move => Hlb Hub.
-case: (I.lower_bounded_correct xi Hlb) => <- => /= HbndedProp.
-case: (I.upper_bounded_correct xi Hub) => <-.
-by rewrite /I.bounded_prop => /= -> /=.
-Qed.
-
-Lemma estimate_infty (intg intfg : R) (Int : I.type) :
-  contains (I.convert Int) (Xreal intg) ->
-  I.bounded (iF (I.upper_extent ia)) ->
-  (forall x, a <= x -> 0 <= g x) ->
-  is_RInt_gen g (at_point a) (Rbar_locally p_infty) intg ->
-  is_RInt_gen (fun x => f x * g x) (at_point a) (Rbar_locally p_infty) (intfg) ->
-  contains (I.convert (I.mul prec (iF (I.upper_extent ia)) Int)) (Xreal intfg).
-Proof.
-move => Hintg Hbounded Hgpos HRintg HRintfg.
-case HiFia : (I.convert (iF (I.upper_extent ia))) => [| l u ].
-  by rewrite I.mul_propagate_l.
-move: (bounded_ex (Hbounded)) => [] x [] y.
-case Hl : l HiFia => [|l1] HiFia; rewrite HiFia // .
-case Hu : u HiFia => [|u1] => HiFia // _.
-have HIntl : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) (scal l1 intg).
-  by apply: is_RInt_gen_scal.
-have HIntu : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) (scal u1 intg).
-  by apply: is_RInt_gen_scal.
-have Hgoodorder : l1 <= u1.
-  move: (contains_le (Xreal l1) (Xreal u1) (Xreal (f a))).
-  case.
-  rewrite -HiFia.
-  set fia := (iF (I.upper_extent ia)).
-  move: (I.upper_extent_correct (ia) (a) (a) Hcontainsia (Rle_refl _)).
-  apply: HiF. rewrite /le_lower /le_upper /=. by lra.
-have Hgoodorder_bis : forall x, a <= x -> l1 <= f x <= u1.
-  move => x0 Hax0.
-  move: (contains_le (Xreal l1) (Xreal u1) (Xreal (f x0))).
-  case.
-  rewrite -HiFia.
-  apply: HiF.
-  exact:(I.upper_extent_correct (ia) x0 a Hcontainsia Hax0).
-  rewrite /le_lower /le_upper /=. by lra.
-have filter_le : filter_prod (at_point a) (Rbar_locally p_infty)
-    (fun ab : R * R => ab.1 <= ab.2).
-econstructor.
-  exact: at_point_refl.
-  set R := fun x => a <= x.
-  Focus 2.
-  move => /= x0 y0 Hax0 HRx0.
-  rewrite Hax0.
-  exact: HRx0.
-  exists a. move => x1. exact: Rlt_le.
-
-have intgpos : 0 <= intg.
-  have -> : 0 = norm 0 by rewrite norm_zero.
-  apply: (RInt_gen_norm (fun _ => 0) g 0 intg _ _ _ HRintg) => //= .
-  + econstructor.
-    exact: at_point_refl.
-    set R := fun x => a <= x.
-    Focus 2.
-    move => /= x0 y0 Hax0 HRx0.
-    rewrite Hax0.
-    exact: HRx0.
-    exists a. move => x1 _ x2 Ha. rewrite norm_zero. apply: Hgpos; by case: Ha.
-  + exact: is_RInt_gen_0. (* special lemma to do, but trivial *)
-
-have Hlescal : scal l1 intg <= scal u1 intg.
-  rewrite /scal /= /mult /= .
-  apply: Rmult_le_compat_r => // .
-apply: (contains_connected _ (scal l1 intg) (scal u1 intg)).
-apply: J.mul_correct => // .
-  rewrite HiFia.
-  by rewrite /contains; lra.
-apply: J.mul_correct => // .
-  rewrite HiFia.
-  by rewrite /contains; lra.
-have HIntl1 : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal l1 intg)).
-  exact: is_RInt_gen_scal => // .
-have HIntu1 : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal u1 intg)).
-  exact: is_RInt_gen_scal => // .
-split.
-apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l1 (g x)) (fun x => scal (f x) (g x)) _ _) => // .
-  econstructor.
-  exact: at_point_refl.
-  set R := fun x => a <= x.
-  Focus 2.
-  move => /= x0 y0 Hax0 HRx0.
-  rewrite Hax0.
-  exact: HRx0.
-  exists a. move => x0 Hax0 x1 Hx1.
-  rewrite /scal /= /mult /= .
-  apply: Rmult_le_compat_r => // .
-    apply: Hgpos; by case: Hx1.
-    move: (Hgoodorder_bis x1); lra.
-
-apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x) (g x)) (fun x => scal u1 (g x)) _ _) => // .
-  econstructor.
-  exact: at_point_refl.
-  set R := fun x => a <= x.
-  Focus 2.
-  move => /= x0 y0 Hax0 HRx0.
-  rewrite Hax0.
-  exact: HRx0.
-  exists a. move => x0 Hax0 x1 Hx1.
-  rewrite /scal /= /mult /= .
-  apply: Rmult_le_compat_r => // .
-    apply: Hgpos; by case: Hx1.
-    move: (Hgoodorder_bis x1); lra.
-
-Qed.
-
-End EstimateAtInfty.
-
 End BertrandInterval.
 
+(*
 Module NumericTests.
 
 Require Import Interval_interval_float_full.
@@ -888,6 +714,7 @@ let v := Private.extract_algorithm ((atan x) * (powerRZ x (-2)) * powerRZ (ln x)
 Abort.
 
 End NumericTests.
+*)
 
 Section VariableChange.
 

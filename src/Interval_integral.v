@@ -29,6 +29,65 @@ Require Import Interval_taylor_model.
 
 Require Import interval_compl.
 
+Section Missing.
+
+Lemma filter_prod_at_point_infty :
+  forall a (P : R -> R -> Prop),
+  (forall x y, a <= x <= y -> P x y) ->
+  filter_prod (at_point a) (Rbar_locally p_infty)
+  (fun ab : R * R => P ab.1 ab.2).
+Proof.
+intros a P HP.
+apply (Filter_prod _ _ _ (fun x => x = a) (fun x => a < x)).
+- intros x Hx.
+  now apply eq_sym, ball_eq.
+- now exists a.
+- intros x y -> H.
+  apply HP.
+  split.
+  apply Rle_refl.
+  now apply Rlt_le.
+Qed.
+
+Lemma is_RInt_gen_0 {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : Filter Fa} {FFb : Filter Fb} :
+  is_RInt_gen (fun y => 0) Fa Fb zero.
+Proof.
+  exists (fun x => 0).
+  split.
+  econstructor; last first.
+  move => x y HQx HRy.
+  have {2}-> :  0 = scal (y - x) 0 by rewrite scal_zero_r.
+  exact: is_RInt_const.
+  exact: filter_true.
+  exact: filter_true.
+  exact: filterlim_const.
+Qed.
+
+Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (g : R -> R) (lf : R) (lg : R) :
+  filter_prod Fa Fb (fun ab => fst ab <= snd ab)
+  -> filter_prod Fa Fb (fun ab => forall x, fst ab <= x <= snd ab -> f x <= g x)
+  -> is_RInt_gen f Fa Fb lf -> is_RInt_gen g Fa Fb lg
+    -> lf <= lg.
+Proof.
+move => Hab Hle.
+case => If [Hf Hlf].
+case => Ig [Hg Hlg].
+apply (filterlim_le (F := filter_prod Fa Fb) (fun x => If x) Ig lf lg).
+generalize (filter_and _ _ Hab Hle) => {Hab Hle} H.
+generalize (filter_and _ _ H Hf) => {H Hf} H.
+generalize (filter_and _ _ H Hg) => {H Hg}.
+apply filter_imp => x [[[Hab Hle] Hf] Hg].
+apply: is_RInt_le Hab Hf Hg _.
+move => x0 Hx.
+apply: Hle. split; case: Hx => H1 H2; by apply: Rlt_le.
+exact: Hlf.
+exact: Hlg.
+Qed.
+
+End Missing.
+
 Module IntegralTactic (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
 
 Module J := IntervalExt I.
@@ -495,6 +554,98 @@ Qed.
 End Proofs.
 
 End IntervalIntegral.
+
+(* this can probably be significantly shortened *)
+Lemma bounded_ex {xi} (Hbnded : I.bounded xi) : (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
+Proof.
+exists (proj_val (I.convert_bound (I.lower xi))).
+exists (proj_val (I.convert_bound (I.upper xi))).
+have := (I.bounded_correct xi).
+rewrite Hbnded; case => // .
+move => Hlb Hub.
+case: (I.lower_bounded_correct xi Hlb) => <- => /= HbndedProp.
+case: (I.upper_bounded_correct xi Hub) => <-.
+by rewrite /I.bounded_prop => /= -> /=.
+Qed.
+
+Lemma integral_interval_mul_infty :
+  forall prec a ia f fi g Ig Igi,
+  contains (I.convert ia) (Xreal a) ->
+  (forall x, a <= x -> contains (I.convert fi) (Xreal (f x))) ->
+  I.bounded fi ->
+  (forall x, a <= x -> continuous f x) ->
+  (forall x, a <= x -> 0 <= g x) ->
+  is_RInt_gen g (at_point a) (Rbar_locally p_infty) Ig ->
+  contains (I.convert Igi) (Xreal Ig) ->
+  exists Ifg,
+  is_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_infty) Ifg /\
+  contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
+Proof.
+intros prec a ia f fi g Ig Igi Hia Hf Hfi Cf Hg HIg HIg'.
+suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_infty).
+exists Ifg.
+apply (conj HIfg).
+case HiFia : (I.convert fi) => [| l u ].
+  by rewrite I.mul_propagate_l.
+move: (bounded_ex Hfi) => [] x [] y.
+case Hl : l HiFia => [|l1] HiFia; rewrite HiFia // .
+case Hu : u HiFia => [|u1] => HiFia // _.
+have HIntl : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) (scal l1 Ig).
+  by apply: is_RInt_gen_scal.
+have HIntu : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) (scal u1 Ig).
+  by apply: is_RInt_gen_scal.
+have Hgoodorder_bis : forall x, a <= x -> l1 <= f x <= u1.
+  move => x0 Hax0.
+  move: (Hf _ Hax0).
+  by rewrite HiFia.
+have Hgoodorder : l1 <= u1.
+  move: (Hgoodorder_bis a (Rle_refl a)).
+  intros [H1 H2].
+  exact: Rle_trans H1 H2.
+have intgpos : 0 <= Ig.
+  have -> : 0 = norm 0 by rewrite norm_zero.
+  apply: (RInt_gen_norm (fun _ => 0) g 0 Ig _ _ _ HIg) => //= .
+  + now apply filter_prod_at_point_infty.
+  + apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> norm 0 <= g z)).
+    intros m n [Hm _] o [Ho _].
+    rewrite norm_zero.
+    apply Hg.
+    now apply Rle_trans with m.
+  + exact: is_RInt_gen_0.
+apply: (contains_connected _ (scal l1 Ig) (scal u1 Ig)).
+apply: J.mul_correct => // .
+  rewrite HiFia.
+  exact: (conj (Rle_refl _)).
+apply: J.mul_correct => // .
+  rewrite HiFia.
+  exact: conj (Rle_refl _).
+have HIntl1 : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal l1 Ig)).
+  exact: is_RInt_gen_scal => // .
+have HIntu1 : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal u1 Ig)).
+  exact: is_RInt_gen_scal => // .
+split.
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l1 (g x)) (fun x => scal (f x) (g x)) _ _) => // .
+  now apply filter_prod_at_point_infty.
+  apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> _ <= _)).
+  intros m n [Hm _] o [Ho _].
+  rewrite /scal /= /mult /= .
+  apply: Rmult_le_compat_r => // .
+  apply Hg.
+  now apply Rle_trans with m.
+  apply Hgoodorder_bis.
+  now apply Rle_trans with m.
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x) (g x)) (fun x => scal u1 (g x)) _ _) => // .
+  now apply filter_prod_at_point_infty.
+  apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> _ <= _)).
+  intros m n [Hm _] o [Ho _].
+  rewrite /scal /= /mult /= .
+  apply: Rmult_le_compat_r => // .
+  apply Hg.
+  now apply Rle_trans with m.
+  apply Hgoodorder_bis.
+  now apply Rle_trans with m.
+admit.
+Admitted.
 
 End IntegralTactic.
 

@@ -519,42 +519,39 @@ Section Correction_lemmas_integral_infinity.
 Import Bertrand.
 
 Lemma remainder_correct :
-  forall prec proga boundsa prog bounds alpha beta,
+  forall prec prog bounds ia alpha beta,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
-  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let int_bertrand := Bertrand.f_int prec ia alpha beta in
-  let estimator := fun ia => ((I.mul prec (iF (I.upper_extent ia)) int_bertrand)) in
-  (a > 0) ->
+  let estimator := fun ia => ((I.mul prec (fi (I.upper_extent ia)) int_bertrand)) in
   (alpha < -1)%Z ->
-  I.bounded (iF (I.upper_extent ia)) ->
-  Int.integralEstimatorCorrect_infty (fun x => (f x) * powerRZ x alpha * (pow (ln x) beta)) (estimator ia) ia.
+  I.bounded (fi (I.upper_extent ia)) ->
+  Int.integralEstimatorCorrect_infty (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia.
 Proof.
-move => prec proga boundsa prog bounds alpha beta f iF a ia int_bertrand estimator Hapos Halpha Hbnded.
-rewrite /Int.integralEstimatorCorrect_infty.
-move => a0 Ha0 HnotInan.
-
-suff: ex_RInt_gen (fun x : R => f x * powerRZ x alpha * ln x ^ beta) (at_point a0) (Rbar_locally p_infty).
-- case => /= Intfg HIntfg.
-  exists Intfg; split => // .
-  apply: (estimate_infty f (fun x => powerRZ x alpha * pow (ln x) beta) iF _ prec a ia _).
-  + by move => x xi Hxxi; by apply: contains_eval_arg.
-  + by apply: contains_eval.
-  + eapply (Bertrand.f_int_bertrand  prec a ia _ alpha beta _ _ (f_lim alpha beta a)).
-    * exact: f_lim_correct.
-  + exact: Hbnded. (* TODO:  remove Ha0, Hbnded and Halpha from theorem and move them to boolean tests directly in the estimator *)
-  + move => x Hax. admit. (* TODO, easy *)
-  + exact: f_lim_correct.
-  + admit. (* at_point a and at_point a0 are the same, so HIntfg should apply *)
-- admit.
-  (* visibly some lemmas are still missing. f x^alpha ln^beta(x) is integrable *)
-  (* because:
-     - f is continuous and bounded because iF (I.upper_extent ia) is not Inan (it is bounded)
-     - x^alpha ln^beta(x) is integrable
- *)
+intros prec prog bounds ia alpha beta f fi int_bertrand estimator Halpha Hbnded a Ha HnotInan.
+have Ha1: 1 <= a.
+  admit. (* missing hypothesis: lower ia >= 1 *)
+apply: Int.integral_interval_mul_infty (Ha) _ Hbnded _ _ _ _.
+- intros x Hx.
+  apply contains_eval_arg.
+- exact: I.upper_extent_correct Ha Hx.
+- admit. (* ok *)
+- intros x Hax.
+  apply Rmult_le_pos_pos.
+  apply powerRZ_le.
+  apply: Rlt_le_trans Hax.
+  exact: Rlt_le_trans Rlt_0_1 Ha1.
+  apply pow_le.
+  rewrite <- ln_1.
+  apply ln_le.
+  exact Rlt_0_1.
+  exact: Rle_trans Ha1 Hax.
+- apply: f_lim_correct Halpha.
+  exact: Rlt_le_trans Rlt_0_1 Ha1.
+- apply (f_int_correct prec a ia Ha alpha beta).
+  exact: Rlt_le_trans Rlt_0_1 Ha1.
+  exact: Zlt_not_eq.
 Admitted.
-
 
 End Correction_lemmas_integral_infinity.
 
