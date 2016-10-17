@@ -170,48 +170,60 @@ Section Extra_RInt.
 
 Local Open Scope R_scope.
 
-Lemma RInt_translation_add g a b x :
-  RInt (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
+Lemma is_RInt_translation_add V g a b x Ig :
+  @is_RInt V g (a + x) (b + x) Ig ->
+  is_RInt (fun y : R => g (y + x)%R) a b Ig.
 Proof.
-have -> : a + x = (1 * a + x) by ring.
-have -> : b + x = (1 * b + x) by ring.
-rewrite -RInt_comp_lin.
-by apply: RInt_ext => x0 _; rewrite Rmult_1_l; congr (g _); ring.
+have -> : a + x = (1 * a + x) by rewrite Rmult_1_l.
+have -> : b + x = (1 * b + x) by rewrite Rmult_1_l.
+move /is_RInt_comp_lin.
+apply: is_RInt_ext => t.
+now rewrite Rmult_1_l scal_one.
 Qed.
 
-Lemma RInt_translation_sub g x a b :
-  RInt (fun y : R => g (y - x)) a b = RInt g (a - x) (b - x).
+Lemma is_RInt_translation_sub V g x a b Ig :
+  @is_RInt V g (a - x) (b - x) Ig ->
+  is_RInt (fun y : R => g (y - x)) a b Ig.
 Proof.
-have -> : a - x = a + (-x) by ring.
-have -> : b - x = b + (-x) by ring.
-rewrite -RInt_translation_add.
-apply: RInt_ext => x0 _; by congr (g _).
+exact: is_RInt_translation_add.
 Qed.
 
 Lemma ex_RInt_translation_add V g x a b :
   @ex_RInt V g a b -> @ex_RInt V (fun t => g (t + x)) (a - x) (b - x).
 Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t + x)))) => [x0 _|].
-have -> : 1 * x0 + x = x0 + x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a - x) + x ) = a. by ring.
-have -> : (1 * (b - x) + x ) = b. by ring.
-by [].
+intros [Ig HI].
+exists Ig.
+apply: is_RInt_translation_add.
+by rewrite 2!Rplus_assoc Rplus_opp_l 2!Rplus_0_r.
 Qed.
 
 Lemma ex_RInt_translation_sub V g a b x :
   @ex_RInt V g a b -> @ex_RInt V (fun t => g (t - x)) (a + x) (b + x).
 Proof.
-move => Hgab.
-apply: (ex_RInt_ext (fun t => scal 1 (g (1 * t - x)))) => [x0 _|].
-have -> : 1 * x0 - x = x0 - x; first by ring.
-by rewrite scal_one.
-apply: ex_RInt_comp_lin.
-have -> : (1 * (a + x) + -x ) = a. by ring.
-have -> : (1 * (b + x) + -x ) = b. by ring.
-by [].
+intros [Ig HI].
+exists Ig.
+apply: is_RInt_translation_sub.
+by rewrite /Rminus 2!Rplus_assoc Rplus_opp_r 2!Rplus_0_r.
+Qed.
+
+Lemma RInt_translation_add V g a b x :
+  ex_RInt g (a + x) (b + x) ->
+  @RInt V (fun y : R => g (y + x)%R) a b = RInt g (a + x) (b + x).
+Proof.
+intros HI.
+apply is_RInt_unique.
+apply is_RInt_translation_add.
+exact: RInt_correct.
+Qed.
+
+Lemma RInt_translation_sub V g a b x :
+  ex_RInt g (a - x) (b - x) ->
+  @RInt V (fun y : R => g (y - x)%R) a b = RInt g (a - x) (b - x).
+Proof.
+intros HI.
+apply is_RInt_unique.
+apply is_RInt_translation_sub.
+exact: RInt_correct.
 Qed.
 
 End Extra_RInt.

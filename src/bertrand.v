@@ -718,13 +718,13 @@ End NumericTests.
 
 Section VariableChange.
 
-Lemma RInt_substitution f phi phi' a b :
+Lemma RInt_substitution V f phi phi' a b :
 (forall x, Rmin a b <= x <= Rmax a b -> continuous f x) ->
 (forall x, Rmin a b <= x <= Rmax a b -> continuous f (phi x)) ->
 (forall x, Rmin a b <= x <= Rmax a b -> is_derive phi x (phi' x)) ->
 (forall x, Rmin a b <= x <= Rmax a b -> continuous phi' x) ->
 (ex_RInt phi' a b) ->
-RInt f (phi a) (phi b) = RInt (fun x => scal (phi' x) (f (phi x))) a b.
+@RInt V f (phi a) (phi b) = RInt (fun x => scal (phi' x) (f (phi x))) a b.
 Proof.
 move => Hf Hfphi Hphi Hphi'cont Hexphi'.
 have H1 : forall x : R,
@@ -745,8 +745,8 @@ pose G := fun x => F (phi x).
 suff HderFphi :
   forall x, Rmin a b <= x <= Rmax a b ->
             is_derive G x (scal (phi' x) (f (phi x))).
-- have -> : RInt f (phi a) (phi b) = G b - G a.
-    by rewrite /G /F RInt_point Rminus_0_r.
+- have -> : RInt f (phi a) (phi b) = minus (G b) (G a).
+    by rewrite /G /F RInt_point minus_zero_r.
   apply: (is_RInt_derive _ _ _ _ HderFphi).
     + move => x Hx; apply: continuous_scal.
         by apply: Hphi'cont.

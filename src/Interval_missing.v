@@ -1156,6 +1156,22 @@ replace y with (PSeries (fun n => (-1)^n / INR (n + 1)) x).
 rewrite <- PSeries_incr_1.
 replace (ln (1 + x)) with (RInt (fun t => / (1 + t)) 0 x).
 rewrite <- (PSeries_ext (PS_Int (fun n => (-1)^n))).
+assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
+  rewrite (CV_radius_finite_DAlembert _ R1).
+  now rewrite Rinv_1, Rabs_pos_eq.
+  intros n.
+  apply pow_nonzero.
+  now apply (Z2R_neq (-1) 0).
+  exact Rlt_0_1.
+  apply is_lim_seq_ext with (fun _ => R1).
+    intros n.
+    simpl pow.
+    unfold Rdiv.
+    rewrite Rmult_assoc, Rinv_r, Rmult_1_r, Rabs_Ropp.
+    apply eq_sym, Rabs_R1.
+    apply pow_nonzero.
+    now apply (Z2R_neq (-1) 0).
+  apply is_lim_seq_const.
 rewrite <- RInt_PSeries.
 apply RInt_ext.
 intros t.
@@ -1165,25 +1181,13 @@ rewrite <- (Ropp_involutive t) at 1.
 unfold PSeries.
 rewrite <- (Series_ext (fun k => (-t)^k)).
 apply eq_sym, Series_geom.
-rewrite Rabs_Ropp, Rabs_pos_eq by easy.
-now apply Rle_lt_trans with x.
+rewrite Rabs_Ropp, Rabs_pos_eq.
+now apply Rlt_trans with x.
+now apply Rlt_le.
 intros n.
 now rewrite <- Rpow_mult_distr, Ropp_mult_distr_l_reverse, Rmult_1_l.
-rewrite (CV_radius_finite_DAlembert _ R1).
-now rewrite Rinv_1, Rabs_pos_eq.
-intros n.
-apply pow_nonzero.
-now apply (Z2R_neq (-1) 0).
-exact Rlt_0_1.
-apply is_lim_seq_ext with (fun _ => R1).
-  intros n.
-  simpl pow.
-  unfold Rdiv.
-  rewrite Rmult_assoc, Rinv_r, Rmult_1_r, Rabs_Ropp.
-  apply eq_sym, Rabs_R1.
-  apply pow_nonzero.
-  now apply (Z2R_neq (-1) 0).
-apply is_lim_seq_const.
+now apply ex_RInt_PSeries.
+exact Hc.
 intros [|n].
 easy.
 unfold PS_incr_1.
@@ -1326,7 +1330,7 @@ Proof.
 intros Hf.
 apply Rle_div_l.
 now apply Rgt_minus.
-rewrite Rmult_comm, <- RInt_const.
+rewrite Rmult_comm, <- (RInt_const (V := R_CompleteNormedModule)).
 apply RInt_le with (2 := Hint).
 now apply Rlt_le.
 apply ex_RInt_const.
@@ -1341,7 +1345,7 @@ Proof.
 intros Hf.
 apply Rle_div_r.
 now apply Rgt_minus.
-rewrite Rmult_comm, <- RInt_const.
+rewrite Rmult_comm, <- (RInt_const (V := R_CompleteNormedModule)).
 apply RInt_le with (3 := Hint).
 now apply Rlt_le.
 apply ex_RInt_const.

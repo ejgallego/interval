@@ -272,15 +272,20 @@ have ->: RInt f a b =
     RInt (fun x => q.[x - x0]) a b +
     RInt (fun x => f x - q.[x - x0]) a b.
   rewrite RInt_minus //.
-  ring.
+  by rewrite -[minus _ _]/(Rplus _ (Ropp _)) Rplus_comm Rplus_assoc Rplus_opp_l Rplus_0_r.
 apply: J.add_correct.
-  rewrite RInt_translation_sub Rpol_integral_0.
+  rewrite RInt_translation_sub.
+  rewrite Rpol_integral_0.
   have H: forall x xi, xi >: x -> Pol.horner prec TM_integral_poly (Isub xi X0) >: (PolR.primitive tt 0 q).[x - x0].
     move => x xi Hx.
     apply: Pol.horner_correct.
     exact: Pol.primitive_correct J.zero_correct HMfq.
     exact: J.sub_correct.
   apply: J.sub_correct ; exact: H.
+  eapply ex_RInt_ext.
+  2: apply: ex_RInt_translation_add HI.
+  intros t.
+  by rewrite /= /Rminus Rplus_assoc Rplus_opp_r Rplus_0_r.
 apply: J.contains_RInt => //.
   exact: ex_RInt_minus.
 move => x Hx.
@@ -357,13 +362,16 @@ exists (PolR.primitive tt 0 p1).
         rewrite /PolR.int_coeff; case: i; first by rewrite Rmult_0_l.
         by move=> *; rewrite /= Rmult_0_l Rmult_0_r.
     by rewrite Rpol_integral_0.
+    exact: Rpol_integrable.
 rewrite {Hcontains1}.
 set rem := (X in X + _ - _).
 set i1 := (X in (rem + X - _)).
 set i2 := (X in (rem + _ - X)).
 have -> : rem + i1 - i2 = rem + (i1 - i2) by ring.
 have -> : i1 - i2 = RInt (fun t => f t - p1.[t - x1]) x1 x.
-    rewrite -RInt_minus; first by [].
+  apply sym_eq.
+  apply is_RInt_unique.
+  apply: is_RInt_minus ; apply RInt_correct.
     + by apply: f_int.
     + have {2}-> : x1 = (0 + x1) by ring.
         have -> : x = (x - x1) + x1 by ring.
@@ -372,8 +380,8 @@ have -> : i1 - i2 = RInt (fun t => f t - p1.[t - x1]) x1 x.
 rewrite /TM_integral_error {i1 i2}.
 rewrite Rplus_comm.
 have {rem} -> : rem = RInt (fun t => p.[t - x0]) x0 x1
-                     + (RInt f x0 x1 - RInt (fun t => p.[t - x0]) x0 x1)
-  by rewrite /rem; ring.
+                     + (RInt f x0 x1 - RInt (fun t => p.[t - x0]) x0 x1).
+  by rewrite /rem /Rminus (Rplus_comm (RInt f _ _)) -Rplus_assoc Rplus_opp_r Rplus_0_l.
 apply: J.add_correct.
   apply: J.contains_RInt => //.
     apply: ex_RInt_minus.
@@ -386,12 +394,14 @@ apply: J.add_correct.
   now apply Rmin_case.
   now apply Rmax_case.
 apply: J.add_correct.
-  rewrite RInt_translation_sub Rpol_integral_0.
+  rewrite RInt_translation_sub.
+  rewrite Rpol_integral_0.
   rewrite (Rminus_diag_eq x0) //.
   rewrite PolR.toSeq_horner0. rewrite -nth0 -PolR.nth_toSeq PolR.nth_primitive // Rminus_0_r.
   apply: Bnd.ComputeBound_correct; last by exact: J.sub_correct.
   by apply: Pol.primitive_correct; first exact: J.zero_correct.
-rewrite -RInt_minus; last by apply: pol_int_sub.
+  exact: Rpol_integrable.
+rewrite -[Rminus _ _](RInt_minus f) ; last by apply: pol_int_sub.
   apply: J.contains_RInt => //.
     apply: ex_RInt_minus.
     apply: f_int Hx0X0.

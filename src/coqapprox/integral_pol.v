@@ -136,10 +136,11 @@ Qed.
 Lemma Rpol_integral_0 (x1 x2 : R) (p : T) : RInt (horner tt p) x1 x2 =
             horner tt (primitive tt R0 p) x2 - horner tt (primitive tt R0 p) x1.
 Proof.
-rewrite (RInt_ext _ (Derive (horner tt (primitive tt R0 p)))); last first.
+apply is_RInt_unique.
+apply: (is_RInt_ext (Derive (horner tt (primitive tt R0 p)))).
 by move => x _; rewrite  Rpol_derive.
-rewrite RInt_Derive => //.
-move => x _; apply: ex_Rpol_derive.
+apply: is_RInt_derive.
+move => x _; apply: Derive_correct; apply: ex_Rpol_derive.
 move => x _. apply: (continuous_ext (horner tt p) ) => [t|] .
   by rewrite Rpol_derive.
 exact: Rpol_continuous.

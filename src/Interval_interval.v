@@ -625,22 +625,24 @@ Lemma contains_RInt prec (f3 : R -> R) x1 x2 Y X1 X2 :
 Proof.
 move => Hf3_int HZx1 HZx2 Hext.
 destruct (Req_dec x2 x1) as [H|H].
-  rewrite H RInt_point -(Rmult_0_l (f3 x1)) -(Rminus_diag_eq x2 x1) //.
+  rewrite H RInt_point /zero /= -(Rmult_0_l (f3 x1)) -(Rminus_diag_eq x2 x1) //.
   apply: mul_correct.
   exact: sub_correct.
   apply: Hext.
   exact: Rmin_Rmax_l.
-have -> : (RInt f3 x1 x2 = (x2 - x1) * ((RInt f3 x1 x2) / (x2 - x1)))%R
-  by field; apply: Rminus_eq_contra.
+have -> : (RInt f3 x1 x2 = (x2 - x1) * ((RInt f3 x1 x2) / (x2 - x1)))%R.
+  rewrite /Rdiv (Rmult_comm _ (Rinv _)) -Rmult_assoc Rinv_r ?Rmult_1_l //.
+  exact: Rminus_eq_contra.
 apply: mul_correct.
 exact: sub_correct.
 wlog H': x1 x2 {H HZx1 HZx2} Hext Hf3_int / (x1 < x2)%R.
   intros H'.
   destruct (Rdichotomy _ _ H) as [H21|H12].
-  rewrite -RInt_swap.
+  rewrite -opp_RInt_swap.
   replace (-_/_)%R with (RInt f3 x2 x1 / (x1 - x2))%R by (field; lra).
   apply: H' H21.
   by rewrite Rmin_comm Rmax_comm.
+  exact: ex_RInt_swap.
   exact: ex_RInt_swap.
   exact: H'.
 case: (I.convert Y) Hext => // l u Hext.
