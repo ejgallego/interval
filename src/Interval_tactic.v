@@ -45,6 +45,7 @@ Inductive interval_tac_parameters :=
 Module Private.
 
 Module I := FloatIntervalFull F.
+Module Fext := FloatExt F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
 Module Int' := IntegralTaylor I.
@@ -522,20 +523,41 @@ Lemma remainder_correct :
   forall prec prog bounds ia alpha beta,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let int_bertrand := Bertrand.f_int prec ia alpha beta in
-  let estimator := fun ia => ((I.mul prec (fi (I.upper_extent ia)) int_bertrand)) in
+  let estimator := fun ia =>
+    if Fext.le (F.fromZ 1) (I.lower ia) then
+      I.mul prec (fi (I.upper_extent ia))
+                 (Bertrand.f_int prec ia alpha beta)
+    else I.nai in
   (alpha < -1)%Z ->
   I.bounded (fi (I.upper_extent ia)) ->
   Int.integralEstimatorCorrect_infty (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia.
 Proof.
-intros prec prog bounds ia alpha beta f fi int_bertrand estimator Halpha Hbnded a Ha HnotInan.
-have Ha1: 1 <= a.
-  admit. (* missing hypothesis: lower ia >= 1 *)
-apply: Int.integral_interval_mul_infty (Ha) _ Hbnded _ _ _ _.
+intros prec prog bounds ia alpha beta f fi estimator Halpha Hbnded a Ha.
+unfold estimator.
+case Ha1': Fext.le ; last by rewrite I.nai_correct.
+have {Ha1'} Ha1: 1 <= a.
+  apply Fext.le_correct in Ha1'.
+  revert Ha1'.
+  rewrite F.fromZ_correct.
+  rewrite I.lower_correct.
+  destruct (I.convert ia) as [|la ua].
+  easy.
+  destruct la as [|la].
+  easy.
+  intros H.
+  exact: Rle_trans H (proj1 Ha).
+intros HnotInan.
+apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
 - intros x Hx.
   apply contains_eval_arg.
-- exact: I.upper_extent_correct Ha Hx.
-- admit. (* ok *)
+  exact: I.upper_extent_correct Ha Hx.
+- intros x Hx.
+  apply: (A.BndValuator.continuous_eval prec _ _ 0 (I.upper_extent ia)).
+  exact: I.upper_extent_correct Ha Hx.
+  intros H.
+  apply Int.bounded_ex in Hbnded.
+  destruct Hbnded as [l [u H']].
+  now rewrite H' in H.
 - intros x Hax.
   apply Rmult_le_pos_pos.
   apply powerRZ_le.
@@ -551,7 +573,7 @@ apply: Int.integral_interval_mul_infty (Ha) _ Hbnded _ _ _ _.
 - apply (f_int_correct prec a ia Ha alpha beta).
   exact: Rlt_le_trans Rlt_0_1 Ha1.
   exact: Zlt_not_eq.
-Admitted.
+Qed.
 
 End Correction_lemmas_integral_infinity.
 
