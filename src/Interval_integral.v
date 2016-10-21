@@ -49,19 +49,39 @@ apply (Filter_prod _ _ _ (fun x => x = a) (fun x => a < x)).
   now apply Rlt_le.
 Qed.
 
+Lemma filterlimi_const_loc {T} {U : UniformSpace}
+  {F : (T -> Prop) -> Prop} {FF : Filter F} :
+  forall (f : T -> U -> Prop) (a : U),
+  F (fun x => f x a) ->
+  filterlimi f F (locally a).
+Proof.
+intros f a Hf P HP.
+rewrite /filtermapi /=.
+apply: filter_imp Hf => x H.
+exists a.
+apply (conj H).
+exact: locally_singleton.
+Qed.
+
+Lemma filterlimi_const {T} {U : UniformSpace}
+  {F : (T -> Prop) -> Prop} {FF : Filter F} :
+  forall (f : T -> U -> Prop) (a : U),
+  (forall x, f x a) ->
+  filterlimi f F (locally a).
+Proof.
+intros f a Hf.
+apply filterlimi_const_loc.
+exact: filter_forall.
+Qed.
+
 Lemma is_RInt_gen_0 {Fa Fb : (R -> Prop) -> Prop}
   {FFa : Filter Fa} {FFb : Filter Fb} :
   is_RInt_gen (fun y => 0) Fa Fb zero.
 Proof.
-  exists (fun x => 0).
-  split.
-  econstructor; last first.
-  move => x y HQx HRy.
-  have {2}-> :  0 = scal (y - x) 0 by rewrite scal_zero_r.
-  exact: is_RInt_const.
-  exact: filter_true.
-  exact: filter_true.
-  exact: filterlim_const.
+apply: filterlimi_const.
+intros [a b].
+rewrite -(scal_zero_r (b - a)).
+exact: is_RInt_const.
 Qed.
 
 Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
@@ -71,6 +91,7 @@ Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
   -> is_RInt_gen f Fa Fb lf -> is_RInt_gen g Fa Fb lg
     -> lf <= lg.
 Proof.
+(*
 move => Hab Hle.
 case => If [Hf Hlf].
 case => Ig [Hg Hlg].
@@ -85,6 +106,8 @@ apply: Hle. split; case: Hx => H1 H2; by apply: Rlt_le.
 exact: Hlf.
 exact: Hlg.
 Qed.
+*)
+Admitted.
 
 End Missing.
 

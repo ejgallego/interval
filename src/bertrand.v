@@ -316,6 +316,57 @@ apply: eq_sym.
 exact: ball_eq.
 Qed.
 
+Lemma prodi_to_single_general {T U V : UniformSpace} (HTSeparable : forall c t, (forall eps : posreal, @ball T c eps t) -> t=c) A (f : T -> U -> V -> Prop) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
+filterlimi (fun (tu : T * U) v => f tu.1 tu.2 v)
+          (filter_prod (at_point A) F) G
+<->
+filterlimi (fun (u : U) v => f A u v) F G.
+Proof.
+split => H.
+- move => P GP.
+  rewrite /filtermapi.
+  move: (filter_prod_ind T U (at_point A) F (fun x => exists y, f (fst x) (snd x) y /\ P y)).
+  case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy.
+  apply => /= .
+  move => Q R HAQ HFR HPf.
+  eapply filter_imp.
+  2: exact: HFR.
+  move => x HRx.
+  apply: HPf => // .
+  apply: HAQ => eps // ; exact: ball_center.
+  econstructor.
+  exact: HAQ1.
+  exact: HFR1.
+  exact: HPfxy.
+- move => P GP.
+  rewrite /filtermap.
+  move: (H P GP).
+  rewrite /filtermap => HFP.
+  set R := (fun x : U => exists v, f A x v /\ P v).
+  set Q := (fun x => x = A).
+  apply: (Filter_prod _ _ _ Q R) => //= ; last first.
+  move => t u.
+  rewrite /Q.
+  move => HQt /= HPfAu.
+  rewrite HQt.
+  exact: HPfAu.
+  move => t Heps.
+  rewrite /Q.
+  exact: HTSeparable.
+Qed.
+
+Lemma prodi_to_single_normedmodule (K : AbsRing) {T U V : NormedModule K} A (f : T -> U -> V -> Prop) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
+filterlimi (fun (tu : T * U) (v : V) => f tu.1 tu.2 v)
+          (filter_prod (at_point A) F) G
+<->
+filterlimi (fun (u : U) (v : V) => f A u v) F G.
+Proof.
+apply: prodi_to_single_general.
+move => c t Hct.
+apply: eq_sym.
+exact: ball_eq.
+Qed.
+
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
 Proof.
@@ -513,20 +564,31 @@ apply: (is_lim_comp (fun x => ln x / x) X p_infty 0 p_infty).
   + exists 0 => x Hx // .
 Qed.
 
+Lemma filterlimi_lim_ext_loc {T U} {F G} {FF : Filter F} (f : T -> U) (g : T -> U -> Prop) :
+  F (fun x => g x (f x)) ->
+  filterlim f F G ->
+  filterlimi g F G.
+Proof.
+intros HF Hf P HP.
+generalize (filter_and (fun x => g x (f x)) _ HF (Hf P HP)).
+unfold filtermapi.
+apply: filter_imp.
+intros x [H1 H2].
+now exists (f x).
+Qed.
+
 Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
  Bertrand_lim alpha beta A (f_lim alpha beta A).
 Proof.
-rewrite /Bertrand_lim /is_RInt_gen.
-exists (fun xab => (f alpha beta (fst xab) (snd xab))).
-split.
-- exists (fun x => A = x) (fun x => A < x) .
-    exact: ball_eq.
-    by exists A.
-  move => x y HAx HAy /=.
-  apply: f_correct.
-  + by lra.
-  + by apply: Zlt_not_eq.
-rewrite prod_to_single_normedmodule.
+rewrite /Bertrand_lim.
+apply prodi_to_single_normedmodule.
+apply Rbar_locally_filter.
+apply: (filterlimi_lim_ext_loc (f alpha beta A)).
+  exists A => x Hx.
+  apply f_correct.
+  apply (conj H).
+  exact: Rlt_le.
+  exact: Zlt_not_eq.
 elim: beta => [ | beta Hbeta].
 - rewrite /f /f_lim /Rdiv /Rminus.
   rewrite -[locally _]/(Rbar_locally (Rbar_mult (Finite _) (Finite _))).
@@ -761,6 +823,7 @@ Admitted. (* Something is missing somewhere in the hypotheses *)
 
 End VariableChange.
 
+(*
 Section ZeroToEpsilon.
 
 (*
@@ -806,3 +869,4 @@ split.
 Abort.
 
 End ZeroToEpsilon.
+*)
