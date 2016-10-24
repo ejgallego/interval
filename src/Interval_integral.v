@@ -39,10 +39,9 @@ Lemma filter_prod_at_point_infty :
 Proof.
 intros a P HP.
 apply (Filter_prod _ _ _ (fun x => x = a) (fun x => a < x)).
-- intros x Hx.
-  now apply eq_sym, ball_eq.
+- easy.
 - now exists a.
-- intros x y -> H.
+- move => x y -> /= H.
   apply HP.
   split.
   apply Rle_refl.

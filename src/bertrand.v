@@ -125,12 +125,6 @@ End powerRZMissing.
 
 Section CoquelicotMissing.
 
-Lemma at_point_refl (a : R) : at_point a (eq^~ a).
-Proof.
-move => x Hx. apply: eq_sym.
-apply: (ball_eq _ _ Hx).
-Qed.
-
 (* this one should be in Coquelicot to relieve users *)
 Lemma continuous_Rdiv_1_x x (H : x <> 0) : continuous (Rdiv 1) x.
 Proof.
@@ -265,106 +259,38 @@ elim: beta => [|m HIm] // .
 by move: (one_step_by_parts alpha m A B H Halpha _ HIm).
 Qed.
 
-Lemma prod_to_single_general {T U V : UniformSpace} (HTSeparable : forall c t, (forall eps : posreal, @ball T c eps t) -> t=c) A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
-filterlim (fun xtu : T * U => f xtu.1 xtu.2)
-          (filter_prod (at_point A) F) G
-<->
-filterlim (fun u : U => f A u) F G.
+Lemma prod_to_single {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : T -> U -> V) :
+  filterlim (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
+  filterlim (fun u : U => f x u) F G.
 Proof.
-split => H.
-- move => P GP.
-  rewrite /filtermap.
-  move: (filter_prod_ind T U (at_point A) F (fun x => P (f (fst x) (snd x)))).
-  case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy.
-  apply => /= .
-  move => Q R HAQ HFR HPf.
-  eapply filter_imp.
-  2: exact: HFR.
-  move => x HRx.
-  apply: HPf => // .
-  apply: HAQ => eps // ; exact: ball_center.
+split => H P GP.
+- rewrite /filtermap.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HFR => y HRy.
+  exact: HPf.
+- specialize (H P GP).
   econstructor.
-  exact: HAQ1.
-  exact: HFR1.
-  exact: HPfxy.
-- move => P GP.
-  rewrite /filtermap.
-  move: (H P GP).
-  rewrite /filtermap => HFP.
-  set R := (fun x : U => P (f A x)).
-  set Q := (fun x => x = A).
-  apply: (Filter_prod _ _ _ Q R) => //= ; last first.
-  move => t u.
-  rewrite /Q.
-  move => HQt /= HPfAu.
-  rewrite HQt.
-  exact: HPfAu.
-  move => t Heps.
-  rewrite /Q.
-  exact: HTSeparable.
+  exact: eq_refl.
+  exact: H.
+  by move => t u <-.
 Qed.
 
-Lemma prod_to_single_normedmodule (K : AbsRing) {T U V : NormedModule K} A (f : T -> U -> V) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
-filterlim (fun xtu : T * U => f xtu.1 xtu.2)
-          (filter_prod (at_point A) F) G
-<->
-filterlim (fun u : U => f A u) F G.
+Lemma prodi_to_single {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : T -> U -> V -> Prop) :
+  filterlimi (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
+  filterlimi (fun u : U => f x u) F G.
 Proof.
-apply: prod_to_single_general.
-move => c t Hct.
-apply: eq_sym.
-exact: ball_eq.
-Qed.
-
-Lemma prodi_to_single_general {T U V : UniformSpace} (HTSeparable : forall c t, (forall eps : posreal, @ball T c eps t) -> t=c) A (f : T -> U -> V -> Prop) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
-filterlimi (fun (tu : T * U) v => f tu.1 tu.2 v)
-          (filter_prod (at_point A) F) G
-<->
-filterlimi (fun (u : U) v => f A u v) F G.
-Proof.
-split => H.
-- move => P GP.
-  rewrite /filtermapi.
-  move: (filter_prod_ind T U (at_point A) F (fun x => exists y, f (fst x) (snd x) y /\ P y)).
-  case: (H P GP) => /= Q1 R1 HAQ1 HFR1 HPfxy.
-  apply => /= .
-  move => Q R HAQ HFR HPf.
-  eapply filter_imp.
-  2: exact: HFR.
-  move => x HRx.
-  apply: HPf => // .
-  apply: HAQ => eps // ; exact: ball_center.
+split => H P GP.
+- rewrite /filtermapi.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HFR => y HRy.
+  exact: HPf.
+- specialize (H P GP).
   econstructor.
-  exact: HAQ1.
-  exact: HFR1.
-  exact: HPfxy.
-- move => P GP.
-  rewrite /filtermap.
-  move: (H P GP).
-  rewrite /filtermap => HFP.
-  set R := (fun x : U => exists v, f A x v /\ P v).
-  set Q := (fun x => x = A).
-  apply: (Filter_prod _ _ _ Q R) => //= ; last first.
-  move => t u.
-  rewrite /Q.
-  move => HQt /= HPfAu.
-  rewrite HQt.
-  exact: HPfAu.
-  move => t Heps.
-  rewrite /Q.
-  exact: HTSeparable.
-Qed.
-
-Lemma prodi_to_single_normedmodule (K : AbsRing) {T U V : NormedModule K} A (f : T -> U -> V -> Prop) (F: (U -> Prop) -> Prop) {HF : Filter F} (G : (V -> Prop) -> Prop) :
-filterlimi (fun (tu : T * U) (v : V) => f tu.1 tu.2 v)
-          (filter_prod (at_point A) F) G
-<->
-filterlimi (fun (u : U) (v : V) => f A u v) F G.
-Proof.
-apply: prodi_to_single_general.
-move => c t Hct.
-apply: eq_sym.
-exact: ball_eq.
+  exact: eq_refl.
+  exact: H.
+  by move => t u <-.
 Qed.
 
 Lemma is_lim_RInv_p_infty:
@@ -581,8 +507,7 @@ Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
  Bertrand_lim alpha beta A (f_lim alpha beta A).
 Proof.
 rewrite /Bertrand_lim.
-apply prodi_to_single_normedmodule.
-apply Rbar_locally_filter.
+apply prodi_to_single.
 apply: (filterlimi_lim_ext_loc (f alpha beta A)).
   exists A => x Hx.
   apply f_correct.
