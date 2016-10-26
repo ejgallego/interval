@@ -403,12 +403,34 @@ by exists I.
 by rewrite (is_RInt_unique _ _ _ _ If).
 Qed.
 
+End IntegralProg.
+
 Section InfiniteIntegralProg.
+
+(* g x = f x * x^alpha * (ln x)^beta *)
+
+Variable prec : F.precision.
+Variables prog_f prog_g proga progb : list term.
+Variables bounds_f bounds_g boundsa boundsb : list A.bound_proof.
+
+Let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0.
+Let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0.
+
+Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai).
+Let iG := (fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai).
+
+Variable estimator : I.type -> I.type -> I.type.
+
+Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
+Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
+Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
+Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai.
+
 
 Variable estimator_infty : I.type -> I.type.
 
 Definition correct_estimator_infty :=
-  forall ia, Int.integralEstimatorCorrect_infty f (estimator_infty ia) ia.
+  forall ia, Int.integralEstimatorCorrect_infty g (estimator_infty ia) ia.
 
 (* Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0. *)
 (* Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai. *)
@@ -416,24 +438,58 @@ Definition correct_estimator_infty :=
 Lemma integral_epsilon_infty_correct :
   forall (depth : nat) epsilon,
   let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
-  IntegralProg.correct_estimator ->
+  (correct_estimator prog_g bounds_g estimator) ->
   correct_estimator_infty ->
-  (I.convert i <> Inan -> exists I, is_RInt_gen f (at_point a) (Rbar_locally p_infty) I /\
+  (I.convert i <> Inan -> exists I, is_RInt_gen g (at_point a) (Rbar_locally p_infty) I /\
   contains (I.convert i) (Xreal I)).
 Proof.
 move => depth epsilon i Hc Hc_infty.
 case H: (I.convert i) => [| l u]// _ .
 rewrite -H.
-apply: (Int.integral_interval_relative_infty_correct prec f estimator estimator_infty depth ia epsilon Hc Hc_infty).
+apply: (Int.integral_interval_relative_infty_correct prec g estimator estimator_infty depth ia epsilon Hc Hc_infty).
 - exact: contains_eval.
 - by rewrite H.
 Qed.
 
+Lemma integral_epsilon_infty_correct_RInt_gen :
+  forall (depth : nat) epsilon,
+  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  (correct_estimator prog_g bounds_g estimator) ->
+  correct_estimator_infty ->
+  (I.convert i <> Inan -> ex_RInt_gen g (at_point a) (Rbar_locally p_infty) /\
+  contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty)))).
+Proof.
+move => depth epsilon i Hc Hc_infty HnotInan.
+case: (integral_epsilon_infty_correct depth epsilon Hc Hc_infty HnotInan) => I [H1 H2].
+split.
+  by exists I.
+suff -> : RInt_gen g (at_point a) (Rbar_locally p_infty) = I; first by [].
+by apply is_RInt_gen_unique. (* apply: does not work *)
+Qed.
+
 End InfiniteIntegralProg.
 
-End IntegralProg.
+(* To reorganize *)
+Section Helper.
+
+Lemma integralEstimatorCorrect_infty_ext f1 f2 (Heq : forall x, f1 x = f2 x) (estimator1 : I.type) ia1 :
+  Int.integralEstimatorCorrect_infty f1 estimator1 ia1 ->
+  Int.integralEstimatorCorrect_infty f2 estimator1 ia1.
+Proof.
+rewrite /Int.integralEstimatorCorrect_infty => Hf1.
+move => a1 Hia1 HnotInan.
+have := (Hf1 a1 Hia1 HnotInan).
+case => I [HI Hcont].
+exists I.
+split => // .
+  apply: (is_RInt_gen_ext f1 f2) => // .
+  exact: filter_forall => bnd x _.
+Qed.
+
+End Helper.
 
 Section Correction_lemmas_integral_for_tactic.
+
 
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
@@ -574,6 +630,61 @@ apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
   exact: Rlt_le_trans Rlt_0_1 Ha1.
   exact: Zlt_not_eq.
 Qed.
+
+(* we need two functions: f, and g(x) := f(x) * x^alpha * ln(x)^beta *)
+Lemma remainder_correct_bis :
+  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta,
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let iG'' := fun xi =>
+    nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
+      map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
+) A.TaylorValuator.TM.dummy in
+  let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
+  let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
+  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let estimator_infty := fun ia =>
+    if Fext.le (F.fromZ 1) (I.lower ia) then
+      I.mul prec (iF (I.upper_extent ia))
+                 (Bertrand.f_int prec ia alpha beta)
+    else I.nai in
+  let estimator := fun fa fb =>
+    let xi := I.join fa fb in
+    Int'.taylor_integral_naive_intersection prec iF (iG' xi) xi fa fb in
+  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  I.convert i <> Inan ->
+  (ex_RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty)) /\
+  contains (I.convert i) (Xreal (RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))).
+Proof.
+move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator i.
+suff Hfg : forall x, g x = f x * (powerRZ x alpha * ln x ^ beta); last by admit.
+move => HnotInan.
+suff:
+ex_RInt_gen g
+    (at_point a) (Rbar_locally p_infty) /\
+  contains (I.convert i)
+    (Xreal
+       (RInt_gen g
+          (at_point a) (Rbar_locally p_infty))).
+case => Hex Hcont; split.
+exact: (ex_RInt_gen_ext_eq _ _ Hfg).
+rewrite (RInt_gen_ext_eq _ g) // ; last first.
+  exact: (ex_RInt_gen_ext_eq _ _ Hfg).
+apply: integral_epsilon_infty_correct_RInt_gen => // .
+  - admit. (* we need to extract the proof from the previous estimator *)
+  - rewrite /correct_estimator_infty.
+    move => ia0.
+suff:  Int.integralEstimatorCorrect_infty
+     (fun x : R => f x * (powerRZ x alpha * ln x ^ beta))
+     (estimator_infty ia0) ia0.
+apply: integralEstimatorCorrect_infty_ext.
+by move => x; rewrite -Hfg.
+apply: remainder_correct; last first.
+- admit.
+- admit.
+Admitted. (* these two last admits are just hypotheses waiting to be put in the right place *)
 
 End Correction_lemmas_integral_infinity.
 
@@ -869,6 +980,28 @@ Definition reify_var : R.
 Proof.
 exact R0.
 Qed.
+
+(* Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x := *)
+(*   match x with *)
+(*   | RInt_gen ?f (at_point ?a) (Rbar_locally p_infty) => *)
+(*     let f := eval cbv beta in (f reify_var) in *)
+(*     let vf := extract_algorithm f (cons reify_var nil) in *)
+(*     let va := extract_algorithm a (@nil R) in *)
+(*     match va with *)
+(*     | (?pa, ?la) => *)
+(*       let lca := get_trivial_bounds la prec in *)
+(*         match vf with *)
+(*         | (?pf, _ :: ?lf) => *)
+(*           let lcf := get_trivial_bounds lf prec in *)
+(*           let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in *)
+(*           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in *)
+(*           (* work-around for a bug in the pretyper *) *)
+(*           match type of c with *)
+(*           | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R) *)
+(*           end *)
+(*         end *)
+(*       end *)
+(*   end. *)
 
 Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
   match x with
