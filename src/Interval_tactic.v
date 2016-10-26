@@ -581,9 +581,11 @@ Lemma remainder_correct :
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
     if Fext.le (F.fromZ 1) (I.lower ia) then
-      I.mul prec (fi (I.upper_extent ia))
-                 (Bertrand.f_int prec ia alpha beta)
-    else I.nai in
+      if (I.bounded (fi (I.upper_extent ia))) then
+        I.mul prec (fi (I.upper_extent ia))
+              (Bertrand.f_int prec ia alpha beta)
+      else I.nai
+      else I.nai in
   (alpha < -1)%Z ->
   I.bounded (fi (I.upper_extent ia)) ->
   Int.integralEstimatorCorrect_infty (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia.
@@ -602,6 +604,7 @@ have {Ha1'} Ha1: 1 <= a.
   easy.
   intros H.
   exact: Rle_trans H (proj1 Ha).
+case: (I.bounded _) => // .
 intros HnotInan.
 apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
 - intros x Hx.
@@ -647,18 +650,25 @@ Lemma remainder_correct_bis :
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_infty := fun ia =>
     if Fext.le (F.fromZ 1) (I.lower ia) then
-      I.mul prec (iF (I.upper_extent ia))
-                 (Bertrand.f_int prec ia alpha beta)
+      if (I.bounded (iF (I.upper_extent ia))) then
+        I.mul prec (iF (I.upper_extent ia))
+              (Bertrand.f_int prec ia alpha beta)
+      else I.nai
     else I.nai in
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iF (iG' xi) xi fa fb in
-  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  let i := if (alpha <? -1)%Z then
+             Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   I.convert i <> Inan ->
   (ex_RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty)) /\
   contains (I.convert i) (Xreal (RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator i.
+move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator.
+case Halphab : (alpha <? -1)%Z => //.
+have {Halphab} Halpha: (alpha < -1)%Z by rewrite -Z.ltb_lt.
+(* case Hbnded : (I.bounded (iF (I.upper_extent ia))) => // . *)
+move => i.
 suff Hfg : forall x, g x = f x * (powerRZ x alpha * ln x ^ beta); last by admit.
 move => HnotInan.
 suff:
@@ -676,15 +686,14 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
   - admit. (* we need to extract the proof from the previous estimator *)
   - rewrite /correct_estimator_infty.
     move => ia0.
-suff:  Int.integralEstimatorCorrect_infty
-     (fun x : R => f x * (powerRZ x alpha * ln x ^ beta))
-     (estimator_infty ia0) ia0.
-apply: integralEstimatorCorrect_infty_ext.
-by move => x; rewrite -Hfg.
-apply: remainder_correct; last first.
-- admit.
-- admit.
-Admitted. (* these two last admits are just hypotheses waiting to be put in the right place *)
+    suff:  Int.integralEstimatorCorrect_infty
+             (fun x : R => f x * (powerRZ x alpha * ln x ^ beta))
+             (estimator_infty ia0) ia0.
+      apply: integralEstimatorCorrect_infty_ext.
+      by move => x; rewrite -Hfg.
+    apply: remainder_correct => // .
+    by admit. (* there is something more subtle to prove here *)
+Admitted.
 
 End Correction_lemmas_integral_infinity.
 
