@@ -492,7 +492,7 @@ Section Correction_lemmas_integral_for_tactic.
 
 (* this lemma has been isolated and generalized so that it could be
 reused in the case of integralEstimatorCorrect_infty *)
-Lemma taylor_correct_estimator_more_general :
+Lemma taylor_correct_estimator_general :
   forall prec deg prog bounds (* ia ib a b *),
     (* contains (I.convert ia) (Xreal a) -> *)
     (* contains (I.convert ib) (Xreal b) -> *)
@@ -590,7 +590,7 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
 Proof.
 move => prec deg depth proga boundsa progb boundsb prog bounds epsilon f iF'' iF' iF a b ia ib estimator i.
 apply: integral_epsilon_correct.
-exact: (taylor_correct_estimator_more_general).
+exact: (taylor_correct_estimator_general).
 Qed.
 
 
@@ -612,10 +612,9 @@ Lemma remainder_correct :
       else I.nai
       else I.nai in
   (alpha < -1)%Z ->
-  I.bounded (fi (I.upper_extent ia)) ->
   Int.integralEstimatorCorrect_infty (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia.
 Proof.
-intros prec prog bounds ia alpha beta f fi estimator Halpha Hbnded a Ha.
+intros prec prog bounds ia alpha beta f fi estimator Halpha (* Hbnded *) a Ha.
 unfold estimator.
 case Ha1': Fext.le ; last by rewrite I.nai_correct.
 have {Ha1'} Ha1: 1 <= a.
@@ -629,7 +628,7 @@ have {Ha1'} Ha1: 1 <= a.
   easy.
   intros H.
   exact: Rle_trans H (proj1 Ha).
-case: (I.bounded _) => // .
+case Hbnded : (I.bounded _) => // .
 intros HnotInan.
 apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
 - intros x Hx.
@@ -719,7 +718,7 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))
   rewrite -Hi; split => [HnotInan|]; first by apply H.
   apply H; by rewrite Hi.
 apply: integral_epsilon_infty_correct_RInt_gen => // .
-  - apply (taylor_correct_estimator_more_general).
+  - apply: taylor_correct_estimator_general.
   - rewrite /correct_estimator_infty.
     move => ia0.
     suff:  Int.integralEstimatorCorrect_infty
@@ -1031,7 +1030,7 @@ Qed.
 
 Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
   match x with
-  | RInt_gen (fun x => (?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_point ?a) (Rbar_locally p_infty) =>
+  | RInt_gen (fun x => (@?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_point ?a) (Rbar_locally p_infty) =>
 
     let g := eval cbv beta in ((fun (y : R) => (f y) * (powerRZ y alpha * pow (ln y) beta)) reify_var) in
     let f := eval cbv beta in (f reify_var) in
