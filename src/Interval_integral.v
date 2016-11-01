@@ -83,6 +83,45 @@ rewrite -(scal_zero_r (b - a)).
 exact: is_RInt_const.
 Qed.
 
+(* TODO: find better name *)
+Lemma is_RInt_gen_filterlim {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (lf : R) (Hlf : is_RInt_gen f Fa Fb lf) :
+  filterlim (fun x => RInt f x.1 x.2) (filter_prod Fa Fb) (Rbar_locally lf).
+Proof.
+rewrite /is_RInt_gen /filterlimi /filtermapi /filter_le in Hlf.
+rewrite /filterlim /filter_le /filtermap.
+move => P HlfP.
+have := (Hlf P HlfP).
+case => Q R HFa HFb.
+econstructor.
+exact: HFa.
+exact: HFb.
+move => x y HQx HRy.
+case : (p x y HQx HRy) => x0 [HRInt HP].
+by move: (is_RInt_unique f x y _ HRInt ) => ->.
+Qed.
+
+(* very inelegant *)
+Lemma is_RInt_gen_is_RInt {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (lf : R) (Hlf : is_RInt_gen f Fa Fb lf) :
+  (filter_prod Fa Fb (fun ab => is_RInt f ab.1 ab.2 (RInt f ab.1 ab.2))) .
+Proof.
+rewrite /is_RInt_gen /filterlimi /filtermapi /filter_le in Hlf.
+have := (Hlf (fun _ => True)).
+have toto : posreal.
+  exists 1%R; exact: Rlt_0_1.
+case. exists toto; by move => y Hy.
+move => Q R HFaQ HFbR His_RInt.
+econstructor.
+exact: HFaQ.
+exact: HFbR.
+move => x y HQx HRy.
+case: (His_RInt x y HQx HRy) => I [H _].
+by move: (is_RInt_unique f x y _ H) => ->.
+Qed.
+
+(* very inelegant again *)
+(* we probably want a more general lemma linking filterlim and filterlimi *)
 Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
   {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (g : R -> R) (lf : R) (lg : R) :
   filter_prod Fa Fb (fun ab => fst ab <= snd ab)
@@ -90,23 +129,24 @@ Lemma RInt_gen_le {Fa Fb : (R -> Prop) -> Prop}
   -> is_RInt_gen f Fa Fb lf -> is_RInt_gen g Fa Fb lg
     -> lf <= lg.
 Proof.
-(*
 move => Hab Hle.
-case => If [Hf Hlf].
-case => Ig [Hg Hlg].
-apply (filterlim_le (F := filter_prod Fa Fb) (fun x => If x) Ig lf lg).
-generalize (filter_and _ _ Hab Hle) => {Hab Hle} H.
-generalize (filter_and _ _ H Hf) => {H Hf} H.
-generalize (filter_and _ _ H Hg) => {H Hg}.
-apply filter_imp => x [[[Hab Hle] Hf] Hg].
-apply: is_RInt_le Hab Hf Hg _.
-move => x0 Hx.
-apply: Hle. split; case: Hx => H1 H2; by apply: Rlt_le.
-exact: Hlf.
-exact: Hlg.
+move => Hlf Hlg.
+apply (filterlim_le (F := filter_prod Fa Fb) (fun x => RInt f x.1 x.2) (fun x => RInt g x.1 x.2) lf lg).
+apply: (filter_imp (fun x => is_RInt f x.1 x.2 (RInt f x.1 x.2) /\ is_RInt g x.1 x.2 (RInt g x.1 x.2) /\ (forall y, x.1 <= y <= x.2 -> f y <= g y) /\ x.1 <= x.2)).
+move => x [H1 [H2 [H3 H4]]].
+apply: RInt_le => // .
+by exists (RInt f x.1 x.2).
+by exists (RInt g x.1 x.2).
+move => x0 Hx0. have:= H3 x0. apply.
+by move: Hx0 => []; split; apply: Rlt_le.
+apply: filter_and.
+apply: is_RInt_gen_is_RInt; exact: Hlf.
+apply: filter_and.
+apply: is_RInt_gen_is_RInt; exact: Hlg.
+apply: filter_and => // .
+exact: is_RInt_gen_filterlim.
+exact: is_RInt_gen_filterlim.
 Qed.
-*)
-Admitted.
 
 End Missing.
 

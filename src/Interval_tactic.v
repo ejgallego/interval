@@ -684,6 +684,7 @@ Lemma remainder_correct_bis :
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i := if (alpha <? -1)%Z then
              Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
+  (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))) /\
   contains (I.convert i) (Xreal (RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))).
@@ -691,10 +692,7 @@ Proof.
 move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator.
 case Halphab : (alpha <? -1)%Z => //; last by rewrite /=; split.
 have {Halphab} Halpha: (alpha < -1)%Z by rewrite -Z.ltb_lt.
-(* case Hbnded : (I.bounded (iF (I.upper_extent ia))) => // . *)
-move => i.
-suff Hfg : forall x, g x = f x * (powerRZ x alpha * ln x ^ beta); last by admit.
-(* move => HnotInan. *)
+move => i Hfg.
 suff:
 (I.convert i <> Inan -> ex_RInt_gen g
     (at_point a) (Rbar_locally p_infty)) /\
@@ -727,11 +725,7 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
       apply: integralEstimatorCorrect_infty_ext.
       by move => x; rewrite -Hfg.
     apply: remainder_correct => // .
-    by admit. (* there is something more subtle to prove here: *)
-    (* that if the result of  Int.integral_interval_relative_infty is not *)
-    (* Inan, then the image of g is necessarily bounded. A simple case
-    analysis will not do *)
-Admitted.
+Qed.
 
 End Correction_lemmas_integral_infinity.
 
@@ -1047,7 +1041,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
               let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-              let c := constr:(proj2 (remainder_correct_bis prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta)) in
+              let c := constr:(proj2 (remainder_correct_bis prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
