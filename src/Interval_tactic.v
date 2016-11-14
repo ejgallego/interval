@@ -1496,31 +1496,20 @@ Module SFBI2 := SpecificFloat BigIntRadix2.
 Module ITSFBI2 := IntervalTactic SFBI2.
 Export ITSFBI2.
 
-Module NumericTests.
-
+(*
 Require Import Interval_generic_ops.
 Module GFSZ2 := GenericFloat Radix2.
 Module ITGFSZ2 := IntervalTactic GFSZ2.
 Export ITGFSZ2.
+*)
 
-
+(*
 Lemma blo0 :
    1 <= RInt (fun x => exp x) 0 1 <= 2.
 Proof.
 interval.
 Qed.
-
-Import Private.
-
-Definition prec := GFSZ2.PtoP 30.
-(* Definition prec := SFBI2.PtoP 30. *)
-
-Lemma blo0_gen : True.
-Proof.
-interval_intro (RInt_gen (fun x => ((fun (y : R) => (1 / (exp y))) x) * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point R1) (Rbar_locally p_infty)).
-
-let toto := get_RInt_gen_bounds prec 3%nat 3%nat 10%nat (RInt_gen (fun x => ((fun (y : R) => (1 / (exp y))) x) * (powerRZ x (-5)%Z * pow (ln x) 0%nat)) (at_point R1) (Rbar_locally p_infty)) in pose tata := toto.
-Eval vm_compute in tata.
+*)
 
 (*
 Lemma blo1 :
