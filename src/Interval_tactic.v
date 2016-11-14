@@ -686,28 +686,13 @@ Lemma remainder_correct_bis :
              Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
   (I.convert i <> Inan ->
-  (ex_RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))) /\
-  contains (I.convert i) (Xreal (RInt_gen (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (at_point a) (Rbar_locally p_infty))).
+  (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
+  contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
 move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator.
 case Halphab : (alpha <? -1)%Z => //; last by rewrite /=; split.
 have {Halphab} Halpha: (alpha < -1)%Z by rewrite -Z.ltb_lt.
 move => i Hfg.
-suff:
-(I.convert i <> Inan -> ex_RInt_gen g
-    (at_point a) (Rbar_locally p_infty)) /\
-  contains (I.convert i)
-    (Xreal
-       (RInt_gen g
-          (at_point a) (Rbar_locally p_infty))).
-case => Hex Hcont; split.
-move => HnotInan.
-apply: (ex_RInt_gen_ext_eq _ _ Hfg); exact: Hex.
-move: Hex.
-case Hi : (I.convert i) => [|l u] // => Hex.
-rewrite (RInt_gen_ext_eq _ g) // ; last first.
-  by apply: (ex_RInt_gen_ext_eq _ _ Hfg); exact: Hex.
-by rewrite -Hi.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
   contains (I.convert i)
     (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
@@ -724,7 +709,7 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
              (estimator_infty ia0) ia0.
       apply: integralEstimatorCorrect_infty_ext.
       by move => x; rewrite -Hfg.
-    apply: remainder_correct => // .
+    exact: remainder_correct.
 Qed.
 
 End Correction_lemmas_integral_infinity.
@@ -1558,6 +1543,13 @@ intros.
 interval_intro (1 + x)%R with (i_bisect_taylor x 2).
 split; try interval with (i_bisect_taylor x 2).
 interval with (i_bisect_diff x).
+Qed.
+*)
+
+(*
+Lemma blo6 : 51/1000 <= RInt_gen (fun x => sin x * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point R1) (Rbar_locally p_infty) <= 52/1000.
+Proof.
+interval.
 Qed.
 *)
 
