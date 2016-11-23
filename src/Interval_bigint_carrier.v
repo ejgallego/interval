@@ -511,7 +511,7 @@ case Zcompare_spec ; intros Hc.
   rewrite Zplus_comm, Z_mod_plus_full.
   case Zcompare_spec ; intros Hr.
   + rewrite Zeq_bool_true.
-    destruct r as [|r|r] ; try easy.
+    destruct r as [|r|r] ; [|easy|].
     2: now elim (proj1 H3).
     destruct k ; try easy.
     contradict H2.

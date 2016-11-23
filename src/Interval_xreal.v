@@ -321,7 +321,8 @@ Lemma Xdiv_0_r :
   Xdiv x (Xreal 0) = Xnan.
 Proof.
 intros [|x] ; try easy ; simpl ; unfold Xdiv'.
-case is_zero_spec ; try easy.
+case is_zero_spec.
+easy.
 intros H.
 now elim H.
 Qed.

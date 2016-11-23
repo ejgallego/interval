@@ -1886,8 +1886,7 @@ case: p => [|p|p] Hx.
 - eapply (locally_open (fun _ => True)) =>//; exact: open_true.
 - eapply (@locally_open _ (fun x => x <> 0)%R) =>//; first exact: open_neq.
   by move => {x Hx} x Hx; rewrite /= zeroF.
-  case: Hx => //.
-  by case.
+  case: Hx => // ; by case.
 Qed.
 
 Lemma TM_power_int_correct_aux (p : Z) (X0 X : I.type) n :
