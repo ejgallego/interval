@@ -129,5 +129,6 @@ dist: $(EXTRA_DIST)
 	for f in $FILES $(EXTRA_DIST); do cp $f $PACK/$f; done
 	git log --pretty="format:%ad %s" --date=short > $PACK/ChangeLog
 	rm `find $PACK -name .gitignore`
+	rm $PACK/.mailmap
 	tar czf $PACK.tar.gz $PACK
 	rm -rf $PACK
