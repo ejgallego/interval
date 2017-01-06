@@ -523,7 +523,7 @@ unfold Zle, normalize.
 rewrite <- (Zcompare_plus_compat _ _ (- Zpos prec)).
 rewrite Zplus_opp_l, Zplus_comm.
 unfold Zminus.
-case Zplus ; try easy.
+case Zplus ; [easy|easy|].
 intros p H.
 now elim H.
 Qed.
