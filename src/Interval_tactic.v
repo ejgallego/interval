@@ -690,7 +690,7 @@ Lemma remainder_correct_bis :
   contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
 move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator.
-case Halphab : (alpha <? -1)%Z => //; last by rewrite /=; split.
+case Halphab : (alpha <? -1)%Z; last by rewrite /=; split.
 have {Halphab} Halpha: (alpha < -1)%Z by rewrite -Z.ltb_lt.
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
@@ -1029,7 +1029,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               let c := constr:(proj2 (remainder_correct_bis prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
-                | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
+                | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
               end
           end
         end
