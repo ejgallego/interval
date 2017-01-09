@@ -30,6 +30,66 @@ case: m => [|p|p].
   exact: Hneg.
 Qed.
 
+Lemma powerRZ_Rpower x z : (x > 0) (* -> (z > 0)%Z *) -> powerRZ x z = Rpower x (IZR z).
+Proof.
+apply: (powerRZ_ind (fun alpha f => forall x, (x > 0) -> (* (alpha > 0)%Z -> *) f x = Rpower x (IZR alpha))) => [x0 Hx0 |n x0 Hx0 (* Hn *)|n x0 Hx0 (* Hn *) |] // .
+- by rewrite /= Rpower_O //.
+- rewrite -Rpower_pow // .
+  by rewrite INR_IZR_INZ.
+- rewrite -Rpower_pow // .
+  by rewrite -Rpower_Ropp INR_IZR_INZ opp_IZR.
+- move => f g Hfg n Hf x0 Hx0. by rewrite -Hfg Hf.
+Qed.
+
+  (* so long... *)
+Lemma powerRZ_inv x alpha : (x <> 0) -> powerRZ (/ x) alpha = / powerRZ x alpha.
+Proof.
+(* suff: forall y z, powerRZ (- y) z = power *)
+
+(* move => Hx. Search _ (pow) (_ * _).  *)
+(* rewrite !powerRZ_Rpower //. About Rpower_pow. -Rpower_Ropp. *)
+
+move => Hx.
+apply: (powerRZ_ind (fun alpha f => forall x, x<>0 -> f (/ x) = / powerRZ (x) (alpha))) => [x0 Hx0|n x0 Hx0|n x0 Hx0||] //.
+- by rewrite /=; field.
+- by rewrite -pow_powerRZ ?Rinv_pow ?pow_powerRZ.
+- elim: n => [|n Hn] // .
+  rewrite [in LHS]/=.
+  rewrite -addn1; rewrite Nat2Z.inj_add.
+  rewrite Z.opp_add_distr powerRZ_add; try by [].
+  rewrite Rinv_mult_distr; try (apply: Rinv_neq_0_compat; by []).
+  rewrite Hn /=; field.
+  by split; try lra; try exact: powerRZ_NOR.
+  by apply: pow_nonzero; apply: Rinv_neq_0_compat.
+  move => f g Hfg n Hf x0 Hx0.
+  by rewrite -Hfg Hf //.
+Qed.
+
+Lemma powerRZ_inv_neg x alpha : (x <> 0) -> powerRZ x alpha = powerRZ (/ x) (- alpha).
+Proof.
+  move => Hx.
+apply: (powerRZ_ind (fun alpha f => forall x, x<>0 -> f x = powerRZ (/ x) (- alpha))) => [x0|n x0 Hx0|n x0 Hx0||] // .
+- elim: n => [|n Hn] => // .
+  rewrite[in LHS]/= Hn.
+  have {1}->: x0 = powerRZ (/ x0) (-1).
+  by rewrite /=; field.
+  rewrite -powerRZ_add.
+  congr (powerRZ _ _).
+  by rewrite -addn1; rewrite Nat2Z.inj_add; ring.
+  exact: Rinv_neq_0_compat.
+- rewrite pow_powerRZ Z.opp_involutive.
+  by rewrite -pow_powerRZ ?Rinv_pow ?pow_powerRZ.
+- move => f g Hfg n Hf x0 Hx0.
+  rewrite -Hfg Hf //.
+Qed.
+
+Lemma powerRZ_neg_inv x alpha : (x <> 0) -> powerRZ (/ x) alpha = powerRZ x (- alpha).
+Proof.
+move => Hx.
+rewrite -[alpha]Z.opp_involutive.
+by rewrite -powerRZ_inv_neg //;rewrite Z.opp_involutive.
+Qed.
+
 Lemma is_derive_powerRZ (n : Z) (x : R):
   ((0 <= n)%Z \/ x <> 0) ->
   is_derive (fun x : R => powerRZ x n) x (IZR n * (powerRZ x (n - 1))).
@@ -120,6 +180,7 @@ is_RInt (powerRZ^~ alpha) A B
 Proof.
 apply: is_RInt_powerRZ => // .
 Qed.
+
 
 End powerRZMissing.
 
@@ -276,7 +337,7 @@ split => H P GP.
   by move => t u <-.
 Qed.
 
-Lemma prodi_to_single {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+Lemma prodi_to_single_l {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
   (G : (V -> Prop) -> Prop) x (f : T -> U -> V -> Prop) :
   filterlimi (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
   filterlimi (fun u : U => f x u) F G.
@@ -292,6 +353,26 @@ split => H P GP.
   exact: H.
   by move => t u <-.
 Qed.
+
+
+Lemma prodi_to_single_r {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : U -> T -> V -> Prop) :
+  filterlimi (fun tu : U * T => f tu.1 tu.2) (filter_prod F (at_point x)) G <->
+  filterlimi (fun u : U => f u x) F G.
+Proof.
+split => H P GP.
+- rewrite /filtermapi.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HAQ => y HRy.
+  exact: HPf.
+- specialize (H P GP).
+  econstructor.
+  exact: H.
+  exact: eq_refl.
+  move => t u /= .
+  by case => y Hy <-; exists y.
+Qed.
+
 
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
@@ -416,18 +497,18 @@ rewrite /Rpower // .
 by rewrite ln_exp.
 Qed.
 
-Lemma powerRZ_Rpower (x : R) (H : 0 < x) (z : Z) :
-  powerRZ x z = Rpower x (IZR z).
-Proof.
-apply: (powerRZ_ind (fun n f => f x = Rpower x (IZR n))) => // .
-- by rewrite Rpower_O.
-- move => n.
-  by rewrite -Rpower_pow // INR_IZR_INZ.
-- move => n.
-  by rewrite opp_IZR Rpower_Ropp -Rpower_pow // INR_IZR_INZ.
-- move => f g Hfg n Hfxn.
-  by rewrite Hfg in Hfxn; rewrite Hfxn.
-Qed.
+(* Lemma powerRZ_Rpower (x : R) (H : 0 < x) (z : Z) : *)
+(*   powerRZ x z = Rpower x (IZR z). *)
+(* Proof. *)
+(* apply: (powerRZ_ind (fun n f => f x = Rpower x (IZR n))) => // . *)
+(* - by rewrite Rpower_O. *)
+(* - move => n. *)
+(*   by rewrite -Rpower_pow // INR_IZR_INZ. *)
+(* - move => n. *)
+(*   by rewrite opp_IZR Rpower_Ropp -Rpower_pow // INR_IZR_INZ. *)
+(* - move => f g Hfg n Hfxn. *)
+(*   by rewrite Hfg in Hfxn; rewrite Hfxn. *)
+(* Qed. *)
 
 Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
   is_lim (fun x => powerRZ x (alpha + 1)%Z * (pow (ln x) beta.+1)) p_infty (0%R).
@@ -507,7 +588,7 @@ Lemma f_lim_correct alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z) :
  Bertrand_lim alpha beta A (f_lim alpha beta A).
 Proof.
 rewrite /Bertrand_lim.
-apply prodi_to_single.
+apply prodi_to_single_l.
 apply: (filterlimi_lim_ext_loc (f alpha beta A)).
   exists A => x Hx.
   apply f_correct.
@@ -705,50 +786,53 @@ End NumericTests.
 
 Section VariableChange.
 
-Lemma RInt_substitution V f phi phi' a b :
-(forall x, Rmin a b <= x <= Rmax a b -> continuous f x) ->
-(forall x, Rmin a b <= x <= Rmax a b -> continuous f (phi x)) ->
-(forall x, Rmin a b <= x <= Rmax a b -> is_derive phi x (phi' x)) ->
-(forall x, Rmin a b <= x <= Rmax a b -> continuous phi' x) ->
-(ex_RInt phi' a b) ->
-@RInt V f (phi a) (phi b) = RInt (fun x => scal (phi' x) (f (phi x))) a b.
-Proof.
-move => Hf Hfphi Hphi Hphi'cont Hexphi'.
-have H1 : forall x : R,
-  Rmin a b <= x <= Rmax a b ->
-  continuous (fun x0 : R => scal (phi' x0) (f (phi x0))) x.
-    move => x Hx; apply: continuous_scal.
-      by apply: Hphi'cont.
-      apply: continuous_comp.
-        apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi.
-        exact: Hfphi.
-suff:
-  is_RInt (fun x => scal (phi' x) (f (phi x))) a b (RInt f (phi a) (phi b)).
-  move => H.
-  apply: eq_sym.
-  exact: is_RInt_unique.
-pose F := fun x => RInt f (phi a) x.
-pose G := fun x => F (phi x).
-suff HderFphi :
-  forall x, Rmin a b <= x <= Rmax a b ->
-            is_derive G x (scal (phi' x) (f (phi x))).
-- have -> : RInt f (phi a) (phi b) = minus (G b) (G a).
-    by rewrite /G /F RInt_point minus_zero_r.
-  apply: (is_RInt_derive _ _ _ _ HderFphi).
-    + move => x Hx; apply: continuous_scal.
-        by apply: Hphi'cont.
-      apply: continuous_comp.
-        by apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi.
-      exact: Hfphi.
-- move => x Hx.
-  rewrite /G.
-  apply: (is_derive_comp F phi x (f (phi x)) (phi' x)); last exact: Hphi.
-  apply: is_derive_RInt => //; last exact: Hfphi.
-Admitted. (* Something is missing somewhere in the hypotheses *)
+Variable V : CompleteNormedModule R_AbsRing.
+
+(* Lemma RInt_substitution (f : R -> V) (phi phi' : R -> R) a b : *)
+(* (forall x, Rmin a b <= x <= Rmax a b -> continuous f x) -> *)
+(* (forall x, Rmin a b <= x <= Rmax a b -> continuous f (phi x)) -> *)
+(* (forall x, Rmin a b <= x <= Rmax a b -> is_derive phi x (phi' x)) -> *)
+(* (forall x, Rmin a b <= x <= Rmax a b -> continuous phi' x) -> *)
+(* (forall x, Rmin a b <= x <= Rmax a b -> phi' x > 0) -> *)
+(* (ex_RInt phi' a b) -> *)
+(* RInt f (phi a) (phi b) = RInt (fun x => scal (phi' x) (f (phi x))) a b. *)
+(* Proof. *)
+(* move => Hf Hfphi Hphi Hphi'cont Hphi'pos Hexphi' . *)
+(* have H1 : forall x : R, *)
+(*   Rmin a b <= x <= Rmax a b -> *)
+(*   continuous (fun x0 : R => scal (phi' x0) (f (phi x0))) x. *)
+(*     move => x Hx; apply: continuous_scal. *)
+(*       by apply: Hphi'cont. *)
+(*       apply: continuous_comp. *)
+(*         apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi. *)
+(*         exact: Hfphi. *)
+(* suff: *)
+(*   is_RInt (fun x => scal (phi' x) (f (phi x))) a b (RInt f (phi a) (phi b)). *)
+(*   move => H. *)
+(*   apply: eq_sym. *)
+(*   exact: is_RInt_unique. *)
+(* pose F := fun x => RInt f (phi a) x. *)
+(* pose G := fun x => F (phi x). *)
+(* suff HderFphi : *)
+(*   forall x, Rmin a b <= x <= Rmax a b -> *)
+(*             is_derive G x (scal (phi' x) (f (phi x))). *)
+(* - have -> : RInt f (phi a) (phi b) = minus (G b) (G a). *)
+(*     by rewrite /G /F RInt_point minus_zero_r. *)
+(*   apply: (is_RInt_derive _ _ _ _ HderFphi). *)
+(*     + move => x Hx; apply: continuous_scal. *)
+(*         by apply: Hphi'cont. *)
+(*       apply: continuous_comp. *)
+(*         by apply: ex_derive_continuous; apply: ex_derive_is_derive; exact: Hphi. *)
+(*       exact: Hfphi. *)
+(* - move => x Hx. *)
+(*   rewrite /G. *)
+(*   apply: (is_derive_comp F phi x (f (phi x)) (phi' x)); last exact: Hphi. *)
+(*   apply: is_derive_RInt => //; last exact: Hfphi. *)
+(* Admitted. (* Something is missing somewhere in the hypotheses *) *)
 
 End VariableChange.
 
-(*
+
 Section ZeroToEpsilon.
 
 (*
@@ -757,41 +841,157 @@ The following definition stems from the fact that
 RInt_gen (u^(2 - alpha) * (ln u) ^ beta) (1/eps) p_infty
 *)
 
-Definition f0eps (alpha : Z) (beta : nat) (epsilon : R) :=
-  f_lim (2 - alpha) beta (1 / epsilon).
+Definition f0eps (alpha : Z) (beta : nat) (epsilon : R) (B : R) :=
+  - f (2 - alpha) beta (1 / epsilon) B.
 
-Lemma f0eps_correct alpha beta epsilon (Heps : 0 < epsilon) (Halpha : 1 < IZR alpha) :
-  is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps alpha beta epsilon).
+Definition f0eps_lim (alpha : Z) (beta : nat) (epsilon : R) :=
+  - f_lim (2 - alpha) beta (1 / epsilon).
+
+
+Lemma pow_negx x n : pow (- x) n = (pow (-1) n) * pow x n.
+  have -> : - x = -1 * x by ring.
+  by rewrite Rpow_mult_distr.
+Qed.
+
+Lemma subst_lemma alpha beta epsilon (eta : R) (Heps : 0 < epsilon) (Heta : 0 < eta <= epsilon) (Halpha : 1 < IZR alpha) :
+  RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_point eta) (at_point epsilon) = - RInt (fun x => - (pow (-1) beta) * powerRZ x (- 2 - alpha) * (pow (ln x) beta)) (1 / epsilon) (1 / eta).
 Proof.
-rewrite /is_RInt_gen.
-exists (fun xab => RInt (fun x => powerRZ x alpha * (pow (ln x) beta)) (fst xab) (snd xab)).
-split.
-- econstructor.
-  pose Q := (fun x => x > 0).
+  have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) eta epsilon.
+  eexists.
+  apply: f_correct => // .
+  suff: (1 < alpha)%Z by lia.
+  apply: lt_IZR => // .
+  (* should be a lemma *)
+  have -> : RInt_gen (fun x : R => powerRZ x alpha * ln x ^ beta) (at_point eta) (at_point epsilon) = RInt (fun x : R => powerRZ x alpha * ln x ^ beta) eta epsilon.
+    apply is_RInt_gen_unique; rewrite is_RInt_gen_at_point.
+    exact: RInt_correct => // .
+  pose g := fun x => Rinv x.
+  pose dg := fun x => - 1 / x^2.
+  have {1}-> : 1 / eta = (g eta).
+    by rewrite /g; field; lra.
+  have {1}-> : 1 / epsilon = (g epsilon).
+    by rewrite /g; field; lra.
+  rewrite -(RInt_comp _ _ dg).
+  rewrite -opp_RInt_swap ; first congr (opp _); last by apply: ex_RInt_swap.
+  symmetry; apply: RInt_ext; last exact: ex_RInt_swap.
+  move => x Hx.
+  rewrite Rmin_right in Hx; try lra.
+  rewrite Rmax_left in Hx; try lra.
+  have Hxneg0 : x <> 0 by lra.
+  have Hinv : / x <> 0.
+    by apply: Rinv_neq_0_compat.
+  have -> : scal (dg x)(- (-1) ^ beta * powerRZ (g x) (-2 - alpha) * ln (g x) ^ beta) =
+            (dg x) * (- (-1) ^ beta * powerRZ (g x) (-2 - alpha) * ln (g x) ^ beta) by [].
+  rewrite /dg /g.
+  rewrite powerRZ_add ?ln_Rinv; try lra.
+  rewrite powerRZ_neg_inv //= .
+  rewrite [(- ln x) ^beta] pow_negx.
+  rewrite -[powerRZ _ _ * ln _ ^_ ]Rmult_1_l.
+  have {6}-> : 1 = (-1)^beta * (-1)^beta.
+  rewrite -Rpow_mult_distr.
+  have -> : -1 * -1 = 1 by ring. by rewrite pow1.
+  rewrite powerRZ_neg_inv ?Z.opp_involutive //= .
+  field; lra.
+  move => x Hx.
+  rewrite Rmin_right in Hx; try lra.
+  rewrite Rmax_left in Hx; try lra.
+  apply: continuous_mult.
+    apply: continuous_mult.
+      exact: continuous_const.
+    apply: ex_derive_continuous.
+    apply: ex_derive_powerRZ.
+    by rewrite /g; right; apply: Rinv_neq_0_compat; lra.
+  rewrite /g.
+  apply: continuous_ext.
+    move => x0.
+    by rewrite pow_powerRZ.
+  apply: (continuous_comp ln (fun x => powerRZ x (Z.of_nat beta))).
+    by apply: continuous_ln; apply: Rinv_0_lt_compat; lra.
+  apply: ex_derive_continuous.
+    by apply: ex_derive_powerRZ; left; apply: Zle_0_nat.
+  move => x Hx.
+  rewrite Rmin_right in Hx; try lra.
+  rewrite Rmax_left in Hx; try lra.
+  split.
+    rewrite /g /dg.
+    apply: (is_derive_inv (fun x => x) x 1); last by lra.
+    exact: is_derive_id.
+  rewrite /dg.
+  apply: continuous_mult; first exact: continuous_const.
+  apply: continuous_Rinv_comp.
+    apply: (continuous_ext (fun t => t * t)) => [t|].
+      by rewrite pow_powerRZ /=; ring.
+    by apply: continuous_mult; exact: continuous_id.
+  by apply: pow_nonzero; lra.
+Qed.
+
+Lemma f0eps_correct alpha beta epsilon (B : R) (Heps : 0 < 1 / B <= epsilon) (HB : 0 < B) (Halpha : 1 < IZR alpha) :
+  is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_point (1 / B)) (at_point epsilon) (f0eps alpha beta epsilon B).
+Proof.
+  have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) (1 / B) epsilon.
+  eexists.
+  apply: f_correct => // .
+  suff: (1 < alpha)%Z by lia.
+  apply: lt_IZR => // .
+
+  rewrite is_RInt_gen_at_point.
+  Search _ is_RInt RInt.
+  suff: f0eps alpha beta epsilon B = RInt (fun x : R => powerRZ x alpha * ln x ^ beta) (1/B) epsilon.
+    by move ->; apply: RInt_correct.
+    rewrite -RInt_gen_at_point.
+    rewrite subst_lemma.
+    symmetry.
+
+Abort.
+
+Lemma f0eps_lim_correct alpha beta epsilon (Heps : 0 < epsilon) (Halpha : 1 < IZR alpha) :
+  is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps_lim alpha beta epsilon).
+Proof.
+  rewrite /f0eps.
+  rewrite /is_RInt_gen.
+(* econstructor. *)
+
+
+(* exists (fun xab => RInt (fun x => powerRZ x alpha * (pow (ln x) beta)) (fst xab) (snd xab)). *)
+(* split. *)
+  - econstructor.
+
+  pose Q := (fun x => x > 0 /\ x < epsilon).
   have : at_right 0 Q.
   rewrite /at_right /within /locally.
   exists (mkposreal epsilon Heps).
-  by move => y _.
+  move => y Hy1 Hy2. rewrite /Q. split. exact: Hy2.
+  move: Hy1. rewrite /ball /= /AbsRing_ball /abs /=. rewrite Rabs_right /= /minus /opp /plus /=; try lra.
   apply.
-  exact: at_point_refl.
+  pose R := (fun (x : R) => x=epsilon).
+  have: at_point epsilon R.
+  by rewrite /at_point /R.
+  by apply.
   move => /= x y Hx Hy.
-  rewrite /= .
+  eexists; split.
   apply: RInt_correct.
-  apply: ex_RInt_continuous => z Hz.
-  apply: continuous_mult.
-  apply: ex_derive_continuous.
-  apply: ex_derive_powerRZ.
-  case: Hz.
-  have := (Rmin_Rle x y z).
-  lra.
-  apply: ex_derive_continuous.
-  apply: ex_derive_pow.
-  apply: ex_derive_is_derive.
-  apply: is_derive_ln.
-  case: Hz.
-  have := (Rmin_Rle x y z). lra.
+  admit.
+  case: H => eta Heta.
+  apply: Heta.
+  (* apply f_correct. lra. *)
+  (* Search _ Bertrand. admit. *)
+  (* rewrite /locally in H. *)
+  (* rewrite /= . *)
+  (* apply: RInt_correct. *)
+  (* apply: ex_RInt_continuous => z Hz. *)
+  (* apply: continuous_mult. *)
+  (* apply: ex_derive_continuous. *)
+  (* apply: ex_derive_powerRZ. *)
+  (* case: Hz. *)
+  (* have := (Rmin_Rle x y z). *)
+  (* lra. *)
+  (* apply: ex_derive_continuous. *)
+  (* apply: ex_derive_pow. *)
+  (* apply: ex_derive_is_derive. *)
+  (* apply: is_derive_ln. *)
+  (* case: Hz. *)
+  (* have := (Rmin_Rle x y z). lra. *)
 (* Here I realize we do not have a theorem for changing bounds *)
 Abort.
 
 End ZeroToEpsilon.
-*)
