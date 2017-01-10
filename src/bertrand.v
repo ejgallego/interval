@@ -44,11 +44,6 @@ Qed.
   (* so long... *)
 Lemma powerRZ_inv x alpha : (x <> 0) -> powerRZ (/ x) alpha = / powerRZ x alpha.
 Proof.
-(* suff: forall y z, powerRZ (- y) z = power *)
-
-(* move => Hx. Search _ (pow) (_ * _).  *)
-(* rewrite !powerRZ_Rpower //. About Rpower_pow. -Rpower_Ropp. *)
-
 move => Hx.
 apply: (powerRZ_ind (fun alpha f => forall x, x<>0 -> f (/ x) = / powerRZ (x) (alpha))) => [x0 Hx0|n x0 Hx0|n x0 Hx0||] //.
 - by rewrite /=; field.
@@ -832,6 +827,9 @@ Variable V : CompleteNormedModule R_AbsRing.
 
 End VariableChange.
 
+Section ExponentInQ.
+
+End ExponentInQ.
 
 Section ZeroToEpsilon.
 
@@ -854,7 +852,14 @@ Lemma pow_negx x n : pow (- x) n = (pow (-1) n) * pow x n.
 Qed.
 
 Lemma subst_lemma alpha beta epsilon (eta : R) (Heps : 0 < epsilon) (Heta : 0 < eta <= epsilon) (Halpha : 1 < IZR alpha) :
-  RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_point eta) (at_point epsilon) = - RInt (fun x => - (pow (-1) beta) * powerRZ x (- 2 - alpha) * (pow (ln x) beta)) (1 / epsilon) (1 / eta).
+  RInt_gen
+    (fun x => powerRZ x alpha * pow (ln x) beta)
+    (at_point eta)
+    (at_point epsilon) =
+  - RInt
+      (fun x => - (pow (-1) beta) * powerRZ x (- 2 - alpha) * (pow (ln x) beta))
+      (1 / epsilon)
+      (1 / eta).
 Proof.
   have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) eta epsilon.
   eexists.
