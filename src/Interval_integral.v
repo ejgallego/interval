@@ -29,6 +29,8 @@ Require Import Interval_taylor_model.
 
 Require Import interval_compl.
 
+Require Import Psatz.
+
 Section Missing.
 
 Lemma filter_prod_at_point_infty :
@@ -46,6 +48,31 @@ apply (Filter_prod _ _ _ (fun x => x = a) (fun x => a < x)).
   split.
   apply Rle_refl.
   now apply Rlt_le.
+Qed.
+
+
+Lemma filter_prod_at_point :
+  forall {T F} { FF : Filter F} a (P : R -> T -> Prop) Q,
+  F Q ->
+  (forall y, Q y -> P a y) ->
+  filter_prod (at_point a) F
+  (fun ab : R * T => P ab.1 ab.2).
+Proof.
+intros T F FF a P Q FQ HQ.
+apply: (Filter_prod _ _ _ (fun x => x = a) Q) => // .
+- move => x y -> /= H.
+  exact: HQ.
+Qed.
+
+Lemma at_point_filter_prod :
+  forall {T F} { FF : Filter F} a (P : R -> T -> Prop),
+  filter_prod (at_point a) F
+              (fun ab : R * T => P ab.1 ab.2) ->
+  F (P a).
+Proof.
+move => T F FF a P [Q R inQ inR H].
+apply: filter_imp inR.
+move => x; exact: H.
 Qed.
 
 Lemma filterlimi_const_loc {T} {U : UniformSpace}
@@ -151,16 +178,35 @@ Lemma ex_RInt_gen_cauchy {V : CompleteNormedModule R_AbsRing}
   (a : R) (f : R -> V) :
   ex_RInt_gen f (at_point a) Fb <->
   (filter_prod (at_point a) Fb (fun ab => ex_RInt f ab.1 ab.2) /\
-  is_RInt_gen f Fb Fb zero).
+   forall eps : posreal, exists P,
+     Fb P /\
+     (forall u v,
+        P u -> P v ->
+        forall I, is_RInt f u v I -> norm I <= eps)).
 Proof.
 split.
 - intros [If HIf].
   split.
   apply ex_RInt_ex_RInt_gen.
   now exists If.
-  rewrite -(plus_opp_l If).
-  apply: is_RInt_gen_Chasles (HIf).
-  exact: is_RInt_gen_swap.
+  move => eps.
+  exists (fun x => forall I, is_RInt f a x I -> ball_norm If (pos_div_2 eps) I).
+  split.
+    -assert (Hb: locally If (ball_norm If (pos_div_2 eps))).
+      exact: locally_ball_norm.
+      have toto := (HIf _ Hb).
+      rewrite /filtermapi in toto.
+      pose K x1 x2 :=
+        exists y : V, is_RInt f x1 x2 y /\
+                      ball_norm If (pos_div_2 eps) y.
+      assert (titi := at_point_filter_prod a K toto).
+      apply: filter_imp titi => x [y [Hy1 Hy2]] I HI.
+      rewrite -(is_RInt_unique _ _ _ _ HI).
+      by rewrite  (is_RInt_unique _ _ _ _ Hy1).
+    - move => u v Hu Hv I HI.
+        admit.
+
+
 - intros [Hab Hb].
   refine (proj1 (filterlimi_locally_cauchy _ _) _).
     apply: filter_imp Hab.
@@ -170,29 +216,72 @@ split.
     rewrite -(is_RInt_unique _ _ _ _ H1).
     exact: is_RInt_unique.
   intros eps.
-  destruct (Hb (ball_norm zero eps)) as [Qb Rb FbQb FbRb Hb'].
-  apply locally_ball_norm.
-  exists (fun ab => ab.1 = a /\ Qb ab.2 /\ Rb ab.2).
+  destruct (Hb (pos_div_2 eps)) as [Qb [FbQb H]].
+  exists (fun ab => ab.1 = a /\ Qb ab.2).
   split.
     eexists (fun x => x = a) _.
     easy.
-    apply (filter_and _ _ FbQb FbRb).
+    exact: FbQb.
     easy.
-  intros [u1 u2] [v1 v2] [-> [Qbu2 Rbu2]] [-> [Qbv2 Rbv2]] I1 I2 HI1 HI2.
+  intros [u1 u2] [v1 v2] [-> Qbu2] [-> Qbv2] I1 I2 HI1 HI2.
   apply: norm_compat1.
-  destruct (Hb' _ _ Qbu2 Rbv2) as [I [HI HI']].
   unfold minus.
   apply is_RInt_swap in HI1.
-  rewrite -(is_RInt_unique _ _ _ _ HI1).
-  rewrite -(is_RInt_unique _ _ _ _ HI2).
-  rewrite plus_comm RInt_Chasles.
-  revert HI'.
-  by rewrite /ball_norm minus_zero_r -(is_RInt_unique _ _ _ _ HI).
-  eexists.
-  exact HI1.
-  eexists.
-  exact HI2.
-Qed.
+  have HC := (is_RInt_Chasles _ _ _ _ _ _ HI1 HI2).
+  rewrite plus_comm.
+  move: (H _ _ Qbu2 Qbv2) => /= .
+  move => /(_ _ HC) Hle.
+  apply: Rle_lt_trans Hle _.
+  move: (cond_pos eps); lra.
+Admitted.
+
+(* Lemma ex_RInt_gen_cauchy {V : CompleteNormedModule R_AbsRing} *)
+(*   {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb} *)
+(*   (a : R) (f : R -> V) : *)
+(*   ex_RInt_gen f (at_point a) Fb <-> *)
+(*   (filter_prod (at_point a) Fb (fun ab => ex_RInt f ab.1 ab.2) /\ *)
+(*   is_RInt_gen f Fb Fb zero). *)
+(* Proof. *)
+(* split. *)
+(* - intros [If HIf]. *)
+(*   split. *)
+(*   apply ex_RInt_ex_RInt_gen. *)
+(*   now exists If. *)
+(*   rewrite -(plus_opp_l If). *)
+(*   apply: is_RInt_gen_Chasles (HIf). *)
+(*   exact: is_RInt_gen_swap. *)
+(* - intros [Hab Hb]. *)
+(*   refine (proj1 (filterlimi_locally_cauchy _ _) _). *)
+(*     apply: filter_imp Hab. *)
+(*     move => /= [a' b'] /= HIf. *)
+(*     apply (conj HIf). *)
+(*     intros y1 y2 H1 H2. *)
+(*     rewrite -(is_RInt_unique _ _ _ _ H1). *)
+(*     exact: is_RInt_unique. *)
+(*   intros eps. *)
+(*   destruct (Hb (ball_norm zero eps)) as [Qb Rb FbQb FbRb Hb']. *)
+(*   apply locally_ball_norm. *)
+(*   exists (fun ab => ab.1 = a /\ Qb ab.2 /\ Rb ab.2). *)
+(*   split. *)
+(*     eexists (fun x => x = a) _. *)
+(*     easy. *)
+(*     apply (filter_and _ _ FbQb FbRb). *)
+(*     easy. *)
+(*   intros [u1 u2] [v1 v2] [-> [Qbu2 Rbu2]] [-> [Qbv2 Rbv2]] I1 I2 HI1 HI2. *)
+(*   apply: norm_compat1. *)
+(*   destruct (Hb' _ _ Qbu2 Rbv2) as [I [HI HI']]. *)
+(*   unfold minus. *)
+(*   apply is_RInt_swap in HI1. *)
+(*   rewrite -(is_RInt_unique _ _ _ _ HI1). *)
+(*   rewrite -(is_RInt_unique _ _ _ _ HI2). *)
+(*   rewrite plus_comm RInt_Chasles. *)
+(*   revert HI'. *)
+(*   by rewrite /ball_norm minus_zero_r -(is_RInt_unique _ _ _ _ HI). *)
+(*   eexists. *)
+(*   exact HI1. *)
+(*   eexists. *)
+(*   exact HI2. *)
+(* Qed. *)
 
 End Missing.
 
@@ -682,6 +771,7 @@ Lemma integral_interval_mul_infty :
   (forall x, a <= x -> contains (I.convert fi) (Xreal (f x))) ->
   I.bounded fi ->
   (forall x, a <= x -> continuous f x) ->
+  (forall x, a <= x -> continuous g x) ->
   (forall x, a <= x -> 0 <= g x) ->
   is_RInt_gen g (at_point a) (Rbar_locally p_infty) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
@@ -689,7 +779,7 @@ Lemma integral_interval_mul_infty :
   is_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_infty) Ifg /\
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
-intros prec a ia f fi g Ig Igi Hia Hf Hfi Cf Hg HIg HIg'.
+intros prec a ia f fi g Ig Igi Hia Hf Hfi Cf Cg Hg HIg HIg'.
 move: (bounded_ex Hfi) => [] l [] u HiFia.
 have Hgoodorder_bis : forall x, a <= x -> l <= f x <= u.
   move => x0 Hax0.
@@ -746,7 +836,47 @@ apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x
   now apply Rle_trans with m.
 refine (proj2 (ex_RInt_gen_cauchy _ _) _).
 split.
-apply filter_prod_at_point_infty.
+- apply: filter_prod_at_point_infty.
+  move => x y Hxay; apply: ex_RInt_continuous => z Hz.
+  rewrite Rmin_left in Hz; last by lra.
+  rewrite Rmax_right in Hz; last by lra.
+  apply: continuous_mult.
+    by apply: Cf; lra.
+    by apply: Cg; lra.
+- move => eps.
+  case: (proj1 (ex_RInt_gen_cauchy _ _) (ex_intro _ _  HIg)) => Hexg Heps.
+  set eps1 := eps / (1 + Rmax (Rabs l) (Rabs u)).
+  have eps1_pos : 0 < eps1 by admit.
+  set pos_eps1 := mkposreal eps1 eps1_pos.
+  case: (Heps (pos_eps1)) => Peps1 [HPinf HPint].
+  assert(Hand := filter_and _ _ (at_point_filter_prod _ _ Hexg) HPinf).
+  eexists; split. exact: Hand.
+  move => u0 v0 [Hu1 Hu2] [Hv1 Hv2] I HisInt.
+  have [Ig' HIg'']: ex_RInt g u0 v0.
+    apply: ex_RInt_Chasles Hv1.
+    exact: ex_RInt_swap.
+  move: (HPint u0 v0 Hu2 Hv2 Ig' HIg'') => {HPint} HPint.
+  suff Hineq: norm I <= (1 + Rmax (Rabs l) (Rabs u)) * norm Ig'.
+  apply: Rle_trans Hineq _.
+  rewrite /pos_eps1 /eps1 /=  in HPint.
+  have ->: eps = (1 + Rmax (Rabs l) (Rabs u)) * (eps / (1 + Rmax (Rabs l) (Rabs u))) :> R .
+    field. admit.
+  apply: Rmult_le_compat_l HPint. admit.
+  apply: norm_RInt_le HisInt _.
+  admit.
+  move => x Hx.
+  Focus 2.
+  apply: is_RInt_scal.
+  suff -> : norm Ig' = Ig'.
+  exact: HIg''.
+  admit. (* g is positive *)
+  rewrite /=. Search _ (norm _ <= _) Rmult.
+  eapply Rle_trans.
+  apply: norm_scal. rewrite /norm /= /abs /= .
+  rewrite (Rabs_pos_eq (g x)).
+  apply: Rmult_le_compat_r. apply: Hg. admit.
+  admit.
+  admit.
 Admitted.
 
 End IntegralTactic.
