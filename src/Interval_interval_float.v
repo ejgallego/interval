@@ -1548,8 +1548,8 @@ Theorem div_mixed_r_correct :
   forall prec yf,
   extension (fun x => Xdiv x (F.toX yf)) (fun xi => div_mixed_r prec xi yf).
 Proof.
-intros prec yf [ | xl xu] [x | ] ; try easy.
-intros y (Hxl, Hxu).
+intros prec yf [ | xl xu] [ | x] ; try easy.
+intros [Hxl Hxu].
 simpl.
 rewrite F.cmp_correct, F.zero_correct.
 xreal_tac2.

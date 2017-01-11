@@ -1,3 +1,6 @@
+Version 3.1.1:
+ - ensured compatibility with Coq 8.6
+
 Version 3.1.0:
  - improved tactic so that it can be used with backtracking tacticals (try, ||)
  - fixed ineffective computation of integrals with reverted or overlapping bounds

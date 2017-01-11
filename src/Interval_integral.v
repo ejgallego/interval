@@ -84,13 +84,13 @@ exact: is_RInt_const.
 Qed.
 
 (* TODO: find better name *)
-Lemma is_RInt_gen_filterlim {Fa Fb : (R -> Prop) -> Prop}
-  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (lf : R) (Hlf : is_RInt_gen f Fa Fb lf) :
-  filterlim (fun x => RInt f x.1 x.2) (filter_prod Fa Fb) (Rbar_locally lf).
+Lemma is_RInt_gen_filterlim {V : CompleteNormedModule R_AbsRing}
+  {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> V) (lf : V) :
+  is_RInt_gen f Fa Fb lf ->
+  filterlim (fun x => RInt f x.1 x.2) (filter_prod Fa Fb) (locally lf).
 Proof.
-rewrite /is_RInt_gen /filterlimi /filtermapi /filter_le in Hlf.
-rewrite /filterlim /filter_le /filtermap.
-move => P HlfP.
+move => Hlf P HlfP.
 have := (Hlf P HlfP).
 case => Q R HFa HFb.
 econstructor.
@@ -102,22 +102,20 @@ by move: (is_RInt_unique f x y _ HRInt ) => ->.
 Qed.
 
 (* very inelegant *)
-Lemma is_RInt_gen_is_RInt {Fa Fb : (R -> Prop) -> Prop}
-  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> R) (lf : R) (Hlf : is_RInt_gen f Fa Fb lf) :
-  (filter_prod Fa Fb (fun ab => is_RInt f ab.1 ab.2 (RInt f ab.1 ab.2))) .
+Lemma ex_RInt_ex_RInt_gen {V : CompleteNormedModule R_AbsRing}
+  {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f : R -> V) :
+  ex_RInt_gen f Fa Fb ->
+  (filter_prod Fa Fb (fun ab => ex_RInt f ab.1 ab.2)).
 Proof.
-rewrite /is_RInt_gen /filterlimi /filtermapi /filter_le in Hlf.
+intros [lf Hlf].
 have := (Hlf (fun _ => True)).
-have toto : posreal.
-  exists 1%R; exact: Rlt_0_1.
-case. exists toto; by move => y Hy.
+case. now exists (mkposreal _ Rlt_0_1).
 move => Q R HFaQ HFbR His_RInt.
-econstructor.
-exact: HFaQ.
-exact: HFbR.
+apply: Filter_prod HFaQ HFbR _.
 move => x y HQx HRy.
 case: (His_RInt x y HQx HRy) => I [H _].
-by move: (is_RInt_unique f x y _ H) => ->.
+now exists I.
 Qed.
 
 (* very inelegant again *)
@@ -132,20 +130,68 @@ Proof.
 move => Hab Hle.
 move => Hlf Hlg.
 apply (filterlim_le (F := filter_prod Fa Fb) (fun x => RInt f x.1 x.2) (fun x => RInt g x.1 x.2) lf lg).
-apply: (filter_imp (fun x => is_RInt f x.1 x.2 (RInt f x.1 x.2) /\ is_RInt g x.1 x.2 (RInt g x.1 x.2) /\ (forall y, x.1 <= y <= x.2 -> f y <= g y) /\ x.1 <= x.2)).
+apply: (filter_imp (fun x => ex_RInt f x.1 x.2 /\ ex_RInt g x.1 x.2 /\ (forall y, x.1 <= y <= x.2 -> f y <= g y) /\ x.1 <= x.2)).
 move => x [H1 [H2 [H3 H4]]].
 apply: RInt_le => // .
-by exists (RInt f x.1 x.2).
-by exists (RInt g x.1 x.2).
 move => x0 Hx0. have:= H3 x0. apply.
-by move: Hx0 => []; split; apply: Rlt_le.
+by split; now apply Rlt_le.
 apply: filter_and.
-apply: is_RInt_gen_is_RInt; exact: Hlf.
+apply: ex_RInt_ex_RInt_gen.
+now exists lf.
 apply: filter_and.
-apply: is_RInt_gen_is_RInt; exact: Hlg.
+apply: ex_RInt_ex_RInt_gen.
+now exists lg.
 apply: filter_and => // .
 exact: is_RInt_gen_filterlim.
 exact: is_RInt_gen_filterlim.
+Qed.
+
+Lemma ex_RInt_gen_cauchy {V : CompleteNormedModule R_AbsRing}
+  {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb}
+  (a : R) (f : R -> V) :
+  ex_RInt_gen f (at_point a) Fb <->
+  (filter_prod (at_point a) Fb (fun ab => ex_RInt f ab.1 ab.2) /\
+  is_RInt_gen f Fb Fb zero).
+Proof.
+split.
+- intros [If HIf].
+  split.
+  apply ex_RInt_ex_RInt_gen.
+  now exists If.
+  rewrite -(plus_opp_l If).
+  apply: is_RInt_gen_Chasles (HIf).
+  exact: is_RInt_gen_swap.
+- intros [Hab Hb].
+  refine (proj1 (filterlimi_locally_cauchy _ _) _).
+    apply: filter_imp Hab.
+    move => /= [a' b'] /= HIf.
+    apply (conj HIf).
+    intros y1 y2 H1 H2.
+    rewrite -(is_RInt_unique _ _ _ _ H1).
+    exact: is_RInt_unique.
+  intros eps.
+  destruct (Hb (ball_norm zero eps)) as [Qb Rb FbQb FbRb Hb'].
+  apply locally_ball_norm.
+  exists (fun ab => ab.1 = a /\ Qb ab.2 /\ Rb ab.2).
+  split.
+    eexists (fun x => x = a) _.
+    easy.
+    apply (filter_and _ _ FbQb FbRb).
+    easy.
+  intros [u1 u2] [v1 v2] [-> [Qbu2 Rbu2]] [-> [Qbv2 Rbv2]] I1 I2 HI1 HI2.
+  apply: norm_compat1.
+  destruct (Hb' _ _ Qbu2 Rbv2) as [I [HI HI']].
+  unfold minus.
+  apply is_RInt_swap in HI1.
+  rewrite -(is_RInt_unique _ _ _ _ HI1).
+  rewrite -(is_RInt_unique _ _ _ _ HI2).
+  rewrite plus_comm RInt_Chasles.
+  revert HI'.
+  by rewrite /ball_norm minus_zero_r -(is_RInt_unique _ _ _ _ HI).
+  eexists.
+  exact HI1.
+  eexists.
+  exact HI2.
 Qed.
 
 End Missing.
@@ -644,23 +690,18 @@ Lemma integral_interval_mul_infty :
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
 intros prec a ia f fi g Ig Igi Hia Hf Hfi Cf Hg HIg HIg'.
-suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_infty).
-exists Ifg.
-apply (conj HIfg).
-case HiFia : (I.convert fi) => [| l u ].
-  by rewrite I.mul_propagate_l.
-move: (bounded_ex Hfi) => [] x [] y.
-case Hl : l HiFia => [|l1] HiFia; rewrite HiFia // .
-case Hu : u HiFia => [|u1] => HiFia // _.
-have HIntl : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) (scal l1 Ig).
-  by apply: is_RInt_gen_scal.
-have HIntu : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) (scal u1 Ig).
-  by apply: is_RInt_gen_scal.
-have Hgoodorder_bis : forall x, a <= x -> l1 <= f x <= u1.
+move: (bounded_ex Hfi) => [] l [] u HiFia.
+have Hgoodorder_bis : forall x, a <= x -> l <= f x <= u.
   move => x0 Hax0.
   move: (Hf _ Hax0).
   by rewrite HiFia.
-have Hgoodorder : l1 <= u1.
+suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_infty).
+exists Ifg.
+have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_point a) (Rbar_locally p_infty) (scal l Ig).
+  by apply: is_RInt_gen_scal.
+have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_point a) (Rbar_locally p_infty) (scal u Ig).
+  by apply: is_RInt_gen_scal.
+have Hgoodorder : l <= u.
   move: (Hgoodorder_bis a (Rle_refl a)).
   intros [H1 H2].
   exact: Rle_trans H1 H2.
@@ -674,19 +715,16 @@ have intgpos : 0 <= Ig.
     apply Hg.
     now apply Rle_trans with m.
   + exact: is_RInt_gen_0.
-apply: (contains_connected _ (scal l1 Ig) (scal u1 Ig)).
+apply (conj HIfg).
+apply: (contains_connected _ (scal l Ig) (scal u Ig)).
 apply: J.mul_correct => // .
   rewrite HiFia.
   exact: (conj (Rle_refl _)).
 apply: J.mul_correct => // .
   rewrite HiFia.
   exact: conj (Rle_refl _).
-have HIntl1 : is_RInt_gen (fun x => scal l1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal l1 Ig)).
-  exact: is_RInt_gen_scal => // .
-have HIntu1 : is_RInt_gen (fun x => scal u1 (g x)) (at_point a) (Rbar_locally p_infty) ((scal u1 Ig)).
-  exact: is_RInt_gen_scal => // .
 split.
-apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l1 (g x)) (fun x => scal (f x) (g x)) _ _) => // .
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l (g x)) (fun x => scal (f x) (g x)) _ _) => // .
   now apply filter_prod_at_point_infty.
   apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> _ <= _)).
   intros m n [Hm _] o [Ho _].
@@ -696,7 +734,7 @@ apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal l1 (
   now apply Rle_trans with m.
   apply Hgoodorder_bis.
   now apply Rle_trans with m.
-apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x) (g x)) (fun x => scal u1 (g x)) _ _) => // .
+apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x) (g x)) (fun x => scal u (g x)) _ _) => // .
   now apply filter_prod_at_point_infty.
   apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> _ <= _)).
   intros m n [Hm _] o [Ho _].
@@ -706,7 +744,9 @@ apply: (@RInt_gen_le (at_point a) (Rbar_locally p_infty) _ _ (fun x => scal (f x
   now apply Rle_trans with m.
   apply Hgoodorder_bis.
   now apply Rle_trans with m.
-admit.
+refine (proj2 (ex_RInt_gen_cauchy _ _) _).
+split.
+apply filter_prod_at_point_infty.
 Admitted.
 
 End IntegralTactic.

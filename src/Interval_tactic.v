@@ -81,7 +81,7 @@ Ltac get_float t :=
       | xO ?v =>
         let u := constr:(Zsucc e) in
         aux v u
-      | _ => constr:(m, e)
+      | _ => constr:((m, e))
       end in
     let m := get_mantissa t in
     let v := aux m Z0 in
@@ -690,7 +690,7 @@ Lemma remainder_correct_bis :
   contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
 move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_infty estimator.
-case Halphab : (alpha <? -1)%Z => //; last by rewrite /=; split.
+case Halphab : (alpha <? -1)%Z; last by rewrite /=; split.
 have {Halphab} Halpha: (alpha < -1)%Z by rewrite -Z.ltb_lt.
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
@@ -756,11 +756,11 @@ Inductive expr :=
 Ltac list_add a l :=
   let rec aux a l n :=
     match l with
-    | nil        => constr:(n, cons a l)
-    | cons a _   => constr:(n, l)
+    | nil        => constr:((n, cons a l))
+    | cons a _   => constr:((n, l))
     | cons ?x ?l =>
       match aux a l (S n) with
-      | (?n, ?l) => constr:(n, cons x l)
+      | (?n, ?l) => constr:((n, cons x l))
       end
     end in
   aux a l O.
@@ -771,13 +771,13 @@ Ltac reify t l :=
     | false =>
       let aux_u o a :=
         match aux a l with
-        | (?u, ?l) => constr:(Eunary o u, l)
+        | (?u, ?l) => constr:((Eunary o u, l))
         end in
       let aux_b o a b :=
         match aux b l with
         | (?v, ?l) =>
           match aux a l with
-          | (?u, ?l) => constr:(Ebinary o u v, l)
+          | (?u, ?l) => constr:((Ebinary o u v, l))
           end
         end in
       match t with
@@ -803,13 +803,13 @@ Ltac reify t l :=
       | Rmult ?a (Rinv ?b) => aux_b Div a b
       | _ =>
         match list_add t l with
-        | (?n, ?l) => constr:(Econst n, l)
+        | (?n, ?l) => constr:((Econst n, l))
         end
       end
     | ?f =>
       let u := constr:(I.T.toR f) in
       match list_add u l with
-      | (?n, ?l) => constr:(Econst n, l)
+      | (?n, ?l) => constr:((Econst n, l))
       end
     end in
   aux t l.
@@ -875,11 +875,11 @@ Ltac generate_machine l :=
 Ltac extract_algorithm t l :=
   match reify t l with
   | (Econst ?n, ?lc) =>
-    constr:(cons (Forward n) nil, lc)
+    constr:((cons (Forward n) nil, lc))
   | (?t, ?lc) =>
     let lnc := get_non_constants t in
     let lm := generate_machine lnc in
-    constr:(lm, lc)
+    constr:((lm, lc))
   end.
 
 Ltac xalgorithm_post lx :=
@@ -1029,7 +1029,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               let c := constr:(proj2 (remainder_correct_bis prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
-                | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
+                | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
               end
           end
         end
@@ -1056,7 +1056,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
           match type of c with
-          | contains (I.convert ?i) _ => constr:(A.Bproof x i c, @None R)
+          | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
           end
         end
       end
@@ -1066,29 +1066,29 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
 Ltac get_bounds l prec rint_depth rint_prec rint_deg :=
   let rec aux l prec lw :=
     match l with
-    | nil => constr:(@nil A.bound_proof, @nil R)
+    | nil => constr:((@nil A.bound_proof, @nil R))
     | cons ?x ?l =>
       let i :=
       match x with
-      | PI => constr:(A.Bproof x (I.pi prec) (I.pi_correct prec), @None R)
+      | PI => constr:((A.Bproof x (I.pi prec) (I.pi_correct prec), @None R))
       | I.T.toR ?v =>
-        constr:(let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R)
+        constr:((let f := v in A.Bproof x (I.bnd f f) (conj (Rle_refl x) (Rle_refl x)), @None R))
       | _ => get_RInt_bounds prec rint_depth rint_prec rint_deg x
       | _ => get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x
       | _ =>
         match goal with
         | _ =>
           let v := get_bounds_aux x prec in
-          constr:(v, @None R)
+          constr:((v, @None R))
         | _ =>
-          constr:(A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x)
+          constr:((A.Bproof x (I.bnd F.nan F.nan) (conj I I), @Some R x))
         end
       end in
       match aux l prec lw with
       | (?m, ?lw) =>
         match i with
-        | (?i, @None R) => constr:(cons i m, lw)
-        | (?i, @Some R ?aw) => constr:(cons i m, cons aw lw)
+        | (?i, @None R) => constr:((cons i m, lw))
+        | (?i, @Some R ?aw) => constr:((cons i m, cons aw lw))
         end
       end
     end in
@@ -1316,7 +1316,7 @@ Ltac tac_of_itm itm :=
 Ltac do_interval_parse params :=
   let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
     match params with
-    | nil => constr:(vars, prec, depth, rint_depth, rint_prec, rint_deg, itm)
+    | nil => constr:((vars, prec, depth, rint_depth, rint_prec, rint_deg, itm))
     | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
     | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
     | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
@@ -1409,7 +1409,7 @@ Ltac intro_tac_of_itm itm :=
 Ltac do_interval_intro_parse t_ extend params_ :=
   let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
     match params with
-    | nil => constr:(t_, extend, params_, vars, prec, depth, rint_depth, rint_prec, rint_deg, itm)
+    | nil => constr:((t_, extend, params_, vars, prec, depth, rint_depth, rint_prec, rint_deg, itm))
     | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
     | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
     | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
