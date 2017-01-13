@@ -190,9 +190,9 @@ split.
   apply ex_RInt_ex_RInt_gen.
   now exists If.
   move => eps.
-  exists (fun x => forall I, is_RInt f a x I -> ball_norm If (pos_div_2 eps) I).
+  exists (fun x => ex_RInt f a x /\ forall I, is_RInt f a x I -> ball_norm If (pos_div_2 eps) I).
   split.
-    -assert (Hb: locally If (ball_norm If (pos_div_2 eps))).
+    - assert (Hb: locally If (ball_norm If (pos_div_2 eps))).
       exact: locally_ball_norm.
       have toto := (HIf _ Hb).
       rewrite /filtermapi in toto.
@@ -200,13 +200,38 @@ split.
         exists y : V, is_RInt f x1 x2 y /\
                       ball_norm If (pos_div_2 eps) y.
       assert (titi := at_point_filter_prod a K toto).
+      + apply: filter_and.
+        apply: filter_imp titi => x.
+        rewrite /K; case => y [Hy _].
+        by eexists; exact Hy.
       apply: filter_imp titi => x [y [Hy1 Hy2]] I HI.
       rewrite -(is_RInt_unique _ _ _ _ HI).
       by rewrite  (is_RInt_unique _ _ _ _ Hy1).
-    - move => u v Hu Hv I HI.
-        admit.
-
-
+    - move => u v [Hau Hu] [Hvu Hv] I HI.
+      suff Hfau : is_RInt f a u (RInt f a u).
+      suff Hfav : is_RInt f a v (RInt f a v).
+      suff -> : (I = plus (minus If (RInt f a u)) (minus (RInt f a v) If))%R.
+      rewrite /ball_norm.
+      rewrite /minus.
+      suff -> : (pos eps%R = (pos (pos_div_2 eps)) + (pos (pos_div_2 eps)))%R.
+      apply :Rle_trans. apply: (norm_triangle).
+      apply: Rle_trans.
+        apply: Rplus_le_compat_l.
+        move: (Hv _ Hfav). rewrite /ball_norm /minus.
+        exact: Rlt_le.
+      apply: Rplus_le_compat_r.
+      move: (Hu _ Hfau). rewrite /ball_norm /minus.
+      rewrite -{2}[If]opp_opp -opp_plus norm_opp plus_comm.
+      exact: Rlt_le.
+      rewrite /pos_div_2 /=; lra.
+      rewrite -opp_minus -[minus (RInt f a v) If]opp_minus. rewrite -opp_plus.
+      rewrite -minus_trans /minus -opp_RInt_swap. rewrite opp_plus !opp_opp.
+      rewrite RInt_Chasles. symmetry; apply: is_RInt_unique => // .
+      apply: ex_RInt_swap; eexists; exact: Hfau.
+      eexists; exact: Hfav.
+      apply: ex_RInt_swap; eexists; exact: Hfau.
+      apply: RInt_correct => // .
+      apply: RInt_correct => // .
 - intros [Hab Hb].
   refine (proj1 (filterlimi_locally_cauchy _ _) _).
     apply: filter_imp Hab.
@@ -233,55 +258,7 @@ split.
   move => /(_ _ HC) Hle.
   apply: Rle_lt_trans Hle _.
   move: (cond_pos eps); lra.
-Admitted.
-
-(* Lemma ex_RInt_gen_cauchy {V : CompleteNormedModule R_AbsRing} *)
-(*   {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb} *)
-(*   (a : R) (f : R -> V) : *)
-(*   ex_RInt_gen f (at_point a) Fb <-> *)
-(*   (filter_prod (at_point a) Fb (fun ab => ex_RInt f ab.1 ab.2) /\ *)
-(*   is_RInt_gen f Fb Fb zero). *)
-(* Proof. *)
-(* split. *)
-(* - intros [If HIf]. *)
-(*   split. *)
-(*   apply ex_RInt_ex_RInt_gen. *)
-(*   now exists If. *)
-(*   rewrite -(plus_opp_l If). *)
-(*   apply: is_RInt_gen_Chasles (HIf). *)
-(*   exact: is_RInt_gen_swap. *)
-(* - intros [Hab Hb]. *)
-(*   refine (proj1 (filterlimi_locally_cauchy _ _) _). *)
-(*     apply: filter_imp Hab. *)
-(*     move => /= [a' b'] /= HIf. *)
-(*     apply (conj HIf). *)
-(*     intros y1 y2 H1 H2. *)
-(*     rewrite -(is_RInt_unique _ _ _ _ H1). *)
-(*     exact: is_RInt_unique. *)
-(*   intros eps. *)
-(*   destruct (Hb (ball_norm zero eps)) as [Qb Rb FbQb FbRb Hb']. *)
-(*   apply locally_ball_norm. *)
-(*   exists (fun ab => ab.1 = a /\ Qb ab.2 /\ Rb ab.2). *)
-(*   split. *)
-(*     eexists (fun x => x = a) _. *)
-(*     easy. *)
-(*     apply (filter_and _ _ FbQb FbRb). *)
-(*     easy. *)
-(*   intros [u1 u2] [v1 v2] [-> [Qbu2 Rbu2]] [-> [Qbv2 Rbv2]] I1 I2 HI1 HI2. *)
-(*   apply: norm_compat1. *)
-(*   destruct (Hb' _ _ Qbu2 Rbv2) as [I [HI HI']]. *)
-(*   unfold minus. *)
-(*   apply is_RInt_swap in HI1. *)
-(*   rewrite -(is_RInt_unique _ _ _ _ HI1). *)
-(*   rewrite -(is_RInt_unique _ _ _ _ HI2). *)
-(*   rewrite plus_comm RInt_Chasles. *)
-(*   revert HI'. *)
-(*   by rewrite /ball_norm minus_zero_r -(is_RInt_unique _ _ _ _ HI). *)
-(*   eexists. *)
-(*   exact HI1. *)
-(*   eexists. *)
-(*   exact HI2. *)
-(* Qed. *)
+Qed.
 
 End Missing.
 
@@ -846,7 +823,10 @@ split.
 - move => eps.
   case: (proj1 (ex_RInt_gen_cauchy _ _) (ex_intro _ _  HIg)) => Hexg Heps.
   set eps1 := eps / (1 + Rmax (Rabs l) (Rabs u)).
-  have eps1_pos : 0 < eps1 by admit.
+  have Hmaxpos : 1 + Rmax (Rabs l) (Rabs u) > 0.
+     by rewrite /Rmax; case: Rle_dec; move: (Rabs_pos u) (Rabs_pos l); lra.
+  have eps1_pos : 0 < eps1.
+    apply: RIneq.Rdiv_lt_0_compat => // ; first apply: cond_pos eps.
   set pos_eps1 := mkposreal eps1 eps1_pos.
   case: (Heps (pos_eps1)) => Peps1 [HPinf HPint].
   assert(Hand := filter_and _ _ (at_point_filter_prod _ _ Hexg) HPinf).
@@ -860,8 +840,8 @@ split.
   apply: Rle_trans Hineq _.
   rewrite /pos_eps1 /eps1 /=  in HPint.
   have ->: eps = (1 + Rmax (Rabs l) (Rabs u)) * (eps / (1 + Rmax (Rabs l) (Rabs u))) :> R .
-    field. admit.
-  apply: Rmult_le_compat_l HPint. admit.
+    field; lra.
+  apply: Rmult_le_compat_l HPint; lra.
   apply: norm_RInt_le HisInt _.
   admit.
   move => x Hx.
