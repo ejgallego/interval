@@ -260,6 +260,57 @@ split.
   move: (cond_pos eps); lra.
 Qed.
 
+(* this proof should be much shorter *)
+Lemma ex_RInt_gen_cauchy_left {V : CompleteNormedModule R_AbsRing}
+  {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb}
+  (a : R) (f : R -> V) :
+  ex_RInt_gen f Fb (at_point a) <->
+  (filter_prod Fb (at_point a) (fun ab => ex_RInt f ab.1 ab.2) /\
+   forall eps : posreal, exists P,
+     Fb P /\
+     (forall u v,
+        P u -> P v ->
+        forall I, is_RInt f u v I -> norm I <= eps)).
+Proof.
+split.
+- move => [I HI].
+  have Hswap : ex_RInt_gen (fun x => opp (f x)) (at_point a) Fb.
+    apply is_RInt_gen_swap,is_RInt_gen_opp in HI.
+    by eexists; exact: HI.
+  case ((proj1 (ex_RInt_gen_cauchy a (fun x => opp (f x)))) Hswap) => Hprod Hint.
+  split.
+  + case: Hprod => Q R HQ HR H.
+    econstructor.
+    * exact: HR.
+    * exact: HQ.
+    * move => x y Hx Hy /= .
+      case: (H y x Hy Hx) => /= I1 HI1.
+      eexists; apply: is_RInt_swap.
+      apply: is_RInt_ext => [x1 Hx1|]; first by rewrite -[f x1]opp_opp.
+      by apply: is_RInt_opp; exact: HI1.
+  + move => eps; case: (Hint eps) => Peps [HFeps HRInt].
+    exists Peps; split => // .
+    move => u v Hu Hv I0 HI0.
+    case: (HRInt u v Hu Hv (opp I0)).
+    exact: is_RInt_opp.
+    by rewrite norm_opp; lra.
+    by rewrite norm_opp; lra.
+- move => [Hfilter HInt].
+  eexists.
+  apply: is_RInt_gen_swap.
+  case: (proj2 (ex_RInt_gen_cauchy a f)).
+  split.
+  + case: Hfilter => Q R HQ HR Hex.
+    apply: (Filter_prod).
+      * exact: HR.
+      * exact: HQ.
+      * move => x y Rx Qy; apply: ex_RInt_swap; exact: Hex.
+  + move => eps; case: (HInt eps) => Peps [HFPeps His_RInt].
+    exists Peps ;split => // .
+  + move => x Hx. apply RInt_gen_correct.
+    eexists. exact: Hx.
+Qed.
+
 End Missing.
 
 Module IntegralTactic (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
