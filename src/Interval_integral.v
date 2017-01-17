@@ -64,6 +64,19 @@ apply: (Filter_prod _ _ _ (fun x => x = a) Q) => // .
   exact: HQ.
 Qed.
 
+Lemma filter_prod_at_point_l :
+  forall {T F} { FF : Filter F} a (P : T -> R -> Prop) Q,
+  F Q ->
+  (forall y, Q y -> P y a) ->
+  filter_prod F (at_point a)
+  (fun ab : T * R => P ab.1 ab.2).
+Proof.
+intros T F FF a P Q FQ HQ.
+apply: (Filter_prod _ _ _ Q (fun x => x = a)) => // .
+- move => x y /= H ->.
+  exact: HQ.
+Qed.
+
 Lemma at_point_filter_prod :
   forall {T F} { FF : Filter F} a (P : R -> T -> Prop),
   filter_prod (at_point a) F
@@ -73,6 +86,17 @@ Proof.
 move => T F FF a P [Q R inQ inR H].
 apply: filter_imp inR.
 move => x; exact: H.
+Qed.
+
+Lemma at_point_filter_prod_l :
+  forall {T F} { FF : Filter F} a (P : T -> R -> Prop),
+  filter_prod F (at_point a)
+              (fun ab : T * R => P ab.1 ab.2) ->
+  F (fun y => P y a).
+Proof.
+move => T F FF a P [Q R inQ inR H].
+apply: filter_imp inQ.
+move => x /= HQ; apply: H => // .
 Qed.
 
 Lemma filterlimi_const_loc {T} {U : UniformSpace}
@@ -309,6 +333,61 @@ split.
     exists Peps ;split => // .
   + move => x Hx. apply RInt_gen_correct.
     eexists. exact: Hx.
+Qed.
+
+Lemma at_right_le_at_point a b (Hab : a < b) : (filter_prod (at_right a) (at_point b) (fun x => x.1 <= x.2)).
+Proof.
+pose Q x := a < x < b.
+pose R x := x = b.
+apply: (Filter_prod _ _ _ Q R) => // .
+rewrite /at_right /within /locally.
+pose epsilon := (b - a).
+have Hepspos : 0 < epsilon by rewrite /epsilon; lra.
+pose eps := mkposreal epsilon Hepspos.
+exists (pos_div_2 eps) => y.
+by move/ball_to_lra; rewrite /Q; rewrite  /= /epsilon; lra.
+move => x y . rewrite /Q /R /=.  lra.
+Qed.
+
+Lemma RInt_gen_pos (* {V : CompleteNormedModule R_AbsRing} *)
+  {Fa : (R -> Prop) -> Prop} {FFa : ProperFilter Fa}
+  {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb}
+  (P Q : R -> Prop) (f : R -> R) (If : R) :
+  (Fa P) ->
+  (Fb Q) ->
+  (forall x y z, P x -> Q y -> x <= z <= y -> 0 <= f z) ->
+  filter_prod Fa Fb (fun ab : R * R => ab.1 <= ab.2) ->
+  is_RInt_gen f Fa Fb If ->
+  0 <= If.
+Proof.
+  move => HFa HFb Hfx Hle Hint.
+  have -> : 0 = norm 0 by rewrite norm_zero.
+  apply: (RInt_gen_norm (fun _ => 0) f 0 If _ _ _ Hint) => // .
+  apply: (Filter_prod _ _ _ P Q HFa HFb) => x y HPx HQy x0 /= Hx0.
+  rewrite norm_zero; apply: (Hfx _ _ _ HPx HQy) => // .
+  exact: is_RInt_gen_0.
+Qed.
+
+
+Lemma RInt_gen_neg (* {V : CompleteNormedModule R_AbsRing} *)
+  {Fa : (R -> Prop) -> Prop} {FFa : ProperFilter Fa}
+  {Fb : (R -> Prop) -> Prop} {FFb : ProperFilter Fb}
+  (P Q : R -> Prop) (f : R -> R) (If : R) :
+  (Fa P) ->
+  (Fb Q) ->
+  (forall x y z, P x -> Q y -> x <= z <= y -> f z <= 0) ->
+  filter_prod Fa Fb (fun ab : R * R => ab.1 <= ab.2) ->
+  is_RInt_gen f Fa Fb If ->
+  If <= 0.
+Proof.
+  move => HFa HFb Hfx Hle Hint.
+  (* have -> : 0 = norm 0 by rewrite norm_zero. *)
+  apply is_RInt_gen_opp in Hint.
+  suff: 0 <= opp If.
+    by rewrite /opp /=; lra.
+  apply: (@RInt_gen_pos Fa FFa Fb FFb P Q (fun x => opp (f x)) (opp If)) => // .
+  move => x y z HPx HQy Hxzy; move: (Hfx x y z HPx HQy Hxzy).
+  by rewrite /opp /=; lra.
 Qed.
 
 End Missing.
@@ -793,6 +872,154 @@ case: (I.upper_bounded_correct xi Hub) => <-.
 by rewrite /I.bounded_prop => /= -> /=.
 Qed.
 
+Lemma at_right_open_interval a lb : (lb < a) -> at_right lb (fun x : R => lb < x < a).
+Proof.
+move => Hlba. rewrite /at_right /within /locally.
+pose epsilon := (a - lb).
+have Hepspos : 0 < epsilon by rewrite /epsilon; lra.
+pose eps := mkposreal epsilon Hepspos.
+exists (pos_div_2 eps) => y.
+by move/ball_to_lra; rewrite /= /epsilon; lra.
+Qed.
+
+Lemma at_right_semi_open_interval a lb : (lb < a) -> at_right lb (fun x : R => lb < x <= a).
+Proof.
+move => Hlba. rewrite /at_right /within /locally.
+pose epsilon := (a - lb).
+have Hepspos : 0 < epsilon by rewrite /epsilon; lra.
+pose eps := mkposreal epsilon Hepspos.
+exists (pos_div_2 eps) => y.
+by move/ball_to_lra; rewrite /= /epsilon; lra.
+Qed.
+
+
+Lemma integral_interval_mul_zero :
+  forall prec a ia f fi g Ig Igi,
+  (0 < a) ->
+  contains (I.convert ia) (Xreal a) ->
+  (forall x, 0 <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
+  I.bounded fi ->
+  (forall x, 0 <= x <= a -> continuous f x) ->
+  (forall x, 0 <= x <= a -> continuous g x) ->
+  (forall x, 0 <= x <= a -> g x <= 0) ->
+  is_RInt_gen g (at_right 0) (at_point a) Ig ->
+  contains (I.convert Igi) (Xreal Ig) ->
+  exists Ifg,
+  is_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a) Ifg /\
+  contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
+Proof.
+move => prec a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
+move: (bounded_ex Hfi) => [] l [] u HiFia.
+have Hgoodorder_bis : forall x, 0 <= x <= a -> l <= f x <= u.
+  move => x0 Hax0.
+  move: (Hf _ Hax0).
+  by rewrite HiFia.
+suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a).
+  exists Ifg.
+  have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_right 0) (at_point a)  (scal l Ig).
+    exact: is_RInt_gen_scal.
+  have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_right 0) (at_point a) (scal u Ig).
+    exact: is_RInt_gen_scal.
+  have Hgoodorder : l <= u.
+    by case: (Hgoodorder_bis a); try lra.
+    have intgpos : Ig <= 0.
+    apply: (@RInt_gen_neg (at_right 0) _ (at_point a) _ (fun x => 0 < x < a) (fun y => y = a) g) => // .
+      exact: at_right_open_interval.
+    by move => x y z H1 H2 H3; apply: Hg; lra.
+    exact: at_right_le_at_point.
+  apply: (conj HIfg).
+  apply: (contains_connected _ (scal u Ig) (scal l Ig)).
+  + apply: J.mul_correct => // .
+    rewrite HiFia.
+    exact: (conj _ (Rle_refl _)).
+  + apply: J.mul_correct => // .
+    rewrite HiFia.
+    exact: (conj (Rle_refl _)).
+  split.
+    apply: (@RInt_gen_le (at_right 0) (at_point a) _ _ (fun x => scal u (g x)) (fun x => scal (f x) (g x))  _ _) => // .
+      exact: at_right_le_at_point.
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => 0 < z < a)).
+      exact: at_right_open_interval.
+    by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
+
+    apply: (@RInt_gen_le (at_right 0) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal l (g x))  _ _) => // .
+      exact: at_right_le_at_point.
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => 0 < z < a)).
+      exact: at_right_open_interval.
+    by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
+
+
+refine (proj2 (ex_RInt_gen_cauchy_left _ _) _).
+split.
+- apply: filter_prod_at_point_l; first exact: (at_right_open_interval a).
+  move => y Hxay; apply: ex_RInt_continuous => z Hz.
+  rewrite Rmin_left in Hz; last by lra.
+  rewrite Rmax_right in Hz; last by lra.
+  apply: continuous_mult.
+    by apply: Cf; lra.
+    by apply: Cg; lra.
+- move => eps.
+  set eps1 := eps / (1 + Rmax (Rabs l) (Rabs u)).
+  have Hmaxpos : 1 + Rmax (Rabs l) (Rabs u) > 0.
+    by rewrite /Rmax; case: Rle_dec; move: (Rabs_pos u) (Rabs_pos l); lra.
+  have eps1_pos : 0 < eps1.
+    by apply: RIneq.Rdiv_lt_0_compat => // ; first apply: cond_pos eps.
+  set pos_eps1 := mkposreal eps1 eps1_pos.
+  case: (proj1 (ex_RInt_gen_cauchy_left _ _) (ex_intro _ _  HIg)) => Hexg Heps.
+  case: (Heps (pos_eps1)) => Peps1 [HPinf HPint].
+  have HPge : at_right 0 (fun x => 0 < x < a).
+    exact: at_right_open_interval.
+  assert(Hand := filter_and _ _ (at_point_filter_prod_l _ _ Hexg) HPinf).
+  assert(Hand1 := filter_and _ _ Hand HPge).
+  eexists; split. exact: Hand1.
+  move => u0 v0 [[Hu1 Hu2] Hule] [[Hv1 Hv2] Hvle] I HisInt.
+  wlog : I u0 v0 Hv1 Hv2 Hvle HisInt Hu1 Hu2 Hule / (u0 <= v0).
+    move => Hwlog.
+    case: (Rle_dec v0 u0) => Huv; last first.
+      by apply: (Hwlog _ u0 v0 Hv1) => // ; lra.
+    rewrite -norm_opp.
+    apply: (Hwlog (opp I) v0 u0) => // .
+    exact: is_RInt_swap.
+  move => Hu0v0.
+
+  have [Ig' HIg'']: ex_RInt g u0 v0.
+    apply: ex_RInt_Chasles. exact: Hu1.
+    exact: ex_RInt_swap.
+  have Ig'pos : Ig' <= 0.
+    rewrite -(is_RInt_unique _ _ _ _ HIg'').
+    have -> : 0 = RInt (fun _ => 0) u0 v0.
+      by rewrite RInt_const /scal /= /mult /= Rmult_0_r.
+    apply: RInt_le => // ;first by exists Ig'.
+      exact: ex_RInt_const.
+    move => x Hx; apply: Hg; lra.
+  move: (HPint u0 v0 Hu2 Hv2 Ig' HIg'') => {HPint} HPint.
+  suff Hineq: norm I <= (1 + Rmax (Rabs l) (Rabs u)) * norm Ig'.
+    apply: Rle_trans Hineq _.
+    rewrite /pos_eps1 /eps1 /=  in HPint.
+    have ->: eps = (1 + Rmax (Rabs l) (Rabs u)) * (eps / (1 + Rmax (Rabs l) (Rabs u))) :> R .
+      by field; lra.
+    by apply: Rmult_le_compat_l HPint; lra.
+  apply: norm_RInt_le HisInt _; first lra.
+    move => x Hx.
+    Focus 2.
+    apply: is_RInt_scal.
+      suff -> : norm Ig' = opp Ig'.
+        apply: is_RInt_opp.
+        exact: HIg''.
+      by rewrite /norm /= /abs /=; rewrite Rabs_left1 //.
+  rewrite /=.
+  eapply Rle_trans.
+    exact: norm_scal.
+  rewrite /norm /= /abs /= .
+  rewrite (Rabs_left1 (g x)).
+  apply: Rmult_le_compat_r; first by move: (Hg x); lra.
+  have Hax : 0 <= x <= a by lra.
+  suff: Rabs (f x) <= Rmax (Rabs l) (Rabs u) by lra.
+    by apply: RmaxAbs; move: (Hgoodorder_bis x Hax) ;lra.
+  by apply: Hg; lra.
+Qed.
+
+
 Lemma integral_interval_mul_infty :
   forall prec a ia f fi g Ig Igi,
   contains (I.convert ia) (Xreal a) ->
@@ -824,15 +1051,10 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_point a) (Rbar_locally p_i
     move => [H1 H2].
     exact: Rle_trans H1 H2.
   have intgpos : 0 <= Ig.
-    have -> : 0 = norm 0 by rewrite norm_zero.
-    apply: (RInt_gen_norm (fun _ => 0) g 0 Ig _ _ _ HIg) => //= .
-    + now apply filter_prod_at_point_infty.
-    + apply (filter_prod_at_point_infty a (fun x y => forall z, x <= z <= y -> norm 0 <= g z)).
-      move => m n [Hm _] o [Ho _].
-      rewrite norm_zero.
-      apply: Hg.
-      by apply Rle_trans with m.
-    + exact: is_RInt_gen_0.
+    apply: (@RInt_gen_pos (at_point a) _ (Rbar_locally p_infty) _ (fun x => x = a) (fun y => y > a) g) => // .
+      by rewrite /= ; exists a => x; lra.
+    by move => x y z Hxa Hya Hxz; apply: Hg; lra.
+    now apply filter_prod_at_point_infty.
   apply: (conj HIfg).
   apply: (contains_connected _ (scal l Ig) (scal u Ig)).
   + apply: J.mul_correct => // .

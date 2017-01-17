@@ -600,6 +600,8 @@ Section Correction_lemmas_integral_infinity.
 
 Import Bertrand.
 
+Require Import Psatz.
+
 Lemma remainder_correct :
   forall prec prog bounds ia alpha beta,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
@@ -630,10 +632,12 @@ have {Ha1'} Ha1: 1 <= a.
   exact: Rle_trans H (proj1 Ha).
 case Hbnded : (I.bounded _) => // .
 intros HnotInan.
-apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
+apply: Int.integral_interval_mul_infty.
+- exact: Ha.
 - intros x Hx.
   apply contains_eval_arg.
   exact: I.upper_extent_correct Ha Hx.
+- exact: Hbnded.
 - intros x Hx.
   apply: (A.BndValuator.continuous_eval prec _ _ 0 (I.upper_extent ia)).
   exact: I.upper_extent_correct Ha Hx.
@@ -641,6 +645,13 @@ apply: Int.integral_interval_mul_infty (Ha) _ (Hbnded) _ _ _ _.
   apply Int.bounded_ex in Hbnded.
   destruct Hbnded as [l [u H']].
   now rewrite H' in H.
+- move => x Hx.
+  apply: continuous_mult.
+  apply: ex_derive_continuous.
+  apply: ex_derive_powerRZ; right; lra.
+  apply: ex_derive_continuous.
+  apply: ex_derive_pow.
+  eexists; apply: coquelicot_compl.is_derive_ln; lra.
 - intros x Hax.
   apply Rmult_le_pos_pos.
   apply powerRZ_le.
