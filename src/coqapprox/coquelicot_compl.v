@@ -288,6 +288,19 @@ Qed.
 
 End IntegralEstimation.
 
+Section UsefulTools.
+
+Lemma ball_to_lra a y eps : ball a eps y <-> a - eps < y < a + eps.
+Proof.
+split.
+- rewrite /ball /= /AbsRing_ball /abs /= /minus; move/Rabs_def2.
+  by rewrite  /plus /= /opp /=; lra.
+- move => Haeps. rewrite /ball /= /AbsRing_ball /abs /= /minus /= /plus /opp /= .
+  rewrite /Rabs. case: Rcase_abs; lra.
+Qed.
+
+End UsefulTools.
+
 (********************************************************************)
 (** The following support results deal with "iterated derivatives". *)
 (********************************************************************)
