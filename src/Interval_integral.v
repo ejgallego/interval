@@ -50,7 +50,6 @@ apply (Filter_prod _ _ _ (fun x => x = a) (fun x => a < x)).
   now apply Rlt_le.
 Qed.
 
-
 Lemma filter_prod_at_point :
   forall {T F} { FF : Filter F} a (P : R -> T -> Prop) Q,
   F Q ->
@@ -892,38 +891,37 @@ exists (pos_div_2 eps) => y.
 by move/ball_to_lra; rewrite /= /epsilon; lra.
 Qed.
 
-
-Lemma integral_interval_mul_zero :
-  forall prec a ia f fi g Ig Igi,
-  (0 < a) ->
+Lemma integral_interval_mul_pole :
+  forall prec pole a ia f fi g Ig Igi,
+  (pole < a) ->
   contains (I.convert ia) (Xreal a) ->
-  (forall x, 0 <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
+  (forall x, pole <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
   I.bounded fi ->
-  (forall x, 0 <= x <= a -> continuous f x) ->
-  (forall x, 0 <= x <= a -> continuous g x) ->
-  (forall x, 0 <= x <= a -> g x <= 0) ->
-  is_RInt_gen g (at_right 0) (at_point a) Ig ->
+  (forall x, pole <= x <= a -> continuous f x) ->
+  (forall x, pole <= x <= a -> continuous g x) ->
+  (forall x, pole <= x <= a -> g x <= 0) ->
+  is_RInt_gen g (at_right pole) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,
-  is_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a) Ifg /\
+  is_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a) Ifg /\
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
-move => prec a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
+move => prec pole a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
 move: (bounded_ex Hfi) => [] l [] u HiFia.
-have Hgoodorder_bis : forall x, 0 <= x <= a -> l <= f x <= u.
+have Hgoodorder_bis : forall x, pole <= x <= a -> l <= f x <= u.
   move => x0 Hax0.
   move: (Hf _ Hax0).
   by rewrite HiFia.
-suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a).
+suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
   exists Ifg.
-  have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_right 0) (at_point a)  (scal l Ig).
+  have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_right pole) (at_point a)  (scal l Ig).
     exact: is_RInt_gen_scal.
-  have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_right 0) (at_point a) (scal u Ig).
+  have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_right pole) (at_point a) (scal u Ig).
     exact: is_RInt_gen_scal.
   have Hgoodorder : l <= u.
     by case: (Hgoodorder_bis a); try lra.
     have intgpos : Ig <= 0.
-    apply: (@RInt_gen_neg (at_right 0) _ (at_point a) _ (fun x => 0 < x < a) (fun y => y = a) g) => // .
+    apply: (@RInt_gen_neg (at_right pole) _ (at_point a) _ (fun x => pole < x < a) (fun y => y = a) g) => // .
       exact: at_right_open_interval.
     by move => x y z H1 H2 H3; apply: Hg; lra.
     exact: at_right_le_at_point.
@@ -936,15 +934,15 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a).
     rewrite HiFia.
     exact: (conj (Rle_refl _)).
   split.
-    apply: (@RInt_gen_le (at_right 0) (at_point a) _ _ (fun x => scal u (g x)) (fun x => scal (f x) (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal u (g x)) (fun x => scal (f x) (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => 0 < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
-    apply: (@RInt_gen_le (at_right 0) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal l (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal l (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => 0 < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
@@ -967,7 +965,7 @@ split.
   set pos_eps1 := mkposreal eps1 eps1_pos.
   case: (proj1 (ex_RInt_gen_cauchy_left _ _) (ex_intro _ _  HIg)) => Hexg Heps.
   case: (Heps (pos_eps1)) => Peps1 [HPinf HPint].
-  have HPge : at_right 0 (fun x => 0 < x < a).
+  have HPge : at_right pole (fun x => pole < x < a).
     exact: at_right_open_interval.
   assert(Hand := filter_and _ _ (at_point_filter_prod_l _ _ Hexg) HPinf).
   assert(Hand1 := filter_and _ _ Hand HPge).
@@ -1013,10 +1011,31 @@ split.
   rewrite /norm /= /abs /= .
   rewrite (Rabs_left1 (g x)).
   apply: Rmult_le_compat_r; first by move: (Hg x); lra.
-  have Hax : 0 <= x <= a by lra.
+  have Hax : pole <= x <= a by lra.
   suff: Rabs (f x) <= Rmax (Rabs l) (Rabs u) by lra.
     by apply: RmaxAbs; move: (Hgoodorder_bis x Hax) ;lra.
   by apply: Hg; lra.
+Qed.
+
+
+Lemma integral_interval_mul_zero :
+  forall prec a ia f fi g Ig Igi,
+  (0 < a) ->
+  contains (I.convert ia) (Xreal a) ->
+  (forall x, 0 <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
+  I.bounded fi ->
+  (forall x, 0 <= x <= a -> continuous f x) ->
+  (forall x, 0 <= x <= a -> continuous g x) ->
+  (forall x, 0 <= x <= a -> g x <= 0) ->
+  is_RInt_gen g (at_right 0) (at_point a) Ig ->
+  contains (I.convert Igi) (Xreal Ig) ->
+  exists Ifg,
+  is_RInt_gen (fun t => f t * g t) (at_right 0) (at_point a) Ifg /\
+  contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
+Proof.
+move => prec a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
+apply: (integral_interval_mul_pole) => // ; last exact: HIg'; last exact: HIg.
+exact: Hia.
 Qed.
 
 
