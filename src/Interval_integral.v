@@ -1140,13 +1140,10 @@ split.
     apply: ex_RInt_Chasles Hv1.
     exact: ex_RInt_swap.
   have Ig'pos : 0 <= Ig'.
-    rewrite -(@norm_zero _ R_CompleteNormedModule).
-    apply: norm_RInt_le; (try exact: Hu0v0); last first.
-      by apply: HIg''.
-    Focus 2. by move => x Hx; rewrite norm_zero; apply: Hg; lra.
-    suff -> : zero = scal (v0 - u0) zero.
-      by apply: is_RInt_const.
-      by move => t; rewrite scal_zero_r.
+    apply: (is_RInt_le (fun _ => zero) g) Hu0v0 _ HIg'' _.
+    have -> : 0 = scal (v0 - u0) zero by rewrite scal_zero_r.
+    by apply: is_RInt_const.
+    by move => x Hx; apply: Hg; lra.
   move: (HPint u0 v0 Hu2 Hv2 Ig' HIg'') => {HPint} HPint.
   suff Hineq: norm I <= (1 + Rmax (Rabs l) (Rabs u)) * norm Ig'.
     apply: Rle_trans Hineq _.
