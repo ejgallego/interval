@@ -621,157 +621,6 @@ apply: (filterlimi_lim_ext_loc (f alpha beta A)).
 exact: f_lim_is_lim.
 Qed.
 
-Require Import Interval_xreal.
-Require Import Interval_float_sig.
-Require Import Interval_interval.
-
-Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
-
-Module J := IntervalExt I.
-
-Section EffectiveBertrand.
-(* TODO: factor out the A^alpha+1 and compute ln A only once for efficiency *)
-
-Variable prec : F.precision.
-
-Variable a : R.
-Variable A : I.type.
-Let iA := I.convert A.
-
-Hypothesis Hcontainsa : contains iA (Xreal a).
-
-Fixpoint f_int (alpha : Z) (beta : nat) {struct beta} : I.type :=
-  match beta with
-    | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
-    | S m =>
-       I.sub prec (I.div prec (I.neg (I.mul prec (I.power_int prec A (alpha+1)) (I.power_int prec (I.ln prec A) (Z.of_nat beta)))) (I.fromZ (alpha + 1)))
-      (I.mul prec (I.div prec (I.fromZ (Z.of_nat beta)) (I.fromZ (alpha+1))) (f_int alpha m)) end.
-
-Lemma f_int_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) :
-  contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)).
-Proof.
-have Salphaneq0 : IZR (alpha + 1) <> 0.
-  apply: not_0_IZR.
-  by rewrite Z.add_move_0_r.
-have an0 : not (is_zero a).
-  by move: is_zero_spec; case => // ; lra.
-have Salphaneq01: not (is_zero (IZR (alpha + 1))).
-  move: (is_zero_spec (IZR (alpha + 1))).
-  case => // .
-elim: beta => [|m HIm].
-- rewrite /= .
-  apply: J.div_correct.
-  apply: J.neg_correct.
-  apply: J.power_int_correct => // ; apply: Hcontainsa.
-    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
-- rewrite /f_int -/f_int /f_lim -/f_lim.
-  apply: J.sub_correct.
-  apply: J.div_correct.
-  apply: J.neg_correct.
-  apply: J.mul_correct.
-  apply: J.power_int_correct; apply: Hcontainsa.
-  rewrite pow_powerRZ.
-  apply: J.power_int_correct.
-  apply: J.ln_correct; apply: Hcontainsa.
-    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
-    apply: J.mul_correct => // .
-    apply: J.div_correct.
-  by rewrite INR_Z2R; apply: I.fromZ_correct.
-  by rewrite -Z2R_IZR; apply: I.fromZ_correct.
-Qed.
-
-End EffectiveBertrand.
-
-End BertrandInterval.
-
-(*
-Module NumericTests.
-
-Require Import Interval_interval_float_full.
-Require Import Interval_bigint_carrier.
-Require Import Interval_specific_ops.
-Require Import Interval_bisect Interval_integral.
-Module SFBI2 := SpecificFloat BigIntRadix2.
-Module I := FloatIntervalFull SFBI2.
-
-Module MyBertrand := BertrandInterval SFBI2 I.
-
-About MyBertrand.f_int.
-
-Eval vm_compute in MyBertrand.f_int (SFBI2.PtoP 50) (I.fromZ 100000%Z) (-2%Z) (2).
-
-Module II := IntegralTactic SFBI2 I.
-Module IT := IntegralTaylor I.
-Module IA := IntervalAlgos I.
-
-Definition prec := SFBI2.PtoP 30.
-
-Definition est a b :=
-  II.naive_integral prec (fun x =>
-    I.mul prec (I.sqr prec (I.cos prec x))
-    (I.mul prec (I.power_int prec x (-2)) (I.power_int prec (I.ln prec x) 3)))
-  a b.
-
-Definition est_i x :=
-  I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3).
-
-Definition eps := SFBI2.scale2 (SFBI2.fromZ 1) (SFBI2.ZtoS (-12)).
-
-Definition v1 := II.integral_interval_relative prec est  5 (I.fromZ 1) (I.fromZ 3) eps.
-
-Definition v2 := II.integral_interval_relative_infty prec est est_i 15 (I.fromZ 1) eps.
-
-Definition prog :=
-  (Unary Ln 0
-         :: Unary (PowerInt 3) 0
-            :: Unary (PowerInt (-2)) 2
-               :: Unary Cos 3
-                  :: Unary Sqr 0
-                     :: Binary Mul 0 2 :: Binary Mul 0 4 :: Datatypes.nil)%list.
-
-Import List.
-
-Definition prog' := Unary Ln 0
-        :: Unary (PowerInt 3) 0
-           :: Unary (PowerInt (-2)) 2
-              :: Unary Atan 3
-                 :: Binary Mul 0 1 :: Binary Mul 0 3 :: Datatypes.nil.
-
-Definition est_i' x :=
-  I.mul prec (I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3)) (I.div prec (I.pi prec) (I.fromZ 2)).
-
-
-Definition est' :=
-  let deg := 10%nat in
-  let bounds := nil in
-  let prog := prog' in
-  let iF'' := fun xi =>
-    nth 0 (IA.TaylorValuator.eval prec deg xi prog (IA.TaylorValuator.TM.var ::
-      map (fun b => IA.TaylorValuator.TM.const (IA.interval_from_bp b)) bounds)
-) IA.TaylorValuator.TM.dummy in
-  let iF' := fun xi => IA.TaylorValuator.TM.get_tm (prec, deg) xi (iF'' xi) in
-  let iF := fun xi => nth 0 (IA.BndValuator.eval prec prog (xi::map IA.interval_from_bp bounds)) I.nai in
-  fun fa fb =>
-    let xi := I.join fa fb in
-    IT.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb.
-
-Definition v3 :=
-  II.integral_interval_relative_infty prec est' est_i' 30 (I.fromZ 1) eps.
-
-(* Eval vm_compute in v3. *)
-
-
-Require Import Interval_tactic.
-
-Goal forall x:R, True.
-intros x.
-let v := Private.extract_algorithm ((atan x) * (powerRZ x (-2)) * powerRZ (ln x) 3)%R (List.cons x List.nil) in set (w := v).
-Abort.
-
-End NumericTests.
-*)
-
-
 Section ExponentInQ.
 
 End ExponentInQ.
@@ -905,6 +754,16 @@ Proof.
     by eexists; apply: f_correct;  first (split; field_simplify; lra); lia.
 Qed.
 
+Lemma f0eps_correct_pole alpha beta epsilon pole (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : 1 < IZR alpha) :
+  is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_point (pole + / B)) (at_point (pole + epsilon)) (f0eps alpha beta epsilon B).
+Proof.
+  apply is_RInt_gen_at_point.
+  apply: (is_RInt_translation_sub _ (fun x => powerRZ x alpha * ln x ^ beta)).
+  apply is_RInt_gen_at_point.
+  have H : forall x y, x + y - x = y by move => x y; ring.
+  rewrite !H; apply f0eps_correct => // .
+Qed.
+
 Lemma f0eps_lim_is_lim alpha beta epsilon (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon) :
   filterlim (fun x : R => f0eps alpha beta epsilon (/ x))
             (at_right 0) (locally (f0eps_lim alpha beta epsilon)).
@@ -925,6 +784,21 @@ apply: filterlim_ext.
     by lia.
 Qed.
 
+Lemma f0eps_lim_is_lim_pole alpha beta epsilon pole (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon) :
+  filterlim (fun x : R => f0eps alpha beta epsilon (/ (x - pole)))
+            (at_right pole) (locally (f0eps_lim alpha beta epsilon)).
+Proof.
+  apply: (filterlim_comp _ _ _ (fun x => x - pole) (fun x => f0eps alpha beta epsilon (Rinv x)) _ (at_right 0)).
+    move => P [eps HepsP].
+    rewrite /filtermap /at_right /within /locally.
+    exists eps => y Hy Hpole.
+    apply: HepsP.
+      have Hepspos : 0 < eps by exact: (cond_pos eps).
+        by apply/ball_to_lra; split; move/ball_to_lra: Hy; lra.
+      lra.
+  exact: f0eps_lim_is_lim.
+Qed.
+
 Lemma f0eps_lim_correct alpha beta epsilon (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon)  :
   is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps_lim alpha beta epsilon).
 Proof.
@@ -940,4 +814,177 @@ apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ x))).
 exact: f0eps_lim_is_lim.
 Qed.
 
+Lemma f0eps_lim_correct_pole alpha beta epsilon pole (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon)  :
+  is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_right pole) (at_point (pole + epsilon)) (f0eps_lim alpha beta epsilon).
+Proof.
+set eps := mkposreal epsilon Heps.
+apply prodi_to_single_r.
+apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ (x - pole)))).
+  exists (pos_div_2 eps) => y /= Hy1 Hy2.
+  move/ball_to_lra in Hy1.
+  have {1}-> : y = pole + / / (y - pole) by rewrite Rinv_involutive; lra.
+  rewrite -is_RInt_gen_at_point.
+  apply f0eps_correct_pole; rewrite ?Rinv_involutive; try lra.
+  apply: Rinv_0_lt_compat; lra.
+exact: f0eps_lim_is_lim_pole.
+Qed.
+
 End ZeroToEpsilon.
+
+Require Import Interval_xreal.
+Require Import Interval_float_sig.
+Require Import Interval_interval.
+
+Module BertrandInterval (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
+
+Module J := IntervalExt I.
+
+Section EffectiveBertrand.
+(* TODO: factor out the A^alpha+1 and compute ln A only once for efficiency *)
+
+Variable prec : F.precision.
+
+Variable a : R.
+Variable A : I.type.
+Let iA := I.convert A.
+
+Hypothesis Hcontainsa : contains iA (Xreal a).
+
+Fixpoint f_int (alpha : Z) (beta : nat) {struct beta} : I.type :=
+  match beta with
+    | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
+    | S m =>
+       I.sub prec (I.div prec (I.neg (I.mul prec (I.power_int prec A (alpha+1)) (I.power_int prec (I.ln prec A) (Z.of_nat beta)))) (I.fromZ (alpha + 1)))
+      (I.mul prec (I.div prec (I.fromZ (Z.of_nat beta)) (I.fromZ (alpha+1))) (f_int alpha m)) end.
+
+Lemma f_int_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) :
+  contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)).
+Proof.
+have Salphaneq0 : IZR (alpha + 1) <> 0.
+  apply: not_0_IZR.
+  by rewrite Z.add_move_0_r.
+have an0 : not (is_zero a).
+  by move: is_zero_spec; case => // ; lra.
+have Salphaneq01: not (is_zero (IZR (alpha + 1))).
+  move: (is_zero_spec (IZR (alpha + 1))).
+  case => // .
+elim: beta => [|m HIm].
+- rewrite /= .
+  apply: J.div_correct.
+  apply: J.neg_correct.
+  apply: J.power_int_correct => // ; apply: Hcontainsa.
+    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+- rewrite /f_int -/f_int /f_lim -/f_lim.
+  apply: J.sub_correct.
+  apply: J.div_correct.
+  apply: J.neg_correct.
+  apply: J.mul_correct.
+  apply: J.power_int_correct; apply: Hcontainsa.
+  rewrite pow_powerRZ.
+  apply: J.power_int_correct.
+  apply: J.ln_correct; apply: Hcontainsa.
+    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+    apply: J.mul_correct => // .
+    apply: J.div_correct.
+  by rewrite INR_Z2R; apply: I.fromZ_correct.
+  by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+Qed.
+
+(* not sure if necessary *)
+(* Definition f_int_pole alpha beta := f_int (- 2 - alpha) beta. *)
+
+(* Lemma f_int_pole_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) : *)
+(*   contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)). *)
+(* Proof. *)
+
+
+End EffectiveBertrand.
+
+End BertrandInterval.
+
+(*
+Module NumericTests.
+
+Require Import Interval_interval_float_full.
+Require Import Interval_bigint_carrier.
+Require Import Interval_specific_ops.
+Require Import Interval_bisect Interval_integral.
+Module SFBI2 := SpecificFloat BigIntRadix2.
+Module I := FloatIntervalFull SFBI2.
+
+Module MyBertrand := BertrandInterval SFBI2 I.
+
+About MyBertrand.f_int.
+
+Eval vm_compute in MyBertrand.f_int (SFBI2.PtoP 50) (I.fromZ 100000%Z) (-2%Z) (2).
+
+Module II := IntegralTactic SFBI2 I.
+Module IT := IntegralTaylor I.
+Module IA := IntervalAlgos I.
+
+Definition prec := SFBI2.PtoP 30.
+
+Definition est a b :=
+  II.naive_integral prec (fun x =>
+    I.mul prec (I.sqr prec (I.cos prec x))
+    (I.mul prec (I.power_int prec x (-2)) (I.power_int prec (I.ln prec x) 3)))
+  a b.
+
+Definition est_i x :=
+  I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3).
+
+Definition eps := SFBI2.scale2 (SFBI2.fromZ 1) (SFBI2.ZtoS (-12)).
+
+Definition v1 := II.integral_interval_relative prec est  5 (I.fromZ 1) (I.fromZ 3) eps.
+
+Definition v2 := II.integral_interval_relative_infty prec est est_i 15 (I.fromZ 1) eps.
+
+Definition prog :=
+  (Unary Ln 0
+         :: Unary (PowerInt 3) 0
+            :: Unary (PowerInt (-2)) 2
+               :: Unary Cos 3
+                  :: Unary Sqr 0
+                     :: Binary Mul 0 2 :: Binary Mul 0 4 :: Datatypes.nil)%list.
+
+Import List.
+
+Definition prog' := Unary Ln 0
+        :: Unary (PowerInt 3) 0
+           :: Unary (PowerInt (-2)) 2
+              :: Unary Atan 3
+                 :: Binary Mul 0 1 :: Binary Mul 0 3 :: Datatypes.nil.
+
+Definition est_i' x :=
+  I.mul prec (I.join (I.fromZ 0) (MyBertrand.f_int prec x (-2) 3)) (I.div prec (I.pi prec) (I.fromZ 2)).
+
+
+Definition est' :=
+  let deg := 10%nat in
+  let bounds := nil in
+  let prog := prog' in
+  let iF'' := fun xi =>
+    nth 0 (IA.TaylorValuator.eval prec deg xi prog (IA.TaylorValuator.TM.var ::
+      map (fun b => IA.TaylorValuator.TM.const (IA.interval_from_bp b)) bounds)
+) IA.TaylorValuator.TM.dummy in
+  let iF' := fun xi => IA.TaylorValuator.TM.get_tm (prec, deg) xi (iF'' xi) in
+  let iF := fun xi => nth 0 (IA.BndValuator.eval prec prog (xi::map IA.interval_from_bp bounds)) I.nai in
+  fun fa fb =>
+    let xi := I.join fa fb in
+    IT.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb.
+
+Definition v3 :=
+  II.integral_interval_relative_infty prec est' est_i' 30 (I.fromZ 1) eps.
+
+(* Eval vm_compute in v3. *)
+
+
+Require Import Interval_tactic.
+
+Goal forall x:R, True.
+intros x.
+let v := Private.extract_algorithm ((atan x) * (powerRZ x (-2)) * powerRZ (ln x) 3)%R (List.cons x List.nil) in set (w := v).
+Abort.
+
+End NumericTests.
+*)
