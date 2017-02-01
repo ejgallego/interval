@@ -898,8 +898,8 @@ Lemma integral_interval_mul_pole :
   (forall x, pole <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
   I.bounded fi ->
   (forall x, pole <= x <= a -> continuous f x) ->
-  (forall x, pole <= x <= a -> continuous g x) ->
-  (forall x, pole <= x <= a -> g x <= 0) ->
+  (forall x, pole < x <= a -> continuous g x) ->
+  (forall x, pole < x <= a -> g x <= 0) ->
   is_RInt_gen g (at_right pole) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,
@@ -1025,8 +1025,8 @@ Lemma integral_interval_mul_zero :
   (forall x, 0 <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
   I.bounded fi ->
   (forall x, 0 <= x <= a -> continuous f x) ->
-  (forall x, 0 <= x <= a -> continuous g x) ->
-  (forall x, 0 <= x <= a -> g x <= 0) ->
+  (forall x, 0 < x <= a -> continuous g x) ->
+  (forall x, 0 < x <= a -> g x <= 0) ->
   is_RInt_gen g (at_right 0) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,
