@@ -221,7 +221,7 @@ Fixpoint f_lim (alpha : Z) (beta : nat) (A : R) {struct beta} :=
 
 (* Variables (A B : R). *)
 
-(* Eval vm_compute in f 1 1 A B. *)
+(* Eval cbn in f 1 3 A B. *)
 
 Lemma one_step_by_parts alpha beta (A : R) (B : R) (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
   forall I, Bertrand alpha beta A B I ->
