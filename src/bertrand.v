@@ -850,6 +850,18 @@ Let iA := I.convert A.
 
 Hypothesis Hcontainsa : contains iA (Xreal a).
 
+Fixpoint f_int_aux (alpha : Z) (beta : nat) (A_pow_Salpha : I.type) (ln_A : I.type) {struct beta} : I.type :=
+  match beta with
+    | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
+    | S m =>
+       I.sub prec (I.div prec (I.neg (I.mul prec A_pow_Salpha (I.power_int prec ln_A (Z.of_nat beta)))) (I.fromZ (alpha + 1)))
+      (I.mul prec (I.div prec (I.fromZ (Z.of_nat beta)) (I.fromZ (alpha+1))) (f_int_aux alpha m A_pow_Salpha ln_A)) end.
+
+Definition f_int_fast (alpha : Z) (beta : nat) :=
+  let A_pow_Salpha := I.power_int prec A (alpha+1) in
+  let ln_A := I.ln prec A in
+  f_int_aux alpha beta A_pow_Salpha ln_A.
+
 Fixpoint f_int (alpha : Z) (beta : nat) {struct beta} : I.type :=
   match beta with
     | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
@@ -888,6 +900,19 @@ elim: beta => [|m HIm].
     apply: J.div_correct.
   by rewrite INR_Z2R; apply: I.fromZ_correct.
   by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+Qed.
+
+Lemma f_int_fast_f_int alpha beta : f_int_fast alpha beta = f_int alpha beta.
+Proof.
+elim: beta => [| beta Hbeta] //= .
+  rewrite /f_int_fast //= .
+  by rewrite -!Hbeta.
+Qed.
+
+Lemma f_int_fast_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) :
+  contains (I.convert (f_int_fast alpha beta)) (Xreal (f_lim alpha beta a)).
+Proof.
+  by rewrite f_int_fast_f_int; exact: f_int_correct.
 Qed.
 
 (* not sure if necessary *)

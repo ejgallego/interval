@@ -610,7 +610,7 @@ Lemma remainder_correct :
     if Fext.le (F.fromZ 1) (I.lower ia) then
       if (I.bounded (fi (I.upper_extent ia))) then
         I.mul prec (fi (I.upper_extent ia))
-              (Bertrand.f_int prec ia alpha beta)
+              (Bertrand.f_int_fast prec ia alpha beta)
       else I.nai
       else I.nai in
   (alpha < -1)%Z ->
@@ -664,7 +664,7 @@ apply: Int.integral_interval_mul_infty.
   exact: Rle_trans Ha1 Hax.
 - apply: f_lim_correct Halpha.
   exact: Rlt_le_trans Rlt_0_1 Ha1.
-- apply (f_int_correct prec a ia Ha alpha beta).
+- apply (f_int_fast_correct prec a ia Ha alpha beta).
   exact: Rlt_le_trans Rlt_0_1 Ha1.
   exact: Zlt_not_eq.
 Qed.
@@ -687,7 +687,7 @@ Lemma remainder_correct_bis :
     if Fext.le (F.fromZ 1) (I.lower ia) then
       if (I.bounded (iF (I.upper_extent ia))) then
         I.mul prec (iF (I.upper_extent ia))
-              (Bertrand.f_int prec ia alpha beta)
+              (Bertrand.f_int_fast prec ia alpha beta)
       else I.nai
     else I.nai in
   let estimator := fun fa fb =>
