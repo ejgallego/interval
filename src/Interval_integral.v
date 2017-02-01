@@ -496,6 +496,14 @@ Definition integralEstimatorCorrect_infty (estimator : I.type) ia:=
   is_RInt_gen f (at_point a) (Rbar_locally p_infty) I /\
   contains (I.convert estimator) (Xreal I).
 
+Definition integralEstimatorCorrect_atpole (estimator : I.type) ia pole:=
+  forall a,
+  contains (I.convert ia) (Xreal a) ->
+  I.convert estimator <> IInan ->
+  exists I : R,
+  is_RInt_gen f (at_right pole) (at_point a) I /\
+  contains (I.convert estimator) (Xreal I).
+
 Section Functions.
 
 Variable est : I.type -> I.type -> I.type.
