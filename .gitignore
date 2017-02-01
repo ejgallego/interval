@@ -15,3 +15,7 @@ Remakefile
 *.v.bak
 .coq-native
 *~
+*.cache
+*#
+*.el
+*.bkp*
