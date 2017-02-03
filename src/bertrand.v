@@ -852,7 +852,7 @@ Hypothesis Hcontainsa : contains iA (Xreal a).
 
 Fixpoint f_int_aux (alpha : Z) (beta : nat) (A_pow_Salpha : I.type) (ln_A : I.type) {struct beta} : I.type :=
   match beta with
-    | 0 => I.div prec (I.neg (I.power_int prec A (alpha+1))) (I.fromZ (alpha + 1))
+    | 0 => I.div prec (I.neg A_pow_Salpha) (I.fromZ (alpha + 1))
     | S m =>
        I.sub prec (I.div prec (I.neg (I.mul prec A_pow_Salpha (I.power_int prec ln_A (Z.of_nat beta)))) (I.fromZ (alpha + 1)))
       (I.mul prec (I.div prec (I.fromZ (Z.of_nat beta)) (I.fromZ (alpha+1))) (f_int_aux alpha m A_pow_Salpha ln_A)) end.
