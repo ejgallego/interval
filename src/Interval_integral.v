@@ -899,6 +899,45 @@ exists (pos_div_2 eps) => y.
 by move/ball_to_lra; rewrite /= /epsilon; lra.
 Qed.
 
+Definition constant_sign (S : R -> Prop) (f : R -> R) :=
+  (forall x, S x -> 0 <= f x) \/ (forall x, S x -> f x <= 0).
+
+
+Lemma is_RInt_le_0 :
+forall (f : R -> R) (a b If : R),
+a <= b ->
+is_RInt f a b If -> (forall x : R, a < x < b -> f x <= 0) -> If <= 0.
+Proof.
+move => f a b If leab fint fneg.
+suff: (0 <= -If) by lra.
+apply: (is_RInt_ge_0 (fun x => - (f x)) a b _ leab).
+  exact: is_RInt_opp.
+by move => x Hx; move: (fneg x Hx); lra.
+Qed.
+
+Lemma is_RInt_const_sign (f : R -> R) (If : R) a b (le_ab : a <= b) :
+  constant_sign (fun x => Rmin a b <= x <= Rmax a b) f ->
+  is_RInt f a b If ->
+  is_RInt (fun x => Rabs (f x)) a b (Rabs If).
+Proof.
+move => cst_sgn fint.
+case: cst_sgn => [f_pos|f_neg].
+- have Habs : forall x , Rmin a b < x < Rmax a b -> f x = Rabs (f x).
+    by move => x Hx; rewrite Rabs_pos_eq //; apply: f_pos; lra.
+  apply: (is_RInt_ext f _ _ _ _ Habs).
+  rewrite Rabs_pos_eq // .
+    apply: (is_RInt_ge_0 f a b If le_ab fint).
+      by move => x Hx; apply: f_pos; rewrite Rmin_left ?Rmax_right; lra.
+- have Habs : forall x , Rmin a b < x < Rmax a b -> - (f x) = Rabs (f x).
+    by move => x Hx; rewrite Rabs_left1 //; apply: f_neg; lra.
+  apply: (is_RInt_ext _ _ _ _ _ Habs).
+  rewrite Rabs_left1.
+  apply: is_RInt_opp => // .
+  apply: (is_RInt_le_0 _ a b _ le_ab) => // .
+    exact: fint.
+    move => x Hx. apply: f_neg. rewrite Rmin_left ?Rmax_right; lra.
+Qed.
+
 Lemma integral_interval_mul_pole :
   forall prec pole a ia f fi g Ig Igi,
   (pole < a) ->
@@ -907,7 +946,7 @@ Lemma integral_interval_mul_pole :
   I.bounded fi ->
   (forall x, pole <= x <= a -> continuous f x) ->
   (forall x, pole < x <= a -> continuous g x) ->
-  (forall x, pole < x <= a -> g x <= 0) ->
+  constant_sign (fun x => pole < x <= a) g ->
   is_RInt_gen g (at_right pole) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,
@@ -915,6 +954,7 @@ Lemma integral_interval_mul_pole :
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
 move => prec pole a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
+
 move: (bounded_ex Hfi) => [] l [] u HiFia.
 have Hgoodorder_bis : forall x, pole <= x <= a -> l <= f x <= u.
   move => x0 Hax0.
@@ -928,12 +968,10 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
     exact: is_RInt_gen_scal.
   have Hgoodorder : l <= u.
     by case: (Hgoodorder_bis a); try lra.
-    have intgpos : Ig <= 0.
-    apply: (@RInt_gen_neg (at_right pole) _ (at_point a) _ (fun x => pole < x < a) (fun y => y = a) g) => // .
-      exact: at_right_open_interval.
-    by move => x y z H1 H2 H3; apply: Hg; lra.
-    exact: at_right_le_at_point.
   apply: (conj HIfg).
+
+  case: Hg => [Hg|Hg]; last first.
+
   apply: (contains_connected _ (scal u Ig) (scal l Ig)).
   + apply: J.mul_correct => // .
     rewrite HiFia.
@@ -953,6 +991,27 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
     apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
+
+  (* second case: 0 <= g x *)
+      apply: (contains_connected _ (scal l Ig) (scal u Ig)).
+  + apply: J.mul_correct => // .
+    rewrite HiFia.
+    exact: (conj (Rle_refl _)).
+  + apply: J.mul_correct => // .
+    rewrite HiFia.
+    exact: (conj _ (Rle_refl _)).
+  split.
+    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal l (g x)) (fun x => scal (f x) (g x))  _ _) => // .
+      exact: at_right_le_at_point.
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+      exact: at_right_open_interval.
+    by move => y Hy z Hz; apply: Rmult_le_compat_r; case: (Hg z) (Hgoodorder_bis z); lra.
+
+    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal u (g x))  _ _) => // .
+      exact: at_right_le_at_point.
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+      exact: at_right_open_interval.
+    by move => y Hy z Hz; apply: Rmult_le_compat_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
 
 refine (proj2 (ex_RInt_gen_cauchy_left _ _) _).
@@ -991,13 +1050,6 @@ split.
   have [Ig' HIg'']: ex_RInt g u0 v0.
     apply: ex_RInt_Chasles. exact: Hu1.
     exact: ex_RInt_swap.
-  have Ig'pos : Ig' <= 0.
-    rewrite -(is_RInt_unique _ _ _ _ HIg'').
-    have -> : 0 = RInt (fun _ => 0) u0 v0.
-      by rewrite RInt_const /scal /= /mult /= Rmult_0_r.
-    apply: RInt_le => // ;first by exists Ig'.
-      exact: ex_RInt_const.
-    move => x Hx; apply: Hg; lra.
   move: (HPint u0 v0 Hu2 Hv2 Ig' HIg'') => {HPint} HPint.
   suff Hineq: norm I <= (1 + Rmax (Rabs l) (Rabs u)) * norm Ig'.
     apply: Rle_trans Hineq _.
@@ -1009,21 +1061,24 @@ split.
     move => x Hx.
     Focus 2.
     apply: is_RInt_scal.
-      suff -> : norm Ig' = opp Ig'.
-        apply: is_RInt_opp.
-        exact: HIg''.
-      by rewrite /norm /= /abs /=; rewrite Rabs_left1 //.
+
+      apply: (is_RInt_const_sign g) => // .
+        case: Hg => [gpos | gneg]; [left|right] => x Hx.
+          by apply: gpos; move: Hx; rewrite Rmin_left ?Rmax_right; lra.
+        by apply: gneg; move: Hx; rewrite Rmin_left ?Rmax_right; lra.
   rewrite /=.
   eapply Rle_trans.
     exact: norm_scal.
   rewrite /norm /= /abs /= .
-  rewrite (Rabs_left1 (g x)).
-  apply: Rmult_le_compat_r; first by move: (Hg x); lra.
+  apply: Rmult_le_compat_r; first exact: Rabs_pos.
   have Hax : pole <= x <= a by lra.
   suff: Rabs (f x) <= Rmax (Rabs l) (Rabs u) by lra.
     by apply: RmaxAbs; move: (Hgoodorder_bis x Hax) ;lra.
-  by apply: Hg; lra.
 Qed.
+
+
+
+
 
 
 Lemma integral_interval_mul_zero :
@@ -1034,7 +1089,7 @@ Lemma integral_interval_mul_zero :
   I.bounded fi ->
   (forall x, 0 <= x <= a -> continuous f x) ->
   (forall x, 0 < x <= a -> continuous g x) ->
-  (forall x, 0 < x <= a -> g x <= 0) ->
+  constant_sign (fun x => 0 < x <= a) g ->
   is_RInt_gen g (at_right 0) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,

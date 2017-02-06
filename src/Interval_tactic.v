@@ -29,6 +29,7 @@ Require Import Interval_interval_float_full.
 Require Import Interval_integral.
 Require Import Interval_bisect.
 Require Import bertrand.
+Require Import Psatz.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -724,6 +725,135 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
 Qed.
 
 End Correction_lemmas_integral_infinity.
+
+Section Correction_lemmas_integral_pole.
+
+Lemma remainder_correct_pole :
+  forall prec prog bounds ia alpha beta,
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
+  let estimator := fun ia =>
+  if Fext.lt (F.fromZ 0) (I.lower ia) then
+    if Fext.le (I.upper ia) (F.fromZ 1) then
+      if (I.bounded (fi (I.join (I.fromZ 0) ia))) then
+        I.mul prec (fi (I.join (I.fromZ 0) ia))
+              (Bertrand.f0eps_int prec ia alpha beta)
+      else I.nai
+      else I.nai
+      else I.nai in
+  (alpha > -1)%Z ->
+  Int.integralEstimatorCorrect_atpole (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia 0.
+Proof.
+move => prec prog bounds ia alpha beta f fi estimator Halpha.
+move => epsilon Hia HnotInan.
+rewrite /estimator.
+case Hlt : Fext.lt; last first.
+  by move: HnotInan; rewrite /estimator Hlt I.nai_correct.
+case Hle : Fext.le; last first.
+  by move: HnotInan; rewrite /estimator Hlt Hle I.nai_correct.
+case Hbnded : I.bounded; last first.
+  by move: HnotInan; rewrite /estimator Hlt Hle Hbnded I.nai_correct.
+have Hepspos : 0 < epsilon.
+    apply Fext.lt_correct in Hlt. move: Hlt.
+    rewrite F.fromZ_correct.
+    rewrite I.lower_correct.
+    case Hia_ : (I.convert ia) => [|l_ia u_ia] //= .
+    case: l_ia Hia_ => // r Hia_.
+    by move: Hia; rewrite Hia_ /contains => [] []; lra.
+
+  have lex1 x : 0 < x <= epsilon -> x <= 1.
+  apply Fext.le_correct in Hle. move: Hle.
+  rewrite F.fromZ_correct.
+  rewrite I.upper_correct.
+  case Hia_ : (I.convert ia) => [|l_ia u_ia] //= .
+  case: u_ia Hia_ => // r Hia_.
+  by move: Hia; rewrite Hia_ /contains => [] []; lra.
+
+apply: (Int.integral_interval_mul_pole prec 0 epsilon (I.join (I.fromZ 0) ia) f) => // .
+- by apply:I.join_correct; right; exact: Hia.
+- move => x Hx.
+  apply: contains_eval_arg.
+  apply: (contains_connected _ 0 epsilon) => // .
+  apply: I.join_correct; left; apply: I.fromZ_correct.
+  apply: I.join_correct; right; exact: Hia.
+- move => x Hx.
+  apply: (A.BndValuator.continuous_eval prec _ _ _ (I.join (I.fromZ 0) ia)).
+  apply: (contains_connected _ 0 epsilon) => // .
+  apply: I.join_correct; left; apply: I.fromZ_correct.
+  apply: I.join_correct; right; exact: Hia.
+  rewrite /estimator in HnotInan.
+  rewrite  Hlt Hle Hbnded /fi in HnotInan.
+  case Habs : I.convert => // .
+    move: HnotInan; rewrite (I.mul_propagate_l prec) //.
+- move => x Hx.
+  apply: continuous_mult.
+  apply: ex_derive_continuous.
+  apply: ex_derive_powerRZ; right; lra.
+  apply: ex_derive_continuous.
+  apply: ex_derive_pow.
+  by eexists; apply: coquelicot_compl.is_derive_ln; lra.
+  (* TODO: figure out which notion of "odd" and "even" to use *)
+  case HEvenOdd: (Z.even (Z.of_nat beta)); [left| right] => x Hx.
+  + apply: Rmult_le_pos_pos.
+    apply: powerRZ_le; lra.
+    apply: A.TaylorValuator.TM.TMI.ZEven_pow_le.
+    by rewrite -Z.even_spec.
+  + apply: Rmult_le_pos_neg.
+    apply: powerRZ_le; lra.
+    apply: Int'.TM.TMI.ZOdd_pow_le.
+    by rewrite -Z.odd_spec Zodd_even_bool HEvenOdd.
+  rewrite - ln_1; apply: ln_le.
+  lra.
+  exact: lex1.
+  + apply: f0eps_lim_correct.
+    have -> : -1 = IZR (-1) by [].
+    apply: IZR_lt; lia.
+    by [].
+  apply: Bertrand.f0eps_correct => // .
+    by lia.
+Qed.
+
+Lemma remainder_correct_pole_bis :
+  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta,
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let iG'' := fun xi =>
+    nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
+      map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
+) A.TaylorValuator.TM.dummy in
+  let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
+  let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
+  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+  let estimator_pole :=
+fun ia =>
+  if Fext.lt (F.fromZ 0) (I.lower ia) then
+    if Fext.le (I.upper ia) (F.fromZ 1) then
+      if (I.bounded (iF (I.join (I.fromZ 0) ia))) then
+        I.mul prec (iF (I.join (I.fromZ 0) ia))
+              (Bertrand.f0eps_int prec ia alpha beta)
+      else I.nai
+      else I.nai
+      else I.nai in
+(* fun ia => *)
+(*     if Fext.le (F.fromZ 1) (I.lower ia) then *)
+(*       if (I.bounded (iF (I.upper_extent ia))) then *)
+(*         I.mul prec (iF (I.upper_extent ia)) *)
+(*               (Bertrand.f_int_fast prec ia alpha beta) *)
+(*       else I.nai *)
+(*     else I.nai in *)
+  let estimator := fun fa fb =>
+    let xi := I.join fa fb in
+    Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
+  let i := if (alpha <? -1)%Z then
+             Int.integral_interval_relative_infty prec estimator estimator_pole depth ia epsilon else I.nai in
+  (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
+  (I.convert i <> Inan ->
+  (ex_RInt_gen g (at_right 0) (at_point a))) /\
+  contains (I.convert i) (Xreal (RInt_gen g (at_right 0) (at_point a))).
+
+End Correction_lemmas_integral_pole.
 
 End Correction_lemmas_integral_for_tactic.
 
