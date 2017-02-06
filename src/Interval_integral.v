@@ -562,6 +562,32 @@ Fixpoint integral_interval_absolute_infty (depth : nat) (ia: I.type) (epsilon : 
       end
   end.
 
+(* morally, est_pole ia estimates the integral from pole to a \in ia *)
+Variable est_pole : I.type -> I.type.
+
+Fixpoint integral_interval_absolute_pole (depth : nat) (ia: I.type) (iPole: I.type) (epsilon : F.type) :=
+  let int := I.join iPole ia in
+  let m := I.midpoint' int in
+  match I.bounded m with
+    | false => I.nai
+    | true =>
+      match depth with
+        | O => I.add prec (est_pole m) (est m ia)
+        | S n => let m := I.midpoint' int in
+                 let halfeps := div2 epsilon in
+                 let roughEstimate_1 := est_pole m in
+                 let roughEstimate_2 := est m ia in
+                 match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
+                   | true,true => I.add prec roughEstimate_1 roughEstimate_2
+                   | true,false => let int2 := integral_interval_absolute n m ia (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
+                   | false,true => let int1 := integral_interval_absolute_pole n m iPole (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+                   | false,false =>
+                     let i1 := integral_interval_absolute_pole n m iPole halfeps in
+                     let i2 := integral_interval_absolute n m ia halfeps in
+                     I.add prec i1 i2
+                 end
+      end
+  end.
 
 Definition integral_interval_relative
     (depth : nat) (ia ib : I.type) (epsilon : F.type) :=
@@ -591,6 +617,21 @@ Definition integral_interval_relative_infty
         else epsilon in
       if F'.le (diam roughEst) epsilon then roughEst
       else integral_interval_absolute_infty (depth-1) ia epsilon
+  else I.nai.
+
+Definition integral_interval_relative_pole
+    (depth : nat) (ia : I.type) iPole (epsilon : F.type) :=
+  if I.bounded ia then
+    let roughEst := est_pole ia in
+    if depth is O then roughEst
+    else
+      let epsilon :=
+        if I.bounded roughEst then
+          F.mul Interval_definitions.rnd_UP prec epsilon
+            (I.upper (I.abs roughEst))
+        else epsilon in
+      if F'.le (diam roughEst) epsilon then roughEst
+      else integral_interval_absolute_pole (depth-1) ia iPole epsilon
   else I.nai.
 
 
@@ -641,6 +682,29 @@ move ->.
 by [].
 Qed.
 
+Lemma integral_interval_absolute_pole_Sn {n ia iPole epsilon} :
+  let int := I.join iPole ia in
+  let m := I.midpoint' int in
+  let halfeps := div2 epsilon in
+  let roughEstimate_1 := est_pole m in
+  let roughEstimate_2 := est m ia in
+  I.bounded m ->
+  integral_interval_absolute_pole (S n) ia iPole epsilon =
+                 match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
+                   | true,true => I.add prec roughEstimate_1 roughEstimate_2
+                   | true,false => let int2 := integral_interval_absolute n m ia (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
+                   | false,true => let int1 := integral_interval_absolute_pole n m iPole (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+                   | false,false =>
+                     let i1 := integral_interval_absolute_pole n m iPole halfeps in
+                     let i2 := integral_interval_absolute n m ia halfeps in
+                     I.add prec i1 i2
+                 end.
+Proof.
+(* rewrite /integral_interval_absolute. *)
+rewrite /=.
+move ->.
+by [].
+Qed.
 
 Definition naive_integral (ia ib : I.type) :=
   I.mul prec (I.sub prec ib ia) (iF (I.join ia ib)).
@@ -651,6 +715,7 @@ Section Proofs.
 
 Variable estimator : I.type -> I.type -> I.type.
 Variable estimator_infty : I.type -> I.type.
+Variable estimator_pole : I.type -> I.type.
 
 Lemma integral_interval_absolute_correct (depth : nat) ia ib epsilon :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
@@ -806,6 +871,84 @@ elim: depth epsilon ia Hboundia =>
       exact: Hd.
 Qed.
 
+Lemma integral_interval_absolute_pole_correct (depth : nat) ia epsilon pole iPole :
+  (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
+  (forall ia, integralEstimatorCorrect_atpole (estimator_pole ia) ia pole) ->
+  I.bounded ia ->
+  integralEstimatorCorrect_atpole (integral_interval_absolute_pole estimator estimator_pole depth ia iPole epsilon) ia pole.
+Proof.
+move => base_case base_case_pole Hboundia.
+elim: depth epsilon ia Hboundia =>
+[|d Hd] epsilon ia Hboundia a Hia HnotInan.
+- move: HnotInan.
+  set iab := (I.join iPole ia).
+  rewrite /integral_interval_absolute_pole.
+  set m' := I.midpoint' iab.
+  case: (I.bounded m'); last by rewrite I.nai_correct.
+  have [m Hm]:  (not_empty (I.convert m')).
+    move: (I.midpoint'_correct iab) => [H1 H2].
+    apply: H2; exists a.
+    by apply: I.join_correct; first (right; exact : Hia).
+  move => HnotInan.
+  case: (base_case m' ia m a) => // [M|Iam [Ham Cam]].
+    apply: HnotInan.
+    exact: I.add_propagate_r.
+  case: (base_case_pole m' m) => // [M|Imb [Hmb Cmb]].
+    apply: HnotInan.
+    exact: I.add_propagate_l.
+  exists (Imb + Iam).
+  split.
+  apply: is_RInt_gen_Chasles; first exact: Hmb.
+  by rewrite is_RInt_gen_at_point.
+  exact: J.add_correct.
+- set iab := (I.join iPole ia).
+  set m' := I.midpoint' iab.
+  case Hbnded: (I.bounded m'); last first.
+    by rewrite /integral_interval_absolute_pole Hbnded I.nai_correct in HnotInan.
+  rewrite (integral_interval_absolute_pole_Sn _ _ Hbnded) in HnotInan |- *.
+  have [m Hm]:  (not_empty (I.convert m')).
+    move: (I.midpoint'_correct iab) => [H1 H2].
+    apply: H2; exists a.
+    by apply: I.join_correct; first (right; exact : Hia).
+  have K: (forall i1 i2,
+      I.convert i1 <> Inan ->
+      I.convert i2 <> Inan ->
+      integralEstimatorCorrect_atpole i1 m' pole ->
+      integralEstimatorCorrect i2 m' ia ->
+      exists I : R, is_RInt_gen f (at_right pole) (at_point a) I /\ contains (I.convert (I.add prec i1 i2)) (Xreal I)).
+    move => i1 i2 N1 N2 H1 H2.
+    case: (H1 m) => {H1} // [I1 [H1 C1]].
+    case: (H2 m a) => {H2} // [I2 [H2 C2]].
+    exists (I1 + I2).
+    split.
+    apply: is_RInt_gen_Chasles; first exact: H1.
+    by rewrite is_RInt_gen_at_point.
+    exact: J.add_correct.
+  move: HnotInan.
+  set b1 := (X in if X then _ else _).
+  case: b1.
+  + set b2 := (X in if X then _ else _).
+    case Hb2 : b2 => HnotInan.
+    * apply: K => // [L|L]; apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+    * apply: K => // [L|L|] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: integral_interval_absolute_correct.
+  + set b2 := (X in if X then _ else _).
+    case: b2 => HnotInan.
+    * apply: K => // [L|L|] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: Hd.
+    * apply: K => // [L|L||] ; try apply: HnotInan.
+      exact: I.add_propagate_l.
+      exact: I.add_propagate_r.
+      exact: Hd.
+      exact: integral_interval_absolute_correct.
+Qed.
+
 Lemma integral_interval_relative_correct (depth : nat) ia ib epsilon :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
   integralEstimatorCorrect (integral_interval_relative estimator depth ia ib epsilon) ia ib.
@@ -838,6 +981,23 @@ case Hb1 : b1.
 exact: base_case_infty.
 exact: integral_interval_absolute_infty_correct.
 Qed.
+
+Lemma integral_interval_relative_pole_correct (depth : nat) ia (epsilon : F.type) pole (iPole : I.type) :
+  (forall ia, integralEstimatorCorrect_atpole (estimator_pole ia) ia pole) ->
+  (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
+  integralEstimatorCorrect_atpole (integral_interval_relative_pole estimator estimator_pole depth ia iPole epsilon) ia pole.
+Proof.
+move => base_case_pole base_case.
+rewrite /integral_interval_relative_pole.
+case Hiab: (I.bounded ia); last by move => a _ ; rewrite I.nai_correct.
+case: depth => [|depth].
+exact: base_case_pole.
+set b1 := (X in if X then _ else _).
+case Hb1 : b1.
+exact: base_case_pole.
+exact: integral_interval_absolute_pole_correct.
+Qed.
+
 
 Lemma naive_integral_correct (ia ib: I.type) (a b : R) :
   contains (I.convert ia) (Xreal a) ->
