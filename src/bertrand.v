@@ -645,7 +645,7 @@ Lemma pow_negx x n : pow (- x) n = (pow (-1) n) * pow x n.
   by rewrite Rpow_mult_distr.
 Qed.
 
-Lemma subst_lemma alpha beta epsilon (eta : R) (Heps : 0 < epsilon) (Heta : 0 < eta <= epsilon) (Halpha : 1 < IZR alpha) :
+Lemma subst_lemma alpha beta epsilon (eta : R) (Heps : 0 < epsilon) (Heta : 0 < eta <= epsilon) (Halpha : -1 < IZR alpha) :
   RInt_gen
     (fun x => powerRZ x alpha * pow (ln x) beta)
     (at_point eta)
@@ -658,7 +658,7 @@ Proof.
   have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) eta epsilon.
   eexists.
   apply: f_correct => // .
-  suff: (1 < alpha)%Z by lia.
+  suff: (-1 < alpha)%Z by lia.
   apply: lt_IZR => // .
   (* should be a lemma *)
   have -> : RInt_gen (fun x : R => powerRZ x alpha * ln x ^ beta) (at_point eta) (at_point epsilon) = RInt (fun x : R => powerRZ x alpha * ln x ^ beta) eta epsilon.
@@ -724,10 +724,10 @@ Proof.
   by apply: pow_nonzero; lra.
 Qed.
 
-Lemma f0eps_correct alpha beta epsilon (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : 1 < IZR alpha) :
+Lemma f0eps_correct alpha beta epsilon (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
   is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_point (/ B)) (at_point epsilon) (f0eps alpha beta epsilon B).
 Proof.
-  have Halpha1 : (1 < alpha)%Z by apply: lt_IZR.
+  have Halpha1 : (-1 < alpha)%Z by apply: lt_IZR.
   have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) (/ B) epsilon.
     eexists.
     apply: f_correct => // .
@@ -754,7 +754,7 @@ Proof.
     by eexists; apply: f_correct;  first (split; field_simplify; lra); lia.
 Qed.
 
-Lemma f0eps_correct_pole alpha beta epsilon pole (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : 1 < IZR alpha) :
+Lemma f0eps_correct_pole alpha beta epsilon pole (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
   is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_point (pole + / B)) (at_point (pole + epsilon)) (f0eps alpha beta epsilon B).
 Proof.
   apply is_RInt_gen_at_point.
@@ -764,7 +764,7 @@ Proof.
   rewrite !H; apply f0eps_correct => // .
 Qed.
 
-Lemma f0eps_lim_is_lim alpha beta epsilon (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon) :
+Lemma f0eps_lim_is_lim alpha beta epsilon (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
   filterlim (fun x : R => f0eps alpha beta epsilon (/ x))
             (at_right 0) (locally (f0eps_lim alpha beta epsilon)).
 Proof.
@@ -780,11 +780,11 @@ apply: filterlim_ext.
   apply: is_lim_mult => // .
   + exact: is_lim_const.
   + apply: f_lim_is_lim; first exact: Rinv_0_lt_compat.
-    have Halpha1 : (1 < alpha)%Z by apply: lt_IZR.
+    have Halpha1 : (-1 < alpha)%Z by apply: lt_IZR.
     by lia.
 Qed.
 
-Lemma f0eps_lim_is_lim_pole alpha beta epsilon pole (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon) :
+Lemma f0eps_lim_is_lim_pole alpha beta epsilon pole (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
   filterlim (fun x : R => f0eps alpha beta epsilon (/ (x - pole)))
             (at_right pole) (locally (f0eps_lim alpha beta epsilon)).
 Proof.
@@ -799,7 +799,7 @@ Proof.
   exact: f0eps_lim_is_lim.
 Qed.
 
-Lemma f0eps_lim_correct alpha beta epsilon (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon)  :
+Lemma f0eps_lim_correct alpha beta epsilon (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
   is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps_lim alpha beta epsilon).
 Proof.
 set eps := mkposreal epsilon Heps.
@@ -814,7 +814,7 @@ apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ x))).
 exact: f0eps_lim_is_lim.
 Qed.
 
-Lemma f0eps_lim_correct_pole alpha beta epsilon pole (Halpha : 1 < IZR alpha) (Heps : 0 < epsilon)  :
+Lemma f0eps_lim_correct_pole alpha beta epsilon pole (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
   is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_right pole) (at_point (pole + epsilon)) (f0eps_lim alpha beta epsilon).
 Proof.
 set eps := mkposreal epsilon Heps.
@@ -843,6 +843,8 @@ Section EffectiveBertrand.
 (* TODO: factor out the A^alpha+1 and compute ln A only once for efficiency *)
 
 Variable prec : F.precision.
+
+Section Infinity.
 
 Variable a : R.
 Variable A : I.type.
@@ -915,6 +917,36 @@ Proof.
   by rewrite f_int_fast_f_int; exact: f_int_correct.
 Qed.
 
+End Infinity.
+
+Section Pole.
+
+Variable epsilon : R.
+Variable Epsilon : I.type.
+Let iEps := I.convert Epsilon.
+
+Hypothesis HEps : contains iEps (Xreal epsilon).
+Hypothesis eps_gt0 : 0 < epsilon.
+
+Definition f0eps_int (alpha : Z) (beta : nat) :=
+  I.mul prec (I.power_int prec (I.fromZ (-1)) (Z.of_nat beta)) (f_int_fast (I.div prec (I.fromZ 1) Epsilon) (- 2 - alpha) beta ).
+
+Lemma f0eps_correct (alpha : Z) (beta : nat) (Halpha : (alpha <> -1)%Z) :
+  contains (I.convert (f0eps_int alpha beta)) (Xreal (f0eps_lim alpha beta epsilon)).
+Proof.
+rewrite /f0eps_int /f0eps_lim.
+apply: J.mul_correct.
+  rewrite pow_powerRZ; apply: J.power_int_correct.
+  by apply: I.fromZ_correct.
+rewrite f_int_fast_f_int; apply: f_int_correct.
+  have -> : / epsilon = 1 / epsilon by field; lra.
+  apply: J.div_correct => // .
+  exact: I.fromZ_correct.
+exact: Rinv_0_lt_compat.
+by lia.
+Qed.
+
+End Pole.
 (* not sure if necessary *)
 (* Definition f_int_pole alpha beta := f_int (- 2 - alpha) beta. *)
 
