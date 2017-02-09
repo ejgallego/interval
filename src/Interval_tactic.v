@@ -898,14 +898,12 @@ Lemma remainder_correct_expn_tactic :
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-
   let estimator_infty := fun ia =>
       if test iF ia then
       if (I.bounded (iF (I.upper_extent ia))) then
         I.mul prec (iF (I.upper_extent ia)) (iKernelInt ia)
       else I.nai
       else I.nai in
-
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
@@ -974,6 +972,61 @@ apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta)))
   rewrite /is_true in H1.
   move: (proj1 (Z.gtb_lt _ _ ) H1).
   by have -> : 1%Z = Z.of_nat 1 by []; rewrite -Nat2Z.inj_lt; lia.
+Qed.
+
+
+Lemma remainder_correct_log_neg_infty_tactic :
+  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta,
+  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && (Z.of_nat beta >? 1)%Z && I.lower_bounded ia in
+  let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let iG'' := fun xi =>
+    nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
+      map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
+) A.TaylorValuator.TM.dummy in
+  let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
+  let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
+  let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
+
+  let estimator_infty := fun ia =>
+      if test iF ia then
+      if (I.bounded (iF (I.upper_extent ia))) then
+        I.mul prec (iF (I.upper_extent ia)) (iKernelInt ia)
+      else I.nai
+      else I.nai in
+
+  let estimator := fun fa fb =>
+    let xi := I.join fa fb in
+    Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
+  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  (forall x,  g x = f x * / (x * (ln x)^(S beta))) ->
+  (I.convert i <> Inan ->
+  (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
+  contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
+Proof.
+move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
+(* case Halphab : (alpha <? -1)%Z; last by rewrite /=; split. *)
+move => i Hfg.
+suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
+  contains (I.convert i)
+    (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
+  move => H.
+  case Hi: (I.convert i) => [|l u]; first by split.
+  rewrite -Hi; split => [HnotInan|]; first by apply H.
+  apply H; by rewrite Hi.
+apply: integral_epsilon_infty_correct_RInt_gen => // .
+  - apply: taylor_correct_estimator_general.
+  - rewrite /correct_estimator_infty.
+    move => ia0.
+    suff:  Int.integralEstimatorCorrect_infty
+             (fun x : R => f x * / (x * (ln x)^(S beta)))
+             (estimator_infty ia0) ia0.
+      apply: integralEstimatorCorrect_infty_ext.
+      by move => x; rewrite -Hfg.
+apply: remainder_correct_bertrand_log_neg_at_infty.
 Qed.
 
 End Correction_lemmas_integral_infinity.
@@ -1444,6 +1497,33 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           end
         end
     end
+
+(* improper Bertrand integral, alpha = 1 and beta > 1 at infinity *)
+  | RInt_gen (fun x => (@?f x) * / (x * (pow (ln x) (S ?beta)))) (at_point ?a) (Rbar_locally p_infty) =>
+    let g := eval cbv beta in ((fun (y : R) => (f y) * (y * pow (ln y) (S beta))) reify_var) in
+    let f := eval cbv beta in (f reify_var) in
+    let vf := extract_algorithm f (cons reify_var nil) in
+    let vg := extract_algorithm g (cons reify_var nil) in
+    let va := extract_algorithm a (@nil R) in
+    match va with
+    | (?pa, ?la) =>
+      let lca := get_trivial_bounds la prec in
+        match vf with
+        | (?pf, _ :: ?lf) =>
+          let lcf := get_trivial_bounds lf prec in
+          match vg with
+            | (?pg, _ :: ?lg) =>
+              let lcg := get_trivial_bounds lg prec in
+              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
+              let c := constr:(proj2 (remainder_correct_log_neg_infty_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
+              (* work-around for a bug in the pretyper *)
+              match type of c with
+                | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
+              end
+          end
+        end
+    end
+
 (* improper integral f(x) * exp (-x) at infinity *)
   | RInt_gen (fun x => (@?f x) * (exp (Ropp x))) (at_point ?a) (Rbar_locally p_infty) =>
 
