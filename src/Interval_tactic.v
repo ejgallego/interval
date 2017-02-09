@@ -1500,7 +1500,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
 
 (* improper Bertrand integral, alpha = 1 and beta > 1 at infinity *)
   | RInt_gen (fun x => (@?f x) * / (x * (pow (ln x) (S ?beta)))) (at_point ?a) (Rbar_locally p_infty) =>
-    let g := eval cbv beta in ((fun (y : R) => (f y) * (y * pow (ln y) (S beta))) reify_var) in
+    let g := eval cbv beta in ((fun (y : R) => (f y) * / (y * pow (ln y) (S beta))) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
     let vg := extract_algorithm g (cons reify_var nil) in
