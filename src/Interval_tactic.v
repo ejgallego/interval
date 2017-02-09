@@ -802,12 +802,14 @@ Qed.
 (* Not sure if useful, definitely overkill for exp(-x) but maybe this can gain us a lot of time for future 'kernels'? *)
 Lemma remainder_correct_generic_fun_at_infty (kernel : R -> R) (kernelInt : R -> R) iKernelInt
       (pre_cond : (R -> R) -> R -> Prop)
+      (dom_constant_sign : R -> Prop)
       (test : (I.type -> I.type) -> I.type -> bool)
-      (Hcont : forall x : R, continuous kernel x)
-      (Hint : forall a, is_RInt_gen kernel (at_point a) (Rbar_locally p_infty) (kernelInt a))
+      (Hcont : forall a x f, pre_cond f a -> a <= x -> continuous kernel x)
+      (Hint : forall a f, (pre_cond f a) -> is_RInt_gen kernel (at_point a) (Rbar_locally p_infty) (kernelInt a))
       (Hint_iExt : forall a ia, contains (I.convert ia) (Xreal a) -> contains (I.convert (iKernelInt ia)) (Xreal (kernelInt a)))
+      (Hpcimpcs : forall a f x, pre_cond f a -> a <= x -> dom_constant_sign x)
       (* ultimately we want constant_sign here *)
-      (Hpos : forall x : R, 0 <= kernel x)
+      (Hpos : forall x, dom_constant_sign x -> 0 <= kernel x)
       (H_test : forall f fi ia a,
                   (forall x ix, contains (I.convert ix) (Xreal x) -> contains (I.convert (fi ix)) (Xreal (f x)))  ->
                   contains (I.convert ia) (Xreal a) ->
@@ -850,10 +852,10 @@ apply: Int.integral_interval_mul_infty.
   destruct Hbnded as [l [u H']].
   now rewrite H' in H.
 - move => x Hx.
-  exact: Hcont.
+  by apply: Hcont; first apply Hprec_cond.
 - intros x Hax.
-  exact: Hpos.
-- exact: Hint.
+  by apply: Hpos; apply: Hpcimpcs; first apply: Hprec_cond.
+- apply: Hint; exact: Hprec_cond.
 - exact: Hint_iExt => // .
 Qed.
 
@@ -872,11 +874,12 @@ Lemma remainder_correct_exp_at_infty :
   Int.integralEstimatorCorrect_infty (fun x => f x * expn x) (estimator ia) ia.
 Proof.
 move => prec prog bounds ia test iKernelInt f fi estimator.
-apply (remainder_correct_generic_fun_at_infty expn expn _ (fun _ _ => True)).
-- exact: continuous_expn.
-- move => a; exact: is_RInt_gen_exp_infty.
+apply (remainder_correct_generic_fun_at_infty expn expn _ (fun _ _ => True) (fun x => True)).
+- by move => a x _ _ Hax;apply: continuous_expn.
+- move => a _ _; exact: is_RInt_gen_exp_infty.
 - move => a ia0 H; exact: ExpNIntegral.ExpN_correct.
-- move => x; move: (exp_pos (-x)); rewrite /expn; lra.
+- by [].
+- move => x; move: (exp_pos (-x)) ;rewrite /expn; lra.
 - by [].
 Qed.
 
@@ -934,6 +937,44 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
     exact: remainder_correct_exp_at_infty.
 Qed.
 
+
+Lemma remainder_correct_bertrand_log_neg_at_infty :
+  forall prec prog bounds ia beta,
+  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && (Z.of_nat beta >? 1)%Z && I.lower_bounded ia in
+  let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
+  let estimator := fun ia =>
+      if test fi ia then
+      if (I.bounded (fi (I.upper_extent ia))) then
+        I.mul prec (fi (I.upper_extent ia)) (iKernelInt ia)
+      else I.nai
+      else I.nai in
+  Int.integralEstimatorCorrect_infty (fun x => f x * / (x * (ln x)^(S beta))) (estimator ia) ia.
+Proof.
+move => prec prog bounds ia beta test iKernelInt f fi estimator.
+apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x /\ (2 <= beta)%nat) (fun x => 1 < x)).
+- move => a x Hx [H1a H2beta] Hax. apply: f_neg_continuous.
+  (* ugly *) rewrite SSR_leq; lia.
+  lra.
+- move => a _ [Ha Hbeta]. apply: f_neg_correct_RInt_gen => // .
+- (* ugly *)by rewrite SSR_leq.
+- move => a ia0 H; rewrite /iKernelInt; apply: J.neg_correct.
+  by apply: f_neg_int_correct => // .
+- move => a _ x [Ha Hbeta] Hx; lra.
+- move => x Hx. apply: Rlt_le; apply: Rinv_0_lt_compat; apply: Rmult_lt_0_compat.
+    by lra.
+    suff Hln :0 < (ln x); first by apply: pow_lt.
+    move: (ln_increasing 1 x); rewrite ln_1; lra.
+- move => g ig ib b Hgext Hcontains.
+  rewrite /test; case/andP; case/andP.
+  move/Fext.lt_correct; rewrite F.fromZ_correct.
+  case: ib Hcontains => // l u /= ;case: (F.toX l) => // lr [] Hlrb _ lt1lr.
+  move => H1 _; split; first by lra.
+  rewrite /is_true in H1.
+  move: (proj1 (Z.gtb_lt _ _ ) H1).
+  by have -> : 1%Z = Z.of_nat 1 by []; rewrite -Nat2Z.inj_lt; lia.
+Qed.
 
 End Correction_lemmas_integral_infinity.
 

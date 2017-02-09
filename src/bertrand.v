@@ -1,4 +1,6 @@
 Require Import Reals Coquelicot.Coquelicot.
+Require Import Coquelicot.AutoDerive.
+
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat.
 Require Import coquelicot_compl Interval_missing.
 Require Import mathcomp.ssreflect.bigop.
@@ -621,6 +623,92 @@ apply: (filterlimi_lim_ext_loc (f alpha beta A)).
 exact: f_lim_is_lim.
 Qed.
 
+Section BertrandLogNeg.
+
+(* in this section we focus on integrals of the shape *)
+(* int(1 / (x * ln^beta), x=a..infinity), a>1, beta>1   *)
+
+Definition f_neg (a : R) (beta : nat) :=
+  - / ((INR beta) * (ln a)^beta).
+
+Lemma f_neg_continuous x beta (Hbeta : (0 < beta)%N) (Hx : 1 < x):
+  continuous (fun x0 : R => / (x0 * ln x0 ^ beta.+1)) x.
+Proof.
+have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
+have Hlnn0 x1 beta1 :  1 < x1 -> ln x1 ^ beta1 <> 0.
+    by move => Hx0; apply: pow_nonzero; move: (ln_increasing 1 x1); rewrite ln_1; lra.
+apply: continuous_comp.
+  apply: continuous_mult; first exact: continuous_id.
+  apply: (continuous_comp ln (fun x => pow x beta.+1)).
+    by apply: continuous_ln; lra.
+  by apply: ex_derive_continuous; apply: ex_derive_pow; exact: ex_derive_id.
+apply: continuous_Rinv.
+apply: Rmult_integral_contrapositive; split; try lra.
+by apply: Hlnn0; lra.
+Qed.
+
+Lemma f_neg_correct_RInt a b beta (Ha : 1 < a <= b) (Hbeta : (1 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
+Proof.
+have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
+have Hlnn0 x beta1 : a <= x -> ln x ^ beta1 <> 0.
+    by move => Hx0; apply: pow_nonzero; move: (ln_increasing 1 x); rewrite ln_1; lra.
+have Hder : forall x, a <= x -> is_derive (fun x => f_neg x beta) x (/ (x * (ln x)^beta.+1)).
+  move => x Hax.
+  rewrite /f_neg.
+  rewrite -[/(_ * _)]Ropp_involutive.
+  apply: is_derive_opp.
+  auto_derive.
+    repeat (split; try lra).
+    apply: Rmult_integral_contrapositive; split => // .
+    exact: Hlnn0.
+  case: beta Hbeta Hbetn0 Hlnn0 => [|beta] // Hbeta Hbetn0 Hlnn0.
+  rewrite -pred_Sn.
+  rewrite -!tech_pow_Rmult.
+  field; repeat (split; try easy).
+    exact: Hlnn0.
+    by rewrite -[ln _]pow_1; exact: Hlnn0.
+    by lra.
+apply: (is_RInt_derive (fun x => f_neg x beta) _).
+  by move => x Hx; apply: Hder; rewrite Rmin_left in Hx; try lra.
+move => x. (rewrite Rmin_left; last by lra); move => Hx.
+apply: continuous_comp.
+  apply: continuous_mult; first exact: continuous_id.
+  apply: (continuous_comp ln (fun x => pow x beta.+1)).
+    by apply: continuous_ln; lra.
+  by apply: ex_derive_continuous; apply: ex_derive_pow; exact: ex_derive_id.
+apply: continuous_Rinv.
+apply: Rmult_integral_contrapositive; split; try lra.
+by apply: Hlnn0; lra.
+Qed.
+
+Lemma f_neg_correct_RInt_gen a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
+Proof.
+apply prodi_to_single_l.
+apply: (filterlimi_lim_ext_loc).
+  exists a => x Hx.
+  by apply f_neg_correct_RInt => // ; lra.
+  rewrite -Rminus_0_l.
+apply: (filterlim_comp _ _ _  (fun x => f_neg x beta) (fun x => x - f_neg a beta) (* (Rbar_locally' p_infty) *) _ (* (Rbar_locally 0) *) _);last first.
+apply (is_lim_minus').
+    exact: is_lim_id.
+  exact: is_lim_const.
+rewrite /f_neg.
+apply: filterlim_comp.
+  apply: (is_lim_inv (fun x => INR beta*ln x ^ beta) (p_infty) (p_infty)) => // .
+  have {2} -> : p_infty = Rbar_mult (INR beta) p_infty.
+    by rewrite Rbar_mult_p_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta.
+  apply: is_lim_mult; first exact: is_lim_const.
+    apply: (is_lim_comp (fun x => x ^beta)) => // ; try apply: is_lim_ln_p.
+      by case :beta Hbeta => [| beta] // Hbeta; apply: is_lim_pow_infty.
+    by eexists => // .
+  rewrite /ex_Rbar_mult.
+  by apply: not_0_INR; case: beta Hbeta.
+(* why is this final goal so hard?? *)
+rewrite /= /Rbar_locally /Rbar_locally'.
+Admitted.
+
+End BertrandLogNeg.
+
 Section ExponentInQ.
 
 End ExponentInQ.
@@ -851,6 +939,24 @@ Variable A : I.type.
 Let iA := I.convert A.
 
 Hypothesis Hcontainsa : contains iA (Xreal a).
+
+Section BertrandLogNegInt.
+
+Definition f_neg_int beta := I.neg (I.inv prec (I.mul prec (I.fromZ (Z.of_nat beta)) (I.power_int prec (I.ln prec A) (Z.of_nat beta)))).
+
+Lemma f_neg_int_correct beta : contains (I.convert (f_neg_int beta)) (Xreal (f_neg a beta)).
+Proof.
+apply: J.neg_correct.
+apply: J.inv_correct.
+apply: J.mul_correct.
+  rewrite INR_Z2R.
+  exact: I.fromZ_correct.
+rewrite pow_powerRZ.
+apply: J.power_int_correct.
+exact: J.ln_correct.
+Qed.
+
+End BertrandLogNegInt.
 
 Fixpoint f_int_aux (alpha : Z) (beta : nat) (A_pow_Salpha : I.type) (ln_A : I.type) {struct beta} : I.type :=
   match beta with
