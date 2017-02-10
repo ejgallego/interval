@@ -689,23 +689,22 @@ apply: (filterlimi_lim_ext_loc).
   by apply f_neg_correct_RInt => // ; lra.
   rewrite -Rminus_0_l.
 apply: (filterlim_comp _ _ _  (fun x => f_neg x beta) (fun x => x - f_neg a beta) (* (Rbar_locally' p_infty) *) _ (* (Rbar_locally 0) *) _);last first.
-apply (is_lim_minus').
-    exact: is_lim_id.
-  exact: is_lim_const.
+rewrite /Rminus. apply: continuous_plus.
+    exact: filterlim_id.
+  exact: filterlim_const.
 rewrite /f_neg.
 apply: filterlim_comp.
   apply: (is_lim_inv (fun x => INR beta*ln x ^ beta) (p_infty) (p_infty)) => // .
+
   have {2} -> : p_infty = Rbar_mult (INR beta) p_infty.
     by rewrite Rbar_mult_p_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta.
   apply: is_lim_mult; first exact: is_lim_const.
-    apply: (is_lim_comp (fun x => x ^beta)) => // ; try apply: is_lim_ln_p.
+    apply: (filterlim_comp _ _ _ _ (fun x => x ^beta)) => // ; try apply: is_lim_ln_p.
       by case :beta Hbeta => [| beta] // Hbeta; apply: is_lim_pow_infty.
-    by eexists => // .
-  rewrite /ex_Rbar_mult.
   by apply: not_0_INR; case: beta Hbeta.
-(* why is this final goal so hard?? *)
-rewrite /= /Rbar_locally /Rbar_locally'.
-Admitted.
+rewrite -[0]Ropp_0.
+exact: (filterlim_opp 0).
+Qed.
 
 End BertrandLogNeg.
 

@@ -2039,9 +2039,18 @@ Export ITSFBI2.
 
 (* Goal True. *)
 (* interval_intro *)
-(*   (RInt_gen  *)
+(*   (RInt_gen *)
+(*      (fun x => (1 / x * (/ (x * (ln x)^3)))) *)
+(*      (at_point 10) *)
+(*      (Rbar_locally p_infty)) with (i_integral_deg 0). *)
+(* done. *)
+
+
+(* Goal True. *)
+(* interval_intro *)
+(*   (RInt_gen *)
 (*      (fun x => (1 / ((x^2 - 1)*(x^4 + 1)) * (powerRZ x 2 * (ln x)^1))) *)
-(*      (at_right 0)  *)
+(*      (at_right 0) *)
 (*      (at_point (1/2))). *)
 (* done. *)
 
