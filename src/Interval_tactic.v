@@ -676,8 +676,6 @@ Section Correction_lemmas_integral_infinity.
 
 Import Bertrand.
 
-Require Import Psatz.
-
 Lemma remainder_correct_bertrand :
   forall prec prog bounds ia alpha beta,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
