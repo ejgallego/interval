@@ -631,12 +631,47 @@ Section BertrandLogNeg.
 Definition f_neg (a : R) (beta : nat) :=
   - / ((INR beta) * (ln a)^beta).
 
-Lemma f_neg_continuous x beta (Hbeta : (0 < beta)%N) (Hx : 1 < x):
+Lemma f_neg_continuous x beta (Hbeta : (0 < beta)%N) (H0x : 0 < x) (Hx1 : x <> 1):
   continuous (fun x0 : R => / (x0 * ln x0 ^ beta.+1)) x.
 Proof.
 have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
-have Hlnn0 x1 beta1 :  1 < x1 -> ln x1 ^ beta1 <> 0.
-    by move => Hx0; apply: pow_nonzero; move: (ln_increasing 1 x1); rewrite ln_1; lra.
+have Hlnn0 x1 beta1 :  0 < x1 -> 1 <> x1 -> ln x1 ^ beta1 <> 0.
+  by move => H0x1 Hx10; apply: pow_nonzero; case: (Rlt_dec 1 x1) => H; move: (ln_increasing 1 x1); move: (ln_increasing x1 1); rewrite ln_1; lra.
+apply: continuous_comp.
+  apply: continuous_mult; first exact: continuous_id.
+  apply: (continuous_comp ln (fun x => pow x beta.+1)).
+    by apply: continuous_ln; lra.
+  by apply: ex_derive_continuous; apply: ex_derive_pow; exact: ex_derive_id.
+apply: continuous_Rinv.
+apply: Rmult_integral_contrapositive; split; try lra.
+apply: Hlnn0; lra.
+Qed.
+
+Lemma f_neg_correct_RInt_0_1 a b beta (Hab1 : 0 < a <= b) (Hb1 : b < 1) (Hbeta : (1 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
+Proof.
+have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
+have Hlnn0 x beta1 : 0 < x < 1 -> ln x ^ beta1 <> 0.
+  by move => Hx0; apply: pow_nonzero; move: (ln_increasing x 1); rewrite ln_1;lra.
+have Hder : forall x, 0 < x < 1 -> is_derive (fun x => f_neg x beta) x (/ (x * (ln x)^beta.+1)).
+  move => x Hax.
+  rewrite /f_neg.
+  rewrite -[/(_ * _)]Ropp_involutive.
+  apply: is_derive_opp.
+  auto_derive.
+    repeat (split; try lra).
+    apply: Rmult_integral_contrapositive; split => // .
+    exact: Hlnn0.
+  case: beta Hbeta Hbetn0 Hlnn0 => [|beta] // Hbeta Hbetn0 Hlnn0.
+  rewrite -pred_Sn.
+  rewrite -!tech_pow_Rmult.
+  field; repeat (split; try easy).
+    exact: Hlnn0.
+    by rewrite -[ln _]pow_1; exact: Hlnn0.
+    by lra.
+apply: (is_RInt_derive (fun x => f_neg x beta) _).
+  by move => x Hx; apply: Hder; rewrite Rmin_left ?Rmax_right in Hx; try lra.
+move => x. (rewrite Rmin_left ?Rmax_right; try (by lra)).
+move => Hx.
 apply: continuous_comp.
   apply: continuous_mult; first exact: continuous_id.
   apply: (continuous_comp ln (fun x => pow x beta.+1)).
@@ -647,7 +682,8 @@ apply: Rmult_integral_contrapositive; split; try lra.
 by apply: Hlnn0; lra.
 Qed.
 
-Lemma f_neg_correct_RInt a b beta (Ha : 1 < a <= b) (Hbeta : (1 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
+
+Lemma f_neg_correct_RInt_a_infty a b beta (Ha : 1 < a <= b) (Hbeta : (1 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
 Proof.
 have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
 have Hlnn0 x beta1 : a <= x -> ln x ^ beta1 <> 0.
@@ -681,12 +717,38 @@ apply: Rmult_integral_contrapositive; split; try lra.
 by apply: Hlnn0; lra.
 Qed.
 
-Lemma f_neg_correct_RInt_gen a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
+Lemma f_neg_correct_RInt_gen_0_a a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
 Proof.
 apply prodi_to_single_l.
 apply: (filterlimi_lim_ext_loc).
   exists a => x Hx.
-  by apply f_neg_correct_RInt => // ; lra.
+  by apply f_neg_correct_RInt_a_infty => // ; lra.
+  rewrite -Rminus_0_l.
+apply: (filterlim_comp _ _ _  (fun x => f_neg x beta) (fun x => x - f_neg a beta) (* (Rbar_locally' p_infty) *) _ (* (Rbar_locally 0) *) _);last first.
+rewrite /Rminus. apply: continuous_plus.
+    exact: filterlim_id.
+  exact: filterlim_const.
+rewrite /f_neg.
+apply: filterlim_comp.
+  apply: (is_lim_inv (fun x => INR beta*ln x ^ beta) (p_infty) (p_infty)) => // .
+
+  have {2} -> : p_infty = Rbar_mult (INR beta) p_infty.
+    by rewrite Rbar_mult_p_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta.
+  apply: is_lim_mult; first exact: is_lim_const.
+    apply: (filterlim_comp _ _ _ _ (fun x => x ^beta)) => // ; try apply: is_lim_ln_p.
+      by case :beta Hbeta => [| beta] // Hbeta; apply: is_lim_pow_infty.
+  by apply: not_0_INR; case: beta Hbeta.
+rewrite -[0]Ropp_0.
+exact: (filterlim_opp 0).
+Qed.
+
+
+Lemma f_neg_correct_RInt_gen_a_infty a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
+Proof.
+apply prodi_to_single_l.
+apply: (filterlimi_lim_ext_loc).
+  exists a => x Hx.
+  by apply f_neg_correct_RInt_a_infty => // ; lra.
   rewrite -Rminus_0_l.
 apply: (filterlim_comp _ _ _  (fun x => f_neg x beta) (fun x => x - f_neg a beta) (* (Rbar_locally' p_infty) *) _ (* (Rbar_locally 0) *) _);last first.
 rewrite /Rminus. apply: continuous_plus.

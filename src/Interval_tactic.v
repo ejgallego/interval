@@ -952,10 +952,9 @@ Lemma remainder_correct_bertrand_log_neg_at_infty :
 Proof.
 move => prec prog bounds ia beta test iKernelInt f fi estimator.
 apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x /\ (2 <= beta)%nat) (fun x => 1 < x)).
-- move => a x Hx [H1a H2beta] Hax. apply: f_neg_continuous.
-  (* ugly *) rewrite SSR_leq; lia.
-  lra.
-- move => a _ [Ha Hbeta]. apply: f_neg_correct_RInt_gen => // .
+- move => a x Hx [H1a H2beta] Hax. apply: f_neg_continuous; try lra.
+  (* ugly *) by rewrite SSR_leq; lia.
+- move => a _ [Ha Hbeta]. apply: f_neg_correct_RInt_gen_a_infty => // .
 - (* ugly *)by rewrite SSR_leq.
 - move => a ia0 H; rewrite /iKernelInt; apply: J.neg_correct.
   by apply: f_neg_int_correct => // .
