@@ -1189,9 +1189,20 @@ apply: integral_epsilon_pole_correct_RInt_gen => // .
     exact: remainder_correct_pole.
 Qed.
 
+Lemma constant_sign_weaken (dsmall dbig : R -> Prop) f:
+  (forall x, dsmall x -> dbig x) ->
+  Int.constant_sign dbig f ->
+  Int.constant_sign dsmall f.
+Proof.
+move => Hinc [Hpos|Hneg]; [left|right] => x Hsmall.
+  by apply: Hpos; apply: Hinc.
+by apply: Hneg; apply: Hinc.
+Qed.
+
 Lemma remainder_correct_generic_fun_at_right_singularity (kernel : R -> R) (kernelInt : R -> R) iKernelInt pole iPole
       (Hpole : contains (I.convert iPole) (Xreal pole))
       (pre_cond : (R -> R) -> R -> Prop)
+      (Hpc_pole_a : forall f a, pre_cond f a -> pole < a)
       (dom_constant_sign : R -> Prop)
       (test : (I.type -> I.type) -> I.type -> bool)
       (Hcont : forall a x f, pre_cond f a -> pole < x <= a -> continuous kernel x)
@@ -1232,7 +1243,7 @@ have HxPoleIa x : pole <= x <= a ->  contains (I.convert (I.join iPole ia)) (Xre
     by apply: I.join_correct; left.
   by apply: I.join_correct; right.
 apply: Int.integral_interval_mul_pole => // .
-- admit.
+- apply: Hpc_pole_a; exact: Hprec_cond.
 - exact: Ha.
 - intros x Hx.
   apply contains_eval_arg.
@@ -1246,10 +1257,42 @@ apply: Int.integral_interval_mul_pole => // .
   now rewrite H' in H.
 - move => x Hx.
   by apply: Hcont; first apply Hprec_cond.
-- admit.
-  (* by apply: Hpos; apply: Hpcimpcs; first apply: Hprec_cond. *)
+  apply: (constant_sign_weaken _ dom_constant_sign) => // x Hx.
+  by apply: Hpcimpcs => // ; first apply: Hprec_cond.
 - apply: Hint; exact: Hprec_cond.
 - exact: Hint_iExt => // .
+Qed.
+
+Lemma constant_sign_mult dom f g :
+  Int.constant_sign dom f ->
+  Int.constant_sign dom g ->
+  Int.constant_sign dom (fun x => f x * g x).
+Proof.
+move => [Hf|Hf] [Hg|Hg]; [left| right| right | left] => x Hx;
+have Hfx := (Hf x Hx);
+have Hgx := (Hg x Hx).
+- by apply: Rmult_le_pos_pos.
+- by apply: Rmult_le_pos_neg.
+- by apply: Rmult_le_neg_pos.
+- by apply: Rmult_le_neg_neg.
+Qed.
+
+Lemma constant_sign_inv (dom : R -> Prop) f :
+  (forall x, dom x -> f x <> 0) ->
+  Int.constant_sign dom f ->
+  Int.constant_sign dom (fun x => Rinv (f x)).
+Proof.
+move => Hfn0 [Hf|Hf];[left|right] => x Hx; have Hfx := (Hf x Hx); have Hfn0x := (Hfn0 x Hx).
+- apply: Rlt_le; apply: Rinv_0_lt_compat; lra.
+- apply: Rlt_le;apply: Rinv_lt_0_compat; lra.
+Qed.
+
+Lemma constant_sign_pow (dom : R -> Prop) f (beta : nat) :
+  Int.constant_sign dom f ->
+  Int.constant_sign dom (fun x => pow (f x) beta).
+Proof.
+move => [Hf|Hf].
+(* case HEvenOdd: (Z.even (Z.of_nat beta)); [left| right] => x Hx. *)
 Admitted.
 
 
@@ -1305,13 +1348,20 @@ apply: integral_epsilon_pole_correct_RInt_gen => // .
              (estimator_pole ia0) ia0 0.
       apply: integralEstimatorCorrect_atpole_ext.
       by move => x; rewrite -Hfg.
-    apply: (remainder_correct_generic_fun_at_right_singularity _ _ _ _ _ _ (fun f a => 0 < a < 1) (fun x => 0 < x < 1)).
+    apply: (remainder_correct_generic_fun_at_right_singularity _ _ _ _ _ _ (fun f a => 0 < a < 1) _ (fun x => 0 < x < 1)).
     + apply: I.fromZ_correct.
+    + by move => _ a0 [] // .
     + by move => a0 x f0 Hpre_cond Ha0x; apply: f_neg_continuous; lra.
     + by move => a0 _ Ha0; apply: f_neg_correct_RInt_gen_0_a => // .
     + by move => a0 ia1 H1; rewrite /iKernelInt; exact: Bertrand.f_neg_int_correct.
     + move => a0 _ x Ha0 Hx; lra.
-    + admit.
+    + apply: constant_sign_inv.
+        move => x Hx; apply: Rmult_integral_contrapositive; split; first by lra.
+        by apply: pow_nonzero; move: (ln_increasing x 1); rewrite ln_1; lra.
+      apply: constant_sign_mult.
+        by left => x Hx; lra.
+      apply: constant_sign_pow; right => x Hx.
+      by move: (ln_increasing x 1); rewrite ln_1; lra.
     + move => h ih ib b Hextih Hcontib /andP [Htest1 Htest2].
         apply Fext.lt_correct in Htest1.
         apply Fext.lt_correct in Htest2.
@@ -1320,8 +1370,7 @@ apply: integral_epsilon_pole_correct_RInt_gen => // .
         move: Hcontib.
         case Hib : (I.convert ib) => [|lb ub] //= ; case: lb Hib => [|lb] // Hib.
         case: ub Hib => [|ub] // Hib; lra.
-Admitted.
-
+Qed.
 
 End Correction_lemmas_integral_pole.
 
