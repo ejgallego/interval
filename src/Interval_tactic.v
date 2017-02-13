@@ -858,33 +858,37 @@ apply: Int.integral_interval_mul_infty.
 Qed.
 
 Lemma remainder_correct_exp_at_infty :
-  forall prec prog bounds ia,
+  forall prec prog bounds ia lam iLam,
   let test _ _ := true in
-  let iKernelInt ia := ExpNIntegral.ExpN prec ia in
+  let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
       if (I.bounded (fi (I.upper_extent ia))) then
-        I.mul prec (fi (I.upper_extent ia)) (iKernelInt ia)
+        I.mul prec (fi (I.upper_extent ia)) (iKernelInt ia iLam)
       else I.nai
       else I.nai in
-  Int.integralEstimatorCorrect_infty (fun x => f x * expn x) (estimator ia) ia.
+  lam > 0 ->
+  contains (I.convert iLam) (Xreal lam) ->
+  Int.integralEstimatorCorrect_infty (fun x => f x * expn lam x) (estimator ia) ia.
 Proof.
-move => prec prog bounds ia test iKernelInt f fi estimator.
-apply (remainder_correct_generic_fun_at_infty expn expn _ (fun _ _ => True) (fun x => True)).
-- by move => a x _ _ Hax;apply: continuous_expn.
-- move => a _ _; exact: is_RInt_gen_exp_infty.
-- move => a ia0 H; exact: ExpNIntegral.ExpN_correct.
+move => prec prog bounds ia lam iLam test iKernelInt f fi estimator Hlam Hcontains.
+apply (remainder_correct_generic_fun_at_infty (fun x => expn lam x) (fun a => exp (-(lam * a)) / lam) _ (fun _ _ => 0 < lam) (fun x => True)).
+- by move => a x _ _ Hax; apply: continuous_expn.
+- move => a _ Hlam'; exact: is_RInt_gen_exp_infty.
+- move => a ia0 H; apply: ExpNIntegral.ExpN_correct => //; lra.
 - by [].
-- move => x; move: (exp_pos (-x)) ;rewrite /expn; lra.
+- move => x; move: (exp_pos (-(lam * x))) ;rewrite /expn; lra.
 - by [].
 Qed.
 
 Lemma remainder_correct_expn_tactic :
-  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon,
+  forall prec deg depth proga boundsa prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon,
+  let lam := nth 0 (eval_real prog_lam (map A.real_from_bp bounds_lam)) R0 in
+  let iLam := nth 0 (A.BndValuator.eval prec prog_lam (map A.interval_from_bp bounds_lam)) I.nai in
   let test _ _ := true in
-  let iKernelInt ia := ExpNIntegral.ExpN prec ia in
+  let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
   let iG'' := fun xi =>
@@ -899,19 +903,21 @@ Lemma remainder_correct_expn_tactic :
   let estimator_infty := fun ia =>
       if test iF ia then
       if (I.bounded (iF (I.upper_extent ia))) then
-        I.mul prec (iF (I.upper_extent ia)) (iKernelInt ia)
+        I.mul prec (iF (I.upper_extent ia)) (iKernelInt ia iLam)
       else I.nai
       else I.nai in
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
-  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
-  (forall x,  g x = f x * (exp (-x))) ->
+  let i :=
+      if Fext.lt (F.fromZ 0) (I.lower iLam) then
+      Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
+  (forall x,  g x = f x * (exp (-(lam * x)))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
   contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
+move => prec deg depth proga boundsa prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon lam iLam test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
 (* case Halphab : (alpha <? -1)%Z; last by rewrite /=; split. *)
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
@@ -921,16 +927,30 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))
   case Hi: (I.convert i) => [|l u]; first by split.
   rewrite -Hi; split => [HnotInan|]; first by apply H.
   apply H; by rewrite Hi.
+case Hlam : (Fext.lt (F.fromZ 0) (I.lower iLam)); last first.
+  by rewrite /i Hlam I.nai_correct.
+have Hcontains : contains (I.convert iLam) (Xreal lam).
+  exact: contains_eval.
+have lt0lam : 0 < lam.
+  move: Hcontains.
+  apply Fext.lt_correct in Hlam; rewrite F.fromZ_correct in Hlam.
+  rewrite I.lower_correct in Hlam; move: Hlam.
+  case HiLam: (I.convert iLam) => [|laml lamu] //= .
+  by case: laml HiLam => [|laml] // HiLam; lra.
+rewrite /i. case: ifP => // H.
 apply: integral_epsilon_infty_correct_RInt_gen => // .
   - apply: taylor_correct_estimator_general.
   - rewrite /correct_estimator_infty.
     move => ia0.
     suff:  Int.integralEstimatorCorrect_infty
-             (fun x : R => f x * (expn x))
+             (fun x : R => f x * (expn lam x))
              (estimator_infty ia0) ia0.
       apply: integralEstimatorCorrect_infty_ext.
       by move => x; rewrite -Hfg.
-    exact: remainder_correct_exp_at_infty.
+    rewrite /Int.integralEstimatorCorrect_infty.
+    apply: remainder_correct_exp_at_infty.
+    exact: lt0lam.
+    exact: Hcontains.
 Qed.
 
 
@@ -1653,14 +1673,15 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
         end
     end
 
-(* improper integral f(x) * exp (-x) at infinity *)
-  | RInt_gen (fun x => (@?f x) * (exp (Ropp x))) (at_point ?a) (Rbar_locally p_infty) =>
+(* improper integral f(x) * exp (- (\lambda * x)) at infinity *)
+  | RInt_gen (fun x => (@?f x) * (exp (Ropp (Rmult ?lam x)))) (at_point ?a) (Rbar_locally p_infty) =>
 
-    let g := eval cbv beta in ((fun (y : R) => (f y) * (exp (Ropp y))) reify_var) in
+    let g := eval cbv beta in ((fun (y : R) => (f y) * (exp (Ropp (Rmult lam y)))) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
     let vg := extract_algorithm g (cons reify_var nil) in
     let va := extract_algorithm a (@nil R) in
+    let vlam := extract_algorithm lam (@nil R) in
     match va with
     | (?pa, ?la) =>
       let lca := get_trivial_bounds la prec in
@@ -2197,13 +2218,22 @@ Module GFSZ2 := GenericFloat Radix2.
 Module ITGFSZ2 := IntervalTactic GFSZ2.
 Export ITGFSZ2.
 
-(* Goal True. *)
-(* interval_intro *)
-(*   (RInt_gen *)
-(*      (fun x => (1 * (/ (x * (pow (ln x) 2))))) *)
-(*      (at_right 0) *)
-(*      (at_point (1/3))) with (i_integral_deg 2). *)
-(* done. *)
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (1 / x^2 * exp (Ropp (Rmult 3 x))))
+     (at_point 1)
+     (Rbar_locally p_infty)) with (i_integral_deg 2).
+done.
+
+
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (1 * (/ (x * (pow (ln x) 2)))))
+     (at_right 0)
+     (at_point (1/3))) with (i_integral_deg 2).
+done.
 
 
 (* Goal True. *)
