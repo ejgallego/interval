@@ -385,6 +385,14 @@ suff -> : 0 = Rbar_inv p_infty => // .
 apply: (is_lim_inv (fun x => x) p_infty p_infty) => // .
 Qed.
 
+Lemma is_lim_RInv_m_infty:
+is_lim [eta Rinv] m_infty 0.
+Proof.
+suff -> : 0 = Rbar_inv m_infty => // .
+apply: (is_lim_inv (fun x => x) m_infty m_infty) => // .
+Qed.
+
+
 Lemma is_lim_powerRZ_0 alpha (Halpha : (alpha < 0)%Z) :
   is_lim (powerRZ^~ (alpha)%Z) p_infty (0%R).
 Proof.
@@ -457,6 +465,20 @@ Lemma Rbar_mult_p_r y (Hy : 0 < y) :
   Rbar_mult p_infty y = p_infty.
 Proof.
 by rewrite Rbar_mult_comm; exact: Rbar_mult_p_l.
+Qed.
+
+Lemma Rbar_mult_m_l y (Hy : 0 < y) :
+  Rbar_mult y m_infty = m_infty.
+Proof.
+rewrite /Rbar_mult /Rbar_mult'.
+case: (Rle_dec 0 y) => Hy1; last by lra.
+by case: (Rle_lt_or_eq_dec 0 y Hy1) => // ; lra.
+Qed.
+
+Lemma Rbar_mult_m_r y (Hy : 0 < y) :
+  Rbar_mult m_infty y = m_infty.
+Proof.
+by rewrite Rbar_mult_comm; exact: Rbar_mult_m_l.
 Qed.
 
 (* TODO: variant with a composition *)
@@ -716,6 +738,108 @@ apply: Rmult_integral_contrapositive; split; try lra.
 by apply: Hlnn0; lra.
 Qed.
 
+Lemma filterlim_sqr_m_infty:
+  filterlim (pow^~ 2%N) (Rbar_locally m_infty) (Rbar_locally p_infty).
+Proof.
+apply: (filterlim_ext (fun x => x * x)); first by move => y; rewrite /= ?Rmult_1_r.
+suff -> : p_infty = Rbar_mult m_infty m_infty => // .
+  apply: filterlim_comp_2; try exact: filterlim_id.
+  exact: filterlim_Rbar_mult.
+Qed.
+
+Lemma is_lim_sqr_infty:
+  is_lim (pow^~ 2%N) m_infty p_infty.
+Proof.
+apply: (is_lim_ext (fun x => x * x)); first by move => y; rewrite /= ?Rmult_1_r.
+suff -> : p_infty = Rbar_mult m_infty m_infty => // .
+  by apply: is_lim_mult => // .
+Qed.
+
+Lemma filterlim_pow_infty n : filterlim (pow^~ n.+1) (Rbar_locally p_infty) (Rbar_locally p_infty).
+Proof.
+elim: n => [|n Hn].
+  apply: (filterlim_ext (fun x => x)).
+    by move => x; rewrite pow_1.
+  exact: filterlim_id.
+apply: (filterlim_ext (fun x => x * (pow x n.+1))).
+  by move => x.
+apply: filterlim_comp_2; first exact: filterlim_id.
+  exact: Hn.
+exact: filterlim_Rbar_mult.
+Qed.
+
+Lemma filterlim_pow_m_even n : ~~ odd n.+1 -> filterlim (fun x => pow x n.+1) (Rbar_locally m_infty) (Rbar_locally p_infty).
+Proof.
+move => Hodd.
+rewrite -(odd_double_half n.+1).
+rewrite -[odd n.+1]Bool.negb_involutive Hodd /= add0n. (*ugly *)
+rewrite -mul2n.
+apply: filterlim_ext.
+move => y; by rewrite pow_mult.
+apply: (filterlim_comp _ _ _ (fun x => x ^ 2) (fun x => x ^ (uphalf n))).
+apply: filterlim_sqr_m_infty.
+case: n Hodd => [|n] // Hodd.
+exact: filterlim_pow_infty.
+Qed.
+
+
+Lemma filterlim_pow_m_odd n : odd n.+1 -> filterlim (fun x => pow x n.+1) (Rbar_locally m_infty) (Rbar_locally m_infty).
+Proof.
+move => Hodd.
+case: n Hodd => [|n] Hodd.
+- apply: (filterlim_ext id).
+    by move => x /=; rewrite Rmult_1_r.
+  exact: filterlim_id.
+apply: (filterlim_ext (fun x => x * pow x n.+1)).
+  by move => x.
+apply: filterlim_comp_2.
+  exact: filterlim_id.
+by apply: filterlim_pow_m_even.
+by apply: filterlim_Rbar_mult.
+Qed.
+
+
+Lemma is_lim_pow_m_infty n : is_lim (fun x => pow x n.+1) m_infty (if odd n.+1 then m_infty else p_infty).
+Proof.
+rewrite -{1}(odd_double_half n.+1).
+case : ifP => Hodd.
+suff {2}-> : m_infty = Rbar_mult m_infty (if (uphalf n) is m.+1 then p_infty else 1).
+  apply: is_lim_mult => // .
+  rewrite -mul2n.
+  apply: is_lim_ext. move => y. by rewrite pow_mult.
+  apply: (is_lim_comp (fun x => x ^(uphalf n)) (fun x => x ^ 2)).
+  case Hhalf: (uphalf n) => [|m].
+    apply: (is_lim_ext (fun x => 1)). by move => y; rewrite pow_O.
+    exact: is_lim_const.
+  exact: is_lim_pow_infty.
+  exact: is_lim_sqr_infty.
+  by exists 0 .
+  case: (uphalf n) => // ; rewrite /ex_Rbar_mult; lra.
+  case: (uphalf n) => // ; rewrite Rbar_mult_m_r // ; lra.
+
+rewrite add0n -mul2n.
+apply: is_lim_ext.
+move => y; by rewrite pow_mult.
+case: n Hodd => // n Hodd.
+apply: (is_lim_comp (fun x => x ^ (n.+2)./2) (fun x => x ^2) _ _ p_infty).
+apply: is_lim_pow_infty.
+exact: is_lim_sqr_infty.
+by exists 1.
+Qed.
+
+Lemma is_lim_pow_m_odd n : odd n.+1 -> is_lim (fun x => pow x n.+1) m_infty m_infty.
+Proof.
+move => Hodd.
+by move: (is_lim_pow_m_infty n); rewrite Hodd.
+Qed.
+
+Lemma is_lim_pow_m_even n : ~~ odd n.+1 -> is_lim (fun x => pow x n.+1) m_infty p_infty.
+Proof.
+move => Hodd.
+move: (is_lim_pow_m_infty n); case: ifPn => // Heven.
+by rewrite Heven in Hodd.
+Qed.
+
 Lemma f_neg_correct_RInt_gen_0_a a beta (Ha : 0 < a < 1) (Hbeta : (0 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_right 0) (at_point a) (f_neg a beta).
 Proof.
 apply prodi_to_single_r.
@@ -733,30 +857,33 @@ rewrite /f_neg.
 apply: filterlim_comp; last first.
   rewrite -[0]Ropp_0.
   exact: (filterlim_opp 0).
-case HEvenOdd: (Z.even (Z.of_nat beta)).
+case HEvenOdd: (odd beta); last first.
 - rewrite -[locally 0]/(Rbar_locally (Rbar_inv p_infty)).
   apply (filterlim_comp _ _ _ (fun x => INR beta*ln x ^ beta) Rinv _ (Rbar_locally p_infty)).
     have -> : p_infty = Rbar_mult (INR beta) p_infty.
       by rewrite Rbar_mult_p_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta HEvenOdd.
-      (* can't apply filterlim_mult_l, so cheating for now *)
-      suff: filterlim (fun x => (ln x)^beta) (at_right 0) (Rbar_locally p_infty).
-        by admit.
-      apply: (filterlim_comp _ _ _ _ (fun x => x ^beta)) => //; try apply: is_lim_ln_0.
-      (* beta = 2 p, x ^beta = (x^2)^p --> p_infty *)
-      admit.
+    suff: filterlim (fun x => (ln x)^beta) (at_right 0) (Rbar_locally p_infty).
+      move => Hln.
+      apply: filterlim_comp; last first.
+        exact: filterlim_Rbar_mult_l.
+      exact: Hln.
+    apply: (filterlim_comp _ _ _ _ (fun x => x ^beta)) => //; try apply: is_lim_ln_0.
+    case: beta Hbeta HEvenOdd => [|beta] Hbeta HevenOdd // .
+    by apply: filterlim_pow_m_even; by rewrite HevenOdd.
   exact: is_lim_RInv_p_infty.
 - rewrite -[locally 0]/(Rbar_locally (Rbar_inv m_infty)).
-  apply (filterlim_comp _ _ _ (fun x => INR beta*ln x ^ beta) Rinv _ (Rbar_locally p_infty)).
-    have -> : p_infty = Rbar_mult (INR beta) p_infty.
-      by rewrite Rbar_mult_p_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta HEvenOdd.
-      (* can't apply filterlim_mult_l, so cheating for now *)
-      suff: filterlim (fun x => (ln x)^beta) (at_right 0) (Rbar_locally m_infty).
-        by admit.
-      apply: (filterlim_comp _ _ _ _ (fun x => x ^beta)) => //; try apply: is_lim_ln_0.
-      (* beta = 2 p + 1, x ^beta = x * (x^2)^p --> p_infty *)
-      admit.
-  exact: is_lim_RInv_p_infty.
-Admitted.
+  apply (filterlim_comp _ _ _ (fun x => INR beta*ln x ^ beta) Rinv _ (Rbar_locally m_infty)).
+    have -> : m_infty = Rbar_mult (INR beta) m_infty.
+      by rewrite Rbar_mult_m_l // ; apply: lt_0_INR; apply/ltP; case: beta Hbeta HEvenOdd.
+    suff: filterlim (fun x => (ln x)^beta) (at_right 0) (Rbar_locally m_infty).
+      move => Hln.
+      apply: filterlim_comp; first exact: Hln.
+        exact: filterlim_Rbar_mult_l.
+    apply: (filterlim_comp _ _ _ _ (fun x => x ^ beta)); try apply: is_lim_ln_0.
+    case: beta Hbeta HEvenOdd => [|beta] Hbeta HevenOdd // .
+    by apply: filterlim_pow_m_odd; by rewrite HevenOdd.
+  by apply: is_lim_RInv_m_infty.
+Qed.
 
 Lemma f_neg_correct_RInt_gen_a_infty a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
 Proof.

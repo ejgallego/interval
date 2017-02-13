@@ -1746,15 +1746,46 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           match vg with
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
-              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-              let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
-              (* work-around for a bug in the pretyper *)
-              match type of c with
-                | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
+              match vlam with
+                | (?plam,?llam) =>
+                  let lclam := get_trivial_bounds llam prec in
+                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
+                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
+                  (* work-around for a bug in the pretyper *)
+                  match type of c with
+                    | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
+                  end
               end
           end
         end
     end
+
+(* (* improper integral f(x) * exp (-x) at infinity *) *)
+(*   | RInt_gen (fun x => (@?f x) * (exp (Ropp x))) (at_point ?a) (Rbar_locally p_infty) => *)
+
+(*     let g := eval cbv beta in ((fun (y : R) => (f y) * (exp (Ropp y))) reify_var) in *)
+(*     let f := eval cbv beta in (f reify_var) in *)
+(*     let vf := extract_algorithm f (cons reify_var nil) in *)
+(*     let vg := extract_algorithm g (cons reify_var nil) in *)
+(*     let va := extract_algorithm a (@nil R) in *)
+(*     match va with *)
+(*     | (?pa, ?la) => *)
+(*       let lca := get_trivial_bounds la prec in *)
+(*         match vf with *)
+(*         | (?pf, _ :: ?lf) => *)
+(*           let lcf := get_trivial_bounds lf prec in *)
+(*           match vg with *)
+(*             | (?pg, _ :: ?lg) => *)
+(*               let lcg := get_trivial_bounds lg prec in *)
+(*               let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in *)
+(*               let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in *)
+(*               (* work-around for a bug in the pretyper *) *)
+(*               match type of c with *)
+(*                 | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R)) *)
+(*               end *)
+(*           end *)
+(*         end *)
+(*     end *)
 
 (* improper integral at pole 0 *)
   | RInt_gen (fun x => (@?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_right 0) (at_point ?b) =>
