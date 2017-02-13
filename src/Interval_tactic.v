@@ -1292,9 +1292,15 @@ Lemma constant_sign_pow (dom : R -> Prop) f (beta : nat) :
   Int.constant_sign dom (fun x => pow (f x) beta).
 Proof.
 move => [Hf|Hf].
-(* case HEvenOdd: (Z.even (Z.of_nat beta)); [left| right] => x Hx. *)
-Admitted.
-
+  by left => x Hx; apply: pow_le; exact: Hf.
+rewrite -(ssrnat.odd_double_half beta).
+case: (ssrnat.odd beta) => /= .
+- right => x Hx; apply: Rmult_le_neg_pos.
+    exact: Hf.
+  by rewrite -ssrnat.mul2n pow_Rsqr; apply: pow_le; apply: Rle_0_sqr.
+- rewrite ssrnat.add0n; left => x Hx.
+  by rewrite -ssrnat.mul2n pow_Rsqr; apply: pow_le; apply: Rle_0_sqr.
+Qed.
 
 Lemma remainder_correct_bertrandEq_0_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g (epsilon : F.type) beta,
@@ -2262,27 +2268,27 @@ Export ITSFBI2.
 
 (* beginning of zone to comment out in releases *)
 
-Require Import Interval_generic_ops.
-Module GFSZ2 := GenericFloat Radix2.
-Module ITGFSZ2 := IntervalTactic GFSZ2.
-Export ITGFSZ2.
+(* Require Import Interval_generic_ops. *)
+(* Module GFSZ2 := GenericFloat Radix2. *)
+(* Module ITGFSZ2 := IntervalTactic GFSZ2. *)
+(* Export ITGFSZ2. *)
 
-Goal True.
-interval_intro
-  (RInt_gen
-     (fun x => (1 / x^2 * exp (Ropp (Rmult 3 x))))
-     (at_point 1)
-     (Rbar_locally p_infty)) with (i_integral_deg 2).
-done.
+(* Goal True. *)
+(* interval_intro *)
+(*   (RInt_gen *)
+(*      (fun x => (1 / x^2 * exp (- (3 * x)))) *)
+(*      (at_point 1) *)
+(*      (Rbar_locally p_infty)) with (i_integral_deg 2). *)
+(* done. *)
 
 
-Goal True.
-interval_intro
-  (RInt_gen
-     (fun x => (1 * (/ (x * (pow (ln x) 2)))))
-     (at_right 0)
-     (at_point (1/3))) with (i_integral_deg 2).
-done.
+(* Goal True. *)
+(* interval_intro *)
+(*   (RInt_gen *)
+(*      (fun x => (1 * (/ (x * (pow (ln x) 2))))) *)
+(*      (at_right 0) *)
+(*      (at_point (1/3))) with (i_integral_deg 2). *)
+(* done. *)
 
 
 (* Goal True. *)
