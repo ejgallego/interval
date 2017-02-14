@@ -883,8 +883,8 @@ apply (remainder_correct_generic_fun_at_infty (fun x => expn lam x) (fun a => ex
 - by [].
 Qed.
 
-Lemma remainder_correct_expn_tactic :
-  forall prec deg depth proga boundsa prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon,
+Lemma remainder_correct_expn_tactic prec deg depth proga boundsa
+prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
   let lam := nth 0 (eval_real prog_lam (map A.real_from_bp bounds_lam)) R0 in
   let iLam := nth 0 (A.BndValuator.eval prec prog_lam (map A.interval_from_bp bounds_lam)) I.nai in
   let test _ _ := true in
@@ -917,8 +917,7 @@ Lemma remainder_correct_expn_tactic :
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
   contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon lam iLam test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
-(* case Halphab : (alpha <? -1)%Z; last by rewrite /=; split. *)
+move => lam iLam test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
   contains (I.convert i)
@@ -954,8 +953,7 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
 Qed.
 
 
-Lemma remainder_correct_bertrand_log_neg_at_infty :
-  forall prec prog bounds ia beta,
+Lemma remainder_correct_bertrand_log_neg_at_infty prec prog bounds ia beta:
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
@@ -969,7 +967,7 @@ Lemma remainder_correct_bertrand_log_neg_at_infty :
   (2 <= beta)%nat ->
   Int.integralEstimatorCorrect_infty (fun x => f x * / (x * (ln x)^(S beta))) (estimator ia) ia.
 Proof.
-move => prec prog bounds ia beta test iKernelInt f fi estimator Hbeta.
+move => test iKernelInt f fi estimator Hbeta.
 apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x ) (fun x => 1 < x)).
 - by move => a x Hx H1a Hax; apply: f_neg_continuous; try lra.
 - move => a _ Ha; apply: f_neg_correct_RInt_gen_a_infty => // .
@@ -989,8 +987,8 @@ apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta)))
 Qed.
 
 
-Lemma remainder_correct_log_neg_infty_tactic :
-  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta,
+Lemma remainder_correct_log_neg_infty_tactic prec deg depth proga
+boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
@@ -1021,7 +1019,7 @@ Lemma remainder_correct_log_neg_infty_tactic :
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
   contains (I.convert i) (Xreal (RInt_gen g (at_point a) (Rbar_locally p_infty))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
+move => test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
 (* case Halphab : (alpha <? -1)%Z; last by rewrite /=; split. *)
 case Hbeta : (Z.of_nat beta >? 1)%Z; last first.
   by move => H _; rewrite /=; split.
