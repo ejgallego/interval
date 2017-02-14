@@ -2302,18 +2302,18 @@ Export ITSFBI2.
 
 (* beginning of zone to comment out in releases *)
 
-Require Import Interval_generic_ops.
-Module GFSZ2 := GenericFloat Radix2.
-Module ITGFSZ2 := IntervalTactic GFSZ2.
-Export ITGFSZ2.
+(* Require Import Interval_generic_ops. *)
+(* Module GFSZ2 := GenericFloat Radix2. *)
+(* Module ITGFSZ2 := IntervalTactic GFSZ2. *)
+(* Export ITGFSZ2. *)
 
-Goal True.
-interval_intro
-  (RInt_gen
-     (fun x => (sin x * exp (- (3 * x))))
-     (at_point 1)
-     (Rbar_locally p_infty)) with (i_integral_deg 2).
-done.
+(* Goal True. *)
+(* interval_intro *)
+(*   (RInt_gen *)
+(*      (fun x => (sin x * exp (- (3 * x)))) *)
+(*      (at_point 1) *)
+(*      (Rbar_locally p_infty)) with (i_integral_deg 2). *)
+(* done. *)
 
 
 (* Goal True. *)
