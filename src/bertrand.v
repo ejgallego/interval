@@ -1045,8 +1045,8 @@ Proof.
     by eexists; apply: f_correct;  first (split; field_simplify; lra); lia.
 Qed.
 
-Lemma f0eps_correct_pole alpha beta epsilon pole (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
-  is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_point (pole + / B)) (at_point (pole + epsilon)) (f0eps alpha beta epsilon B).
+Lemma f0eps_correct_sing alpha beta epsilon sing (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
+  is_RInt_gen ((fun x => powerRZ (x - sing) alpha * (pow (ln (x - sing)) beta))) (at_point (sing + / B)) (at_point (sing + epsilon)) (f0eps alpha beta epsilon B).
 Proof.
   apply is_RInt_gen_at_point.
   apply: (is_RInt_translation_sub _ (fun x => powerRZ x alpha * ln x ^ beta)).
@@ -1075,14 +1075,14 @@ apply: filterlim_ext.
     by lia.
 Qed.
 
-Lemma f0eps_lim_is_lim_pole alpha beta epsilon pole (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
-  filterlim (fun x : R => f0eps alpha beta epsilon (/ (x - pole)))
-            (at_right pole) (locally (f0eps_lim alpha beta epsilon)).
+Lemma f0eps_lim_is_lim_sing alpha beta epsilon sing (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
+  filterlim (fun x : R => f0eps alpha beta epsilon (/ (x - sing)))
+            (at_right sing) (locally (f0eps_lim alpha beta epsilon)).
 Proof.
-  apply: (filterlim_comp _ _ _ (fun x => x - pole) (fun x => f0eps alpha beta epsilon (Rinv x)) _ (at_right 0)).
+  apply: (filterlim_comp _ _ _ (fun x => x - sing) (fun x => f0eps alpha beta epsilon (Rinv x)) _ (at_right 0)).
     move => P [eps HepsP].
     rewrite /filtermap /at_right /within /locally.
-    exists eps => y Hy Hpole.
+    exists eps => y Hy Hsing.
     apply: HepsP.
       have Hepspos : 0 < eps by exact: (cond_pos eps).
         by apply/ball_to_lra; split; move/ball_to_lra: Hy; lra.
@@ -1105,19 +1105,19 @@ apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ x))).
 exact: f0eps_lim_is_lim.
 Qed.
 
-Lemma f0eps_lim_correct_pole alpha beta epsilon pole (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
-  is_RInt_gen ((fun x => powerRZ (x - pole) alpha * (pow (ln (x - pole)) beta))) (at_right pole) (at_point (pole + epsilon)) (f0eps_lim alpha beta epsilon).
+Lemma f0eps_lim_correct_sing alpha beta epsilon sing (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
+  is_RInt_gen ((fun x => powerRZ (x - sing) alpha * (pow (ln (x - sing)) beta))) (at_right sing) (at_point (sing + epsilon)) (f0eps_lim alpha beta epsilon).
 Proof.
 set eps := mkposreal epsilon Heps.
 apply prodi_to_single_r.
-apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ (x - pole)))).
+apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ (x - sing)))).
   exists (pos_div_2 eps) => y /= Hy1 Hy2.
   move/ball_to_lra in Hy1.
-  have {1}-> : y = pole + / / (y - pole) by rewrite Rinv_involutive; lra.
+  have {1}-> : y = sing + / / (y - sing) by rewrite Rinv_involutive; lra.
   rewrite -is_RInt_gen_at_point.
-  apply f0eps_correct_pole; rewrite ?Rinv_involutive; try lra.
+  apply f0eps_correct_sing; rewrite ?Rinv_involutive; try lra.
   apply: Rinv_0_lt_compat; lra.
-exact: f0eps_lim_is_lim_pole.
+exact: f0eps_lim_is_lim_sing.
 Qed.
 
 End ZeroToEpsilon.
@@ -1228,7 +1228,7 @@ Qed.
 
 End Infinity.
 
-Section Pole.
+Section Sing.
 
 Variable epsilon : R.
 Variable Epsilon : I.type.
@@ -1255,11 +1255,11 @@ exact: Rinv_0_lt_compat.
 by lia.
 Qed.
 
-End Pole.
+End Sing.
 (* not sure if necessary *)
-(* Definition f_int_pole alpha beta := f_int (- 2 - alpha) beta. *)
+(* Definition f_int_sing alpha beta := f_int (- 2 - alpha) beta. *)
 
-(* Lemma f_int_pole_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) : *)
+(* Lemma f_int_sing_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) : *)
 (*   contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)). *)
 (* Proof. *)
 

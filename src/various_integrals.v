@@ -10,7 +10,8 @@ Require Import interval_compl.
 Require Import bertrand.
 
 (* This file aims to prove results about various integrals, mainly to be    *)
-(* used to integrate bounded functions against them at poles or at infinity *)
+(* used to integrate bounded functions against them at singularities
+or at infinity *)
 
 
 (* ************************ *)
