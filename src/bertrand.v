@@ -798,7 +798,7 @@ by apply: filterlim_pow_m_even.
 by apply: filterlim_Rbar_mult.
 Qed.
 
-
+(*
 Lemma is_lim_pow_m_infty n : is_lim (fun x => pow x n.+1) m_infty (if odd n.+1 then m_infty else p_infty).
 Proof.
 rewrite -{1}(odd_double_half n.+1).
@@ -839,6 +839,7 @@ move => Hodd.
 move: (is_lim_pow_m_infty n); case: ifPn => // Heven.
 by rewrite Heven in Hodd.
 Qed.
+*)
 
 Lemma f_neg_correct_RInt_gen_0_a a beta (Ha : 0 < a < 1) (Hbeta : (0 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_right 0) (at_point a) (f_neg a beta).
 Proof.
