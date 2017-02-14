@@ -956,7 +956,7 @@ Qed.
 
 Lemma remainder_correct_bertrand_log_neg_at_infty :
   forall prec prog bounds ia beta,
-  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && (Z.of_nat beta >? 1)%Z && I.lower_bounded ia in
+  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
@@ -966,34 +966,32 @@ Lemma remainder_correct_bertrand_log_neg_at_infty :
         I.mul prec (fi (I.upper_extent ia)) (iKernelInt ia)
       else I.nai
       else I.nai in
+  (2 <= beta)%nat ->
   Int.integralEstimatorCorrect_infty (fun x => f x * / (x * (ln x)^(S beta))) (estimator ia) ia.
 Proof.
-move => prec prog bounds ia beta test iKernelInt f fi estimator.
-apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x /\ (2 <= beta)%nat) (fun x => 1 < x)).
-- by move => a x Hx [H1a H2beta] Hax; apply: f_neg_continuous; try lra.
-- move => a _ [Ha Hbeta]; apply: f_neg_correct_RInt_gen_a_infty => // .
+move => prec prog bounds ia beta test iKernelInt f fi estimator Hbeta.
+apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x ) (fun x => 1 < x)).
+- by move => a x Hx H1a Hax; apply: f_neg_continuous; try lra.
+- move => a _ Ha; apply: f_neg_correct_RInt_gen_a_infty => // .
 - (* ugly *)by rewrite SSR_leq.
 - move => a ia0 H; rewrite /iKernelInt; apply: J.neg_correct.
   by apply: f_neg_int_correct => // .
-- move => a _ x [Ha Hbeta] Hx; lra.
+- move => a _ x Ha Hx; lra.
 - move => x Hx. apply: Rlt_le; apply: Rinv_0_lt_compat; apply: Rmult_lt_0_compat.
     by lra.
     suff Hln :0 < (ln x); first by apply: pow_lt.
     move: (ln_increasing 1 x); rewrite ln_1; lra.
 - move => g ig ib b Hgext Hcontains.
-  rewrite /test; case/andP; case/andP.
+  rewrite /test; case/andP.
   move/Fext.lt_correct; rewrite F.fromZ_correct.
   case: ib Hcontains => // l u /= ;case: (F.toX l) => // lr [] Hlrb _ lt1lr.
-  move => H1 _; split; first by lra.
-  rewrite /is_true in H1.
-  move: (proj1 (Z.gtb_lt _ _ ) H1).
-  by have -> : 1%Z = Z.of_nat 1 by []; rewrite -Nat2Z.inj_lt; lia.
+  by move => _; lra.
 Qed.
 
 
 Lemma remainder_correct_log_neg_infty_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta,
-  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && (Z.of_nat beta >? 1)%Z && I.lower_bounded ia in
+  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
@@ -1017,7 +1015,7 @@ Lemma remainder_correct_log_neg_infty_tactic :
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
-  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  let i := if (Z.of_nat beta >? 1)%Z then Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * / (x * (ln x)^(S beta))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
@@ -1025,6 +1023,8 @@ Lemma remainder_correct_log_neg_infty_tactic :
 Proof.
 move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta test iKernelInt f g iG'' iG' iG iF a ia estimator_infty estimator.
 (* case Halphab : (alpha <? -1)%Z; last by rewrite /=; split. *)
+case Hbeta : (Z.of_nat beta >? 1)%Z; last first.
+  by move => H _; rewrite /=; split.
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty)) /\
   contains (I.convert i)
@@ -1042,7 +1042,10 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
              (estimator_infty ia0) ia0.
       apply: integralEstimatorCorrect_infty_ext.
       by move => x; rewrite -Hfg.
-apply: remainder_correct_bertrand_log_neg_at_infty.
+    apply: remainder_correct_bertrand_log_neg_at_infty.
+  - rewrite /is_true in Hbeta.
+    move: (proj1 (Z.gtb_lt _ _ ) Hbeta).
+    by have -> : 1%Z = Z.of_nat 1 by []; rewrite -Nat2Z.inj_lt; lia.
 Qed.
 
 End Correction_lemmas_integral_infinity.
