@@ -473,7 +473,7 @@ Qed.
 
 End InfiniteIntegralProg.
 
-Section PoleIntegralProg.
+Section SingIntegralProg.
 
 Variable prec : F.precision.
 Variables prog_f prog_g proga progb : list term.
@@ -490,46 +490,46 @@ Variable estimator : I.type -> I.type -> I.type.
 Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
 Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
 
-Variable estimator_pole : I.type -> I.type.
+Variable estimator_sing : I.type -> I.type.
 
-Definition correct_estimator_pole pole :=
-  forall ia, Int.integralEstimatorCorrect_atpole g (estimator_pole ia) ia pole.
+Definition correct_estimator_sing sing :=
+  forall ia, Int.integralEstimatorCorrect_atsing g (estimator_sing ia) ia sing.
 
-Lemma integral_epsilon_pole_correct :
-  forall (depth : nat) (epsilon : F.type) pole (iPole : I.type),
-  let i := Int.integral_interval_relative_pole prec estimator estimator_pole depth ia iPole epsilon in
+Lemma integral_epsilon_sing_correct :
+  forall (depth : nat) (epsilon : F.type) sing (iSing : I.type),
+  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia iSing epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
-  correct_estimator_pole pole ->
-  (I.convert i <> Inan -> exists I, is_RInt_gen g (at_right pole) (at_point a) I /\
+  correct_estimator_sing sing ->
+  (I.convert i <> Inan -> exists I, is_RInt_gen g (at_right sing) (at_point a) I /\
   contains (I.convert i) (Xreal I)).
 Proof.
-move => depth epsilon pole iPole i Hc Hc_pole.
+move => depth epsilon sing iSing i Hc Hc_sing.
 case H: (I.convert i) => [| l u]// _ .
 rewrite -H.
-apply: (Int.integral_interval_relative_pole_correct prec g estimator estimator_pole depth ia epsilon pole iPole (* Hc Hc_pole *)).
-- exact: Hc_pole.
+apply: (Int.integral_interval_relative_sing_correct prec g estimator estimator_sing depth ia epsilon sing iSing (* Hc Hc_sing *)).
+- exact: Hc_sing.
 - exact: Hc.
 - apply: contains_eval.
 - by rewrite H.
 Qed.
 
-Lemma integral_epsilon_pole_correct_RInt_gen :
-  forall (depth : nat) (epsilon : F.type) pole iPole,
-  let i := Int.integral_interval_relative_pole prec estimator estimator_pole depth ia iPole epsilon in
+Lemma integral_epsilon_sing_correct_RInt_gen :
+  forall (depth : nat) (epsilon : F.type) sing iSing,
+  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia iSing epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
-  correct_estimator_pole pole ->
-  (I.convert i <> Inan -> ex_RInt_gen g (at_right pole) (at_point a) /\
-  contains (I.convert i) (Xreal (RInt_gen g (at_right pole) (at_point a)))).
+  correct_estimator_sing sing ->
+  (I.convert i <> Inan -> ex_RInt_gen g (at_right sing) (at_point a) /\
+  contains (I.convert i) (Xreal (RInt_gen g (at_right sing) (at_point a)))).
 Proof.
-move => depth epsilon pole iPole i Hc Hc_pole HnotInan.
-case: (integral_epsilon_pole_correct depth epsilon pole iPole Hc Hc_pole HnotInan) => I [H1 H2].
+move => depth epsilon sing iSing i Hc Hc_sing HnotInan.
+case: (integral_epsilon_sing_correct depth epsilon sing iSing Hc Hc_sing HnotInan) => I [H1 H2].
 split.
   by exists I.
-suff -> : RInt_gen g (at_right pole) (at_point a) = I; first by [].
+suff -> : RInt_gen g (at_right sing) (at_point a) = I; first by [].
 by apply is_RInt_gen_unique. (* apply: does not work *)
 Qed.
 
-End PoleIntegralProg.
+End SingIntegralProg.
 
 (* To reorganize *)
 Section Helper.
@@ -548,11 +548,11 @@ split => // .
   exact: filter_forall => bnd x _.
 Qed.
 
-Lemma integralEstimatorCorrect_atpole_ext f1 f2 (Heq : forall x, f1 x = f2 x) (estimator1 : I.type) ia1 pole :
-  Int.integralEstimatorCorrect_atpole f1 estimator1 ia1 pole ->
-  Int.integralEstimatorCorrect_atpole f2 estimator1 ia1 pole.
+Lemma integralEstimatorCorrect_atsing_ext f1 f2 (Heq : forall x, f1 x = f2 x) (estimator1 : I.type) ia1 sing :
+  Int.integralEstimatorCorrect_atsing f1 estimator1 ia1 sing ->
+  Int.integralEstimatorCorrect_atsing f2 estimator1 ia1 sing.
 Proof.
-rewrite /Int.integralEstimatorCorrect_atpole => Hf1.
+rewrite /Int.integralEstimatorCorrect_atsing => Hf1.
 move => a1 Hia1 HnotInan.
 have := (Hf1 a1 Hia1 HnotInan).
 case => I [HI Hcont].
@@ -1050,9 +1050,9 @@ Qed.
 
 End Correction_lemmas_integral_infinity.
 
-Section Correction_lemmas_integral_pole.
+Section Correction_lemmas_integral_sing.
 
-Lemma remainder_correct_pole :
+Lemma remainder_correct_sing :
   forall prec prog bounds ia alpha beta,
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
@@ -1066,7 +1066,7 @@ Lemma remainder_correct_pole :
       else I.nai
       else I.nai in
   (alpha > -1)%Z ->
-  Int.integralEstimatorCorrect_atpole (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia 0.
+  Int.integralEstimatorCorrect_atsing (fun x => f x * (powerRZ x alpha * (pow (ln x) beta))) (estimator ia) ia 0.
 Proof.
 move => prec prog bounds ia alpha beta f fi estimator Halpha.
 move => epsilon Hia HnotInan.
@@ -1093,7 +1093,7 @@ have Hepspos : 0 < epsilon.
   case: u_ia Hia_ => // r Hia_.
   by move: Hia; rewrite Hia_ /contains => [] []; lra.
 
-apply: (Int.integral_interval_mul_pole prec 0 epsilon (I.join (I.fromZ 0) ia) f) => // .
+apply: (Int.integral_interval_mul_sing prec 0 epsilon (I.join (I.fromZ 0) ia) f) => // .
 - by apply:I.join_correct; right; exact: Hia.
 - move => x Hx.
   apply: contains_eval_arg.
@@ -1136,7 +1136,7 @@ apply: (Int.integral_interval_mul_pole prec 0 epsilon (I.join (I.fromZ 0) ia) f)
     by lia.
 Qed.
 
-Lemma remainder_correct_pole_tactic :
+Lemma remainder_correct_sing_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g (epsilon : F.type) alpha beta,
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
@@ -1149,7 +1149,7 @@ Lemma remainder_correct_pole_tactic :
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let estimator_pole :=
+  let estimator_sing :=
 fun ia =>
   if Fext.lt (F.fromZ 0) (I.lower ia) then
     if Fext.le (I.upper ia) (F.fromZ 1) then
@@ -1163,13 +1163,13 @@ fun ia =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i := if (alpha >? -1)%Z then
-             Int.integral_interval_relative_pole prec estimator estimator_pole depth ia (I.fromZ 0) epsilon else I.nai in
+             Int.integral_interval_relative_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon else I.nai in
   (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_right 0) (at_point a))) /\
   contains (I.convert i) (Xreal (RInt_gen g (at_right 0) (at_point a))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_pole estimator.
+move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta f g iG'' iG' iG iF a ia estimator_sing estimator.
 case Halphab : (alpha >? -1)%Z; last by rewrite /=; split.
 have {Halphab} Halpha: (alpha > -1)%Z by rewrite Zgt_is_gt_bool.
 move => i Hfg.
@@ -1180,16 +1180,16 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_right 0) (at_point a)) /\
   case Hi: (I.convert i) => [|l u]; first by split.
   rewrite -Hi; split => [HnotInan|]; first by apply H.
   apply H; by rewrite Hi.
-apply: integral_epsilon_pole_correct_RInt_gen => // .
+apply: integral_epsilon_sing_correct_RInt_gen => // .
   - apply: taylor_correct_estimator_general.
-  - rewrite /correct_estimator_pole.
+  - rewrite /correct_estimator_sing.
     move => ia0.
-    suff:  Int.integralEstimatorCorrect_atpole
+    suff:  Int.integralEstimatorCorrect_atsing
              (fun x : R => f x * (powerRZ x alpha * ln x ^ beta))
-             (estimator_pole ia0) ia0 0.
-      apply: integralEstimatorCorrect_atpole_ext.
+             (estimator_sing ia0) ia0 0.
+      apply: integralEstimatorCorrect_atsing_ext.
       by move => x; rewrite -Hfg.
-    exact: remainder_correct_pole.
+    exact: remainder_correct_sing.
 Qed.
 
 Lemma constant_sign_weaken (dsmall dbig : R -> Prop) f:
@@ -1202,16 +1202,16 @@ move => Hinc [Hpos|Hneg]; [left|right] => x Hsmall.
 by apply: Hneg; apply: Hinc.
 Qed.
 
-Lemma remainder_correct_generic_fun_at_right_singularity (kernel : R -> R) (kernelInt : R -> R) iKernelInt pole iPole
-      (Hpole : contains (I.convert iPole) (Xreal pole))
+Lemma remainder_correct_generic_fun_at_right_singularity (kernel : R -> R) (kernelInt : R -> R) iKernelInt sing iSing
+      (Hsing : contains (I.convert iSing) (Xreal sing))
       (pre_cond : (R -> R) -> R -> Prop)
-      (Hpc_pole_a : forall f a, pre_cond f a -> pole < a)
+      (Hpc_sing_a : forall f a, pre_cond f a -> sing < a)
       (dom_constant_sign : R -> Prop)
       (test : (I.type -> I.type) -> I.type -> bool)
-      (Hcont : forall a x f, pre_cond f a -> pole < x <= a -> continuous kernel x)
-      (Hint : forall a f, (pre_cond f a) -> is_RInt_gen kernel (at_right pole) (at_point a) (kernelInt a))
+      (Hcont : forall a x f, pre_cond f a -> sing < x <= a -> continuous kernel x)
+      (Hint : forall a f, (pre_cond f a) -> is_RInt_gen kernel (at_right sing) (at_point a) (kernelInt a))
       (Hint_iExt : forall a ia, contains (I.convert ia) (Xreal a) -> contains (I.convert (iKernelInt ia)) (Xreal (kernelInt a)))
-      (Hpcimpcs : forall a f x, pre_cond f a -> (pole < x <= a) -> dom_constant_sign x)
+      (Hpcimpcs : forall a f x, pre_cond f a -> (sing < x <= a) -> dom_constant_sign x)
       (* ultimately we want constant_sign here *)
       (Hconstant_sign : Int.constant_sign dom_constant_sign kernel)
       (H_test : forall f fi ia a,
@@ -1224,11 +1224,11 @@ Lemma remainder_correct_generic_fun_at_right_singularity (kernel : R -> R) (kern
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
-      if (I.bounded (fi (I.join iPole ia))) then
-        I.mul prec (fi (I.join iPole ia)) (iKernelInt ia)
+      if (I.bounded (fi (I.join iSing ia))) then
+        I.mul prec (fi (I.join iSing ia)) (iKernelInt ia)
       else I.nai
       else I.nai in
-  Int.integralEstimatorCorrect_atpole (fun x => f x * kernel x) (estimator ia) ia pole.
+  Int.integralEstimatorCorrect_atsing (fun x => f x * kernel x) (estimator ia) ia sing.
 Proof.
 intros prec prog bounds ia f fi estimator (* Hbnded *) a Ha.
 unfold estimator.
@@ -1241,19 +1241,19 @@ apply: H_test => [x ix Hix||].
   exact: Htest.
 case Hbnded : (I.bounded _) => // .
 intros HnotInan.
-have HxPoleIa x : pole <= x <= a ->  contains (I.convert (I.join iPole ia)) (Xreal x).
-  apply: (contains_connected _ pole a) => // .
+have HxSingIa x : sing <= x <= a ->  contains (I.convert (I.join iSing ia)) (Xreal x).
+  apply: (contains_connected _ sing a) => // .
     by apply: I.join_correct; left.
   by apply: I.join_correct; right.
-apply: Int.integral_interval_mul_pole => // .
-- apply: Hpc_pole_a; exact: Hprec_cond.
+apply: Int.integral_interval_mul_sing => // .
+- apply: Hpc_sing_a; exact: Hprec_cond.
 - exact: Ha.
 - intros x Hx.
   apply contains_eval_arg.
-  exact: HxPoleIa.
+  exact: HxSingIa.
 - intros x Hx.
-  apply: (A.BndValuator.continuous_eval prec _ _ 0 (I.join iPole ia)).
-  exact: HxPoleIa.
+  apply: (A.BndValuator.continuous_eval prec _ _ 0 (I.join iSing ia)).
+  exact: HxSingIa.
   intros H.
   apply Int.bounded_ex in Hbnded.
   destruct Hbnded as [l [u H']].
@@ -1322,7 +1322,7 @@ Lemma remainder_correct_bertrandEq_0_tactic :
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
-  let estimator_pole :=
+  let estimator_sing :=
 fun ia =>
   if test iF ia then
     if (I.bounded (iF (I.join (I.fromZ 0) ia))) then
@@ -1333,13 +1333,13 @@ fun ia =>
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
-  let i := Int.integral_interval_relative_pole prec estimator estimator_pole depth ia (I.fromZ 0) epsilon in
+  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon in
   (forall x,  g x = f x * / (x * pow (ln x) (S (S beta)))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_right 0) (at_point a))) /\
   contains (I.convert i) (Xreal (RInt_gen g (at_right 0) (at_point a))).
 Proof.
-move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta test iKernelInt f g iG'' iG' iG iF a ia estimator_pole estimator.
+move => prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta test iKernelInt f g iG'' iG' iG iF a ia estimator_sing estimator.
 move => i Hfg.
 suff: I.convert i <> Inan -> (ex_RInt_gen g (at_right 0) (at_point a)) /\
   contains (I.convert i)
@@ -1348,14 +1348,14 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_right 0) (at_point a)) /\
   case Hi: (I.convert i) => [|l u]; first by split.
   rewrite -Hi; split => [HnotInan|]; first by apply H.
   apply H; by rewrite Hi.
-apply: integral_epsilon_pole_correct_RInt_gen => // .
+apply: integral_epsilon_sing_correct_RInt_gen => // .
   - apply: taylor_correct_estimator_general.
-  - rewrite /correct_estimator_pole.
+  - rewrite /correct_estimator_sing.
     move => ia0.
-    suff:  Int.integralEstimatorCorrect_atpole
+    suff:  Int.integralEstimatorCorrect_atsing
              (fun x : R => f x * / (x  * ln x ^ (S (S beta))))
-             (estimator_pole ia0) ia0 0.
-      apply: integralEstimatorCorrect_atpole_ext.
+             (estimator_sing ia0) ia0 0.
+      apply: integralEstimatorCorrect_atsing_ext.
       by move => x; rewrite -Hfg.
     apply: (remainder_correct_generic_fun_at_right_singularity _ _ _ _ _ _ (fun f a => 0 < a < 1) _ (fun x => 0 < x < 1)).
     + apply: I.fromZ_correct.
@@ -1381,7 +1381,7 @@ apply: integral_epsilon_pole_correct_RInt_gen => // .
         case: ub Hib => [|ub] // Hib; lra.
 Qed.
 
-End Correction_lemmas_integral_pole.
+End Correction_lemmas_integral_sing.
 
 End Correction_lemmas_integral_for_tactic.
 
@@ -1790,14 +1790,14 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
 (*         end *)
 (*     end *)
 
-(* improper integral at pole 0 *)
+(* improper integral at sing 0 *)
   | RInt_gen (fun x => (@?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_right 0) (at_point ?b) =>
 
     let g := eval cbv beta in ((fun (y : R) => (f y) * (powerRZ y alpha * pow (ln y) beta)) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
     let vg := extract_algorithm g (cons reify_var nil) in
-    (* for now, hardcoding 0 as the pole *)
+    (* for now, hardcoding 0 as the sing *)
     let va := extract_algorithm R0 (@nil R) in
     let vb := extract_algorithm b (@nil R) in
     match va with
@@ -1813,7 +1813,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
                 | (?pg, _ :: ?lg) =>
                   let lcg := get_trivial_bounds lg prec in
                   let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-                  let c := constr:(proj2 (remainder_correct_pole_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
+                  let c := constr:(proj2 (remainder_correct_sing_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lf)) R0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1822,7 +1822,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           end
       end
     end
-(* Bertrand equality case at pole 0 *)
+(* Bertrand equality case at singularity 0 *)
   | RInt_gen (fun x => (@?f x) * / (x * (pow (ln x) (S (S ?beta))))) (at_right 0) (at_point ?b) =>
 
     let g := eval cbv beta in ((fun (y : R) => (f y) * / (y * pow (ln y) (S (S beta)))) reify_var) in
@@ -2302,18 +2302,18 @@ Export ITSFBI2.
 
 (* beginning of zone to comment out in releases *)
 
-(* Require Import Interval_generic_ops. *)
-(* Module GFSZ2 := GenericFloat Radix2. *)
-(* Module ITGFSZ2 := IntervalTactic GFSZ2. *)
-(* Export ITGFSZ2. *)
+Require Import Interval_generic_ops.
+Module GFSZ2 := GenericFloat Radix2.
+Module ITGFSZ2 := IntervalTactic GFSZ2.
+Export ITGFSZ2.
 
-(* Goal True. *)
-(* interval_intro *)
-(*   (RInt_gen *)
-(*      (fun x => (1 / x^2 * exp (- (3 * x)))) *)
-(*      (at_point 1) *)
-(*      (Rbar_locally p_infty)) with (i_integral_deg 2). *)
-(* done. *)
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (sin x * exp (- (3 * x))))
+     (at_point 1)
+     (Rbar_locally p_infty)) with (i_integral_deg 2).
+done.
 
 
 (* Goal True. *)

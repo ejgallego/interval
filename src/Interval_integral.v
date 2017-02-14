@@ -496,12 +496,12 @@ Definition integralEstimatorCorrect_infty (estimator : I.type) ia:=
   is_RInt_gen f (at_point a) (Rbar_locally p_infty) I /\
   contains (I.convert estimator) (Xreal I).
 
-Definition integralEstimatorCorrect_atpole (estimator : I.type) ia pole:=
+Definition integralEstimatorCorrect_atsing (estimator : I.type) ia sing:=
   forall a,
   contains (I.convert ia) (Xreal a) ->
   I.convert estimator <> IInan ->
   exists I : R,
-  is_RInt_gen f (at_right pole) (at_point a) I /\
+  is_RInt_gen f (at_right sing) (at_point a) I /\
   contains (I.convert estimator) (Xreal I).
 
 Section Functions.
@@ -562,27 +562,27 @@ Fixpoint integral_interval_absolute_infty (depth : nat) (ia: I.type) (epsilon : 
       end
   end.
 
-(* morally, est_pole ia estimates the integral from pole to a \in ia *)
-Variable est_pole : I.type -> I.type.
+(* morally, est_sing ia estimates the integral from sing to a \in ia *)
+Variable est_sing : I.type -> I.type.
 
-Fixpoint integral_interval_absolute_pole (depth : nat) (ia: I.type) (iPole: I.type) (epsilon : F.type) :=
-  let int := I.join iPole ia in
+Fixpoint integral_interval_absolute_sing (depth : nat) (ia: I.type) (iSing: I.type) (epsilon : F.type) :=
+  let int := I.join iSing ia in
   let m := I.midpoint' int in
   match I.bounded m with
     | false => I.nai
     | true =>
       match depth with
-        | O => I.add prec (est_pole m) (est m ia)
+        | O => I.add prec (est_sing m) (est m ia)
         | S n => let m := I.midpoint' int in
                  let halfeps := div2 epsilon in
-                 let roughEstimate_1 := est_pole m in
+                 let roughEstimate_1 := est_sing m in
                  let roughEstimate_2 := est m ia in
                  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
                    | true,true => I.add prec roughEstimate_1 roughEstimate_2
                    | true,false => let int2 := integral_interval_absolute n m ia (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
-                   | false,true => let int1 := integral_interval_absolute_pole n m iPole (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+                   | false,true => let int1 := integral_interval_absolute_sing n m iSing (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
                    | false,false =>
-                     let i1 := integral_interval_absolute_pole n m iPole halfeps in
+                     let i1 := integral_interval_absolute_sing n m iSing halfeps in
                      let i2 := integral_interval_absolute n m ia halfeps in
                      I.add prec i1 i2
                  end
@@ -619,10 +619,10 @@ Definition integral_interval_relative_infty
       else integral_interval_absolute_infty (depth-1) ia epsilon
   else I.nai.
 
-Definition integral_interval_relative_pole
-    (depth : nat) (ia : I.type) iPole (epsilon : F.type) :=
+Definition integral_interval_relative_sing
+    (depth : nat) (ia : I.type) iSing (epsilon : F.type) :=
   if I.bounded ia then
-    let roughEst := est_pole ia in
+    let roughEst := est_sing ia in
     if depth is O then roughEst
     else
       let epsilon :=
@@ -631,7 +631,7 @@ Definition integral_interval_relative_pole
             (I.upper (I.abs roughEst))
         else epsilon in
       if F'.le (diam roughEst) epsilon then roughEst
-      else integral_interval_absolute_pole (depth-1) ia iPole epsilon
+      else integral_interval_absolute_sing (depth-1) ia iSing epsilon
   else I.nai.
 
 
@@ -682,20 +682,20 @@ move ->.
 by [].
 Qed.
 
-Lemma integral_interval_absolute_pole_Sn {n ia iPole epsilon} :
-  let int := I.join iPole ia in
+Lemma integral_interval_absolute_sing_Sn {n ia iSing epsilon} :
+  let int := I.join iSing ia in
   let m := I.midpoint' int in
   let halfeps := div2 epsilon in
-  let roughEstimate_1 := est_pole m in
+  let roughEstimate_1 := est_sing m in
   let roughEstimate_2 := est m ia in
   I.bounded m ->
-  integral_interval_absolute_pole (S n) ia iPole epsilon =
+  integral_interval_absolute_sing (S n) ia iSing epsilon =
                  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
                    | true,true => I.add prec roughEstimate_1 roughEstimate_2
                    | true,false => let int2 := integral_interval_absolute n m ia (F.sub_exact epsilon (diam roughEstimate_1)) in I.add prec roughEstimate_1 int2
-                   | false,true => let int1 := integral_interval_absolute_pole n m iPole (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
+                   | false,true => let int1 := integral_interval_absolute_sing n m iSing (F.sub_exact epsilon (diam roughEstimate_2)) in I.add prec int1 roughEstimate_2
                    | false,false =>
-                     let i1 := integral_interval_absolute_pole n m iPole halfeps in
+                     let i1 := integral_interval_absolute_sing n m iSing halfeps in
                      let i2 := integral_interval_absolute n m ia halfeps in
                      I.add prec i1 i2
                  end.
@@ -715,7 +715,7 @@ Section Proofs.
 
 Variable estimator : I.type -> I.type -> I.type.
 Variable estimator_infty : I.type -> I.type.
-Variable estimator_pole : I.type -> I.type.
+Variable estimator_sing : I.type -> I.type.
 
 Lemma integral_interval_absolute_correct (depth : nat) ia ib epsilon :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
@@ -871,18 +871,18 @@ elim: depth epsilon ia Hboundia =>
       exact: Hd.
 Qed.
 
-Lemma integral_interval_absolute_pole_correct (depth : nat) ia epsilon pole iPole :
+Lemma integral_interval_absolute_sing_correct (depth : nat) ia epsilon sing iSing :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
-  (forall ia, integralEstimatorCorrect_atpole (estimator_pole ia) ia pole) ->
+  (forall ia, integralEstimatorCorrect_atsing (estimator_sing ia) ia sing) ->
   I.bounded ia ->
-  integralEstimatorCorrect_atpole (integral_interval_absolute_pole estimator estimator_pole depth ia iPole epsilon) ia pole.
+  integralEstimatorCorrect_atsing (integral_interval_absolute_sing estimator estimator_sing depth ia iSing epsilon) ia sing.
 Proof.
-move => base_case base_case_pole Hboundia.
+move => base_case base_case_sing Hboundia.
 elim: depth epsilon ia Hboundia =>
 [|d Hd] epsilon ia Hboundia a Hia HnotInan.
 - move: HnotInan.
-  set iab := (I.join iPole ia).
-  rewrite /integral_interval_absolute_pole.
+  set iab := (I.join iSing ia).
+  rewrite /integral_interval_absolute_sing.
   set m' := I.midpoint' iab.
   case: (I.bounded m'); last by rewrite I.nai_correct.
   have [m Hm]:  (not_empty (I.convert m')).
@@ -893,7 +893,7 @@ elim: depth epsilon ia Hboundia =>
   case: (base_case m' ia m a) => // [M|Iam [Ham Cam]].
     apply: HnotInan.
     exact: I.add_propagate_r.
-  case: (base_case_pole m' m) => // [M|Imb [Hmb Cmb]].
+  case: (base_case_sing m' m) => // [M|Imb [Hmb Cmb]].
     apply: HnotInan.
     exact: I.add_propagate_l.
   exists (Imb + Iam).
@@ -901,11 +901,11 @@ elim: depth epsilon ia Hboundia =>
   apply: is_RInt_gen_Chasles; first exact: Hmb.
   by rewrite is_RInt_gen_at_point.
   exact: J.add_correct.
-- set iab := (I.join iPole ia).
+- set iab := (I.join iSing ia).
   set m' := I.midpoint' iab.
   case Hbnded: (I.bounded m'); last first.
-    by rewrite /integral_interval_absolute_pole Hbnded I.nai_correct in HnotInan.
-  rewrite (integral_interval_absolute_pole_Sn _ _ Hbnded) in HnotInan |- *.
+    by rewrite /integral_interval_absolute_sing Hbnded I.nai_correct in HnotInan.
+  rewrite (integral_interval_absolute_sing_Sn _ _ Hbnded) in HnotInan |- *.
   have [m Hm]:  (not_empty (I.convert m')).
     move: (I.midpoint'_correct iab) => [H1 H2].
     apply: H2; exists a.
@@ -913,9 +913,9 @@ elim: depth epsilon ia Hboundia =>
   have K: (forall i1 i2,
       I.convert i1 <> Inan ->
       I.convert i2 <> Inan ->
-      integralEstimatorCorrect_atpole i1 m' pole ->
+      integralEstimatorCorrect_atsing i1 m' sing ->
       integralEstimatorCorrect i2 m' ia ->
-      exists I : R, is_RInt_gen f (at_right pole) (at_point a) I /\ contains (I.convert (I.add prec i1 i2)) (Xreal I)).
+      exists I : R, is_RInt_gen f (at_right sing) (at_point a) I /\ contains (I.convert (I.add prec i1 i2)) (Xreal I)).
     move => i1 i2 N1 N2 H1 H2.
     case: (H1 m) => {H1} // [I1 [H1 C1]].
     case: (H2 m a) => {H2} // [I2 [H2 C2]].
@@ -982,20 +982,20 @@ exact: base_case_infty.
 exact: integral_interval_absolute_infty_correct.
 Qed.
 
-Lemma integral_interval_relative_pole_correct (depth : nat) ia (epsilon : F.type) pole (iPole : I.type) :
-  (forall ia, integralEstimatorCorrect_atpole (estimator_pole ia) ia pole) ->
+Lemma integral_interval_relative_sing_correct (depth : nat) ia (epsilon : F.type) sing (iSing : I.type) :
+  (forall ia, integralEstimatorCorrect_atsing (estimator_sing ia) ia sing) ->
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
-  integralEstimatorCorrect_atpole (integral_interval_relative_pole estimator estimator_pole depth ia iPole epsilon) ia pole.
+  integralEstimatorCorrect_atsing (integral_interval_relative_sing estimator estimator_sing depth ia iSing epsilon) ia sing.
 Proof.
-move => base_case_pole base_case.
-rewrite /integral_interval_relative_pole.
+move => base_case_sing base_case.
+rewrite /integral_interval_relative_sing.
 case Hiab: (I.bounded ia); last by move => a _ ; rewrite I.nai_correct.
 case: depth => [|depth].
-exact: base_case_pole.
+exact: base_case_sing.
 set b1 := (X in if X then _ else _).
 case Hb1 : b1.
-exact: base_case_pole.
-exact: integral_interval_absolute_pole_correct.
+exact: base_case_sing.
+exact: integral_interval_absolute_sing_correct.
 Qed.
 
 
@@ -1098,33 +1098,33 @@ case: cst_sgn => [f_pos|f_neg].
     move => x Hx. apply: f_neg. rewrite Rmin_left ?Rmax_right; lra.
 Qed.
 
-Lemma integral_interval_mul_pole :
-  forall prec pole a ia f fi g Ig Igi,
-  (pole < a) ->
+Lemma integral_interval_mul_sing :
+  forall prec sing a ia f fi g Ig Igi,
+  (sing < a) ->
   contains (I.convert ia) (Xreal a) ->
-  (forall x, pole <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
+  (forall x, sing <= x <= a -> contains (I.convert fi) (Xreal (f x))) ->
   I.bounded fi ->
-  (forall x, pole <= x <= a -> continuous f x) ->
-  (forall x, pole < x <= a -> continuous g x) ->
-  constant_sign (fun x => pole < x <= a) g ->
-  is_RInt_gen g (at_right pole) (at_point a) Ig ->
+  (forall x, sing <= x <= a -> continuous f x) ->
+  (forall x, sing < x <= a -> continuous g x) ->
+  constant_sign (fun x => sing < x <= a) g ->
+  is_RInt_gen g (at_right sing) (at_point a) Ig ->
   contains (I.convert Igi) (Xreal Ig) ->
   exists Ifg,
-  is_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a) Ifg /\
+  is_RInt_gen (fun t => f t * g t) (at_right sing) (at_point a) Ifg /\
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
-move => prec pole a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
+move => prec sing a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
 
 move: (bounded_ex Hfi) => [] l [] u HiFia.
-have Hgoodorder_bis : forall x, pole <= x <= a -> l <= f x <= u.
+have Hgoodorder_bis : forall x, sing <= x <= a -> l <= f x <= u.
   move => x0 Hax0.
   move: (Hf _ Hax0).
   by rewrite HiFia.
-suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
+suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right sing) (at_point a).
   exists Ifg.
-  have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_right pole) (at_point a)  (scal l Ig).
+  have HIntl : is_RInt_gen (fun x => scal l (g x)) (at_right sing) (at_point a)  (scal l Ig).
     exact: is_RInt_gen_scal.
-  have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_right pole) (at_point a) (scal u Ig).
+  have HIntu : is_RInt_gen (fun x => scal u (g x)) (at_right sing) (at_point a) (scal u Ig).
     exact: is_RInt_gen_scal.
   have Hgoodorder : l <= u.
     by case: (Hgoodorder_bis a); try lra.
@@ -1140,15 +1140,15 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
     rewrite HiFia.
     exact: (conj (Rle_refl _)).
   split.
-    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal u (g x)) (fun x => scal (f x) (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right sing) (at_point a) _ _ (fun x => scal u (g x)) (fun x => scal (f x) (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => sing < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
-    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal l (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right sing) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal l (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => sing < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_neg_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
@@ -1161,15 +1161,15 @@ suff [Ifg HIfg]: ex_RInt_gen (fun t => f t * g t) (at_right pole) (at_point a).
     rewrite HiFia.
     exact: (conj _ (Rle_refl _)).
   split.
-    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal l (g x)) (fun x => scal (f x) (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right sing) (at_point a) _ _ (fun x => scal l (g x)) (fun x => scal (f x) (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => sing < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
-    apply: (@RInt_gen_le (at_right pole) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal u (g x))  _ _) => // .
+    apply: (@RInt_gen_le (at_right sing) (at_point a) _ _ (fun x => scal (f x) (g x)) (fun x => scal u (g x))  _ _) => // .
       exact: at_right_le_at_point.
-    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => pole < z < a)).
+    apply: (filter_prod_at_point_l a (fun x y => forall z, x <= z <= y -> _ <= _) (fun z => sing < z < a)).
       exact: at_right_open_interval.
     by move => y Hy z Hz; apply: Rmult_le_compat_r; case: (Hg z) (Hgoodorder_bis z); lra.
 
@@ -1192,7 +1192,7 @@ split.
   set pos_eps1 := mkposreal eps1 eps1_pos.
   case: (proj1 (ex_RInt_gen_cauchy_left _ _) (ex_intro _ _  HIg)) => Hexg Heps.
   case: (Heps (pos_eps1)) => Peps1 [HPinf HPint].
-  have HPge : at_right pole (fun x => pole < x < a).
+  have HPge : at_right sing (fun x => sing < x < a).
     exact: at_right_open_interval.
   assert(Hand := filter_and _ _ (at_point_filter_prod_l _ _ Hexg) HPinf).
   assert(Hand1 := filter_and _ _ Hand HPge).
@@ -1231,7 +1231,7 @@ split.
     exact: norm_scal.
   rewrite /norm /= /abs /= .
   apply: Rmult_le_compat_r; first exact: Rabs_pos.
-  have Hax : pole <= x <= a by lra.
+  have Hax : sing <= x <= a by lra.
   suff: Rabs (f x) <= Rmax (Rabs l) (Rabs u) by lra.
     by apply: RmaxAbs; move: (Hgoodorder_bis x Hax) ;lra.
 Qed.
@@ -1257,7 +1257,7 @@ Lemma integral_interval_mul_zero :
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
 move => prec a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
-apply: (integral_interval_mul_pole) => // ; last exact: HIg'; last exact: HIg.
+apply: (integral_interval_mul_sing) => // ; last exact: HIg'; last exact: HIg.
 exact: Hia.
 Qed.
 
