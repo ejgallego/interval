@@ -963,8 +963,8 @@ Proof.
   have {1}-> : 1 / epsilon = (g epsilon).
     by rewrite /g; field; lra.
   rewrite -(RInt_comp _ _ dg).
-  rewrite -opp_RInt_swap ; first congr (opp _); last by apply: ex_RInt_swap.
-  symmetry; apply: RInt_ext; last exact: ex_RInt_swap.
+  rewrite -opp_RInt_swap ; first congr (opp _) ; last by apply: ex_RInt_swap.
+  symmetry; apply: RInt_ext.
   move => x Hx.
   rewrite Rmin_right in Hx; try lra.
   rewrite Rmax_left in Hx; try lra.
@@ -1037,8 +1037,6 @@ Proof.
     symmetry.
     rewrite /f0eps. rewrite f_correct_RInt; try lra; try lia.
     rewrite (RInt_ext _ (fun x : R => scal (- (-1) ^ beta) (powerRZ x (-2 - alpha) * ln x ^ beta))); last first.
-      apply: ex_RInt_scal; eexists; apply: f_correct; try lia.
-        split; field_simplify; lra.
       by move => x Hx; rewrite /scal [in RHS]/= /mult /=; rewrite Rmult_assoc.
     set e1 := (-2 - alpha)%Z; rewrite RInt_scal /scal /= /mult /= .
     ring_simplify; congr(_ * RInt _ _ _) => // ; field; lra.

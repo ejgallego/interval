@@ -1172,7 +1172,7 @@ assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
     apply pow_nonzero.
     now apply (Z2R_neq (-1) 0).
   apply is_lim_seq_const.
-rewrite <- RInt_PSeries.
+rewrite <- RInt_PSeries with (1 := Hc).
 apply RInt_ext.
 intros t.
 rewrite Rmin_left, Rmax_right by easy.
@@ -1186,8 +1186,6 @@ now apply Rlt_trans with x.
 now apply Rlt_le.
 intros n.
 now rewrite <- Rpow_mult_distr, Ropp_mult_distr_l_reverse, Rmult_1_l.
-now apply ex_RInt_PSeries.
-exact Hc.
 intros [|n].
 easy.
 unfold PS_incr_1.
