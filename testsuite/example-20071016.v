@@ -65,3 +65,19 @@ Goal
 Proof.
   interval with (i_integral_prec 9, i_integral_depth 1, i_integral_deg 5).
 Qed.
+
+Goal
+  RInt_gen (fun x => 1 * (powerRZ x 3 * ln x^2))
+           (at_right 0) (at_point 1) = 1/32.
+Proof.
+  refine ((fun H => Rle_antisym _ _ (proj2 H) (proj1 H)) _).
+  interval.
+Qed.
+
+Goal
+  Rabs (RInt_gen (fun t => 1/sqrt t * exp (-(1*t)))
+                 (at_point 1) (Rbar_locally p_infty)
+        - 2788/10000) <= 1/1000.
+Proof.
+  interval.
+Qed.

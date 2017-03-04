@@ -42,7 +42,15 @@ sin should be between -2*PI and 2*PI; the input of tan should be between
 
 The tactic also recognizes integral expressions RInt whose bounds are
 constants and whose integrand is an expression containing only constant
-leaves except for the integration variable.
+leaves except for the integration variable. Some improper integral
+expressions RInt_gen are also supported with bounds (at_right 0)
+(at_point _) or (at_point _) (Rbar_locally p_infty). The integrand
+should be of the form (fun t => f t * g t) with g one of the following
+expressions:
+
+  exp (- (_ * t))
+  powerRZ t _ * (ln t) ^ _
+  / (t * (ln t) ^ _)
 
 A helper tactic "interval_intro e" is also available. Instead of proving
 the current goal, it computes an enclosure of the expression "e" passed
@@ -173,5 +181,21 @@ Goal
         - 5/96*PI*PI) <= 1/1000.
 Proof.
   interval with (i_integral_prec 9, i_integral_depth 1, i_integral_deg 5).
+Qed.
+
+Goal
+  RInt_gen (fun x => 1 * (powerRZ x 3 * ln x^2))
+           (at_right 0) (at_point 1) = 1/32.
+Proof.
+  refine ((fun H => Rle_antisym _ _ (proj2 H) (proj1 H)) _).
+  interval.
+Qed.
+
+Goal
+  Rabs (RInt_gen (fun t => 1/sqrt t * exp (-(1*t)))
+                 (at_point 1) (Rbar_locally p_infty)
+        - 2788/10000) <= 1/1000.
+Proof.
+  interval.
 Qed.
 (*** END ***)
