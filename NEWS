@@ -1,3 +1,6 @@
+Version 3.2.0:
+ - added support for some improper integrals using RInt_gen
+
 Version 3.1.1:
  - ensured compatibility with Coq 8.6
 

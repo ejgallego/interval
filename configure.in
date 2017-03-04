@@ -1,4 +1,4 @@
-AC_INIT([Interval], [3.1.1],
+AC_INIT([Interval], [3.2.0],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 
@@ -61,7 +61,8 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Coquelicot])
 AS_IF(
-  [ echo "Require Import Coquelicot.Coquelicot." > conftest.v
+  [ echo "Require Import Coquelicot.Coquelicot." \
+         "Check (RInt (V := R_CompleteNormedModule))." > conftest.v
     $COQC conftest.v > conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
