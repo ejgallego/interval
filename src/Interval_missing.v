@@ -623,7 +623,7 @@ apply Rle_Rinv_pos.
 apply Rlt_0_1.
 apply (le_INR 1).
 apply le_n_S, le_0_n.
-replace R1 with (1 * (1 * 1))%R by ring.
+replace 1%R with (1 * (1 * 1))%R by ring.
 apply pow_maj_Rabs with (1 := Hx).
 apply INR_fact_neq_0.
 now apply not_0_INR.
@@ -659,7 +659,7 @@ now case exist_sin.
 Qed.
 
 Lemma sinc_0 :
-  sinc 0 = R1.
+  sinc 0 = 1%R.
 Proof.
 unfold sinc.
 case exist_sin.
@@ -675,7 +675,7 @@ simpl sum_f_R0 at 1.
 rewrite sum_eq_R0.
 unfold R_dist, sin_n.
 simpl.
-replace (1 / 1 * 1 + 0 - 1)%R with R0 by field.
+replace (1 / 1 * 1 + 0 - 1)%R with 0%R by field.
 now rewrite Rabs_R0.
 clear.
 intros m _.
@@ -722,7 +722,7 @@ apply Rle_Rinv_pos.
 apply Rlt_0_1.
 apply (le_INR 1).
 apply le_n_S, le_0_n.
-replace R1 with (1 * (1 * 1))%R by ring.
+rewrite <- (pow1 2).
 apply pow_maj_Rabs with (1 := Hx).
 apply INR_fact_neq_0.
 now apply not_0_INR.
@@ -856,7 +856,7 @@ apply lt_INR.
 rewrite <- plus_assoc.
 apply (plus_lt_compat_r 0).
 apply lt_O_Sn.
-replace R1 with (1 * (1 * 1))%R by ring.
+rewrite <- (pow1 2).
 apply pow_maj_Rabs with (1 := Hx).
 Qed.
 
@@ -981,7 +981,7 @@ assert (H1: forall x, (0 < x < 1 -> atan x = x * atanc x)%R).
   now rewrite R_dist_eq.
   elim H.
   split.
-  apply Rle_trans with R0.
+  apply Rle_trans with 0%R.
   rewrite <- Ropp_0.
   apply Ropp_le_contravar.
   apply Rle_0_1.
@@ -1157,13 +1157,13 @@ rewrite <- PSeries_incr_1.
 replace (ln (1 + x)) with (RInt (fun t => / (1 + t)) 0 x).
 rewrite <- (PSeries_ext (PS_Int (fun n => (-1)^n))).
 assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
-  rewrite (CV_radius_finite_DAlembert _ R1).
+  rewrite (CV_radius_finite_DAlembert _ 1).
   now rewrite Rinv_1, Rabs_pos_eq.
   intros n.
   apply pow_nonzero.
   now apply (Z2R_neq (-1) 0).
   exact Rlt_0_1.
-  apply is_lim_seq_ext with (fun _ => R1).
+  apply is_lim_seq_ext with (fun _ => 1%R).
     intros n.
     simpl pow.
     unfold Rdiv.

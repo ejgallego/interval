@@ -1300,7 +1300,7 @@ apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
 apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
-now rewrite <- (proj1 (Hs2 _ Hl R0)).
+now rewrite <- (proj1 (Hs2 _ Hl 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
 apply (contains_connected (I.convert xi)).
@@ -1335,7 +1335,7 @@ apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
 apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
-now rewrite <- (proj1 (Hs2 _ Hu R0)).
+now rewrite <- (proj1 (Hs2 _ Hu 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
 apply (contains_connected (I.convert xi)).
@@ -1391,9 +1391,9 @@ apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
 apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
-now rewrite <- (proj1 (Hs2 _ Hl R0)).
+now rewrite <- (proj1 (Hs2 _ Hl 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
-eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
+eapply (derivable_pos_imp_increasing (proj_fun 0 f) (proj_fun 0 f')).
 apply (contains_connected (I.convert xi)).
 intros a Ha.
 simpl in Ha.
@@ -1426,9 +1426,9 @@ apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
 apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
-now rewrite <- (proj1 (Hs2 _ Hu R0)).
+now rewrite <- (proj1 (Hs2 _ Hu 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
-eapply (derivable_pos_imp_increasing (proj_fun R0 f) (proj_fun R0 f')).
+eapply (derivable_pos_imp_increasing (proj_fun 0 f) (proj_fun 0 f')).
 apply (contains_connected (I.convert xi)).
 intros a Ha.
 simpl in Ha.

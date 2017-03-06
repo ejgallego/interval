@@ -67,7 +67,7 @@ Parameter sqrt : rounding_mode -> precision -> type -> type.
 Parameter toF_correct :
   forall x, FtoX (toF x) = toX x.
 
-Parameter zero_correct : toX zero = Xreal R0.
+Parameter zero_correct : toX zero = Xreal 0.
 Parameter nan_correct : toX nan = Xnan.
 Parameter fromZ_correct :
   forall n, toX (fromZ n) = Xreal (Z2R n).

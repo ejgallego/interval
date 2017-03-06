@@ -146,7 +146,7 @@ Qed.
 
 Lemma contains_eval :
   forall prec prog bounds n,
-  contains (I.convert (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (map A.real_from_bp bounds)) R0)).
+  contains (I.convert (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (map A.real_from_bp bounds)) 0)).
 Proof.
 intros prec prog bounds n.
 set (xi := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
@@ -167,7 +167,7 @@ Qed.
 Lemma contains_eval_arg :
   forall prec prog bounds n xi x,
   contains (I.convert xi) (Xreal x) ->
-  contains (I.convert (nth n (A.BndValuator.eval prec prog (xi :: map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (x :: map A.real_from_bp bounds)) R0)).
+  contains (I.convert (nth n (A.BndValuator.eval prec prog (xi :: map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (x :: map A.real_from_bp bounds)) 0)).
 Proof.
 intros prec prog bounds n xi x Hx.
 apply (contains_eval prec prog (A.Bproof x xi Hx :: bounds)).
@@ -175,8 +175,8 @@ Qed.
 
 Lemma contains_bound_lr :
   forall x prec proga boundsa na progb boundsb nb,
-  Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) R0) x /\
-  Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) R0) ->
+  Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) 0) x /\
+  Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) 0) ->
   contains (I.convert (I.meet (I.upper_extent (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai)) (I.lower_extent (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai)))) (Xreal x).
 Proof.
 intros x prec proga boundsa na progb boundsb nb [Hx1 Hx2].
@@ -194,8 +194,8 @@ Lemma contains_bound_lr' :
   I.upper_bounded ia = true ->
   I.lower_bounded ib = true ->
   contains (I.convert (I.bnd (I.upper ia) (I.lower ib))) (Xreal x) ->
-  Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) R0) x /\
-  Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) R0).
+  Rle (nth na (eval_real proga (map A.real_from_bp boundsa)) 0) x /\
+  Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) 0).
 Proof.
 intros x prec proga boundsa na progb boundsb nb.
 generalize (contains_eval prec proga boundsa na) (contains_eval prec progb boundsb nb).
@@ -226,7 +226,7 @@ Qed.
 
 Lemma contains_bound_l :
   forall x prec prog bounds n,
-  Rle (nth n (eval_real prog (map A.real_from_bp bounds)) R0) x ->
+  Rle (nth n (eval_real prog (map A.real_from_bp bounds)) 0) x ->
   contains (I.convert (I.upper_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
 Proof.
 intros x prec prog bounds n Hx.
@@ -247,7 +247,7 @@ Lemma contains_bound_l' :
   let i := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai in
   I.upper_bounded i = true ->
   contains (I.convert (I.bnd (I.upper i) F.nan)) (Xreal x) ->
-  Rle (nth n (eval_real prog (map A.real_from_bp bounds)) R0) x.
+  Rle (nth n (eval_real prog (map A.real_from_bp bounds)) 0) x.
 Proof.
 intros x prec prog bounds n.
 generalize (contains_eval prec prog bounds n).
@@ -268,7 +268,7 @@ Qed.
 
 Lemma contains_bound_r :
   forall x prec prog bounds n,
-  Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) R0) ->
+  Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) 0) ->
   contains (I.convert (I.lower_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
 Proof.
 intros x prec prog bounds n Hx.
@@ -289,7 +289,7 @@ Lemma contains_bound_r' :
   let i := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai in
   I.lower_bounded i = true ->
   contains (I.convert (I.bnd F.nan (I.lower i))) (Xreal x) ->
-  Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) R0).
+  Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) 0).
 Proof.
 intros x prec prog bounds n.
 generalize (contains_eval prec prog bounds n).
@@ -310,7 +310,7 @@ Qed.
 
 Lemma contains_bound_ar :
   forall x prec prog bounds n,
-  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) R0) ->
+  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) 0) ->
   let xi := I.lower_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai) in
   contains (I.convert (I.meet (I.neg xi) xi)) (Xreal x).
 Proof.
@@ -343,7 +343,7 @@ Lemma contains_bound_ar' :
   let i := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai in
   I.lower_bounded i = true ->
   contains (I.convert (let l := I.lower i in I.bnd (F.neg l) l)) (Xreal x) ->
-  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) R0).
+  Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) 0).
 Proof.
 intros x prec prog bounds n.
 generalize (contains_eval prec prog bounds n).
@@ -372,7 +372,7 @@ Variable prec : F.precision.
 Variables prog proga progb : list term.
 Variables bounds boundsa boundsb : list A.bound_proof.
 
-Let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0.
+Let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0.
 Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai).
 
 Variable estimator : I.type -> I.type -> I.type.
@@ -380,8 +380,8 @@ Variable estimator : I.type -> I.type -> I.type.
 Definition correct_estimator :=
   forall ia ib, Int.integralEstimatorCorrect f (estimator ia ib) ia ib.
 
-Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
-Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
+Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0.
+Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) 0.
 Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
 Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai.
 
@@ -417,16 +417,16 @@ Variable prec : F.precision.
 Variables prog_f prog_g proga progb : list term.
 Variables bounds_f bounds_g boundsa boundsb : list A.bound_proof.
 
-Let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0.
-Let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0.
+Let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0.
+Let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0.
 
 Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai).
 Let iG := (fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai).
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
-Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0.
+Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0.
+Let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) 0.
 Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
 Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai.
 
@@ -435,9 +435,6 @@ Variable estimator_infty : I.type -> I.type.
 
 Definition correct_estimator_infty :=
   forall ia, Int.integralEstimatorCorrect_infty g (estimator_infty ia) ia.
-
-(* Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0. *)
-(* Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai. *)
 
 Lemma integral_epsilon_infty_correct :
   forall (depth : nat) epsilon,
@@ -479,15 +476,15 @@ Variable prec : F.precision.
 Variables prog_f prog_g proga progb : list term.
 Variables bounds_f bounds_g boundsa boundsb : list A.bound_proof.
 
-Let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0.
-Let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0.
+Let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0.
+Let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0.
 
 Let iF := (fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai).
 Let iG := (fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai).
 
 Variable estimator : I.type -> I.type -> I.type.
 
-Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0.
+Let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0.
 Let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai.
 
 Variable estimator_sing : I.type -> I.type.
@@ -572,7 +569,7 @@ Lemma taylor_correct_estimator_general :
   forall prec deg prog bounds (* ia ib a b *),
     (* contains (I.convert ia) (Xreal a) -> *)
     (* contains (I.convert ib) (Xreal b) -> *)
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let iF'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)
@@ -646,15 +643,15 @@ Qed.
 
 Lemma taylor_integral_naive_intersection_epsilon_correct :
   forall prec deg depth proga boundsa progb boundsb prog bounds epsilon,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let iF'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds)
 ) A.TaylorValuator.TM.dummy in
   let iF' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iF'' xi) in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
-  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
+  let b := nth 0 (eval_real progb (map A.real_from_bp boundsb)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai in
   let estimator := fun fa fb =>
@@ -678,7 +675,7 @@ Import Bertrand.
 
 Lemma remainder_correct_bertrand :
   forall prec prog bounds ia alpha beta,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
     if Fext.le (F.fromZ 1) (I.lower ia) then
@@ -746,8 +743,8 @@ Qed.
 (* we need two functions: f, and g(x) := f(x) * x^alpha * ln(x)^beta *)
 Lemma remainder_correct_bertrand_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta,
-  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
-  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
@@ -755,7 +752,7 @@ Lemma remainder_correct_bertrand_tactic :
   let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
   let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_infty := fun ia =>
     if Fext.le (F.fromZ 1) (I.lower ia) then
@@ -815,7 +812,7 @@ Lemma remainder_correct_generic_fun_at_infty (kernel : R -> R) (kernelInt : R ->
                   pre_cond f a)
 :
   forall prec prog bounds ia,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
@@ -861,7 +858,7 @@ Lemma remainder_correct_exp_at_infty :
   forall prec prog bounds ia lam iLam,
   let test _ _ := true in
   let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
@@ -885,12 +882,12 @@ Qed.
 
 Lemma remainder_correct_expn_tactic prec deg depth proga boundsa
 prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
-  let lam := nth 0 (eval_real prog_lam (map A.real_from_bp bounds_lam)) R0 in
+  let lam := nth 0 (eval_real prog_lam (map A.real_from_bp bounds_lam)) 0 in
   let iLam := nth 0 (A.BndValuator.eval prec prog_lam (map A.interval_from_bp bounds_lam)) I.nai in
   let test _ _ := true in
   let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
-  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
-  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
@@ -898,7 +895,7 @@ prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
   let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
   let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_infty := fun ia =>
       if test iF ia then
@@ -956,7 +953,7 @@ Qed.
 Lemma remainder_correct_bertrand_log_neg_at_infty prec prog bounds ia beta:
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
@@ -991,8 +988,8 @@ Lemma remainder_correct_log_neg_infty_tactic prec deg depth proga
 boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
-  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
-  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
@@ -1000,7 +997,7 @@ boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
   let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
 
   let estimator_infty := fun ia =>
@@ -1052,7 +1049,7 @@ Section Correction_lemmas_integral_sing.
 
 Lemma remainder_correct_sing :
   forall prec prog bounds ia alpha beta,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
   if Fext.lt (F.fromZ 0) (I.lower ia) then
@@ -1136,8 +1133,8 @@ Qed.
 
 Lemma remainder_correct_sing_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g (epsilon : F.type) alpha beta,
-  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
-  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
@@ -1145,7 +1142,7 @@ Lemma remainder_correct_sing_tactic :
   let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
   let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_sing :=
 fun ia =>
@@ -1218,7 +1215,7 @@ Lemma remainder_correct_generic_fun_at_right_singularity (kernel : R -> R) (kern
                   test fi ia ->
                   pre_cond f a) :
   forall prec prog bounds ia,
-  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) R0 in
+  let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
       if test fi ia then
@@ -1309,8 +1306,8 @@ Lemma remainder_correct_bertrandEq_0_tactic :
   let test iF ia := Fext.lt (F.fromZ 0) (I.lower ia) && Fext.lt (I.upper ia) (F.fromZ 1) in
   let iKernelInt ia := (Bertrand.f_neg_int prec ia (S beta)) in
 
-  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) R0 in
-  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) R0 in
+  let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
+  let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
     nth 0 (A.TaylorValuator.eval prec deg xi prog_g (A.TaylorValuator.TM.var ::
       map (fun b => A.TaylorValuator.TM.const (A.interval_from_bp b)) bounds_g)
@@ -1318,7 +1315,7 @@ Lemma remainder_correct_bertrandEq_0_tactic :
   let iG' := fun xi => A.TaylorValuator.TM.get_tm (prec, deg) xi (iG'' xi) in
   let iG := fun xi => nth 0 (A.BndValuator.eval prec prog_g (xi::map A.interval_from_bp bounds_g)) I.nai in
   let iF := fun xi => nth 0 (A.BndValuator.eval prec prog_f (xi::map A.interval_from_bp bounds_f)) I.nai in
-  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) R0 in
+  let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_sing :=
 fun ia =>
@@ -1386,7 +1383,7 @@ End Correction_lemmas_integral_for_tactic.
 Lemma xreal_to_contains :
   forall prog terms n xi,
   A.check_p (A.subset_check xi) (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
-  contains (I.convert xi) (Xreal (nth n (eval_real prog terms) R0)).
+  contains (I.convert xi) (Xreal (nth n (eval_real prog terms) 0)).
 Proof.
 intros prog terms n xi.
 simpl A.check_p.
@@ -1398,7 +1395,7 @@ Qed.
 Lemma xreal_to_positive :
   forall prog terms n,
   A.check_p A.positive_check (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
-  (0 < nth n (eval_real prog terms) R0)%R.
+  0 < nth n (eval_real prog terms) 0.
 Proof.
 intros prog terms n.
 simpl A.check_p.
@@ -1408,11 +1405,11 @@ Qed.
 Lemma xreal_to_nonzero :
   forall prog terms n,
   A.check_p A.nonzero_check (nth n (eval_ext prog (map Xreal terms)) Xnan) ->
-  nth n (eval_real prog terms) R0 <> R0.
+  nth n (eval_real prog terms) 0 <> 0.
 Proof.
 intros prog terms n.
 simpl A.check_p.
-now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => r <> R0 end) (fun x => x <> R0)).
+now apply (xreal_to_real (fun x => match x with Xnan => False | Xreal r => r <> 0 end) (fun x => x <> 0)).
 Qed.
 
 Inductive expr :=
@@ -1678,7 +1675,6 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
   match x with
 (* improper Bertrand integral at infinity *)
   | RInt_gen (fun x => (@?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_point ?a) (Rbar_locally p_infty) =>
-
     let g := eval cbv beta in ((fun (y : R) => (f y) * (powerRZ y alpha * pow (ln y) beta)) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
@@ -1693,8 +1689,8 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           match vg with
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
-              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-              let c := constr:(proj2 (remainder_correct_bertrand_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) R0)))) in
+              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
+              let c := constr:(proj2 (remainder_correct_bertrand_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1719,8 +1715,8 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           match vg with
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
-              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-              let c := constr:(proj2 (remainder_correct_log_neg_infty_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) R0)))) in
+              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
+              let c := constr:(proj2 (remainder_correct_log_neg_infty_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1731,7 +1727,6 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
 
 (* improper integral f(x) * exp (- (\lambda * x)) at infinity *)
   | RInt_gen (fun x => (@?f x) * (exp (Ropp (Rmult ?lam x)))) (at_point ?a) (Rbar_locally p_infty) =>
-
     let g := eval cbv beta in ((fun (y : R) => (f y) * (exp (Ropp (Rmult lam y)))) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
@@ -1750,8 +1745,8 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vlam with
                 | (?plam,?llam) =>
                   let lclam := get_trivial_bounds llam prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) R0)))) in
+                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
+                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1763,13 +1758,12 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
 
 (* improper integral at sing 0 *)
   | RInt_gen (fun x => (@?f x) * ((powerRZ x ?alpha) * (pow (ln x) ?beta))) (at_right 0) (at_point ?b) =>
-
     let g := eval cbv beta in ((fun (y : R) => (f y) * (powerRZ y alpha * pow (ln y) beta)) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
     let vg := extract_algorithm g (cons reify_var nil) in
     (* for now, hardcoding 0 as the sing *)
-    let va := extract_algorithm R0 (@nil R) in
+    let va := extract_algorithm 0 (@nil R) in
     let vb := extract_algorithm b (@nil R) in
     match va with
     | (?pa, ?la) =>
@@ -1783,8 +1777,8 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vg with
                 | (?pg, _ :: ?lg) =>
                   let lcg := get_trivial_bounds lg prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-                  let c := constr:(proj2 (remainder_correct_sing_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) R0)))) in
+                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
+                  let c := constr:(proj2 (remainder_correct_sing_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1793,14 +1787,14 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           end
       end
     end
+
 (* Bertrand equality case at singularity 0 *)
   | RInt_gen (fun x => (@?f x) * / (x * (pow (ln x) (S (S ?beta))))) (at_right 0) (at_point ?b) =>
-
     let g := eval cbv beta in ((fun (y : R) => (f y) * / (y * pow (ln y) (S (S beta)))) reify_var) in
     let f := eval cbv beta in (f reify_var) in
     let vf := extract_algorithm f (cons reify_var nil) in
     let vg := extract_algorithm g (cons reify_var nil) in
-    let va := extract_algorithm R0 (@nil R) in
+    let va := extract_algorithm 0 (@nil R) in
     let vb := extract_algorithm b (@nil R) in
     match va with
     | (?pa, ?la) =>
@@ -1814,8 +1808,8 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vg with
                 | (?pg, _ :: ?lg) =>
                   let lcg := get_trivial_bounds lg prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
-                  let c := constr:(proj2 (remainder_correct_bertrandEq_0_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) R0)))) in
+                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
+                  let c := constr:(proj2 (remainder_correct_bertrandEq_0_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1842,7 +1836,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
         match vf with
         | (?pf, _ :: ?lf) =>
           let lcf := get_trivial_bounds lf prec in
-          let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat(rint_prec)))) in
+          let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
           let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
           (* work-around for a bug in the pretyper *)
           match type of c with

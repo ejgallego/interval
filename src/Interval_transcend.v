@@ -275,7 +275,7 @@ assert (Hexit : forall k powu ft,
 unfold c1, c3.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
-replace R1 with (Ai x 0) by (unfold Ai ; simpl ; field).
+replace 1%R with (Ai x 0) by (unfold Ai ; simpl ; field).
 generalize (eq_refl (F.fromZ 1)).
 generalize (F.fromZ 1) at 1 3.
 intros powl Hpl.
@@ -569,7 +569,7 @@ assert (Hexit : forall k powu ft,
 unfold c1, c3.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
-replace R1 with (Ai (toR x) 0) by (unfold Ai ; simpl ; field).
+replace 1%R with (Ai (toR x) 0) by (unfold Ai ; simpl ; field).
 generalize (eq_refl (F.fromZ 1)).
 generalize (F.fromZ 1) at 1 3.
 intros powl Hpl.
@@ -1087,7 +1087,7 @@ assert (Hexit : forall k powu ft,
 unfold c1, c2.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
-replace R1 with (Ai x 0) by (unfold Ai ; simpl ; field).
+replace 1%R with (Ai x 0) by (unfold Ai ; simpl ; field).
 generalize (eq_refl (F.fromZ 1)).
 generalize (F.fromZ 1) at 1 3.
 intros powl Hpl.
@@ -1344,7 +1344,7 @@ rewrite <- ln_1.
 apply Rlt_le, ln_increasing.
 exact Rlt_0_1.
 exact Hx'.
-replace x with R1.
+replace x with 1%R.
 rewrite ln_1.
 apply Rle_refl.
 apply Rle_antisym.
@@ -1738,7 +1738,7 @@ assert (Hexit : forall k powu ft,
 unfold c1, c2, c3.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
-replace R1 with (A1 (toR x) 0) by (unfold A1 ; simpl ; field).
+replace 1%R with (A1 (toR x) 0) by (unfold A1 ; simpl ; field).
 generalize (eq_refl (F.fromZ 1)).
 generalize (F.fromZ 1) at 1 3.
 intros powl Hpl.
@@ -2273,7 +2273,7 @@ assert (Hexit : forall k powu ft,
 unfold c1, c4, c6.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
-replace R1 with (Si (toR x) 0) by (unfold Si ; simpl ; field).
+replace 1%R with (Si (toR x) 0) by (unfold Si ; simpl ; field).
 generalize (eq_refl (F.fromZ 1)).
 generalize (F.fromZ 1) at 1 3.
 intros powl Hpl.
@@ -3034,7 +3034,7 @@ change 1 with (0 + 1) at 1 2.
 change 3%Z with (Z_of_nat (0 + 3)).
 change 2%Z with (Z_of_nat (fact (0 + 2))).
 rewrite <- (Rmult_1_l (_ + _)).
-change R1 with ((-1)^0)%R.
+change 1%R with ((-1)^0)%R.
 rewrite <- (minus_diag n) at 1 3 5 7 9 10.
 generalize (le_refl n).
 generalize n at 1 4 6 8 10 11 13 15.

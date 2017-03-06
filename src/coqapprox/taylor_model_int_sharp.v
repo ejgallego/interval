@@ -312,7 +312,7 @@ Lemma TM_integral_error_0 (x0 : R) :
 Proof.
 move => Hx0X0 [_ _ ErrMf0 HX0X HPol].
 case: {HPol} (HPol x0 Hx0X0) => [p Hcontains _].
-replace R0 with ((x0 - x0) * 0 + (0 + (x0 - x0) * 0))%R by ring.
+replace 0 with ((x0 - x0) * 0 + (0 + (x0 - x0) * 0)) by ring.
 apply: J.add_correct; last apply: J.add_correct.
 - apply: J.mul_correct ErrMf0.
   apply: J.sub_correct (Hx0X0).

@@ -216,8 +216,8 @@ Module FullR <: FullOps.
 Definition U := unit.
 Local Notation "--> e" := (fun _ : U => e).
 Definition T := R.
-Definition zero := R0.
-Definition one := R1.
+Definition zero := 0%R.
+Definition one := 1%R.
 Definition opp := Ropp.
 Definition add := --> Rplus.
 Definition sub := --> Rminus.
@@ -522,7 +522,7 @@ Notation "p .[ x ]" := (PolR.horner tt p x) : R_scope.
 Notation "p ^` ()" := (PolR.deriv tt p) : R_scope.
 End Notations.
 
-Lemma toSeq_horner0 (u : U) (p : T) : horner u p R0 = head R0 (toSeq p).
+Lemma toSeq_horner0 (u : U) (p : T) : horner u p 0%R = head 0%R (toSeq p).
 Proof.
 elim: p=> [| a q HI] ; first by [].
 by rewrite /= HI; case: u HI; rewrite Rmult_0_r Rplus_0_l.
@@ -551,7 +551,7 @@ Qed.
 
 Lemma hornerE p x :
   horner tt p x =
-  \big[Rplus/R0]_(0 <= i < size p) Rmult (nth p i) (x ^ i).
+  \big[Rplus/0%R]_(0 <= i < size p) Rmult (nth p i) (x ^ i).
 Proof.
 elim: p; first by rewrite big_mkord big_ord0 /=.
 move=> t p /= ->.
@@ -1197,7 +1197,7 @@ apply: I.mask_correct'.
 apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - exact: J.zero_correct.
 - move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: J.zero_correct.
-- move=> x y Hx Hy; rewrite -(Rplus_0_r R0) -{1}(Rmult_0_l a).
+- move=> x y Hx Hy; rewrite -(Rplus_0_r 0) -{1}(Rmult_0_l a).
   apply: J.add_correct =>//; exact: J.mul_correct.
 - move=> x xi y yi Hx Hy; apply: J.add_correct=>//; exact: J.mul_correct.
 Qed.

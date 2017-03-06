@@ -668,7 +668,7 @@ Lemma sign_large_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_large_ xl xu with
-  | Xeq => x = R0 /\ F.toX xl = Xreal R0 /\ F.toX xu = Xreal R0
+  | Xeq => x = 0%R /\ F.toX xl = Xreal 0 /\ F.toX xu = Xreal 0
   | Xlt => (x <= 0)%R /\ (match F.toX xl with Xreal rl => (rl <= 0)%R | _=> True end) /\ (exists ru, F.toX xu = Xreal ru /\ (ru <= 0)%R)
   | Xgt => (0 <= x)%R /\ (match F.toX xu with Xreal ru => (0 <= ru)%R | _=> True end) /\ (exists rl, F.toX xl = Xreal rl /\ (0 <= rl)%R)
   | Xund =>
@@ -778,7 +778,7 @@ Lemma sign_strict_correct_ :
   forall xl xu x,
   contains (convert (Ibnd xl xu)) (Xreal x) ->
   match sign_strict_ xl xu with
-  | Xeq => x = R0 /\ F.toX xl = Xreal R0 /\ F.toX xu = Xreal R0
+  | Xeq => x = 0%R /\ F.toX xl = Xreal 0 /\ F.toX xu = Xreal 0
   | Xlt => (x < 0)%R /\ (match F.toX xl with Xreal rl => (rl < 0)%R | _=> True end) /\ (exists ru, F.toX xu = Xreal ru /\ (ru < 0)%R)
   | Xgt => (0 < x)%R /\ (match F.toX xu with Xreal ru => (0 < ru)%R | _=> True end) /\ (exists rl, F.toX xl = Xreal rl /\ (0 < rl)%R)
   | Xund =>
@@ -1507,25 +1507,25 @@ Qed.
 Ltac simpl_is_zero :=
   let X := fresh "X" in
   match goal with
-  | H: Rlt ?v R0 |- context [is_zero ?v] =>
+  | H: Rlt ?v 0 |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ H) | idtac ]
-  | H: Rlt R0 ?v |- context [is_zero ?v] =>
+  | H: Rlt 0 ?v |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ H) | idtac ]
-  | H: Rlt ?v R0 /\ _ |- context [is_zero ?v] =>
+  | H: Rlt ?v 0 /\ _ |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ (proj1 H)) | idtac ]
     (*rewrite (Rcompare_correct_lt _ _ (proj1 H))*)
-  | H: _ /\ (Rlt ?v R0 /\ _) |- context [is_zero ?v] =>
+  | H: _ /\ (Rlt ?v 0 /\ _) |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ (proj1 (proj2 H))) | idtac ]
     (*rewrite (Rcompare_correct_lt _ _ (proj1 (proj2 H)))*)
-  | H: Rlt R0 ?v /\ _ |- context [is_zero ?v] =>
+  | H: Rlt 0 ?v /\ _ |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ (proj1 H)) | idtac ]
     (*rewrite (Rcompare_correct_gt _ _ (proj1 H))*)
-  | H: _ /\ (Rlt R0 ?v /\ _) |- context [is_zero ?v] =>
+  | H: _ /\ (Rlt 0 ?v /\ _) |- context [is_zero ?v] =>
     destruct (is_zero_spec v) as [X|X] ;
     [ rewrite X in H ; elim (Rlt_irrefl _ (proj1 (proj2 H))) | idtac ]
     (*rewrite (Rcompare_correct_gt _ _ (proj1 (proj2 H)))*)
@@ -2067,7 +2067,7 @@ rewrite <- Ropp_0.
 now apply Ropp_le_contravar.
 exact Hxl.
 apply Rlt_le in Hx.
-apply Rle_trans with R0.
+apply Rle_trans with 0%R.
 apply Ropp_le_cancel.
 rewrite Ropp_0, <- Ropp_mult_distr_l_reverse.
 apply Rmult_le_pos.
@@ -2090,7 +2090,7 @@ intros H.
 refine (Rle_trans _ _ _ _ (H _)).
 2: apply Hx0.
 destruct (Rle_or_lt x 0) as [Hx|Hx].
-apply Rle_trans with R0.
+apply Rle_trans with 0%R.
 apply Ropp_le_cancel.
 rewrite Ropp_0, <- Ropp_mult_distr_l_reverse.
 change (Pmult_nat n 2) with (nat_of_P (xO n)).

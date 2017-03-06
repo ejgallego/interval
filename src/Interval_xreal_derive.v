@@ -94,7 +94,7 @@ Theorem derivable_imp_defined_gt :
 Proof.
 intros.
 apply locally_true_imp with
-  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (t < proj_fun R0 f a)%R).
+  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (t < proj_fun 0 f a)%R).
 intros x ((w, H2), H3).
 exists w.
 split.
@@ -125,7 +125,7 @@ Theorem derivable_imp_defined_lt :
 Proof.
 intros.
 apply locally_true_imp with
-  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun R0 f a < t)%R).
+  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun 0 f a < t)%R).
 intros x ((w, H2), H3).
 exists w.
 split.
@@ -155,7 +155,7 @@ Theorem derivable_imp_defined_ne :
 Proof.
 intros.
 apply locally_true_imp with
-  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun R0 f a <> t)%R).
+  (fun a => (exists w, f (Xreal a) = Xreal w) /\ (proj_fun 0 f a <> t)%R).
 intros x ((w, H2), H3).
 exists w.
 split.

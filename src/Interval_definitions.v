@@ -76,7 +76,7 @@ Implicit Arguments Float [[beta]].
 
 Definition FtoX beta (f : float beta) :=
   match f with
-  | Fzero => Xreal R0
+  | Fzero => Xreal 0
   | Fnan => Xnan
   | Float s m e => Xreal (FtoR beta s m e)
   end.
