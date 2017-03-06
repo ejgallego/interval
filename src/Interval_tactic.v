@@ -2272,9 +2272,6 @@ Export ITSFBI2.
 (* Module ITGFSZ2 := IntervalTactic GFSZ2. *)
 (* Export ITGFSZ2. *)
 
-Import Private.
-Module F := SFBI2.
-
 (* Goal True. *)
 (* interval_intro *)
 (*   (RInt_gen *)
