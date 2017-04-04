@@ -70,18 +70,16 @@ Inductive float (beta : radix) : Set :=
   | Fzero : float beta
   | Float : bool -> positive -> Z -> float beta.
 
-Implicit Arguments Fnan [[beta]].
-Implicit Arguments Fzero [[beta]].
-Implicit Arguments Float [[beta]].
+Arguments Fnan {beta}.
+Arguments Fzero {beta}.
+Arguments Float {beta}.
 
-Definition FtoX beta (f : float beta) :=
+Definition FtoX {beta} (f : float beta) :=
   match f with
   | Fzero => Xreal 0
   | Fnan => Xnan
   | Float s m e => Xreal (FtoR beta s m e)
   end.
-
-Implicit Arguments FtoX.
 
 Instance zpos_gt_0 : forall prec, Prec_gt_0 (Zpos prec).
 Proof.

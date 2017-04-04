@@ -28,8 +28,8 @@ Inductive f_interval (A : Type) : Type :=
   | Inan : f_interval A
   | Ibnd (l u : A) : f_interval A.
 
-Implicit Arguments Inan [A].
-Implicit Arguments Ibnd [A].
+Arguments Inan {A}.
+Arguments Ibnd {A}.
 
 Definition le_lower' x y :=
   match x with
@@ -1416,12 +1416,12 @@ Ltac clear_complex_aux :=
 Ltac clear_complex :=
   clear_complex_aux ; clear ; intros.
 
-Hint Local Resolve Rlt_le : mulauto.
-Hint Local Resolve Rle_trans : mulauto.
-Hint Local Resolve Rmult_le_compat_l : mulauto.
-Hint Local Resolve Rmult_le_compat_r : mulauto.
-Hint Local Resolve Rmult_le_compat_neg_l : mulauto.
-Hint Local Resolve Rmult_le_compat_neg_r : mulauto.
+Local Hint Resolve Rlt_le : mulauto.
+Local Hint Resolve Rle_trans : mulauto.
+Local Hint Resolve Rmult_le_compat_l : mulauto.
+Local Hint Resolve Rmult_le_compat_r : mulauto.
+Local Hint Resolve Rmult_le_compat_neg_l : mulauto.
+Local Hint Resolve Rmult_le_compat_neg_r : mulauto.
 
 Theorem mul_mixed_correct :
   forall prec yf,
@@ -1520,18 +1520,18 @@ Ltac simpl_is_zero :=
     (*rewrite (Rcompare_correct_gt _ _ (proj1 (proj2 H)))*)
   end.
 
-Hint Local Resolve Rinv_lt_0_compat : mulauto.
-Hint Local Resolve Rinv_0_lt_compat : mulauto.
-Hint Local Resolve Rle_Rinv_pos : mulauto.
-Hint Local Resolve Rle_Rinv_neg : mulauto.
+Local Hint Resolve Rinv_lt_0_compat : mulauto.
+Local Hint Resolve Rinv_0_lt_compat : mulauto.
+Local Hint Resolve Rle_Rinv_pos : mulauto.
+Local Hint Resolve Rle_Rinv_neg : mulauto.
 
-Hint Local Resolve Rlt_le : mulauto2.
-Hint Local Resolve Rinv_lt_0_compat : mulauto2.
-Hint Local Resolve Rinv_0_lt_compat : mulauto2.
-Hint Local Resolve Rmult_le_pos_pos : mulauto2.
-Hint Local Resolve Rmult_le_neg_pos : mulauto2.
-Hint Local Resolve Rmult_le_pos_neg : mulauto2.
-Hint Local Resolve Rmult_le_neg_neg : mulauto2.
+Local Hint Resolve Rlt_le : mulauto2.
+Local Hint Resolve Rinv_lt_0_compat : mulauto2.
+Local Hint Resolve Rinv_0_lt_compat : mulauto2.
+Local Hint Resolve Rmult_le_pos_pos : mulauto2.
+Local Hint Resolve Rmult_le_neg_pos : mulauto2.
+Local Hint Resolve Rmult_le_pos_neg : mulauto2.
+Local Hint Resolve Rmult_le_neg_neg : mulauto2.
 
 Theorem div_mixed_r_correct :
   forall prec yf,

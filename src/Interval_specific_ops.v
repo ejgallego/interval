@@ -33,8 +33,8 @@ Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
   | Float : smantissa_type -> exponent_type -> s_float smantissa_type exponent_type.
 
-Implicit Arguments Fnan [smantissa_type exponent_type].
-Implicit Arguments Float [smantissa_type exponent_type].
+Arguments Fnan {smantissa_type exponent_type}.
+Arguments Float {smantissa_type exponent_type}.
 
 Module SpecificFloat (Carrier : FloatCarrier) <: FloatOps.
 

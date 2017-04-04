@@ -240,7 +240,7 @@ Ltac xtotal_aux :=
     try rewrite H in * ; clear H v
   | v: R, H: _ = ?v |- _ =>
     try rewrite <- H in * ; clear H v
-  | H: context [?f ?v : bool] |- _ =>
+  | H: context [?f ?v] |- _ =>
     let s := xtotal_get_spec1 f in
     let Y := fresh "Y" in
     destruct (s v) as [Y|Y]
@@ -249,7 +249,7 @@ Ltac xtotal_aux :=
     case_eq v ; intro X ; rewrite X in H ; try discriminate H
   | |- match ?v with Xnan => _ | Xreal _ => _ end =>
     xtotal_destruct_xreal v
-  | |- context [?f ?v : bool] =>
+  | |- context [?f ?v] =>
     let s := xtotal_get_spec1 f in
     let Y := fresh "Y" in
     destruct (s v) as [Y|Y]

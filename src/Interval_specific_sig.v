@@ -27,8 +27,8 @@ Inductive signed_number (A : Type) :=
   | Mzero : signed_number A
   | Mnumber (s : bool) (m : A) : signed_number A.
 
-Implicit Arguments Mzero [A].
-Implicit Arguments Mnumber [A].
+Arguments Mzero {A}.
+Arguments Mnumber {A}.
 
 Module Type FloatCarrier.
 

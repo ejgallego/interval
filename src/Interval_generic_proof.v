@@ -685,7 +685,7 @@ fold (Zpower beta (Zpos d)).
 rewrite Zdigits_mult_Zpower ; try easy.
 replace (Zdigits beta (Zpos m1) + Zpos d - Zpos prec)%Z with Z0.
 simpl.
-change (match Zpower_pos beta d with 0 => 0 | Zpos y' => Zpos (m1 * y') | Zneg y' => Zneg (m1 * y') end)%Z
+change (match Zpower_pos beta d with 0 => 0 | Zpos y1 => Zpos (m1 * y1) | Zneg y2 => Zneg (m1 * y2) end)%Z
   with (Zpos m1 * Zpower beta (Zpos d))%Z.
 assert (forall A B : Type, forall f : A -> B, forall b : bool, forall v1 v2 : A, f (if b then v1 else v2) = if b then f v1 else f v2).
 clear. now intros A B f [|].

@@ -34,51 +34,45 @@ Inductive ufloat (beta : radix) : Set :=
   | Uzero : ufloat beta
   | Ufloat : bool -> positive -> Z -> position -> ufloat beta.
 
-Implicit Arguments Unan [[beta]].
-Implicit Arguments Uzero [[beta]].
-Implicit Arguments Ufloat [[beta]].
+Arguments Unan {beta}.
+Arguments Uzero {beta}.
+Arguments Ufloat {beta}.
 
 (*
  * Fneg
  *)
 
-Definition Fneg beta (f : float beta) :=
+Definition Fneg {beta} (f : float beta) :=
   match f with
   | Float s m e => Float (negb s) m e
   | _ => f
   end.
 
-Implicit Arguments Fneg.
-
 (*
  * Fabs
  *)
 
-Definition Fabs beta (f : float beta) :=
+Definition Fabs {beta} (f : float beta) :=
   match f with
   | Float s m e => Float false m e
   | _ => f
   end.
 
-Implicit Arguments Fabs.
-
 (*
  * Fscale
  *)
 
-Definition Fscale beta (f : float beta) d :=
+Definition Fscale {beta} (f : float beta) d :=
   match f with
   | Float s m e => Float s m (e + d)
   | _ => f
   end.
 
-Implicit Arguments Fscale.
-
 (*
  * Fscale2
  *)
 
-Definition Fscale2 beta (f : float beta) d :=
+Definition Fscale2 {beta} (f : float beta) d :=
   match f with
   | Float s m e =>
     match radix_val beta, d with
@@ -92,8 +86,6 @@ Definition Fscale2 beta (f : float beta) d :=
     end
   | _ => f
   end.
-
-Implicit Arguments Fscale2.
 
 (*
  * Fcmp
@@ -128,7 +120,7 @@ Definition Fcmp_aux2 beta m1 e1 m2 e2 :=
     end
   end.
 
-Definition Fcmp beta (f1 f2 : float beta) :=
+Definition Fcmp {beta} (f1 f2 : float beta) :=
   match f1, f2 with
   | Fnan, _ => Xund
   | _, Fnan => Xund
@@ -143,13 +135,11 @@ Definition Fcmp beta (f1 f2 : float beta) :=
   | Float true m1 e1, Float true m2 e2 => Fcmp_aux2 beta m2 e2 m1 e1
   end.
 
-Implicit Arguments Fcmp.
-
 (*
  * Fmin
  *)
 
-Definition Fmin beta (f1 f2 : float beta) :=
+Definition Fmin {beta} (f1 f2 : float beta) :=
   match Fcmp f1 f2 with
   | Xlt => f1
   | Xeq => f1
@@ -157,13 +147,11 @@ Definition Fmin beta (f1 f2 : float beta) :=
   | Xund => Fnan
   end.
 
-Implicit Arguments Fmin.
-
 (*
  * Fmax
  *)
 
-Definition Fmax beta (f1 f2 : float beta) :=
+Definition Fmax {beta} (f1 f2 : float beta) :=
   match Fcmp f1 f2 with
   | Xlt => f2
   | Xeq => f2
@@ -171,16 +159,12 @@ Definition Fmax beta (f1 f2 : float beta) :=
   | Xund => Fnan
   end.
 
-Implicit Arguments Fmax.
-
-Definition UtoX beta (f : ufloat beta) :=
+Definition UtoX {beta} (f : ufloat beta) :=
   match f with
   | Uzero => Xreal R0
   | Ufloat s m e pos_Eq => Xreal (FtoR beta s m e)
   | _ => Xnan
   end.
-
-Implicit Arguments UtoX.
 
 Definition convert_location l :=
   match l with
@@ -189,14 +173,12 @@ Definition convert_location l :=
     match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
   end.
 
-Definition float_to_ufloat beta (x : float beta) : ufloat beta :=
+Definition float_to_ufloat {beta} (x : float beta) : ufloat beta :=
   match x with
   | Fnan => Unan
   | Fzero => Uzero
   | Float s m e => Ufloat s m e pos_Eq
   end.
-
-Implicit Arguments float_to_ufloat.
 
 Definition adjust_pos r d pos :=
   match r with
@@ -224,14 +206,12 @@ Definition adjust_pos r d pos :=
  * Fround_none
  *)
 
-Definition Fround_none beta (uf : ufloat beta) : float beta :=
+Definition Fround_none {beta} (uf : ufloat beta) : float beta :=
   match uf with
   | Uzero => Fzero
   | Ufloat s m e pos_Eq => Float s m e
   | _ => Fnan
   end.
-
-Implicit Arguments Fround_none.
 
 (*
  * Fround_at_prec
@@ -272,7 +252,7 @@ Definition need_change_radix2 beta mode m :=
   need_change_radix (match radix_val beta with Zpos (xO _) => true | _ => false end)
     mode (match m with xO _ => true | _ => false end).
 
-Definition Fround_at_prec beta mode prec (uf : ufloat beta) : float beta :=
+Definition Fround_at_prec {beta} mode prec (uf : ufloat beta) : float beta :=
   match uf with
   | Unan => Fnan
   | Uzero => Fzero
@@ -295,8 +275,6 @@ Definition Fround_at_prec beta mode prec (uf : ufloat beta) : float beta :=
     end
   end.
 
-Implicit Arguments Fround_at_prec.
-
 (*
  * Fround_at_exp
  *
@@ -315,7 +293,7 @@ Definition need_change_zero mode pos sign :=
     end
   end.
 
-Definition Fround_at_exp beta mode e2 (uf : ufloat beta) : float beta :=
+Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
   match uf with
   | Unan => Fnan
   | Uzero => Fzero
@@ -351,31 +329,25 @@ Definition Fround_at_exp beta mode e2 (uf : ufloat beta) : float beta :=
     end
   end.
 
-Implicit Arguments Fround_at_exp.
-
 (*
  * Fround
  *)
 
-Definition Fround beta mode prec (x : float beta) :=
+Definition Fround {beta} mode prec (x : float beta) :=
   Fround_at_prec mode prec (float_to_ufloat x).
-
-Implicit Arguments Fround.
 
 (*
  * Fint_exact
  *)
 
-Definition Fint_exact beta mode (x : float beta) :=
+Definition Fint_exact {beta} mode (x : float beta) :=
   Fround_at_exp mode 0 (float_to_ufloat x).
-
-Implicit Arguments Fint_exact.
 
 (*
  * Fint
  *)
 
-Definition Fint beta mode prec x :=
+Definition Fint {beta} mode prec x :=
   match x with
   | Float sx mx ex =>
     match Zcompare (Zpos (count_digits beta mx) + ex) (Zpos prec) with
@@ -385,13 +357,11 @@ Definition Fint beta mode prec x :=
   | _ => x
   end.
 
-Implicit Arguments Fint.
-
 (*
  * Fmul, Fmul_exact
  *)
 
-Definition Fmul_aux beta (x y : float beta) : ufloat beta :=
+Definition Fmul_aux {beta} (x y : float beta) : ufloat beta :=
   match x, y with
   | Fnan, _ => Unan
   | _, Fnan => Unan
@@ -401,17 +371,11 @@ Definition Fmul_aux beta (x y : float beta) : ufloat beta :=
     Ufloat (xorb sx sy) (Pmult mx my) (ex + ey) pos_Eq
   end.
 
-Implicit Arguments Fmul_aux.
-
-Definition Fmul beta mode prec (x y : float beta) :=
+Definition Fmul {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fmul_aux x y).
 
-Implicit Arguments Fmul.
-
-Definition Fmul_exact beta (x y : float beta) :=
+Definition Fmul_exact {beta} (x y : float beta) :=
   Fround_none (Fmul_aux x y).
-
-Implicit Arguments Fmul_exact.
 
 (*
  * Fadd_slow, Fadd_exact
@@ -440,7 +404,7 @@ Definition Fadd_slow_aux2 beta sx sy mx my ex ey :=
   | Z0 => Fadd_slow_aux1 beta sx sy mx my ex
   end.
 
-Definition Fadd_slow_aux beta (x y : float beta) :=
+Definition Fadd_slow_aux {beta} (x y : float beta) :=
   match x, y with
   | Fnan, _ => Unan
   | _, Fnan => Unan
@@ -453,17 +417,11 @@ Definition Fadd_slow_aux beta (x y : float beta) :=
     Fadd_slow_aux2 beta sx sy mx my ex ey
   end.
 
-Implicit Arguments Fadd_slow_aux.
-
-Definition Fadd_slow beta mode prec (x y : float beta) :=
+Definition Fadd_slow {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fadd_slow_aux x y).
 
-Implicit Arguments Fadd_slow.
-
-Definition Fadd_exact beta (x y : float beta) :=
+Definition Fadd_exact {beta} (x y : float beta) :=
   Fround_none (Fadd_slow_aux x y).
-
-Implicit Arguments Fadd_exact.
 
 (*
  * Fadd_fast
@@ -617,7 +575,7 @@ Definition Fadd_fast_aux2 beta prec s1 s2 m1 m2 e1 e2 :=
       (* massive cancellation possible *)
       Fadd_slow_aux2 beta s1 s2 m1 m2 e1 e2.
 
-Definition Fadd_fast_aux beta prec (x y : float beta) :=
+Definition Fadd_fast_aux {beta} prec (x y : float beta) :=
   match x, y with
   | Fnan, _ => Unan
   | _, Fnan => Unan
@@ -630,22 +588,16 @@ Definition Fadd_fast_aux beta prec (x y : float beta) :=
     Fadd_fast_aux2 beta prec sx sy mx my ex ey
   end.
 
-Implicit Arguments Fadd_fast_aux.
-
-Definition Fadd_fast beta mode prec (x y : float beta) :=
+Definition Fadd_fast {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fadd_fast_aux prec x y).
 
-Implicit Arguments Fadd_fast.
-
-Definition Fadd := Fadd_slow.
-
-Implicit Arguments Fadd.
+Definition Fadd {beta} := @Fadd_slow beta.
 
 (*
  * Fsub, Fsub_exact
  *)
 
-Definition Fsub_slow_aux beta (x y : float beta) :=
+Definition Fsub_slow_aux {beta} (x y : float beta) :=
   match x, y with
   | Fnan, _ => Unan
   | _, Fnan => Unan
@@ -656,21 +608,13 @@ Definition Fsub_slow_aux beta (x y : float beta) :=
     Fadd_slow_aux2 beta sx (negb sy) mx my ex ey
   end.
 
-Implicit Arguments Fsub_slow_aux.
-
-Definition Fsub_slow beta mode prec (x y : float beta) :=
+Definition Fsub_slow {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fsub_slow_aux x y).
 
-Implicit Arguments Fsub_slow.
+Definition Fsub {beta} := @Fsub_slow beta.
 
-Definition Fsub := Fsub_slow.
-
-Implicit Arguments Fsub.
-
-Definition Fsub_exact beta (x y : float beta) :=
+Definition Fsub_exact {beta} (x y : float beta) :=
   Fround_none (Fsub_slow_aux x y).
-
-Implicit Arguments Fsub_exact.
 
 (*
  * Fdiv
@@ -683,7 +627,7 @@ Implicit Arguments Fsub_exact.
  * Complexity is fine as long as px <= 2p and py <= p.
  *)
 
-Definition Fdiv_aux beta prec (x y : float beta) : ufloat beta :=
+Definition Fdiv_aux {beta} prec (x y : float beta) : ufloat beta :=
   match x, y with
   | Fnan, _ => Unan
   | _, Fnan => Unan
@@ -697,12 +641,8 @@ Definition Fdiv_aux beta prec (x y : float beta) : ufloat beta :=
     end
   end.
 
-Implicit Arguments Fdiv_aux.
-
-Definition Fdiv beta mode prec (x y : float beta) :=
+Definition Fdiv {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fdiv_aux prec x y).
-
-Implicit Arguments Fdiv.
 
 (*
  * Frem
@@ -753,7 +693,7 @@ Definition Frem_aux1 beta mx my s e : float beta * ufloat beta :=
   | Zneg p => Ufloat (negb s) p e pos_Eq
   end).
 
-Definition Frem_aux beta (x y : float beta) :=
+Definition Frem_aux {beta} (x y : float beta) :=
   match x, y with
   | Fnan, _ => (Fnan, Unan)
   | _, Fnan => (Fnan, Unan)
@@ -768,13 +708,9 @@ Definition Frem_aux beta (x y : float beta) :=
     end
   end.
 
-Implicit Arguments Frem_aux.
-
-Definition Frem beta mode prec (x y : float beta) :=
+Definition Frem {beta} mode prec (x y : float beta) :=
   let (q, r) := Frem_aux x y in
   (q, Fround_at_prec mode prec r).
-
-Implicit Arguments Frem.
 
 (*
  * Fsqrt
@@ -791,7 +727,7 @@ Implicit Arguments Frem.
  * Complexity is fine as long as p1 <= 2p-1.
  *)
 
-Definition Fsqrt_aux beta prec (f : float beta) : ufloat beta :=
+Definition Fsqrt_aux {beta} prec (f : float beta) : ufloat beta :=
   match f with
   | Float false m e =>
     match Fsqrt_core beta (Zpos prec) (Zpos m) e with
@@ -804,21 +740,15 @@ Definition Fsqrt_aux beta prec (f : float beta) : ufloat beta :=
   | Fnan => Unan
   end.
 
-Implicit Arguments Fsqrt_aux.
-
-Definition Fsqrt beta mode prec (x : float beta) :=
+Definition Fsqrt {beta} mode prec (x : float beta) :=
   Fround_at_prec mode prec (Fsqrt_aux prec x).
-
-Implicit Arguments Fsqrt.
 
 (*
  * Fmag
  *)
 
-Definition Fmag beta (x : float beta) :=
+Definition Fmag {beta} (x : float beta) :=
   match x with
   | Float _ m e => Zplus e (Zpos (count_digits beta m))
   | _ => Z0
   end.
-
-Implicit Arguments Fmag.
