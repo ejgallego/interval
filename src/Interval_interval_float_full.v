@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
+Require Import Reals Psatz.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_float_sig.
@@ -102,18 +102,14 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   assert (Hxur: (xur <= PI)%R).
     revert Hu.
     rewrite F.scale2_correct by easy.
+    change (Fcore_Raux.bpow _ _) with 4%R.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
     intros [H _] Hu.
     destruct (F.toX pi4l) as [|pi4r] ; try easy.
     apply Rle_trans with (1 := Hu).
-    rewrite <- (Rmult_1_r PI).
-    rewrite <- (Rinv_l 4) at 5.
-    2: now apply (Fcore_Raux.Z2R_neq 4 0).
-    rewrite <- (Rmult_assoc PI).
-    apply Rmult_le_compat_r with (2 := H).
-    now apply (Fcore_Raux.Z2R_le 0 4).
+    lra.
   clear Hu.
   split.
     apply proj2 in Ha.
@@ -150,19 +146,14 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   assert (Hxur: (xur <= 2 * PI)%R).
     revert Hu.
     rewrite F.scale2_correct by easy.
+    change (Fcore_Raux.bpow _ _) with 8%R.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
     intros [H _] Hu.
     destruct (F.toX pi4l) as [|pi4r] ; try easy.
     apply Rle_trans with (1 := Hu).
-    rewrite <- (Rmult_1_r PI).
-    rewrite <- (Rinv_l 4) at 9.
-    2: now apply (Fcore_Raux.Z2R_neq 4 0).
-    rewrite <- (Rmult_assoc PI).
-    replace (2 * (PI * / 4 * 4))%R with (PI * / 4 * 8)%R by ring.
-    apply Rmult_le_compat_r with (2 := H).
-    now apply (Fcore_Raux.Z2R_le 0 8).
+    lra.
   clear Hu.
   case_eq (F'.le (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 2)) xl).
     intros Hl.
@@ -172,18 +163,14 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
     assert (Hxlr: (PI <= xlr)%R).
       revert Hl.
       rewrite F.scale2_correct by easy.
+      change (Fcore_Raux.bpow _ _) with 4%R.
       generalize (T.pi4_correct prec).
       destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
       now rewrite F.nan_correct.
       intros [_ H] Hl.
       destruct(F.toX pi4u) as [|pi4r] ; try easy.
       apply Rle_trans with (2 := Hl).
-      rewrite <- (Rmult_1_r PI).
-      rewrite <- (Rinv_l 4) at 1.
-      2: now apply (Fcore_Raux.Z2R_neq 4 0).
-      rewrite <- (Rmult_assoc PI).
-      apply Rmult_le_compat_r with (2 := H).
-      now apply (Fcore_Raux.Z2R_le 0 4).
+      lra.
     clear Hl.
     split.
       destruct (T.cos_fast prec xl) as [|cl cl'] ; simpl.

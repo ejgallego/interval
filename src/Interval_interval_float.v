@@ -17,8 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Bool.
-Require Import Reals.
+Require Import Bool Reals Psatz.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -948,18 +947,8 @@ rewrite F.scale2_correct by easy.
 rewrite F.add_exact_correct.
 rewrite X, X0.
 simpl.
-pattern r at 1 ; rewrite <- eps2.
-pattern r0 at 3 ; rewrite <- eps2.
-rewrite Rmult_plus_distr_r.
-split.
-apply Rplus_le_compat_l.
-apply Rmult_le_compat_r.
-auto with real.
-eapply Rle_trans ; eassumption.
-apply Rplus_le_compat_r.
-apply Rmult_le_compat_r.
-auto with real.
-eapply Rle_trans ; eassumption.
+change (Z2R _) with 2%R.
+lra.
 (* finite bounds 2 *)
 case_eq (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) ; intros.
 now rewrite H0 in H.

@@ -1955,13 +1955,7 @@ rewrite <- (Rmult_comm PI).
 apply Rlt_le_trans with (2 := proj1 (PI_ineq 0)).
 unfold tg_alt, PI_tg.
 simpl.
-replace (1 * / 1 + -1 * 1 * / (2 + 1))%R with (13*/24 + /8)%R by field.
-replace (/4 * /2)%R with (0 + /8)%R by field.
-apply Rplus_lt_compat_r.
-apply Rmult_lt_0_compat.
-now apply (Z2R_lt 0 13).
-apply Rinv_0_lt_compat.
-now apply (Z2R_lt 0 24).
+lra.
 (* . *)
 induction nb ; intros x Hxr Hx.
 (* nb = 0 *)

@@ -17,6 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
+Require Import Reals Psatz.
 Require Export Flocq.Core.Fcore_Raux.
 
 Ltac evar_last :=
@@ -523,9 +524,7 @@ destruct (even_or_odd n) as [p [Hp|Hp]].
 - destruct (alternated_series_ineq u l p Du Cu Cl) as [H1 H2].
   rewrite Hp, pow_1_odd.
   split.
-  + rewrite Ropp_mult_distr_l_reverse, Rmult_1_l.
-    apply Ropp_0_ge_le_contravar.
-    now apply Rle_ge, Rle_minus.
+  + lra.
   + apply Rplus_le_reg_r with (- sum_f_R0 (tg_alt u) (2 * p))%R.
     ring_simplify.
     replace (- sum_f_R0 (tg_alt u) (2 * p) + u (S (2 * p)))%R
