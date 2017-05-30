@@ -284,12 +284,12 @@ Definition Fround_at_prec {beta} mode prec (uf : ufloat beta) : float beta :=
 Definition need_change_zero mode pos sign :=
   match mode with
   | rnd_ZR => false
-  | rnd_UP => match pos with pos_Eq => false | _ => negb sign end
-  | rnd_DN => match pos with pos_Eq => false | _ => sign end
+  | rnd_UP => match pos with pos_Eq => negb sign | _ => false end
+  | rnd_DN => match pos with pos_Eq => sign | _ => false end
   | rnd_NE =>
     match pos with
     | pos_Up => true
-    | _ => false
+    | _ => false (* FIXME: possibly incomplete *)
     end
   end.
 
@@ -337,17 +337,17 @@ Definition Fround {beta} mode prec (x : float beta) :=
   Fround_at_prec mode prec (float_to_ufloat x).
 
 (*
- * Fint_exact
+ * Fnearbyint_exact
  *)
 
-Definition Fint_exact {beta} mode (x : float beta) :=
+Definition Fnearbyint_exact {beta} mode (x : float beta) :=
   Fround_at_exp mode 0 (float_to_ufloat x).
 
 (*
- * Fint
+ * Fnearbyint
  *)
 
-Definition Fint {beta} mode prec x :=
+Definition Fnearbyint {beta} mode prec x :=
   match x with
   | Float sx mx ex =>
     match Zcompare (Zpos (count_digits beta mx) + ex) (Zpos prec) with
