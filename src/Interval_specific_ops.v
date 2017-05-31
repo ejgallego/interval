@@ -518,7 +518,7 @@ Definition round_aux mode prec sign m1 e1 pos :=
     else float_aux sign m1 e1
   end.
 
-Theorem round_aux_correct :
+Lemma round_aux_correct :
   forall mode p sign m1 e1 pos,
   valid_mantissa m1 ->
   FtoX (toF (round_aux mode p sign m1 e1 pos)) =
@@ -590,6 +590,34 @@ rewrite Pplus_one_succ_r.
 rewrite exponent_add_correct, exponent_sub_correct, mantissa_digits_correct with (1 := Hm1).
 now rewrite Hd.
 Qed.
+
+Definition round_at_exp_aux mode e2 sign m1 e1 pos :=
+  let nb := exponent_sub e2 e1 in
+  match exponent_cmp nb exponent_zero with
+  | Gt =>
+    match exponent_cmp (mantissa_digits m1) nb with
+    | Gt =>
+      let (m2, pos2) := mantissa_shr m1 nb pos in
+      float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
+    | Eq => float_aux sign m1 e1 (* TODO *)
+    | Lt =>
+      let pos2 := match pos with pos_Eq => pos_Eq | _ => pos_Lo end in
+      if need_change_zero mode pos2 sign then
+        float_aux sign mantissa_one e2
+      else zero
+    end
+  | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
+  | Lt => (* TODO *)
+    float_aux sign (adjust_mantissa mode (mantissa_shl mantissa_one (exponent_neg nb)) pos sign) e2
+  end.
+
+Lemma round_at_exp_aux_correct :
+  forall mode e2 sign m1 e1 pos,
+  valid_mantissa m1 ->
+  FtoX (toF (round_at_exp_aux mode e2 sign m1 e1 pos)) =
+  FtoX (Fround_at_exp mode (EtoZ e2) (@Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
+Proof.
+Admitted.
 
 Definition round mode prec (f : type) :=
   match f with
@@ -1384,5 +1412,25 @@ now rewrite Zle_bool_false.
 apply Zgt_not_eq.
 now apply Zlt_trans with (2 := H1).
 Qed.
+
+(*
+ * nearbyint
+ *)
+
+Definition nearbyint mode (f : type) :=
+  match f with
+  | Fnan => f
+  | Float m e =>
+    match mantissa_sign m with
+    | Mnumber s m => round_at_exp_aux mode exponent_zero s m e pos_Eq
+    | Mzero => zero
+    end
+  end.
+
+Lemma nearbyint_correct :
+  forall mode x,
+  toX (nearbyint mode x) = Xnearbyint mode (toX x).
+Proof.
+Admitted.
 
 End SpecificFloat.

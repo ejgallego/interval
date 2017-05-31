@@ -289,7 +289,7 @@ Definition need_change_zero mode pos sign :=
   | rnd_NE =>
     match pos with
     | pos_Up => true
-    | _ => false (* FIXME: possibly incomplete *)
+    | _ => false
     end
   end.
 
