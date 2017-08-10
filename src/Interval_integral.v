@@ -589,51 +589,40 @@ Fixpoint integral_interval_absolute_sing (depth : nat) (ia: I.type) (iSing: I.ty
       end
   end.
 
-Definition integral_interval_relative
-    (depth : nat) (ia ib : I.type) (epsilon : F.type) :=
+Definition integral_interval' (depth : nat)
+    (epsilon : F.type + F.type)
+    (est : unit -> I.type) (f : nat -> F.type -> I.type) :=
+  let roughEst := est tt in
+  match depth, epsilon with
+  | O, _ => roughEst
+  | S depth, inl eps =>
+    if F'.le (diam roughEst) eps then roughEst
+    else f depth eps
+  | S depth, inr eps =>
+    if I.bounded roughEst then
+      let eps := F.mul Interval_definitions.rnd_UP prec eps (I.upper (I.abs roughEst)) in
+      if F'.le (diam roughEst) eps then roughEst
+      else f depth eps
+    else roughEst
+  end.
+
+Definition integral_interval (depth : nat) (ia ib : I.type) epsilon :=
   if I.bounded ia && I.bounded ib then
-    let roughEst := est ia ib in
-    if depth is O then roughEst
-    else
-      let epsilon :=
-        if I.bounded roughEst then
-          F.mul Interval_definitions.rnd_UP prec epsilon
-            (I.upper (I.abs roughEst))
-        else epsilon in
-      if F'.le (diam roughEst) epsilon then roughEst
-      else integral_interval_absolute (depth-1) ia ib epsilon
+    integral_interval' depth epsilon (fun _ => est ia ib)
+      (fun d => integral_interval_absolute d ia ib)
   else I.nai.
 
-Definition integral_interval_relative_infty
-    (depth : nat) (ia : I.type) (epsilon : F.type) :=
+Definition integral_interval_infty (depth : nat) (ia : I.type) epsilon :=
   if I.bounded ia then
-    let roughEst := est_infty ia in
-    if depth is O then roughEst
-    else
-      let epsilon :=
-        if I.bounded roughEst then
-          F.mul Interval_definitions.rnd_UP prec epsilon
-            (I.upper (I.abs roughEst))
-        else epsilon in
-      if F'.le (diam roughEst) epsilon then roughEst
-      else integral_interval_absolute_infty (depth-1) ia epsilon
+    integral_interval' depth epsilon (fun _ => est_infty ia)
+      (fun d => integral_interval_absolute_infty d ia)
   else I.nai.
 
-Definition integral_interval_relative_sing
-    (depth : nat) (ia : I.type) iSing (epsilon : F.type) :=
+Definition integral_interval_sing (depth : nat) (ia : I.type) iSing epsilon :=
   if I.bounded ia then
-    let roughEst := est_sing ia in
-    if depth is O then roughEst
-    else
-      let epsilon :=
-        if I.bounded roughEst then
-          F.mul Interval_definitions.rnd_UP prec epsilon
-            (I.upper (I.abs roughEst))
-        else epsilon in
-      if F'.le (diam roughEst) epsilon then roughEst
-      else integral_interval_absolute_sing (depth-1) ia iSing epsilon
+    integral_interval' depth epsilon (fun _ => est_sing ia)
+      (fun d => integral_interval_absolute_sing d ia iSing)
   else I.nai.
-
 
 Lemma integral_interval_absolute_Sn {n ia ib epsilon} :
   let int := I.join ia ib in
@@ -949,53 +938,77 @@ elim: depth epsilon ia Hboundia =>
       exact: integral_interval_absolute_correct.
 Qed.
 
-Lemma integral_interval_relative_correct (depth : nat) ia ib epsilon :
+Lemma integral_interval_correct (depth : nat) ia ib epsilon :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
-  integralEstimatorCorrect (integral_interval_relative estimator depth ia ib epsilon) ia ib.
+  integralEstimatorCorrect (integral_interval estimator depth ia ib epsilon) ia ib.
 Proof.
 move => base_case.
-rewrite /integral_interval_relative.
+rewrite /integral_interval /integral_interval'.
 case Hiab: (I.bounded ia);
   case Hibb: (I.bounded ib) => /=;
   try (move => a b _ _ ; by rewrite I.nai_correct).
 case: depth => [|depth].
 exact: base_case.
+case: epsilon => [abs|rel].
 set b1 := (X in if X then _ else _).
 case Hb1 : b1.
 exact: base_case.
 exact: integral_interval_absolute_correct.
+set b1 := (X in if X then _ else _).
+case Hb1 : b1.
+set b2 := (X in if X then _ else _).
+case Hb2 : b2.
+exact: base_case.
+exact: integral_interval_absolute_correct.
+exact: base_case.
 Qed.
 
-Lemma integral_interval_relative_infty_correct (depth : nat) ia epsilon :
+Lemma integral_interval_infty_correct (depth : nat) ia epsilon :
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
   (forall ia, integralEstimatorCorrect_infty (estimator_infty ia) ia) ->
-  integralEstimatorCorrect_infty (integral_interval_relative_infty estimator estimator_infty depth ia epsilon) ia.
+  integralEstimatorCorrect_infty (integral_interval_infty estimator estimator_infty depth ia epsilon) ia.
 Proof.
 move => base_case base_case_infty.
-rewrite /integral_interval_relative_infty.
+rewrite /integral_interval_infty /integral_interval'.
 case Hiab: (I.bounded ia); last by move => a _ ; rewrite I.nai_correct.
 case: depth => [|depth].
 exact: base_case_infty.
+case: epsilon => [abs|rel].
 set b1 := (X in if X then _ else _).
 case Hb1 : b1.
 exact: base_case_infty.
 exact: integral_interval_absolute_infty_correct.
+set b1 := (X in if X then _ else _).
+case Hb1 : b1.
+set b2 := (X in if X then _ else _).
+case Hb2 : b2.
+exact: base_case_infty.
+exact: integral_interval_absolute_infty_correct.
+exact: base_case_infty.
 Qed.
 
-Lemma integral_interval_relative_sing_correct (depth : nat) ia (epsilon : F.type) sing (iSing : I.type) :
+Lemma integral_interval_sing_correct (depth : nat) ia epsilon sing (iSing : I.type) :
   (forall ia, integralEstimatorCorrect_atsing (estimator_sing ia) ia sing) ->
   (forall ia ib, integralEstimatorCorrect (estimator ia ib) ia ib) ->
-  integralEstimatorCorrect_atsing (integral_interval_relative_sing estimator estimator_sing depth ia iSing epsilon) ia sing.
+  integralEstimatorCorrect_atsing (integral_interval_sing estimator estimator_sing depth ia iSing epsilon) ia sing.
 Proof.
 move => base_case_sing base_case.
-rewrite /integral_interval_relative_sing.
+rewrite /integral_interval_sing /integral_interval'.
 case Hiab: (I.bounded ia); last by move => a _ ; rewrite I.nai_correct.
 case: depth => [|depth].
 exact: base_case_sing.
+case: epsilon => [abs|rel].
 set b1 := (X in if X then _ else _).
 case Hb1 : b1.
 exact: base_case_sing.
 exact: integral_interval_absolute_sing_correct.
+set b1 := (X in if X then _ else _).
+case Hb1 : b1.
+set b2 := (X in if X then _ else _).
+case Hb2 : b2.
+exact: base_case_sing.
+exact: integral_interval_absolute_sing_correct.
+exact: base_case_sing.
 Qed.
 
 

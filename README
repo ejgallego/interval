@@ -80,7 +80,11 @@ are: (with the type of their arguments, if any)
                       same as i_bisect_diff, but computes degree-d Taylor
                       models instead of performing automatic differentiation
   i_integral_prec (p:nat)
-                      sets the target relative accuracy of integral expressions
+                      sets the target relative accuracy of integral
+                      expressions to approximately p bits
+  i_integral_aprec (p:Z)
+                      sets the target accuracy of integral expressions
+                      to an interval width of 2^p
   i_integral_depth (n:nat)
                       sets the bisection depth for bounding integral
                       expressions (2^n sub-intervals at most)

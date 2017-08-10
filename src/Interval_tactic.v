@@ -43,6 +43,7 @@ Inductive interval_tac_parameters :=
   | i_depth : nat -> interval_tac_parameters
   | i_integral_depth : nat -> interval_tac_parameters
   | i_integral_prec : nat -> interval_tac_parameters
+  | i_integral_aprec : Z -> interval_tac_parameters
   | i_integral_deg : nat -> interval_tac_parameters. (* degree of taylor models at leaves of integration dichotomy  *)
 
 Module Private.
@@ -387,7 +388,7 @@ Let ib := nth 0 (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb))
 
 Lemma integral_epsilon_correct :
   forall (depth : nat) epsilon,
-  let i := Int.integral_interval_relative prec estimator depth ia ib epsilon in
+  let i := Int.integral_interval prec estimator depth ia ib epsilon in
   correct_estimator ->
   (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
@@ -396,7 +397,7 @@ move => depth epsilon i base_case.
 case H: (I.convert i).
   by split.
 rewrite -H.
-case: (Int.integral_interval_relative_correct prec f estimator depth ia ib epsilon base_case a b).
+case: (Int.integral_interval_correct prec f estimator depth ia ib epsilon base_case a b).
 - exact: contains_eval.
 - exact: contains_eval.
 - by rewrite H.
@@ -438,7 +439,7 @@ Definition correct_estimator_infty :=
 
 Lemma integral_epsilon_infty_correct :
   forall (depth : nat) epsilon,
-  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  let i := Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
   correct_estimator_infty ->
   (I.convert i <> Inan -> exists I, is_RInt_gen g (at_point a) (Rbar_locally p_infty) I /\
@@ -447,14 +448,14 @@ Proof.
 move => depth epsilon i Hc Hc_infty.
 case H: (I.convert i) => [| l u]// _ .
 rewrite -H.
-apply: (Int.integral_interval_relative_infty_correct prec g estimator estimator_infty depth ia epsilon Hc Hc_infty).
+apply: (Int.integral_interval_infty_correct prec g estimator estimator_infty depth ia epsilon Hc Hc_infty).
 - exact: contains_eval.
 - by rewrite H.
 Qed.
 
 Lemma integral_epsilon_infty_correct_RInt_gen :
   forall (depth : nat) epsilon,
-  let i := Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon in
+  let i := Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
   correct_estimator_infty ->
   (I.convert i <> Inan -> ex_RInt_gen g (at_point a) (Rbar_locally p_infty) /\
@@ -493,8 +494,8 @@ Definition correct_estimator_sing sing :=
   forall ia, Int.integralEstimatorCorrect_atsing g (estimator_sing ia) ia sing.
 
 Lemma integral_epsilon_sing_correct :
-  forall (depth : nat) (epsilon : F.type) sing (iSing : I.type),
-  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia iSing epsilon in
+  forall (depth : nat) epsilon sing (iSing : I.type),
+  let i := Int.integral_interval_sing prec estimator estimator_sing depth ia iSing epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
   correct_estimator_sing sing ->
   (I.convert i <> Inan -> exists I, is_RInt_gen g (at_right sing) (at_point a) I /\
@@ -503,7 +504,7 @@ Proof.
 move => depth epsilon sing iSing i Hc Hc_sing.
 case H: (I.convert i) => [| l u]// _ .
 rewrite -H.
-apply: (Int.integral_interval_relative_sing_correct prec g estimator estimator_sing depth ia epsilon sing iSing (* Hc Hc_sing *)).
+apply: (Int.integral_interval_sing_correct prec g estimator estimator_sing depth ia epsilon sing iSing (* Hc Hc_sing *)).
 - exact: Hc_sing.
 - exact: Hc.
 - apply: contains_eval.
@@ -511,8 +512,8 @@ apply: (Int.integral_interval_relative_sing_correct prec g estimator estimator_s
 Qed.
 
 Lemma integral_epsilon_sing_correct_RInt_gen :
-  forall (depth : nat) (epsilon : F.type) sing iSing,
-  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia iSing epsilon in
+  forall (depth : nat) epsilon sing iSing,
+  let i := Int.integral_interval_sing prec estimator estimator_sing depth ia iSing epsilon in
   (correct_estimator prog_g bounds_g estimator) ->
   correct_estimator_sing sing ->
   (I.convert i <> Inan -> ex_RInt_gen g (at_right sing) (at_point a) /\
@@ -657,7 +658,7 @@ Lemma taylor_integral_naive_intersection_epsilon_correct :
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iF (iF' xi) xi fa fb in
-  let i := Int.integral_interval_relative prec estimator depth ia ib epsilon in
+  let i := Int.integral_interval prec estimator depth ia ib epsilon in
   (I.convert i <> Inan -> ex_RInt f a b) /\
   contains (I.convert i) (Xreal (RInt f a b)).
 Proof.
@@ -765,7 +766,7 @@ Lemma remainder_correct_bertrand_tactic :
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i := if (alpha <? -1)%Z then
-             Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
+             Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
@@ -908,7 +909,7 @@ prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i :=
       if Fext.lt (F.fromZ 0) (I.lower iLam) then
-      Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
+      Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * (exp (-(lam * x)))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
@@ -1010,7 +1011,7 @@ boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
-  let i := if (Z.of_nat beta >? 1)%Z then Int.integral_interval_relative_infty prec estimator estimator_infty depth ia epsilon else I.nai in
+  let i := if (Z.of_nat beta >? 1)%Z then Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * / (x * (ln x)^(S beta))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))) /\
@@ -1132,7 +1133,7 @@ apply: (Int.integral_interval_mul_sing prec 0 epsilon (I.join (I.fromZ 0) ia) f)
 Qed.
 
 Lemma remainder_correct_sing_tactic :
-  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g (epsilon : F.type) alpha beta,
+  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta,
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
@@ -1158,7 +1159,7 @@ fun ia =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i := if (alpha >? -1)%Z then
-             Int.integral_interval_relative_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon else I.nai in
+             Int.integral_interval_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon else I.nai in
   (forall x,  g x = f x * (powerRZ x alpha * ln x ^ beta)) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_right 0) (at_point a))) /\
@@ -1301,7 +1302,7 @@ case: (ssrnat.odd beta) => /= .
 Qed.
 
 Lemma remainder_correct_bertrandEq_0_tactic :
-  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g (epsilon : F.type) beta,
+  forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta,
 
   let test iF ia := Fext.lt (F.fromZ 0) (I.lower ia) && Fext.lt (I.upper ia) (F.fromZ 1) in
   let iKernelInt ia := (Bertrand.f_neg_int prec ia (S beta)) in
@@ -1328,7 +1329,7 @@ fun ia =>
   let estimator := fun fa fb =>
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
-  let i := Int.integral_interval_relative_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon in
+  let i := Int.integral_interval_sing prec estimator estimator_sing depth ia (I.fromZ 0) epsilon in
   (forall x,  g x = f x * / (x * pow (ln x) (S (S beta)))) ->
   (I.convert i <> Inan ->
   (ex_RInt_gen g (at_right 0) (at_point a))) /\
@@ -1689,8 +1690,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           match vg with
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
-              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-              let c := constr:(proj2 (remainder_correct_bertrand_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
+              let c := constr:(proj2 (remainder_correct_bertrand_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg rint_prec alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1715,8 +1715,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
           match vg with
             | (?pg, _ :: ?lg) =>
               let lcg := get_trivial_bounds lg prec in
-              let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-              let c := constr:(proj2 (remainder_correct_log_neg_infty_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
+              let c := constr:(proj2 (remainder_correct_log_neg_infty_tactic prec rint_deg rint_depth pa lca pf pg lcf lcg rint_prec beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
               (* work-around for a bug in the pretyper *)
               match type of c with
                 | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1745,8 +1744,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vlam with
                 | (?plam,?llam) =>
                   let lclam := get_trivial_bounds llam prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg epsilon (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
+                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg rint_prec (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1777,8 +1775,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vg with
                 | (?pg, _ :: ?lg) =>
                   let lcg := get_trivial_bounds lg prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-                  let c := constr:(proj2 (remainder_correct_sing_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
+                  let c := constr:(proj2 (remainder_correct_sing_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg rint_prec alpha beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1808,8 +1805,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vg with
                 | (?pg, _ :: ?lg) =>
                   let lcg := get_trivial_bounds lg prec in
-                  let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-                  let c := constr:(proj2 (remainder_correct_bertrandEq_0_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg epsilon beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
+                  let c := constr:(proj2 (remainder_correct_bertrandEq_0_tactic prec rint_deg rint_depth pb lcb pf pg lcf lcg rint_prec beta (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with
                     | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -1836,8 +1832,7 @@ Ltac get_RInt_bounds prec rint_depth rint_prec rint_deg x :=
         match vf with
         | (?pf, _ :: ?lf) =>
           let lcf := get_trivial_bounds lf prec in
-          let epsilon := constr:(F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec))) in
-          let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf epsilon)) in
+          let c := constr:(proj2 (taylor_integral_naive_intersection_epsilon_correct prec rint_deg rint_depth pa lca pb lcb pf lcf rint_prec)) in
           (* work-around for a bug in the pretyper *)
           match type of c with
           | contains (I.convert ?i) _ => constr:((A.Bproof x i c, @None R))
@@ -2097,7 +2092,7 @@ Ltac tac_of_itm itm :=
   | itm_bisect_taylor ?d => do_interval_bisect_taylor d
   end.
 
-Ltac do_interval_parse params :=
+Ltac do_parse params depth :=
   let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
     match params with
     | nil => constr:((vars, prec, depth, rint_depth, rint_prec, rint_deg, itm))
@@ -2107,11 +2102,15 @@ Ltac do_interval_parse params :=
     | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg (itm_bisect_taylor d) t
     | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg itm t
     | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg itm t
-    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth rint_prec rint_deg itm t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg itm t
+    | cons (i_integral_aprec ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg itm t
     | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  match aux (@nil R) 30%nat 15%nat 3%nat 10%nat 10%nat itm_eval params with
+  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (-10)))) 10%nat itm_eval params.
+
+Ltac do_interval_parse params :=
+  match do_parse params 15%nat with
   | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
     let eval_tac := tac_of_itm itm in
     do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac
@@ -2190,24 +2189,11 @@ Ltac intro_tac_of_itm itm :=
   | itm_bisect_taylor ?d => do_interval_intro_bisect_taylor d
   end.
 
-Ltac do_interval_intro_parse t_ extend params_ :=
-  let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
-    match params with
-    | nil => constr:((t_, extend, params_, vars, prec, depth, rint_depth, rint_prec, rint_deg, itm))
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg (itm_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg itm t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg itm t
-    | cons (i_integral_prec ?p) ?t => aux vars prec depth rint_depth p rint_deg itm t
-    | cons (i_integral_deg ?p) ?t => aux vars prec depth rint_depth rint_prec p itm t
-    | cons ?h _ => fail 100 "Unknown tactic parameter" h
-    end in
-  match aux (@nil R) 30%nat 5%nat 3%nat 10%nat 10%nat itm_eval params_ with
-  | (?t_, ?extend, ?params_, ?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
+Ltac do_interval_intro_parse t extend params :=
+  match do_parse params 5%nat with
+  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
     let eval_tac := intro_tac_of_itm itm in
-    do_interval_intro t_ extend params_ vars prec depth rint_depth rint_prec rint_deg eval_tac
+    do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg eval_tac
   end.
 
 End Private.

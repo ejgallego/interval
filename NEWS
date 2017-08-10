@@ -1,3 +1,6 @@
+Version 3.3.0:
+ - added option i_integral_aprec for absolute width of integrals
+
 Version 3.2.0:
  - added support for some improper integrals using RInt_gen
 
