@@ -31,8 +31,16 @@ Module F' := FloatExt F.
 Module T := TranscendentalFloatFast F.
 Include FloatInterval F.
 
+Definition s1 := F.ZtoS 1.
+Definition s2 := F.ZtoS 2.
+Definition s3 := F.ZtoS 3.
+Definition sm1 := F.ZtoS (-1).
+Definition c1 := F.fromZ 1.
+Definition cm1 := F.fromZ (-1).
+Definition c3 := F.fromZ 3.
+
 Definition pi prec :=
-  scale2 (T.pi4 prec) (F.ZtoS 2).
+  scale2 (T.pi4 prec) s2.
 
 Lemma pi_correct :
   forall prec, contains (convert (pi prec)) (Xreal PI).
@@ -46,22 +54,28 @@ f_equal.
 now field.
 Qed.
 
-(* useful only for |xi| <= 2 * pi *)
+(* accurate only for |xi| <= 2 * pi *)
 Definition cos prec xi :=
   match abs xi with
   | Ibnd xl xu =>
     if F'.le xu xl then T.cos_fast prec xl else
     let pi4 := T.pi4 prec in
-    if F'.le xu (F.scale2 (lower pi4) (F.ZtoS 2%Z)) then
+    if F'.le xu (F.scale2 (lower pi4) s2) then
       bnd (lower (T.cos_fast prec xu)) (upper (T.cos_fast prec xl))
     else
-      if F'.le xu (F.scale2 (lower pi4) (F.ZtoS 3%Z)) then
-        if F'.le (F.scale2 (upper pi4) (F.ZtoS 2%Z)) xl then
+      if F'.le xu (F.scale2 (lower pi4) s3) then
+        if F'.le (F.scale2 (upper pi4) s2) xl then
           bnd (lower (T.cos_fast prec xl)) (upper (T.cos_fast prec xu))
         else
-          bnd (F.fromZ (-1)) (F.max (upper (T.cos_fast prec xl)) (upper (T.cos_fast prec xu)))
+          bnd cm1 (F.max (upper (T.cos_fast prec xl)) (upper (T.cos_fast prec xu)))
       else
-        bnd (F.fromZ (-1)) (F.fromZ 1)
+        let d := F.sub_exact xu xl in
+        if F'.le d c3 then
+          let m := F.scale2 (F.add_exact xl xu) sm1 in
+          let d := F.scale2 d sm1 in
+          let c := T.cos_fast prec m in
+          meet (bnd cm1 c1) (add prec c (bnd (F.neg d) d))
+        else bnd cm1 c1
   | Inan => Inan
   end.
 
@@ -94,6 +108,7 @@ case_eq (F'.le xu xl).
   apply Ha.
   now apply Rle_trans with (2 := Hl).
 intros _.
+unfold cm1, c1, c3, sm1, s2, s3.
 case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   intros Hu.
   apply F'.le_correct in Hu.
@@ -219,18 +234,60 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
   apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
 intros _.
+case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
+  intros Hd.
+  apply F'.le_correct in Hd.
+  revert Hd.
+  rewrite F.sub_exact_correct, F.fromZ_correct.
+  case_eq (F.toX xu) ; try easy ; intros xur Hur.
+  case_eq (F.toX xl) ; try easy ; intros xlr Hlr.
+  intros _.
+  apply meet_correct.
+    unfold convert, bnd.
+    rewrite 2!F.fromZ_correct.
+    apply COS_bound.
+  set (m := ((xlr + xur) / 2)%R).
+  replace (Xreal (Rtrigo_def.cos (Rabs x)))
+      with (Xadd (Xcos (Xreal m)) (Xreal (Rtrigo_def.cos (Rabs x) - Rtrigo_def.cos m)))
+      by (apply (f_equal Xreal) ; ring).
+  apply add_correct.
+    replace (Xreal m) with (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))).
+      apply T.cos_fast_correct.
+    unfold m, T.toR.
+    rewrite F.scale2_correct, F.add_exact_correct by easy.
+    now rewrite Hlr, Hur.
+  simpl.
+  rewrite F.neg_correct, F.scale2_correct by easy.
+  rewrite F.sub_exact_correct, Hlr, Hur.
+  simpl.
+  apply Fcore_Raux.Rabs_le_inv.
+  destruct (MVT_abs Rtrigo_def.cos (fun t => Ropp (sin t)) m (Rabs x)) as [v [-> _]].
+  intros c _.
+  apply derivable_pt_lim_cos.
+  apply Rle_trans with (1 * Rabs (Rabs x - m))%R.
+  apply Rmult_le_compat_r.
+  apply Rabs_pos.
+  rewrite Rabs_Ropp.
+  apply Rabs_le, SIN_bound.
+  rewrite Rmult_1_l.
+  apply Rabs_le.
+  revert Ha.
+  simpl.
+  rewrite Hlr, Hur.
+  unfold m.
+  lra.
+intros _.
 unfold convert, bnd.
 rewrite 2!F.fromZ_correct.
 apply COS_bound.
 Qed.
 
-(* useful only for |xi| <= 5/2*pi *)
+(* accurate only for |xi| <= 5/2*pi *)
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
     if F'.le xu xl then T.sin_fast prec xl else
     let pi4 := T.pi4 prec in
-    let s1 := F.ZtoS 1%Z in
     let pi2 := F.scale2 (lower pi4) s1 in
     match F'.le (F.neg pi2) xl, F'.le xu pi2 with
     | true, true =>
@@ -261,6 +318,7 @@ case_eq (F'.le xu xl).
   apply Rle_antisym with (1 := Hxl).
   now apply Rle_trans with (2 := Hl).
 intros _.
+unfold s1.
 set (pi2 := F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1)).
 case_eq (F'.le (F.neg pi2) xl).
   intros Hpl.
@@ -358,7 +416,7 @@ Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
     if F'.le xu xl then T.tan_fast prec xl else
-    let pi2 := F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1%Z) in
+    let pi2 := F.scale2 (lower (T.pi4 prec)) s1 in
     match F'.lt (F.neg pi2) xl, F'.lt xu pi2 with
     | true, true =>
       bnd (lower (T.tan_fast prec xl)) (upper (T.tan_fast prec xu))
@@ -384,6 +442,7 @@ case_eq (F'.le xu xl).
   apply Rle_antisym with (1 := proj1 Hx).
   apply Rle_trans with (2 := Hl).
   apply Hx.
+unfold s1.
 intros _.
 case_eq (F'.lt (F.neg (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1))) xl) ; try easy.
 intros Hlt1.
@@ -468,9 +527,9 @@ Definition atan prec xi :=
   | Ibnd xl xu =>
     Ibnd
      (if F.real xl then lower (T.atan_fast prec xl)
-      else F.neg (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 1%Z)))
+      else F.neg (F.scale2 (upper (T.pi4 prec)) s1))
      (if F.real xu then upper (T.atan_fast prec xu)
-      else F.scale2 (upper (T.pi4 prec)) (F.ZtoS 1%Z))
+      else F.scale2 (upper (T.pi4 prec)) s1)
   | Inan => Inan
   end.
 
@@ -482,6 +541,7 @@ assert (Hpi := T.pi4_correct prec).
 simpl.
 rewrite 2!F.real_correct.
 simpl in Hx.
+unfold s1.
 split.
 - generalize (proj1 Hx). clear Hx.
   case_eq (F.toX xl).
