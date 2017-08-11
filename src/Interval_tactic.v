@@ -43,8 +43,10 @@ Inductive interval_tac_parameters :=
   | i_depth : nat -> interval_tac_parameters
   | i_integral_depth : nat -> interval_tac_parameters
   | i_integral_prec : nat -> interval_tac_parameters
-  | i_integral_aprec : Z -> interval_tac_parameters
-  | i_integral_deg : nat -> interval_tac_parameters. (* degree of taylor models at leaves of integration dichotomy  *)
+  | i_integral_width : Z -> interval_tac_parameters
+  | i_integral_deg : nat -> interval_tac_parameters
+  | i_native_compute : interval_tac_parameters
+  | i_delay : interval_tac_parameters.
 
 Module Private.
 
@@ -1943,7 +1945,7 @@ Ltac xalgorithm_pre prec :=
     idtac
   | |- (?a <> ?b)%R =>
     apply Rminus_not_eq
-  | _ => fail 4 "Goal is not an inequality with constant bounds"
+  | _ => fail 5 "Goal is not an inequality with constant bounds"
   end.
 
 Ltac xalgorithm lx prec :=
@@ -2037,9 +2039,10 @@ Qed.
 Definition prec_of_nat prec :=
   match Z_of_nat prec with Zpos p => F.PtoP p | _ => F.PtoP xH end.
 
-Ltac do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac :=
-  (abstract (
-    let prec := eval vm_compute in (prec_of_nat prec) in
+Ltac do_interval vars prec depth rint_depth rint_prec rint_deg native nocheck eval_tac :=
+  let prec := eval vm_compute in (prec_of_nat prec) in
+  match nocheck with
+  | true =>
     xalgorithm vars prec ;
     match goal with
     | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
@@ -2053,10 +2056,36 @@ Ltac do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac :=
         set (ibounds := map A.interval_from_bp bounds) ;
         cbv beta iota zeta delta [map A.interval_from_bp bounds] in ibounds ;
         clear ;
-        (abstract vm_cast_no_check (refl_equal true))
+        match native with
+        | true => native_cast_no_check (refl_equal true)
+        | false => vm_cast_no_check (refl_equal true)
+        end
+      end
+    end
+  | false =>
+    abstract (
+    xalgorithm vars prec ;
+    match goal with
+    | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) =>
+      match get_bounds constants prec rint_depth rint_prec rint_deg with
+      | (?bounds_, ?lw) =>
+        let bounds := fresh "bounds" in
+        pose (bounds := bounds_) ;
+        change (map Xreal constants) with (map A.xreal_from_bp bounds) ;
+        eval_tac bounds check formula prec depth n ;
+        let ibounds := fresh "ibounds" in
+        set (ibounds := map A.interval_from_bp bounds) ;
+        cbv beta iota zeta delta [map A.interval_from_bp bounds] in ibounds ;
+        clear ;
+        (abstract
+          (match native with
+          | true => native_cast_no_check (refl_equal true)
+          | false => vm_cast_no_check (refl_equal true)
+          end))
         || warn_whole lw
       end
-    end)) ||
+    end)
+  end ||
   fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters".
 
 Ltac do_interval_eval bounds output formula prec depth n :=
@@ -2093,27 +2122,29 @@ Ltac tac_of_itm itm :=
   end.
 
 Ltac do_parse params depth :=
-  let rec aux vars prec depth rint_depth rint_prec rint_deg itm params :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg native nocheck itm params :=
     match params with
-    | nil => constr:((vars, prec, depth, rint_depth, rint_prec, rint_deg, itm))
-    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg itm t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg itm_bisect_diff t
-    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg (itm_bisect_taylor d) t
-    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg itm t
-    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg itm t
-    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg itm t
-    | cons (i_integral_aprec ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg itm t
-    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg itm t
+    | nil => constr:((vars, prec, depth, rint_depth, rint_prec, rint_deg, native, nocheck, itm))
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg native nocheck itm t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck itm_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck itm_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck (itm_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg native nocheck itm t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg native nocheck itm t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg native nocheck itm t
+    | cons (i_integral_width ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg native nocheck itm t
+    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg native nocheck itm t
+    | cons i_native_compute ?t => aux vars prec depth rint_depth rint_prec rint_deg true nocheck itm t
+    | cons i_delay ?t => aux vars prec depth rint_depth rint_prec rint_deg native true itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (-10)))) 10%nat itm_eval params.
+  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (-10)))) 10%nat false false itm_eval params.
 
 Ltac do_interval_parse params :=
   match do_parse params 15%nat with
-  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
+  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?native, ?nocheck, ?itm) =>
     let eval_tac := tac_of_itm itm in
-    do_interval vars prec depth rint_depth rint_prec rint_deg eval_tac
+    do_interval vars prec depth rint_depth rint_prec rint_deg native nocheck eval_tac
   end.
 
 Ltac do_interval_generalize t b :=
@@ -2139,12 +2170,11 @@ Ltac do_interval_generalize t b :=
 
 Ltac do_interval_intro_eval extend bounds formula prec depth :=
   let bounds' := eval cbv beta iota zeta delta [map A.interval_from_bp] in (map A.interval_from_bp bounds) in
-  eval vm_compute in (extend (nth 0 (A.BndValuator.eval prec formula bounds') I.nai)).
+  constr:(extend (nth 0 (A.BndValuator.eval prec formula bounds') I.nai)).
 
 Ltac do_interval_intro_bisect extend bounds formula prec depth :=
   let bounds' := eval cbv beta iota zeta delta [map A.interval_from_bp] in (map A.interval_from_bp bounds) in
-  eval vm_compute in
-   (match bounds' with
+  constr:(match bounds' with
     | cons (Interval_interval_float.Ibnd l u) tail =>
       A.lookup_1d (fun b => nth 0 (A.BndValuator.eval prec formula (b :: tail)) I.nai) l u extend depth
     | _ => I.nai
@@ -2152,8 +2182,7 @@ Ltac do_interval_intro_bisect extend bounds formula prec depth :=
 
 Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
   let bounds' := eval cbv beta iota zeta delta [map A.interval_from_bp] in (map A.interval_from_bp bounds) in
-  eval vm_compute in
-   (match bounds' with
+  constr:(match bounds' with
     | cons (Interval_interval_float.Ibnd l u) tail =>
       A.lookup_1d (fun b => A.DiffValuator.eval prec formula tail 0 b) l u extend depth
     | _ => I.nai
@@ -2161,14 +2190,13 @@ Ltac do_interval_intro_bisect_diff extend bounds formula prec depth :=
 
 Ltac do_interval_intro_bisect_taylor deg extend bounds formula prec depth :=
   let bounds' := eval cbv beta iota zeta delta [map A.interval_from_bp] in (map A.interval_from_bp bounds) in
-  eval vm_compute in
-   (match bounds' with
+  constr:(match bounds' with
     | cons (Interval_interval_float.Ibnd l u) tail =>
       A.lookup_1d (fun b => A.TaylorValuator.TM.eval (prec, deg) (nth 0 (A.TaylorValuator.eval prec deg b formula (A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const tail)) A.TaylorValuator.TM.dummy) b b) l u extend depth
     | _ => I.nai
     end).
 
-Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg eval_tac :=
+Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg native eval_tac :=
   let prec := eval vm_compute in (prec_of_nat prec) in
   match extract_algorithm t vars with
   | (?formula, ?constants) =>
@@ -2176,6 +2204,7 @@ Ltac do_interval_intro t extend params vars prec depth rint_depth rint_prec rint
     | (?bounds, ?lw) =>
       warn_whole lw ;
       let v := eval_tac extend bounds formula prec depth in
+      let v := match native with true => eval native_compute in v | false => eval vm_compute in v end in
       do_interval_generalize t v ;
       [ | do_interval_parse params ]
     end
@@ -2191,9 +2220,9 @@ Ltac intro_tac_of_itm itm :=
 
 Ltac do_interval_intro_parse t extend params :=
   match do_parse params 5%nat with
-  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?itm) =>
+  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?native, ?nocheck, ?itm) =>
     let eval_tac := intro_tac_of_itm itm in
-    do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg eval_tac
+    do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg native eval_tac
   end.
 
 End Private.

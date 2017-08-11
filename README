@@ -82,7 +82,7 @@ are: (with the type of their arguments, if any)
   i_integral_prec (p:nat)
                       sets the target relative accuracy of integral
                       expressions to approximately p bits
-  i_integral_aprec (p:Z)
+  i_integral_width (p:Z)
                       sets the target accuracy of integral expressions
                       to an interval width of 2^p
   i_integral_depth (n:nat)
@@ -91,6 +91,9 @@ are: (with the type of their arguments, if any)
   i_integral_deg (d:nat)
                       sets the degree of Taylor models for approximating
                       the integrand when bounding integral expressions
+  i_native_compute    uses native_compute instead of vm_compute
+  i_delay             delays proof checking till Qed, especially useful when
+                      experimenting with interval_intro
 
 For both tactics, performing a bisection of depth 1 is not much slower
 than performing no bisection. If the current goal can be proven by
