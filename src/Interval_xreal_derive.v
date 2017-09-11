@@ -666,7 +666,7 @@ apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
 rewrite X.
-rewrite Z2R_IZR.
+rewrite <- (positive_nat_Z n), <- INR_Z2R.
 apply derivable_pt_lim_pow_pos.
 apply lt_O_nat_of_P.
 case (f x).
@@ -692,7 +692,6 @@ apply lt_le_S.
 apply lt_O_nat_of_P.
 now case n.
 (* *)
-rewrite Z2R_IZR.
 replace (Xpower_int (f x) (Zpred (Zneg n))) with (match f x with Xnan => Xnan | Xreal r => if is_zero r then Xnan else Xreal (/ (pow r (S (nat_of_P n)))) end).
 xtotal.
 intro v.
@@ -708,6 +707,7 @@ apply Hf.
 change (fun x => (/ x ^ nat_of_P n)%R) with (comp Rinv (fun x => pow x (nat_of_P n))).
 unfold proj_fun.
 rewrite X.
+rewrite P2R_INR.
 replace (- INR (nat_of_P n) * / (r1 * r1 ^ nat_of_P n))%R with
   ((0 * r1 ^ (nat_of_P n) - 1 * fct_cte 1 r1) / Rsqr (r1 ^ (nat_of_P n)) * (INR (nat_of_P n) * (r1 ^ pred (nat_of_P n))))%R.
 apply derivable_pt_lim_comp.

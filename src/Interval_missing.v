@@ -1164,8 +1164,7 @@ assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
   exact Rlt_0_1.
   apply is_lim_seq_ext with (fun _ => 1%R).
     intros n.
-    simpl pow.
-    unfold Rdiv.
+    change ((-1)^(S n) / (-1)^n)%R with (-(1) * (-1)^n */ (-1)^n)%R.
     rewrite Rmult_assoc, Rinv_r, Rmult_1_r, Rabs_Ropp.
     apply eq_sym, Rabs_R1.
     apply pow_nonzero.
@@ -1184,7 +1183,8 @@ rewrite Rabs_Ropp, Rabs_pos_eq.
 now apply Rlt_trans with x.
 now apply Rlt_le.
 intros n.
-now rewrite <- Rpow_mult_distr, Ropp_mult_distr_l_reverse, Rmult_1_l.
+replace (-t)%R with (-1 * t)%R by ring.
+apply Rpow_mult_distr.
 intros [|n].
 easy.
 unfold PS_incr_1.

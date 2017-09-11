@@ -213,28 +213,16 @@ assert (Hexit : forall k powu ft,
     replace (k + 1) with (S k) by ring.
     apply alternated_series_ineq'.
     apply Un_decreasing_atanc.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply Un_cv_atanc.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     unfold atanc.
     case in_int ; intros Hx.
     case atanc_exists ; simpl projT1 ; intros l C.
     exact C.
     elim Hx.
     apply Rabs_le_inv.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply sum_eq.
     intros n _.
     unfold tg_alt.
@@ -509,28 +497,16 @@ assert (Hexit : forall k powu ft,
     replace (k + 1) with (S k) by ring.
     apply alternated_series_ineq'.
     apply Un_decreasing_atanc.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply Un_cv_atanc.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     unfold atanc.
     case in_int ; intros Hx.
     case atanc_exists ; simpl projT1 ; intros l C.
     exact C.
     elim Hx.
     apply Rabs_le_inv.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply sum_eq.
     intros n _.
     unfold tg_alt.
@@ -740,7 +716,7 @@ rewrite Machin_4_5_239.
 unfold pi4, constant_getter.
 set (n := Z.abs_nat _).
 unfold pi4_seq, constant_generator.
-generalize xH.
+generalize xH at 1.
 induction n as [|n].
 2: intros p ; apply IHn.
 simpl.
@@ -1027,29 +1003,17 @@ assert (Hexit : forall k powu ft,
     apply alternated_series_ineq'.
     apply Un_decreasing_ln1pc.
     apply (conj Bx').
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply Un_cv_ln1pc.
     rewrite Rabs_pos_eq with (1 := Bx').
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     unfold ln1pc.
     case ln1pc_in_int ; intros Hx.
     case ln1pc_exists ; simpl projT1 ; intros l C.
     exact C.
     elim Hx.
     apply (conj Bx').
-    apply Rle_lt_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_lt.
-    apply Rlt_0_1.
-    now apply (Z2R_lt 1 2).
+    lra.
     apply sum_eq.
     intros n _.
     unfold tg_alt.
@@ -1683,11 +1647,7 @@ assert (Hexit : forall k powu ft,
     replace (k + 1) with (S k) by ring.
     apply alternated_series_ineq'.
     apply Un_decreasing_cos.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     apply (Un_cv_subseq (fun n => (/ INR (fact n) * toR x ^ n)%R)).
     clear ; intros n ; omega.
     eapply Un_cv_ext.
@@ -2185,11 +2145,7 @@ assert (Hexit : forall k powu ft,
     replace (k + 1) with (S k) by ring.
     apply alternated_series_ineq'.
     apply Un_decreasing_sinc.
-    apply Rle_trans with (1 := Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     destruct (Req_dec (toR x) 0) as [Zx|Zx].
     rewrite Zx.
     intros eps Heps.
@@ -2661,10 +2617,7 @@ case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
     apply PI2_RGT_0.
     apply Rle_lt_trans with (1 := Bx').
     apply Rlt_trans with (2 := PI2_1).
-    rewrite <- Rinv_1 at 3.
-    apply Rinv_lt.
-    apply Rlt_0_1.
-    now apply (Z2R_lt 1 2).
+    lra.
   unfold Xdiv'.
   case is_zero_spec.
   intros H.
@@ -2948,11 +2901,7 @@ assert (Hexit : forall k powxu fp2,
     apply Un_decreasing_exp.
     split.
     apply Bx.
-    apply Rle_trans with (1 := proj2 Bx).
-    rewrite <- (Rinv_1) at 3.
-    apply Rinv_le.
-    apply Rlt_0_1.
-    now apply (Z2R_le 1 2).
+    lra.
     eapply Un_cv_ext.
     intros n.
     apply Rmult_comm.

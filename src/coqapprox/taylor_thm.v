@@ -147,7 +147,7 @@ apply derivable_pt_lim_plus.
       ((fun y : R => Tcoeff i y) * (fun y => (x - y) ^ i)%R)%F.
     assert (Hmul := derivable_pt_lim_mult (fun y0 : R => Tcoeff i y0)
       (fun y0 : R => (x - y0) ^ i) y (/ INR (fact i) * D (S i) y)
-      ((INR i * (x - y) ^ pred i) * (-1))).
+      ((INR i * (x - y) ^ pred i) * -(1))).
     simpl in Hmul.
     apply Hmul; clear Hmul.
     - unfold Rdiv.
@@ -192,17 +192,16 @@ apply derivable_pt_lim_plus.
     simpl; ring.
   + intros i Hi; unfold Rdiv, Rminus; ring.
 - replace (c * INR (S n) * (x - y)^n) with
-    (- c * (INR (S n) * (x - y)^ pred (S n) * -1)).
-    apply derivable_pt_lim_scal.
-    apply derivable_pt_lim_eq with
-      (comp (fun y => y ^ (S n)) (fun y => x - y)).
-      now intros y'; unfold comp.
-    apply derivable_pt_lim_comp; [|now apply derivable_pt_lim_pow].
-    rewrite <-Rminus_0_l.
-    apply derivable_pt_lim_minus.
-      now apply derivable_pt_lim_const.
-    now apply derivable_pt_lim_id.
-  simpl; ring.
+    (- c * (INR (S n) * (x - y)^ pred (S n) * -(1))) by (simpl ; ring).
+  apply derivable_pt_lim_scal.
+  apply derivable_pt_lim_eq with
+    (comp (fun y => y ^ (S n)) (fun y => x - y)).
+    now intros y'; unfold comp.
+  apply derivable_pt_lim_comp; [|now apply derivable_pt_lim_pow].
+  rewrite <-Rminus_0_l.
+  apply derivable_pt_lim_minus.
+    now apply derivable_pt_lim_const.
+  now apply derivable_pt_lim_id.
 Qed.
 
 Theorem Taylor_Lagrange :

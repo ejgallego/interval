@@ -96,17 +96,13 @@ move: (is_derive_n_powerRZ n 1 x Hnx).
 case Hn : n => [|p|p] /= .
 - by rewrite !Rmult_0_l; move => _; apply: is_derive_const.
 - rewrite big_ord_recl /= big_ord0 /=  subn0 Rmult_1_r.
-  case: p Hn => p.
-  + rewrite -[Z.pos p~0]positive_nat_Z pow_powerRZ.
-    move => _.
-    congr (is_derive _ _); congr(_ * _).
-    have -> : (1 = (Pos.to_nat 1))%N by [].
-    by rewrite -[(Pos.to_nat p~1 - Pos.to_nat 1)%N]nat_of_P_minus_morphism. (* !!! *)
-  + move => _.
-    have -> : (1 = (Pos.to_nat 1))%N by [].
-    by rewrite -[(Pos.to_nat p~0 - Pos.to_nat 1)%N]nat_of_P_minus_morphism.
-  + by rewrite pow_powerRZ.
+  try rewrite -Z2R_IZR INR_Z2R positive_nat_Z.
+  rewrite pow_powerRZ.
+  congr (is_derive _ _ (_ * powerRZ _ _)).
+  rewrite -> Nat2Z.inj_sub by apply lt_le_S, Pos2Nat.is_pos.
+  now rewrite positive_nat_Z.
 - rewrite big_ord_recl /= big_ord0 /= addn0 Rmult_1_r.
+  try rewrite -Z2R_IZR INR_Z2R positive_nat_Z.
   by rewrite Pos2Nat.inj_add.
 Qed.
 
@@ -527,8 +523,7 @@ Lemma x_alpha_beta alpha beta (Halpha : (alpha < -1)%Z) :
   is_lim (fun x => powerRZ x (alpha + 1)%Z * (pow (ln x) beta.+1)) p_infty (0%R).
 Proof.
 have Halpah1 : IZR (alpha + 1) < 0.
-  have {1}-> : 0 = IZR 0 by [].
-  by apply: IZR_lt; lia.
+  by apply: (IZR_lt _ 0); lia.
 have Hbeta1 : INR beta.+1 > 0.
   apply: lt_0_INR.
   exact: Nat.lt_0_succ.
@@ -894,7 +889,7 @@ apply: (filterlimi_lim_ext_loc).
   by apply f_neg_correct_RInt_a_infty => // ; lra.
   rewrite -Rminus_0_l.
 apply: (filterlim_comp _ _ _  (fun x => f_neg x beta) (fun x => x - f_neg a beta) (* (Rbar_locally' p_infty) *) _ (* (Rbar_locally 0) *) _);last first.
-rewrite /Rminus. apply: continuous_plus.
+rewrite /Rminus. apply: continuous_plus 0%R _ _.
     exact: filterlim_id.
   exact: filterlim_const.
 rewrite /f_neg.
@@ -977,12 +972,11 @@ Proof.
   rewrite powerRZ_add ?ln_Rinv; try lra.
   rewrite powerRZ_neg_inv //= .
   rewrite [(- ln x) ^beta] pow_negx.
-  rewrite -[powerRZ _ _ * ln _ ^_ ]Rmult_1_l.
-  have {6}-> : 1 = (-1)^beta * (-1)^beta.
-  rewrite -Rpow_mult_distr.
-  have -> : -1 * -1 = 1 by ring. by rewrite pow1.
+  replace (powerRZ x alpha * ln x ^ beta) with ((-1)^beta * (-1)^beta * (powerRZ x alpha * ln x ^ beta)).
   rewrite powerRZ_neg_inv ?Z.opp_involutive //= .
-  field; lra.
+  now field.
+  rewrite -Rpow_mult_distr.
+  have -> : -1 * -1 = 1 by ring. by rewrite pow1 Rmult_1_l.
   move => x Hx.
   rewrite Rmin_right in Hx; try lra.
   rewrite Rmax_left in Hx; try lra.
