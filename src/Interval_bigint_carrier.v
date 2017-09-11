@@ -19,8 +19,7 @@ liability. See the COPYING file for more details.
 
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Flocq.Core.Fcore_digits.
-Require Import BigN.
-Require Import BigZ.
+From Bignums Require Import BigN BigZ.
 Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.

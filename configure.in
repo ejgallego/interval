@@ -69,6 +69,15 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Coquelicot (http://coquelicot.saclay.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for Bignums])
+AS_IF(
+  [ echo "Require Import Bignums.BigZ.BigZ." > conftest.v
+    $COQC conftest.v > conftest.err ],
+  [ AC_MSG_RESULT([yes]) ],
+  [ AC_MSG_RESULT([no])
+    AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])
+rm -f conftest.v conftest.vo conftest.err
+
 if test "$libdir" = '${exec_prefix}/lib'; then
   libdir="`$COQC -where`/user-contrib/Interval"
 fi
