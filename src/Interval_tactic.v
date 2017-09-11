@@ -62,26 +62,36 @@ Ltac get_float t :=
   let get_mantissa t :=
     let rec aux t :=
       match t with
-      | 1%R => xH
-      | 2%R => constr:(xO xH)
-      | 3%R => constr:(xI xH)
-      | (2 * ?v)%R =>
+      | R1 => xH
+      | (R1 + R1)%R => constr:(xO xH)
+      | (R1 + (R1 + R1))%R => constr:(xI xH)
+      | ((R1 + R1) * ?v)%R =>
         let w := aux v in constr:(xO w)
-      | (1 + 2 * ?v)%R =>
+      | (R1 + (R1 + R1) * ?v)%R =>
         let w := aux v in constr:(xI w)
       end in
     aux t in
   let get_float_rational s n d :=
     let rec aux t :=
       match t with
-      | 2%R => xH
-      | (2 * ?v)%R =>
+      | (R1 + R1)%R => xH
+      | ((R1 + R1) * ?v)%R =>
         let w := aux v in
         constr:(Psucc w)
       end in
     let e := aux d in
     let m := get_mantissa n in
-    eval vm_compute in (F.fromF (@Interval_definitions.Float radix2 s m (Zneg e))) in
+    eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m (Zneg e))) in
+  let get_float_rational2 s n d :=
+    let rec aux t :=
+      match t with
+      | xO xH => xH
+      | xO ?v =>
+        let w := aux v in
+        constr:(Psucc w)
+      end in
+    let e := aux d in
+    eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s n (Zneg e))) in
   let get_float_integer s t :=
     let rec aux m e :=
       match m with
@@ -93,10 +103,35 @@ Ltac get_float t :=
     let m := get_mantissa t in
     let v := aux m Z0 in
     match v with
-    | (?m, ?e) => eval vm_compute in (F.fromF (@Interval_definitions.Float radix2 s m e))
+    | (?m, ?e) => eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m e))
+    end in
+  let get_float_integer2 s t :=
+    let rec aux m e :=
+      match m with
+      | xO ?v =>
+        let u := constr:(Zsucc e) in
+        aux v u
+      | _ => constr:((m, e))
+      end in
+    let v := aux t Z0 in
+    match v with
+    | (?m, ?e) => eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m e))
     end in
   match t with
   | 0%R => F.zero
+  | (IZR (Zneg ?n) * / IZR (Zpos ?d))%R => get_float_rational2 true n d
+  | (IZR (Zpos ?n) * / IZR (Zpos ?d))%R => get_float_rational2 false n d
+  | (IZR (Zneg ?n) / IZR (Zpos ?d))%R => get_float_rational2 true n d
+  | (IZR (Zpos ?n) / IZR (Zpos ?d))%R => get_float_rational2 false n d
+  | IZR (Zneg ?n) => get_float_integer2 true n
+  | IZR (Zpos ?n) => get_float_integer2 false n
+  | (Z2R (Zneg ?n) * / Z2R (Zpos ?d))%R => get_float_rational2 true n d
+  | (Z2R (Zpos ?n) * / Z2R (Zpos ?d))%R => get_float_rational2 false n d
+  | (Z2R (Zneg ?n) / Z2R (Zpos ?d))%R => get_float_rational2 true n d
+  | (Z2R (Zpos ?n) / Z2R (Zpos ?d))%R => get_float_rational2 false n d
+  | Z2R (Zneg ?n) => get_float_integer2 true n
+  | Z2R (Zpos ?n) => get_float_integer2 false n
+  | R0 => F.zero
   | (-?n * /?d)%R => get_float_rational true n d
   | (?n * /?d)%R => get_float_rational false n d
   | (-?n / ?d)%R => get_float_rational true n d
@@ -829,11 +864,8 @@ intros prec prog bounds ia f fi estimator (* Hbnded *) a Ha.
 unfold estimator.
 case Htest: test; last by rewrite I.nai_correct.
 have Hprec_cond : pre_cond f a.
-apply: H_test => [x ix Hix||].
-  apply: contains_eval_arg.
-  exact: Hix.
-  exact: Ha.
-  exact: Htest.
+  apply: H_test Ha Htest => x ix Hix.
+  exact: contains_eval_arg Hix.
 case Hbnded : (I.bounded _) => // .
 intros HnotInan.
 apply: Int.integral_interval_mul_infty.
@@ -1126,10 +1158,8 @@ apply: (Int.integral_interval_mul_sing prec 0 epsilon (I.join (I.fromZ 0) ia) f)
   rewrite - ln_1; apply: ln_le.
   lra.
   exact: lex1.
-  + apply: f0eps_lim_correct.
-    have -> : -1 = IZR (-1) by [].
-    apply: IZR_lt; lia.
-    by [].
+  + apply: f0eps_lim_correct Hepspos.
+    apply (IZR_lt (-1)); lia.
   apply: Bertrand.f0eps_correct => // .
     by lia.
 Qed.
@@ -1232,11 +1262,8 @@ intros prec prog bounds ia f fi estimator (* Hbnded *) a Ha.
 unfold estimator.
 case Htest: test; last by rewrite I.nai_correct.
 have Hprec_cond : pre_cond f a.
-apply: H_test => [x ix Hix||].
-  apply: contains_eval_arg.
-  exact: Hix.
-  exact: Ha.
-  exact: Htest.
+  apply: H_test Ha Htest => x ix Hix.
+  exact: contains_eval_arg Hix.
 case Hbnded : (I.bounded _) => // .
 intros HnotInan.
 have HxSingIa x : sing <= x <= a ->  contains (I.convert (I.join iSing ia)) (Xreal x).
@@ -1951,6 +1978,7 @@ Ltac xalgorithm_pre prec :=
 Ltac xalgorithm lx prec :=
   match goal with
   | |- A.check_p ?check (nth ?n (eval_ext ?formula (map Xreal ?constants)) Xnan) => idtac
+  | |- contains (I.convert ?xi) (Xreal ?y) => xalgorithm_post lx
   | _ => xalgorithm_pre prec ; xalgorithm_post lx
   end.
 
@@ -2148,24 +2176,32 @@ Ltac do_interval_parse params :=
   end.
 
 Ltac do_interval_generalize t b :=
-  match eval vm_compute in (I.convert b) with
-  | Inan => fail 4 "Inan: Nothing known about" t
-  | Ibnd ?l ?u =>
-    match goal with
-    | |- ?P =>
+  match goal with
+  | |- ?P =>
+    refine ((_ : contains (I.convert b) (Xreal t) -> P) _) ; [
+    let H := fresh "H" in
+    intro H ;
+    match eval cbv -[Z2R Rdiv] in (I.convert b) with
+    | Inan => fail 5 "Inan: Nothing known about" t
+    | Ibnd ?l ?u =>
       match l with
       | Xnan =>
         match u with
         | Xnan => fail 7 "Xnan: Nothing known about" t
-        | Xreal ?u => refine ((_ : (t <= u)%R -> P) _)
+        | Xreal ?u => change (True /\ t <= u)%R in H ; destruct H as [_ H]
         end
       | Xreal ?l =>
         match u with
-        | Xnan => refine ((_ : (l <= t)%R -> P) _)
-        | Xreal ?u => refine ((_ : (l <= t <= u)%R -> P) _)
+        | Xnan => change (l <= t /\ True)%R in H ; destruct H as [H _]
+        | Xreal ?u => change (l <= t <= u)%R in H
         end
       end
-    end
+    end ;
+    match constr:(4%R) with
+    | IZR 4 => repeat match type of H with context [Z2R ?v] => change (Z2R v) with (IZR v) in H end
+    | _ => simpl Z2R in H
+    end ;
+    revert H |]
   end.
 
 Ltac do_interval_intro_eval extend bounds formula prec depth :=
