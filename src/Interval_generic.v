@@ -36,7 +36,7 @@ Inductive ufloat (beta : radix) : Set :=
 
 Arguments Unan {beta}.
 Arguments Uzero {beta}.
-Arguments Ufloat {beta}.
+Arguments Ufloat {beta} _ _ _ _.
 
 (*
  * Fneg

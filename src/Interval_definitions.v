@@ -72,7 +72,7 @@ Inductive float (beta : radix) : Set :=
 
 Arguments Fnan {beta}.
 Arguments Fzero {beta}.
-Arguments Float {beta}.
+Arguments Float {beta} _ _ _.
 
 Definition FtoX {beta} (f : float beta) :=
   match f with

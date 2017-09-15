@@ -29,7 +29,7 @@ Inductive f_interval (A : Type) : Type :=
   | Ibnd (l u : A) : f_interval A.
 
 Arguments Inan {A}.
-Arguments Ibnd {A}.
+Arguments Ibnd {A} _ _.
 
 Definition le_lower' x y :=
   match x with
