@@ -17,10 +17,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
+Require Import Bool.
+Require Import BigNumsCompat.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Flocq.Core.Fcore_digits.
-From Bignums Require Import BigN BigZ.
-Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.

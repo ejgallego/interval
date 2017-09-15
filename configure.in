@@ -44,7 +44,7 @@ AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Flocq_version BinNat." \
          "Goal (20500 <= Flocq_version)%N. easy. Qed." > conftest.v
-    $COQC conftest.v > conftest.err ],
+    $COQC conftest.v 2> conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library Flocq >= 2.5 (http://flocq.gforge.inria.fr/)])])
@@ -53,7 +53,7 @@ rm -f conftest.v conftest.vo conftest.err
 AC_MSG_CHECKING([for Ssreflect])
 AS_IF(
   [ echo "Require Import mathcomp.ssreflect.ssreflect." > conftest.v
-    $COQC conftest.v > conftest.err ],
+    $COQC conftest.v 2> conftest.err ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library mathcomp.ssreflect >= 1.6 (http://math-comp.github.io/math-comp/)])])
@@ -63,7 +63,7 @@ AC_MSG_CHECKING([for Coquelicot])
 AS_IF(
   [ echo "Require Import Coquelicot.Coquelicot." \
          "Check (RInt (V := R_CompleteNormedModule))." > conftest.v
-    $COQC conftest.v > conftest.err ],
+    $COQC conftest.v > conftest.err 2>&1 ],
   [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library Coquelicot (http://coquelicot.saclay.inria.fr/)])])
@@ -71,11 +71,19 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Bignums])
 AS_IF(
-  [ echo "Require Import Bignums.BigZ.BigZ." > conftest.v
-    $COQC conftest.v > conftest.err ],
-  [ AC_MSG_RESULT([yes]) ],
+  [ echo "Require Import BigZ." > conftest.v
+    $COQC conftest.v 2> conftest.err ],
+  [ AC_MSG_RESULT([yes])
+    AC_SUBST([BIGNUMSCOMPAT], [Coq]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])
+    AC_MSG_CHECKING([for Bignums (external)])
+    AS_IF(
+      [ echo "Require Import Bignums.BigZ.BigZ." > conftest.v
+        $COQC conftest.v 2> conftest.err ],
+      [ AC_MSG_RESULT([yes])
+        AC_SUBST([BIGNUMSCOMPAT], [Bignums]) ],
+      [ AC_MSG_RESULT([no])
+        AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])])
 rm -f conftest.v conftest.vo conftest.err
 
 if test "$libdir" = '${exec_prefix}/lib'; then
@@ -96,5 +104,5 @@ MINGW*)
 	;;
 esac
 
-AC_CONFIG_FILES(Remakefile)
+AC_CONFIG_FILES(Remakefile src/BigNumsCompat.v)
 AC_OUTPUT
