@@ -1,5 +1,7 @@
 Version 3.3.0:
- - added option i_integral_aprec for absolute width of integrals
+ - added option i_integral_width for absolute width of integrals
+ - improved accuracy for interval cos and sin away from zero
+ - ensured compatibility from Coq 8.5 to Coq 8.7
 
 Version 3.2.0:
  - added support for some improper integrals using RInt_gen
@@ -9,7 +11,7 @@ Version 3.1.1:
 
 Version 3.1.0:
  - improved tactic so that it can be used with backtracking tacticals (try, ||)
- - fixed ineffective computation of integrals with reverted or overlapping bounds
+ - fixed ineffective computation of integrals with reversed or overlapping bounds
 
 Version 3.0.0:
  - added support for integrals using Coquelicot's RInt operator
