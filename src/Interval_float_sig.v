@@ -63,6 +63,7 @@ Parameter sub : rounding_mode -> precision -> type -> type -> type.
 Parameter mul : rounding_mode -> precision -> type -> type -> type.
 Parameter div : rounding_mode -> precision -> type -> type -> type.
 Parameter sqrt : rounding_mode -> precision -> type -> type.
+Parameter nearbyint : rounding_mode -> type -> type.
 
 Parameter toF_correct :
   forall x, FtoX (toF x) = toX x.
@@ -126,6 +127,10 @@ Parameter div_correct :
 Parameter sqrt_correct :
   forall mode p x,
   toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt (toX x)).
+
+Parameter nearbyint_correct :
+  forall mode x,
+  toX (nearbyint mode x) = Xnearbyint mode (toX x).
 
 End FloatOps.
 

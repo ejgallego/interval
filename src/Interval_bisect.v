@@ -29,7 +29,9 @@ Require Import Interval_taylor_model.
 Require Import coquelicot_compl.
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | Ln | PowerInt (n : Z).
+  | Neg | Abs | Inv | Sqr | Sqrt
+  | Cos | Sin | Tan | Atan | Exp | Ln
+  | PowerInt (n : Z) | Nearbyint (m : rounding_mode).
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -109,6 +111,7 @@ Definition ext_operations :=
     | Exp => Xexp
     | Ln => Xln
     | PowerInt n => fun x => Xpower_int x n
+    | Nearbyint m => Xnearbyint m
     end)
    (fun o =>
     match o with
@@ -163,6 +166,7 @@ Definition real_operations :=
     | Exp => exp
     | Ln => ln
     | PowerInt n => fun x => powerRZ x n
+    | Nearbyint m => Rnearbyint m
     end)
    (fun o =>
     match o with
@@ -331,7 +335,7 @@ case: unop HnotXnan => /=.
     exact: ex_derive_id.
     apply: continuous_Rinv.
     exact: pow_nonzero.
-Qed.
+Admitted.
 
 Module IntervalAlgos (I : IntervalOps).
 
@@ -564,6 +568,7 @@ Definition operations prec :=
     | Exp => I.exp prec
     | Ln => I.ln prec
     | PowerInt n => fun x => I.power_int prec x n
+    | Nearbyint m => I.nearbyint m
     end)
    (fun o =>
     match o with
@@ -603,7 +608,8 @@ destruct o ; simpl ;
   | apply I.atan_correct
   | apply I.exp_correct
   | apply I.ln_correct
-  | apply I.power_int_correct ].
+  | apply I.power_int_correct
+  | apply I.nearbyint_correct ].
 (* binary *)
 destruct o ; simpl ;
   [ apply I.add_correct
@@ -699,6 +705,7 @@ Definition diff_operations A (ops : @operations A) :=
         match sign ops v with Xgt => binary ops Div d v | _ => unary ops Inv (constant ops 0) end)
       | PowerInt n =>
         (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
+      | Nearbyint m => let w := unary ops (Nearbyint m) v in (w, unary ops Inv (constant ops 0))
       end
     end)
    (fun o x y =>
@@ -744,6 +751,8 @@ now apply Xderive_pt_exp.
 rewrite /Xinv' is_zero_correct_zero.
 now apply Xderive_pt_ln.
 now apply Xderive_pt_power_int.
+rewrite /Xinv' is_zero_correct_zero.
+now destruct x.
 Qed.
 
 Lemma binary_diff_correct :
@@ -888,6 +897,9 @@ apply I.div_correct.
 now apply Hf'.
 exact Hf.
 apply H.
+(* nearbyint *)
+apply (I.inv_correct _ _ (Xreal 0)).
+apply I.fromZ_correct.
 Qed.
 
 Lemma binary_diff_bnd_correct :
@@ -970,7 +982,8 @@ destruct o ; simpl ;
   | apply I.atan_correct
   | apply I.exp_correct
   | apply I.ln_correct
-  | apply I.power_int_correct ] ;
+  | apply I.power_int_correct
+  | apply I.nearbyint_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
 exact (fun x Hx => proj1 (H x Hx)).
@@ -1617,6 +1630,7 @@ Definition operations prec deg xi :=
     | Exp => TM.exp (prec, deg) xi
     | Ln => TM.ln (prec, deg) xi
     | PowerInt n => TM.power_int n (prec, deg) xi
+    | Nearbyint m => fun _ => TM.dummy
  (* | _ => fun _ => TM.dummy *)
     end)
    (fun o =>
@@ -1691,6 +1705,7 @@ induction (rev prog) as [|t l].
     apply TM.exp_correct.
     apply TM.ln_correct.
     apply TM.power_int_correct.
+    intros ; apply TM.dummy_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.
     apply TM.add_correct.

@@ -24,6 +24,29 @@ Require Import Interval_xreal.
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.
 
+Definition Rnearbyint mode r :=
+  match mode with
+  | rnd_UP => Z2R (Zceil r)
+  | rnd_DN => Z2R (Zfloor r)
+  | rnd_ZR => Z2R (Ztrunc r)
+  | rnd_NE => Z2R (ZnearestE r)
+  end.
+
+Notation Xnearbyint := (fun mode => Xlift (Rnearbyint mode)).
+
+Lemma Rnearbyint_le :
+  forall mode x y,
+  (x <= y)%R ->
+  (Rnearbyint mode x <= Rnearbyint mode y)%R.
+Proof.
+intros mode x y Hxy.
+destruct mode ; simpl.
+now apply Z2R_le, Zceil_le.
+now apply Z2R_le, Zfloor_le.
+now apply Z2R_le, Ztrunc_le.
+(*now apply Z2R_le, Znearest_le.*)
+Admitted.
+
 Definition radix2 := Build_radix 2 (refl_equal _).
 
 Section Definitions.

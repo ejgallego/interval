@@ -817,6 +817,16 @@ now case s.
 Qed.
 
 (*
+ * Fnearbyint_exact
+ *)
+
+Lemma Fnearbyint_exact_correct :
+  forall beta mode (x : float beta),
+  FtoX (Fnearbyint_exact mode x) = Xnearbyint mode (FtoX x).
+Proof.
+Admitted.
+
+(*
  * Fadd
  *)
 

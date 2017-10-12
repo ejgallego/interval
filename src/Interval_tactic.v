@@ -1495,6 +1495,10 @@ Ltac reify t l :=
       | Rmult ?a ?b => aux_b Mul a b
       | Rdiv ?a ?b => aux_b Div a b
       | Rmult ?a (Rinv ?b) => aux_b Div a b
+      | Rnearbyint ?a ?b => aux_u (Nearbyint a) b
+      | Z2R (Ztrunc ?a) => aux_u (Nearbyint rnd_ZR) a
+      | Z2R (Zfloor ?a) => aux_u (Nearbyint rnd_DN) a
+      | Z2R (Zceil ?a) => aux_u (Nearbyint rnd_UP) a
       | _ =>
         match list_add t l with
         | (?n, ?l) => constr:((Econst n, l))
