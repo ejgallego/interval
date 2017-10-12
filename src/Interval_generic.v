@@ -284,8 +284,8 @@ Definition Fround_at_prec {beta} mode prec (uf : ufloat beta) : float beta :=
 Definition need_change_zero mode pos sign :=
   match mode with
   | rnd_ZR => false
-  | rnd_UP => match pos with pos_Eq => negb sign | _ => false end
-  | rnd_DN => match pos with pos_Eq => sign | _ => false end
+  | rnd_UP => match pos with pos_Eq => false | _ => negb sign end
+  | rnd_DN => match pos with pos_Eq => false | _ => sign end
   | rnd_NE =>
     match pos with
     | pos_Up => true
@@ -316,7 +316,7 @@ Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
           Float sign xH e2
         else Fzero
       | Lt =>
-        let pos2 := match pos with pos_Eq => pos_Eq | _ => pos_Lo end in
+        let pos2 := pos_Lo in
         if need_change_zero mode pos2 sign then
           Float sign xH e2
         else Fzero

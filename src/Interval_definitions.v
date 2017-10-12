@@ -44,8 +44,8 @@ destruct mode ; simpl.
 now apply Z2R_le, Zceil_le.
 now apply Z2R_le, Zfloor_le.
 now apply Z2R_le, Ztrunc_le.
-(*now apply Z2R_le, Znearest_le.*)
-Admitted.
+now apply Z2R_le; destruct (valid_rnd_N (fun x => negb (Zeven x))); auto.
+Qed.
 
 Definition radix2 := Build_radix 2 (refl_equal _).
 

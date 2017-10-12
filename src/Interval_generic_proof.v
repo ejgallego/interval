@@ -30,6 +30,8 @@ Require Import Flocq.Calc.Fcalc_ops.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
 Require Import Interval_generic.
+Require Import Psatz.
+Import ssrbool.
 
 Lemma FtoR_Rpos :
   forall beta m e,
@@ -820,11 +822,279 @@ Qed.
  * Fnearbyint_exact
  *)
 
+Lemma Rdiv_lt_mult_pos a b c :
+ (0 < b -> a * b  < c -> a < c / b)%R.
+Proof.
+intros Hb Hab.
+apply (Rmult_lt_reg_r b _ _ Hb).
+now unfold Rdiv; rewrite Rmult_assoc, Rinv_l, Rmult_1_r; lra.
+Qed.
+
+Lemma Rdiv_le_mult_pos a b c :
+ (0 < b -> a * b  <= c -> a <= c / b)%R.
+Proof.
+intros Hb Hab.
+apply (Rmult_le_reg_r b _ _ Hb).
+now unfold Rdiv; rewrite Rmult_assoc, Rinv_l, Rmult_1_r; lra.
+Qed.
+
+Lemma Rdiv_gt_mult_pos a b c :
+ (0 < b -> a < b * c -> a / b < c)%R.
+Proof.
+intros Hb Hab.
+apply (Rmult_lt_reg_r b _ _ Hb).
+now unfold Rdiv; rewrite Rmult_assoc, Rinv_l, Rmult_1_r; lra.
+Qed.
+
+Lemma Rdiv_ge_mult_pos a b c :
+ (0 < b -> a <= b * c -> a / b <= c)%R.
+Proof.
+intros Hb Hab.
+apply (Rmult_le_reg_r b _ _ Hb).
+now unfold Rdiv; rewrite Rmult_assoc, Rinv_l, Rmult_1_r; lra.
+Qed.
+
+
+Lemma Znearest_Z2R c z : Znearest c (Z2R z) = z.
+
+Proof.
+unfold Znearest; rewrite Zceil_Z2R, Zfloor_Z2R.
+now destruct Rcompare; auto; destruct c.
+Qed.
+
+Lemma Rnearbyint_Z2R mode z : Rnearbyint mode (Z2R z) = (Z2R z).
+Proof.
+now destruct mode; simpl; rewrite ?Zceil_Z2R, ?Zfloor_Z2R, ?Ztrunc_Z2R, ?Znearest_Z2R.
+Qed.
+
+Lemma adjust_mantissa_Eq mode b p : adjust_mantissa mode p pos_Eq b = p.
+Proof. now destruct mode. Qed.
+
+Lemma need_change_radix2_Eq beta mode p b :
+  need_change_radix2 beta mode p pos_Eq b = false.
+Proof. now destruct mode; simpl. Qed.
+
+Lemma radix_to_pos (r : radix) : Z.pos (Z.to_pos r) = r.
+Proof.  now destruct r as [[]]. Qed.
+
+Lemma shift1_correct r e :  
+  shift r 1 e =  (Z.to_pos r ^ e)%positive.
+Proof.
+generalize (shift_correct r 1 e).
+rewrite Zmult_1_l, <-(radix_to_pos r) at 1.
+rewrite <-Pos2Z.inj_pow_pos.
+now intro H; injection H.
+Qed.
+
+Lemma Rcompare_div_l x y z : 
+  (0 < y)%R -> Rcompare (x / y) z = Rcompare x (y * z).
+Proof.
+intro yP.
+replace x with (y * (x / y))%R at 2.
+  now rewrite Rcompare_mult_l.
+field; lra.
+Qed.
+
+Lemma Rcompare_div_r x y z : 
+  (0 < z)%R -> Rcompare x (y / z) = Rcompare (z * x) y.
+Proof.
+intro yP.
+rewrite Rcompare_sym, Rcompare_div_l, Rcompare_sym; auto.
+  now destruct Rcompare.
+Qed.
+
+Lemma P2R_Z2R p : P2R p = Z2R (Zpos p).
+Proof. auto. Qed.
+
+Lemma Rlt_bool_float beta b m e : Rlt_bool (FtoR beta b m e) 0 = b.
+Proof.
+assert (H : (0 < P2R m)%R).
+  now rewrite P2R_Z2R; apply (Z2R_lt 0).
+destruct e as [|p | p]; destruct b; simpl;
+  apply  Rlt_bool_true || apply Rlt_bool_false; try lra.
+- assert (H1 : (0 < Z.pow_pos beta p)%Z).
+    apply Zpower_pos_gt_0; apply radix_gt_0.
+  revert H1.
+  destruct Z.pow_pos; simpl; try lia; intros _.
+  now apply (Z2R_lt (Zneg _) 0).
+- assert (H1 : (0 < Z.pow_pos beta p)%Z).
+    apply Zpower_pos_gt_0; apply radix_gt_0.
+  revert H1.
+  destruct Z.pow_pos; simpl; try lia; intros _.
+  now apply (Z2R_le 0 (Zpos _)).
+- apply Rdiv_gt_mult_pos; try lra.
+  apply (Z2R_lt 0).
+  apply Zpower_pos_gt_0; apply radix_gt_0.
+- apply Rdiv_le_mult_pos; try lra.
+  apply (Z2R_lt 0).
+  apply Zpower_pos_gt_0; apply radix_gt_0.
+Qed.
+
 Lemma Fnearbyint_exact_correct :
   forall beta mode (x : float beta),
   FtoX (Fnearbyint_exact mode x) = Xnearbyint mode (FtoX x).
 Proof.
-Admitted.
+intros beta mode x.
+assert (bP := Zle_bool_imp_le _ _ (radix_prop beta)).
+unfold Fnearbyint_exact, Fround_at_exp.
+destruct x as [| |b p z]; simpl float_to_ufloat; lazy iota beta; auto.
+  now generalize (Rnearbyint_Z2R mode 0); simpl; intro H; rewrite H.
+destruct z as [| p1 | n1]; simpl Zminus; lazy iota beta.
+- now rewrite adjust_mantissa_Eq; simpl; rewrite Rnearbyint_Z2R.
+- now simpl; rewrite need_change_radix2_Eq, Rnearbyint_Z2R.
+rewrite <-digits_conversion, shift1_correct.
+case Z.compare_spec; intro H.
+(* *)
+set (x := Float b p _).
+set (p1 := adjust_pos _ _ _).
+pose (y := (FtoR beta b p (Z.neg n1))).
+apply trans_equal with (y :=
+ Xreal (Z2R
+ (cond_Zopp (Rlt_bool y 0)
+      (mode_choice mode (Rlt_bool y 0) 
+                    0  (convert_location_inv p1))))).
+  unfold y; rewrite Rlt_bool_float.
+  now destruct b; destruct mode; simpl; destruct p1.
+apply (f_equal Xreal).
+apply sym_equal.
+assert (V : (1 < beta ^ Z.pos n1)%Z) by now apply Zpower_gt_1.
+assert (V0 : (1 < Z2R (beta ^ Z.pos n1))%R) by now apply (Z2R_lt 1).
+assert (V1 : (Z.pos p < beta ^ Z.pos n1)%Z).
+  generalize (Zdigits_correct beta (Z.pos p)).
+  now rewrite H; intros [_ V3].
+assert (V2 : inbetween_int 0 (Rabs y) (convert_location_inv p1)).
+  unfold p1, inbetween_int.
+  rewrite adjust_pos_correct; try lia; last 2 first.
+  - now rewrite Pos2Z.inj_pow, radix_to_pos.
+  - now rewrite Pos2Z.inj_pow, radix_to_pos; lia.
+  simpl; unfold y, p1;  rewrite FtoR_abs.
+  rewrite Pos2Z.inj_pow, radix_to_pos.
+  replace  1%R 
+    with
+    (0 +
+      Z2R (beta ^ Z.pos n1)* (1 / Z2R (beta ^ Z.pos n1)))%R; last first.
+    field; last now apply Rlt_neq_sym; lra.
+  apply new_location_correct; try lia.
+  - apply Rdiv_lt_0_compat; try lra.
+  apply inbetween_Exact.
+  simpl.
+  rewrite P2R_Z2R, Z.pow_pos_fold.
+  now field; lra.
+destruct mode; apply (f_equal Z2R).
+- now eapply inbetween_int_UP_sign.
+- now eapply inbetween_int_DN_sign.
+- now eapply inbetween_int_ZR_sign with (l := (convert_location_inv p1)).
+- now eapply inbetween_int_NE_sign.
+(* *)
+set (x := Float b p _).
+set (p1 := pos_Lo).
+pose (y := (FtoR beta b p (Z.neg n1))).
+apply trans_equal with (y :=
+ Xreal (Z2R
+ (cond_Zopp (Rlt_bool y 0)
+      (mode_choice mode (Rlt_bool y 0) 
+                    0  (convert_location_inv p1))))).
+  unfold y; rewrite Rlt_bool_float.
+  now destruct b; destruct mode; simpl; destruct p1.
+apply (f_equal Xreal).
+apply sym_equal.
+assert (V : (0 < P2R p)%R).
+   now rewrite P2R_Z2R; apply (Z2R_lt 0).
+assert (V0 : (1 < beta ^ Z.pos n1)%Z) by now apply Zpower_gt_1.
+assert (V1 : (1 < Z2R (beta ^ Z.pos n1))%R) by now apply (Z2R_lt 1).
+assert (V2 : (Z.pos p < beta ^ Z.pos n1)%Z).
+  generalize (Zdigits_correct beta (Z.pos p)).
+  intros [_ V2].
+  apply Zlt_trans with (1 := V2).
+  apply Zpower_lt; lia.
+assert (V3 : inbetween_int 0 (Rabs y) (convert_location_inv p1)).
+  unfold y, p1, inbetween_int.
+  rewrite FtoR_abs.
+  apply inbetween_Inexact; simpl; rewrite Z.pow_pos_fold.
+  - split; try lra.
+    - apply Rdiv_lt_0_compat; lra.
+    - apply Rdiv_gt_mult_pos; try lra.
+      rewrite P2R_Z2R, Rmult_1_r; apply Z2R_lt; lia.
+  - rewrite Rcompare_div_l; try lra.
+    replace (Z2R (beta ^ Z.pos n1) * ((0 + 1) / 2))%R with
+            (Z2R (beta ^ Z.pos n1) / 2)%R; last first.
+      now unfold Rdiv; ring.
+    rewrite Rcompare_div_r; try lra.
+    rewrite P2R_Z2R, <- (Z2R_mult 2).
+    rewrite Rcompare_Z2R.
+    apply Zcompare_Lt; apply Zgt_lt.
+    apply Zgt_le_trans with (m := (beta * Z.pos p)%Z); last first.
+      now apply Zmult_le_compat_r; lia.
+    apply Zle_gt_trans with (m := (beta ^ (1 + Zdigits beta (Z.pos p)))%Z).
+      now apply Zpower_le; lia.
+    rewrite Zpower_plus, Z.pow_1_r; try lia; last first.
+      now apply Zdigits_ge_0.
+    apply Zmult_gt_compat_l; try lia.
+    generalize (Zdigits_correct beta (Z.pos p)); lia.
+destruct mode; apply (f_equal Z2R).
+- now eapply inbetween_int_UP_sign.
+- now eapply inbetween_int_DN_sign.
+- now eapply inbetween_int_ZR_sign with (l := (convert_location_inv p1)).
+- now eapply inbetween_int_NE_sign.
+(* *)
+rewrite Zdiv_eucl_unique.
+set (q := (_ / _)%Z).
+set (r := (_ mod _)%Z).
+assert (Pq : (0 < q)%Z).
+  apply  Z.div_str_pos; split; try lia.
+  generalize (Zdigits_correct beta (Z.pos p)); intros [U1 U2].
+  apply Zle_trans with (2 := U1).
+  rewrite Pos2Z.inj_pow, radix_to_pos.
+  now apply Zpower_le; lia.
+assert (Pr : (0 <= r < Z.pos (Z.to_pos beta ^ n1))%Z).
+  now apply Z_mod_lt.
+revert Pq.
+case_eq  q; try lia; intros q1 Hq1; try lia; intros _.
+unfold FtoX.
+rewrite FtoR_split.
+rewrite adjust_mantissa_correct, adjust_pos_correct; last 2 first.
+- rewrite Pos2Z.inj_pow, radix_to_pos.
+  now apply Zpower_gt_1.
+- now apply Pr.
+unfold F2R; simpl bpow; rewrite Rmult_1_r.
+pose (ll := new_location (Z.pos (Z.to_pos beta ^ n1)) r loc_Exact).
+assert (V : inbetween_int q (P2R p / Z2R (Z.pow_pos beta n1)) ll).
+  unfold q, inbetween_int, ll.
+  replace  (Z2R (Z.pos p / Z.pos (Z.to_pos beta ^ n1) + 1))%R 
+    with
+    (Z2R (Z.pos p / Z.pos (Z.to_pos beta ^ n1)) +
+      Z2R (Z.pos (Z.to_pos beta ^ n1)) * (1 / Z2R (Z.pos (Z.to_pos beta ^ n1))))%R; last first.
+    rewrite Z2R_plus; simpl.
+    field.
+    apply Rlt_neq_sym.
+    rewrite P2R_Z2R.
+    now apply (Z2R_lt 0).
+  apply new_location_correct; try lia.
+  - apply Rdiv_lt_0_compat; try lra.
+    now apply (Z2R_lt 0).
+  - rewrite Pos2Z.inj_pow, radix_to_pos.
+    now apply Zpower_gt_1.
+  apply inbetween_Exact.
+  unfold r.
+  rewrite P2R_Z2R, Pos2Z.inj_pow, radix_to_pos, Z.pow_pos_fold.
+  assert (0 < beta ^ Z.pos n1)%Z.
+    apply Zpower_gt_0; lia.
+  rewrite (Z_div_mod_eq (Z.pos p) (beta ^ Z.pos n1)) at 1; try lia.
+  rewrite Z2R_plus, Z2R_mult.
+  field.
+  apply Rlt_neq_sym; apply (Z2R_lt 0); lia.
+unfold Fnum; apply sym_equal.
+rewrite <-(Rlt_bool_float beta b p (Z.neg n1)) at 2 3.
+destruct mode; unfold Xlift, Rnearbyint, F2R; do 2 eapply f_equal.
+- apply inbetween_int_UP_sign.
+  now rewrite FtoR_abs, <- Hq1.
+- apply inbetween_int_DN_sign.
+  now rewrite FtoR_abs, <- Hq1.
+- apply inbetween_int_ZR_sign with (l := ll).
+  now rewrite FtoR_abs, <- Hq1.
+- apply inbetween_int_NE_sign with (l := ll).
+  now rewrite FtoR_abs, <- Hq1.
+Qed.
 
 (*
  * Fadd
