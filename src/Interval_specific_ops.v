@@ -1518,6 +1518,23 @@ Lemma nearbyint_correct :
   forall mode x,
   toX (nearbyint mode x) = Xnearbyint mode (toX x).
 Proof.
-Admitted.
+intros mode x.
+unfold toX.
+destruct x as [|mx ex] ; try easy.
+simpl.
+generalize (mantissa_sign_correct mx).
+case (mantissa_sign mx).
+- rewrite toF_zero.
+  simpl.
+  change 0%R with (Z2R 0).
+  now rewrite (Rnearbyint_Z2R mode 0).
+intros s m [_ H].
+rewrite <- Fnearbyint_exact_correct.
+rewrite round_at_exp_aux_correct; try easy.
+unfold Fnearbyint_exact.
+eapply f_equal.
+eapply f_equal2; try easy.
+now rewrite exponent_zero_correct.
+Qed.
 
 End SpecificFloat.
