@@ -107,15 +107,15 @@ Definition mantissa_shr m d pos :=
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
+
 Fixpoint mantissa_shrp_aux m d :=
-  match m with 
-  | xH    => if (d =? 0)%Z then pos_Mi else pos_Up
-  | xO m1 => if (d =? 0)%Z then pos_Up else mantissa_shrp_aux m1 (d - 1)%Z 
-  | xI m1 => pos_Up
-  end.
+  if (d =? 1)%positive then
+      if (m =? 1)%positive then pos_Mi else pos_Up
+  else 
+      match m with  xO m1 => mantissa_shrp_aux m1 (Ppred d) | _ => pos_Up end.
 
 Lemma mantissa_shrp_aux_correct m d :
-   mantissa_shrp_aux m (Zpos d) =
+   mantissa_shrp_aux m (Psucc d) =
    match (m ?= shift radix 1 d)%positive with
         | Eq  => pos_Mi
         |  _  => pos_Up
@@ -130,24 +130,25 @@ rewrite <- radix_to_pos, <- Pos2Z.inj_pow.
 revert d; induction m as [| m | m]; intros d.
 - case (Pos.succ_pred_or d); intro Hd.
     now rewrite Hd; simpl; destruct m.
-  rewrite <- Hd, Pos2Z.inj_succ.
-  now rewrite Pos.pow_succ_r.
+  rewrite <- Hd, Pos.pow_succ_r.
+  now unfold mantissa_shrp_aux; case Pos.eqb.
 - case (Pos.succ_pred_or d); intro Hd.
-    now rewrite Hd; simpl; destruct m.
-  rewrite <- Hd, Pos2Z.inj_succ, Pos.pow_succ_r.
+    now rewrite Hd; destruct m.
+  rewrite <- Hd at 2.
+  rewrite Pos.pow_succ_r.
   rewrite <- Pos2Z.inj_eqb, Pos.eqb_compare, Pos.compare_xO_xO.
   rewrite <- Pos.eqb_compare, Pos2Z.inj_eqb, <- IHm; simpl.
-  eapply f_equal2; try easy.
-  case Pos.pred; simpl; try easy.
-  now intros p; rewrite Pos.pred_double_succ.
+  now rewrite Hd, Pos.pred_succ; destruct d.
 case (Pos.succ_pred_or d); intro Hd.
     now rewrite Hd.
-now rewrite <- Hd, Pos2Z.inj_succ, Pos.pow_succ_r.
+rewrite <- Hd at 2.
+rewrite Pos.pow_succ_r.
+now destruct d.
 Qed.
 
 Definition mantissa_shrp m d pos :=
   match pos with
-  | pos_Eq => mantissa_shrp_aux (xO m) d
+  | pos_Eq => mantissa_shrp_aux (xO m) (Psucc (Z.to_pos d))
   | _ => pos_Up
   end.
 
