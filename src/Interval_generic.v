@@ -316,8 +316,7 @@ Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
           Float sign xH e2
         else Fzero
       | Lt =>
-        let pos2 := pos_Lo in
-        if need_change_zero mode pos2 sign then
+        if need_change_zero mode pos_Lo sign then
           Float sign xH e2
         else Fzero
       end
