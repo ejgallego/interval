@@ -109,10 +109,13 @@ Definition mantissa_shr m d pos :=
 
 
 Fixpoint mantissa_shrp_aux m d :=
-  if (d =? 1)%positive then
-      if (m =? 1)%positive then pos_Mi else pos_Up
-  else 
-      match m with  xO m1 => mantissa_shrp_aux m1 (Ppred d) | _ => pos_Up end.
+  match m with 
+  | xO m1 => 
+      if (d =? 1)%positive then pos_Up else mantissa_shrp_aux m1 (Ppred d)
+  | xI m1 => pos_Up
+  | xH    =>
+      if (d =? 1)%positive then pos_Mi else pos_Up
+  end.
 
 Lemma mantissa_shrp_aux_correct m d :
    mantissa_shrp_aux m (Psucc d) =
