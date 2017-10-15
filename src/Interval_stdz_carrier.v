@@ -107,14 +107,47 @@ Definition mantissa_shr m d pos :=
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
-(* could inline ?= and shift *)
-Definition mantissa_shrp m d pos :=
-  match pos with
-  | pos_Eq => 
-         match (xO m ?= shift radix 1 (Z.to_pos d))%positive with
+Fixpoint mantissa_shrp_aux m d :=
+  match m with 
+  | xH    => if (d =? 0)%Z then pos_Mi else pos_Up
+  | xO m1 => if (d =? 0)%Z then pos_Up else mantissa_shrp_aux m1 (d - 1)%Z 
+  | xI m1 => pos_Up
+  end.
+
+Lemma mantissa_shrp_aux_correct m d :
+   mantissa_shrp_aux m (Zpos d) =
+   match (m ?= shift radix 1 d)%positive with
         | Eq  => pos_Mi
         |  _  => pos_Up
-        end
+        end.
+Proof.
+apply eq_trans with
+   (if (m =? shift radix 1 d)%positive then pos_Mi else pos_Up);
+     last first.
+  now rewrite Pos.eqb_compare; destruct Pos.compare.
+rewrite Pos2Z.inj_eqb, shift_correct, Z.pow_pos_fold, Zmult_1_l.
+rewrite <- radix_to_pos, <- Pos2Z.inj_pow.
+revert d; induction m as [| m | m]; intros d.
+- case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd; simpl; destruct m.
+  rewrite <- Hd, Pos2Z.inj_succ.
+  now rewrite Pos.pow_succ_r.
+- case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd; simpl; destruct m.
+  rewrite <- Hd, Pos2Z.inj_succ, Pos.pow_succ_r.
+  rewrite <- Pos2Z.inj_eqb, Pos.eqb_compare, Pos.compare_xO_xO.
+  rewrite <- Pos.eqb_compare, Pos2Z.inj_eqb, <- IHm; simpl.
+  eapply f_equal2; try easy.
+  case Pos.pred; simpl; try easy.
+  now intros p; rewrite Pos.pred_double_succ.
+case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd.
+now rewrite <- Hd, Pos2Z.inj_succ, Pos.pow_succ_r.
+Qed.
+
+Definition mantissa_shrp m d pos :=
+  match pos with
+  | pos_Eq => mantissa_shrp_aux (xO m) d
   | _ => pos_Up
   end.
 
@@ -407,6 +440,7 @@ rewrite Pos2Z.inj_succ.
 replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
 intros [Hl _].
 unfold mantissa_shrp; simpl Z.to_pos.
+rewrite mantissa_shrp_aux_correct.
 replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
   apply Pos2Z.inj.
   rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH).
