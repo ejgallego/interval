@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith.
+Require Import Lia.
 Require Import Bool.
 Require Import Flocq.Core.Fcore_digits.
 Require Import Flocq.Calc.Fcalc_bracket.
@@ -28,6 +29,8 @@ Require Import Interval_generic.
 Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 Require Import Interval_specific_sig.
+
+Import ssrbool.
 
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
@@ -599,17 +602,32 @@ Definition round_at_exp_aux mode e2 sign m1 e1 pos :=
     | Gt =>
       let (m2, pos2) := mantissa_shr m1 nb pos in
       float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
-    | Eq => float_aux sign m1 e1 (* TODO *)
+    | Eq => 
+      let pos2 := mantissa_shrp m1 nb pos in
+      if need_change_zero mode pos2 sign then
+        float_aux sign mantissa_one e2
+      else zero
     | Lt =>
       let pos2 := match pos with pos_Eq => pos_Eq | _ => pos_Lo end in
-      if need_change_zero mode pos2 sign then
+      if need_change_zero mode pos_Lo sign then
         float_aux sign mantissa_one e2
       else zero
     end
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
-  | Lt => (* TODO *)
-    float_aux sign (adjust_mantissa mode (mantissa_shl mantissa_one (exponent_neg nb)) pos sign) e2
+  | Lt =>
+      if need_change_radix even_radix mode (mantissa_even m1) pos sign then
+        let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
+        float_aux sign m2 e2
+      else float_aux sign m1 e1
   end.
+
+Lemma toF_zero : toF zero = Fzero.
+Proof.
+unfold toF; simpl.
+generalize (mantissa_sign_correct mantissa_zero).
+rewrite mantissa_zero_correct.
+now destruct mantissa_sign; auto; destruct s; intros []; discriminate.
+Qed.
 
 Lemma round_at_exp_aux_correct :
   forall mode e2 sign m1 e1 pos,
@@ -617,7 +635,76 @@ Lemma round_at_exp_aux_correct :
   FtoX (toF (round_at_exp_aux mode e2 sign m1 e1 pos)) =
   FtoX (Fround_at_exp mode (EtoZ e2) (@Interval_generic.Ufloat radix sign (MtoP m1) (EtoZ e1) pos)).
 Proof.
-Admitted.
+intros mode p' sign m1 e1 pos Hm1.
+apply f_equal.
+unfold round_at_exp_aux.
+rewrite exponent_cmp_correct.
+rewrite exponent_sub_correct.
+rewrite exponent_zero_correct.
+unfold Fround_at_exp.
+unfold radix.
+case_eq (EtoZ p' - EtoZ e1)%Z ;
+  unfold Zcompare.
+(* *)
+intros Hd.
+destruct (adjust_mantissa_correct mode m1 pos sign Hm1) as (H1,H2).
+now rewrite toF_float, H1.
+(* *)
+intros dp Hd.
+rewrite exponent_cmp_correct, mantissa_digits_correct, exponent_sub_correct; auto.
+rewrite Hd; simpl Zcompare.
+case Pcompare_spec.
+- intros Hc.
+  rewrite <- mantissa_shrp_correct with (z := (exponent_sub p' e1)); auto; last 2 first.
+  - now rewrite exponent_sub_correct.
+  - rewrite shift_correct, Z.pow_pos_fold.
+    rewrite <- Hc, <- digits_conversion.
+    destruct (Zdigits_correct Carrier.radix (Z.pos (MtoP m1))).
+    now lia.
+  - destruct need_change_zero; auto.
+    - destruct mantissa_one_correct as [Ho1 Ho2].
+      now rewrite toF_float, Ho1. 
+    - now apply toF_zero.
+- intros Hc.
+  rewrite fun_if with (f := toF).
+  destruct mantissa_one_correct as [Ho1 Ho2].
+  now rewrite toF_zero, toF_float, Ho1.
+- intros Hc.
+  refine ( _ (mantissa_shr_correct dp m1 (exponent_sub p' e1) pos Hm1 _ _)); last 2 first.
+  - now rewrite exponent_sub_correct.
+  - rewrite shift_correct, Z.pow_pos_fold.
+  - assert (He: (Zpos dp <= Zpos ( count_digits Carrier.radix (MtoP m1)) -1)%Z) by lia.
+    generalize (Zpower_le Carrier.radix  _ _ He).
+    rewrite <- digits_conversion.
+    destruct (Zdigits_correct Carrier.radix (Z.pos (MtoP m1))).
+    now lia.
+  case mantissa_shr.
+  intros sq sl.
+  case Zdiv_eucl.
+  intros q r (Hq, (Hl, Vq)).
+  rewrite <- Hq.
+  destruct (adjust_mantissa_correct mode sq sl sign Vq) as (Ha, Va).
+  rewrite toF_float with (1 := Va).
+  now rewrite Ha, <- Hl.
+(* *)
+intros dp Hd.
+rewrite mantissa_even_correct with (1 := Hm1).
+unfold need_change_radix2, even_radix, radix, Zeven.
+case need_change_radix.
+2: now apply toF_float.
+generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub p' e1)) Hm1).
+rewrite exponent_neg_correct, exponent_sub_correct.
+rewrite Hd.
+intros H1.
+specialize (H1 (refl_equal _)).
+assert (H2 := mantissa_add_correct (mantissa_shl m1 (exponent_neg (exponent_sub p' e1)))
+  mantissa_one (proj2 H1) (proj2 mantissa_one_correct)).
+rewrite toF_float. 2: easy.
+rewrite (proj1 H2).
+rewrite (proj1 H1).
+rewrite (proj1 (mantissa_one_correct)).
+now rewrite Pplus_one_succ_r.
+Qed.
 
 Definition round mode prec (f : type) :=
   match f with
