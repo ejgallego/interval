@@ -19,6 +19,7 @@ liability. See the COPYING file for more details.
 
 Require Import Flocq.Core.Fcore_Raux.
 Require Import ZArith.
+Require Import Psatz.
 Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -104,6 +105,17 @@ Definition mantissa_shr m d pos :=
   | Zpos nb =>
     iter_pos mantissa_shr_aux nb (m, pos)
   | _ => (xH, pos_Eq) (* dummy *)
+  end.
+
+(* could inline ?= and shift *)
+Definition mantissa_shrp m d pos :=
+  match pos with
+  | pos_Eq => 
+         match (xO m ?= shift radix 1 (Z.to_pos d))%positive with
+        | Eq  => pos_Mi
+        |  _  => pos_Up
+        end
+  | _ => pos_Up
   end.
 
 Definition mantissa_div := fun m d => mantissa_split_div m d pos_Eq.
@@ -376,6 +388,38 @@ induction (Pos.to_nat x) as [|p IHp].
     case Zcompare ; try easy ; case k ; easy.
     case Zcompare ; try easy ; case k ; easy.
     now rewrite Hr.
+Qed.
+
+Lemma mantissa_shrp_correct :
+  forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
+  (Zpower radix (Zpos x - 1) <= Zpos (MtoP y) < Zpos (shift radix 1 x))%Z ->
+  let l := mantissa_shrp y z k in
+  l = adjust_pos (Zpos (MtoP y)) (shift radix 1 x) k.
+Proof.
+intros x y [|z|z] k _ Ezx; try discriminate.
+unfold MtoP.
+unfold EtoZ in Ezx; rewrite Ezx; simpl Z.to_pos; clear z Ezx.
+case (Pos.succ_pred_or x); intro Hx.
+  rewrite Hx.
+  now destruct y; destruct k.
+rewrite <- Hx at 1.
+rewrite Pos2Z.inj_succ.
+replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
+intros [Hl _].
+unfold mantissa_shrp; simpl Z.to_pos.
+replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
+  apply Pos2Z.inj.
+  rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH).
+  rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
+  rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
+simpl.
+rewrite Pos.compare_xO_xO; auto.
+revert Hl.
+rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
+simpl.
+case Pos.compare_spec; auto.
+  intro H; lia.
+now destruct k.
 Qed.
 
 Lemma mantissa_div_correct :
