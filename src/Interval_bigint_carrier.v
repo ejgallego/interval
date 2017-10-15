@@ -19,6 +19,7 @@ liability. See the COPYING file for more details.
 
 Require Import Bool.
 Require Import BigNumsCompat.
+Require Import Psatz.
 Require Import Flocq.Core.Fcore_Raux.
 Require Import Flocq.Core.Fcore_digits.
 Require Import Interval_definitions.
@@ -125,6 +126,17 @@ Definition mantissa_shr m d pos :=
     else       (* 11 *)
       pos_Up).
 *)
+
+Definition mantissa_shrp m d pos :=
+  match pos with
+  | pos_Eq => 
+        let dd := BigZ.to_N d in
+         match BigN.compare (BigN.shiftl m 1) (BigN.shiftl 1 dd) with
+        | Eq  => pos_Mi
+        |  _  => pos_Up
+        end
+  | _ => pos_Up
+  end.
 
 Definition exponent_div2_floor e :=
   match e with
@@ -626,6 +638,63 @@ case Zcompare_spec ; intros Hc.
   apply Z_mod_mult.
   clear -Hc ; omega.
   easy.
+Qed.
+
+Lemma mantissa_shrp_correct :
+  forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
+  (Zpower radix (Zpos x - 1) <= Zpos (MtoP y) < Zpos (shift radix 1 x))%Z ->
+  let l := mantissa_shrp y z k in
+  l = adjust_pos (Zpos (MtoP y)) (shift radix 1 x) k.
+Proof.
+intros x y z k [v Hv] Ezx.
+unfold mantissa_shrp.
+case (Pos.succ_pred_or x); intro Hx.
+  rewrite Hx.
+  intros Hl; simpl in Hl.
+  assert (MtoP y = 1%positive) by lia.
+  rewrite H.
+  unfold MtoP in H; rewrite Hv in H.
+  destruct k; simpl; auto.
+  unfold EtoZ in Ezx.
+  case BigN.compare_spec; auto;
+  intro H1; red in H1; 
+  rewrite !BigN.spec_shiftl, spec_to_Z, Ezx in H1;
+  simpl Z.sgn in H1;
+  rewrite Hx, Hv in H1; simpl in H1; lia.
+rewrite <- Hx at 1.
+rewrite Pos2Z.inj_succ.
+replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
+intros [Hl _].
+unfold mantissa_shrp.
+replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
+  apply Pos2Z.inj.
+  rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH).
+  rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
+  rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
+simpl.
+replace 
+  (BigN.shiftl y 1 ?= BigN.shiftl 1 (BigZ.to_N z))%bigN 
+with 
+   (MtoP y ?= 2 ^ Pos.pred x)%positive.
+  revert Hl.
+  rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
+  simpl.
+  case Pos.compare_spec; auto.
+    intro H; lia.
+  now destruct k.
+rewrite BigN.spec_compare, !BigN.spec_shiftl.
+rewrite Z.shiftl_1_l.
+unfold EtoZ in Ezx.
+rewrite spec_to_Z, Ezx.
+unfold MtoP; rewrite Hv.
+rewrite Z.mul_1_l.
+rewrite <- Hx at 2.
+rewrite Pos2Z.inj_succ.
+rewrite Z.pow_succ_r, Z.mul_comm; try lia.
+replace (Z.shiftl (Z.pos v) [1]%bigN)  with
+   (Zpos v * 2)%Z by (simpl; rewrite Pos2Z.inj_mul; lia).
+rewrite <- Pos2Z.inj_pow; auto.
+now rewrite <- Zmult_compare_compat_r.
 Qed.
 
 Lemma mantissa_div_correct :
