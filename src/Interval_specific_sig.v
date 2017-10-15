@@ -69,6 +69,7 @@ Parameter mantissa_even : mantissa_type -> bool.
 Parameter mantissa_scale2 : mantissa_type -> exponent_type -> mantissa_type * exponent_type.
 Parameter mantissa_shl : mantissa_type -> exponent_type -> mantissa_type.
 Parameter mantissa_shr : mantissa_type -> exponent_type -> position -> mantissa_type * position.
+Parameter mantissa_shrp : mantissa_type -> exponent_type -> position -> position.
 Parameter mantissa_div : mantissa_type -> mantissa_type -> mantissa_type * position.
 Parameter mantissa_sqrt : mantissa_type -> mantissa_type * position.
 
@@ -162,6 +163,12 @@ Parameter mantissa_shr_correct :
   Zpos (MtoP sq) = q /\
   l = adjust_pos r (shift radix 1 x) k /\
   valid_mantissa sq.
+
+Parameter mantissa_shrp_correct :
+  forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
+  (Zpower radix (Zpos x - 1) <= Zpos (MtoP y) < Zpos (shift radix 1 x))%Z ->
+  let l := mantissa_shrp y z k in
+  l = adjust_pos (Zpos (MtoP y)) (shift radix 1 x) k.
 
 Parameter mantissa_div_correct :
   forall x y, valid_mantissa x -> valid_mantissa y ->
