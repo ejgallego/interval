@@ -859,7 +859,7 @@ Lemma Znearest_Z2R c z : Znearest c (Z2R z) = z.
 
 Proof.
 unfold Znearest; rewrite Zceil_Z2R, Zfloor_Z2R.
-now destruct Rcompare; auto; destruct c.
+now destruct Rcompare; try easy; destruct c.
 Qed.
 
 Lemma Rnearbyint_Z2R mode z : Rnearbyint mode (Z2R z) = (Z2R z).
@@ -899,12 +899,12 @@ Lemma Rcompare_div_r x y z :
   (0 < z)%R -> Rcompare x (y / z) = Rcompare (z * x) y.
 Proof.
 intro yP.
-rewrite Rcompare_sym, Rcompare_div_l, Rcompare_sym; auto.
+rewrite Rcompare_sym, Rcompare_div_l, Rcompare_sym; try easy.
   now destruct Rcompare.
 Qed.
 
 Lemma P2R_Z2R p : P2R p = Z2R (Zpos p).
-Proof. auto. Qed.
+Proof. easy. Qed.
 
 Lemma Rlt_bool_float beta b m e : Rlt_bool (FtoR beta b m e) 0 = b.
 Proof.
@@ -937,7 +937,7 @@ Proof.
 intros beta mode x.
 assert (bP := Zle_bool_imp_le _ _ (radix_prop beta)).
 unfold Fnearbyint_exact, Fround_at_exp.
-destruct x as [| |b p z]; simpl float_to_ufloat; lazy iota beta; auto.
+destruct x as [| |b p z]; simpl float_to_ufloat; lazy iota beta; try easy.
   now generalize (Rnearbyint_Z2R mode 0); simpl; intro H; rewrite H.
 destruct z as [| p1 | n1]; simpl Zminus; lazy iota beta.
 - now rewrite adjust_mantissa_Eq; simpl; rewrite Rnearbyint_Z2R.

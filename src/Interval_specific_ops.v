@@ -626,7 +626,7 @@ Proof.
 unfold toF; simpl.
 generalize (mantissa_sign_correct mantissa_zero).
 rewrite mantissa_zero_correct.
-now destruct mantissa_sign; auto; destruct s; intros []; discriminate.
+now destruct mantissa_sign; try easy; destruct s; intros []; discriminate.
 Qed.
 
 Lemma round_at_exp_aux_correct :
@@ -651,17 +651,17 @@ destruct (adjust_mantissa_correct mode m1 pos sign Hm1) as (H1,H2).
 now rewrite toF_float, H1.
 (* *)
 intros dp Hd.
-rewrite exponent_cmp_correct, mantissa_digits_correct, exponent_sub_correct; auto.
+rewrite exponent_cmp_correct, mantissa_digits_correct, exponent_sub_correct; try easy.
 rewrite Hd; simpl Zcompare.
 case Pcompare_spec.
 - intros Hc.
-  rewrite <- mantissa_shrp_correct with (z := (exponent_sub p' e1)); auto; last 2 first.
+  rewrite <- mantissa_shrp_correct with (z := (exponent_sub p' e1)); try easy; last 2 first.
   - now rewrite exponent_sub_correct.
   - rewrite shift_correct, Z.pow_pos_fold.
     rewrite <- Hc, <- digits_conversion.
     destruct (Zdigits_correct Carrier.radix (Z.pos (MtoP m1))).
     now lia.
-  - destruct need_change_zero; auto.
+  - destruct need_change_zero; try easy.
     - destruct mantissa_one_correct as [Ho1 Ho2].
       now rewrite toF_float, Ho1. 
     - now apply toF_zero.

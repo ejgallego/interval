@@ -654,9 +654,9 @@ case (Pos.succ_pred_or x); intro Hx.
   assert (MtoP y = 1%positive) by lia.
   rewrite H.
   unfold MtoP in H; rewrite Hv in H.
-  destruct k; simpl; auto.
+  destruct k; simpl; try easy.
   unfold EtoZ in Ezx.
-  case BigN.compare_spec; auto;
+  case BigN.compare_spec; try easy;
   intro H1; red in H1; 
   rewrite !BigN.spec_shiftl, spec_to_Z, Ezx in H1;
   simpl Z.sgn in H1;
@@ -679,7 +679,7 @@ with
   revert Hl.
   rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
   simpl.
-  case Pos.compare_spec; auto.
+  case Pos.compare_spec; try easy.
     intro H; lia.
   now destruct k.
 rewrite BigN.spec_compare, !BigN.spec_shiftl.
@@ -693,7 +693,7 @@ rewrite Pos2Z.inj_succ.
 rewrite Z.pow_succ_r, Z.mul_comm; try lia.
 replace (Z.shiftl (Z.pos v) [1]%bigN)  with
    (Zpos v * 2)%Z by (simpl; rewrite Pos2Z.inj_mul; lia).
-rewrite <- Pos2Z.inj_pow; auto.
+rewrite <- Pos2Z.inj_pow; try easy.
 now rewrite <- Zmult_compare_compat_r.
 Qed.
 

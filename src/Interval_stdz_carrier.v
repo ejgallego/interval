@@ -447,11 +447,11 @@ replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last fir
   rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
   rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
 simpl.
-rewrite Pos.compare_xO_xO; auto.
+rewrite Pos.compare_xO_xO; try easy.
 revert Hl.
 rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
 simpl.
-case Pos.compare_spec; auto.
+case Pos.compare_spec; try easy.
   intro H; lia.
 now destruct k.
 Qed.
