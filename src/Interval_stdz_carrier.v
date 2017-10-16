@@ -151,7 +151,7 @@ Qed.
 
 Definition mantissa_shrp m d pos :=
   match pos with
-  | pos_Eq => mantissa_shrp_aux (xO m) (Psucc (Z.to_pos d))
+  | pos_Eq => mantissa_shrp_aux m (Z.to_pos d)
   | _ => pos_Up
   end.
 
@@ -444,6 +444,10 @@ rewrite Pos2Z.inj_succ.
 replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
 intros [Hl _].
 unfold mantissa_shrp; simpl Z.to_pos.
+replace (mantissa_shrp_aux y x) with
+     (mantissa_shrp_aux (xO y) (Psucc x)); last first.
+  simpl.
+  now rewrite Pos.pred_succ; destruct x.
 rewrite mantissa_shrp_aux_correct.
 replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
   apply Pos2Z.inj.
