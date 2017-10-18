@@ -1,8 +1,9 @@
 Prerequisites
 -------------
 
-You need the Coq proof assistant (>= 8.5).
-You also need the following libraries:
+In addition to the Coq proof assistant (>= 8.5), you need the following
+libraries:
+
 - Mathematical Components (>= 1.6, http://math-comp.github.io/math-comp/)
 - Flocq (>= 2.5, http://flocq.gforge.inria.fr/)
 - Coquelicot (>= 3.0, http://coquelicot.saclay.inria.fr/)
@@ -18,7 +19,7 @@ Configuring, compiling and installing
 
 Ideally, you should just have to type:
 
-  $ ./configure && ./remake && ./remake install
+  $ ./configure && ./remake --jobs=2 && ./remake install
 
 The environment variable COQC can be passed to the configure script in order
 to set the Coq compiler command. The configure script defaults to "coqc".
