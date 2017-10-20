@@ -1735,7 +1735,7 @@ Definition operations prec deg xi :=
     | Exp => TM.exp (prec, deg) xi
     | Ln => TM.ln (prec, deg) xi
     | PowerInt n => TM.power_int n (prec, deg) xi
-    | Nearbyint m => fun _ => TM.dummy
+    | Nearbyint m => TM.nearbyint m (prec, deg) xi
  (* | _ => fun _ => TM.dummy *)
     end)
    (fun o =>
@@ -1810,7 +1810,7 @@ induction (rev prog) as [|t l].
     apply TM.exp_correct.
     apply TM.ln_correct.
     apply TM.power_int_correct.
-    intros ; apply TM.dummy_correct.
+    apply TM.nearbyint_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.
     apply TM.add_correct.
