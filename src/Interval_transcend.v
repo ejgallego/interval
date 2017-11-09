@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals Psatz.
-Require Import Flocq.Core.Fcore_digits.
+From Flocq Require Import Digits.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -81,13 +81,13 @@ Ltac bound_tac :=
   unfold Xround, Xbind ;
   match goal with
   | |- (round ?r rnd_DN ?p ?v <= ?v)%R =>
-    apply (proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply (proj1 (proj2 (Generic_fmt.round_DN_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (?v <= round ?r rnd_UP ?p ?v)%R =>
-    apply (proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply (proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
-    apply Rle_trans with (1 := proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply Rle_trans with (1 := proj1 (proj2 (Generic_fmt.round_DN_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
-    apply Rle_trans with (2 := proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply Rle_trans with (2 := proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   end.
 
 Definition toR x := proj_val (F.toX x).
@@ -205,8 +205,8 @@ assert (Hexit : forall k powu ft,
   rewrite F.zero_correct.
   rewrite F.div_correct, F.mul_correct, Hft.
   rewrite F.fromZ_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / Z2R (Z.of_nat (2 * (k + 1) + 1)))%R).
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / IZR (Z.of_nat (2 * (k + 1) + 1)))%R).
+    rewrite <- INR_IZR_INZ.
     replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (x ^ _)).
@@ -244,7 +244,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   rewrite plus_comm.
   apply lt_0_Sn.
   bound_tac.
@@ -293,7 +293,7 @@ clear Hpu'.
 revert Hpl Hpu.
 unfold toR at 3.
 rewrite F.fromZ_correct.
-change (Z2R 1) with (pow x (2 * 0)).
+change 1%R with (pow x (2 * 0)).
 change 3%Z with (Z_of_nat (2 * (0 + 1) + 1)).
 replace (Ai x 0%nat - atanc x)%R with ((-1) * 1 * (atanc x - Ai x 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
@@ -337,7 +337,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold I.convert.
   rewrite 2!F.div_correct, 2!F.mul_correct, Htp1.
   rewrite F.fromZ_correct.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   replace (2 * (n - S m + 1)) with (2 * (n - S m) + 2) by ring.
   rewrite pow_add.
   change (x ^ 2)%R with (x * (x * 1))%R.
@@ -403,8 +403,8 @@ rewrite F.add_exact_correct, Htp1.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 2), <- (inj_plus _ 2).
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 2), <- (inj_plus _ 2).
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
@@ -415,8 +415,8 @@ rewrite F.mul_correct.
 rewrite Rpl, Hsl''.
 simpl.
 split.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rmult_le_pos.
 apply Hpl.
 apply Hsl'.
@@ -489,8 +489,8 @@ assert (Hexit : forall k powu ft,
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
-  assert (A: (0 <= (-1) ^ (k + 1) * (atanc (toR x) - Ai (toR x) k) <= toR x ^ (2 * (k + 1)) / Z2R (Z.of_nat (2 * (k + 1) + 1)))%R).
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (atanc (toR x) - Ai (toR x) k) <= toR x ^ (2 * (k + 1)) / IZR (Z.of_nat (2 * (k + 1) + 1)))%R).
+    rewrite <- INR_IZR_INZ.
     replace (Ai (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ _)).
@@ -526,7 +526,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   rewrite plus_comm.
   apply lt_0_Sn.
   bound_tac.
@@ -541,7 +541,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_0_sqr.
   unfold toR at 2 in Hpu.
   now rewrite Hpu' in Hpu.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 unfold c1, c3.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
@@ -574,7 +574,7 @@ apply Req_le in Hpu.
 revert Hpl Hpu.
 unfold toR at 3 4.
 rewrite F.fromZ_correct.
-change (Z2R 1) with (pow (toR x) (2 * 0)).
+change 1%R with (pow (toR x) (2 * 0)).
 change 3%Z with (Z_of_nat (2 * (0 + 1) + 1)).
 replace (Ai (toR x) 0%nat - atanc (toR x))%R with ((-1) * 1 * (atanc (toR x) - Ai (toR x) 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
@@ -624,10 +624,10 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
-  apply (eq_Z2R _ 0) in H'.
+  apply (eq_IZR _ 0) in H'.
   now apply (Nat2Z.inj (2 * (n - S m + 1) + 1) 0) in H'.
   intros _.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   replace (2 * (n - S m + 1)) with (2 * (n - S m) + 2) by ring.
   rewrite pow_add.
   change (toR x ^ 2)%R with (toR x * (toR x * 1))%R.
@@ -635,15 +635,15 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   split ; bound_tac ; apply Rmult_le_compat_r ;
     (try (apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0) ; rewrite plus_comm ; apply lt_0_Sn)) ;
     bound_tac ; apply Rmult_le_compat ; try easy.
-  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-  apply Fcore_generic_fmt.generic_format_0.
+  apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Generic_fmt.generic_format_0.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
   rewrite pow_sqr.
   apply pow_le.
   apply Rle_0_sqr.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
@@ -656,8 +656,8 @@ rewrite F.add_exact_correct, Htp1.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 2), <- (inj_plus _ 2).
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 2), <- (inj_plus _ 2).
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
@@ -668,23 +668,23 @@ rewrite 2!F.mul_correct.
 rewrite Rpl, Rx.
 simpl.
 split.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rmult_le_pos.
 apply Hpl.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 bound_tac.
 replace (n - m + (n - m + 0)) with (2 * (n - S m) + 2) by (clear -Hm ; omega).
 rewrite pow_add.
 apply Rmult_le_compat ; try easy.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
 unfold toR, sqru.
 rewrite 2!F.mul_correct.
 rewrite Rpu, Rx.
@@ -699,7 +699,7 @@ apply Rle_0_sqr.
 apply pow2_ge_0.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 apply f_equal.
 change (Ai (toR x) (n - S m)%nat + (-1) ^ S (n - S m) * / INR (2 * S (n - S m) + 1) * toR x ^ (2 * S (n - S m)))%R
   with (Ai (toR x) (S (n - S m))).
@@ -725,24 +725,24 @@ generalize (F.PtoP (p * 31)).
 clear prec p.
 intros prec.
 assert (H: forall p, (2 <= p)%Z ->
-    contains (I.convert (atan_fast0i prec (I.inv prec (I.fromZ p)))) (Xreal (atan (/ Z2R p)))).
+    contains (I.convert (atan_fast0i prec (I.inv prec (I.fromZ p)))) (Xreal (atan (/ IZR p)))).
   intros p Hp.
   apply atan_fast0i_correct.
   rewrite Rabs_pos_eq.
   apply Rle_Rinv_pos.
   apply Rlt_0_2.
-  now apply (Z2R_le 2).
+  now apply IZR_le.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0).
+  apply IZR_lt.
   now apply Zlt_le_trans with (2 := Hp).
-  replace (Xreal (/ Z2R p)) with (Xinv (Xreal (Z2R p))).
+  replace (Xreal (/ IZR p)) with (Xinv (Xreal (IZR p))).
   apply I.inv_correct.
   apply I.fromZ_correct.
   unfold Xinv'.
   simpl.
   case is_zero_spec ; try easy.
   intros H.
-  apply (eq_Z2R p 0) in H.
+  apply (eq_IZR p 0) in H.
   elim Hp.
   now rewrite H.
 unfold pi4_gen.
@@ -765,6 +765,7 @@ rewrite F.cmp_correct, F.scale2_correct by easy.
 rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
 rewrite Rmult_1_l.
+change (Z.pow_pos 2 1) with 2%Z.
 case Rcompare_spec ; intros Bx'.
 apply atan_fast0_correct with (1 := Rx).
 rewrite Rabs_pos_eq with (1 := Bx).
@@ -929,7 +930,7 @@ Definition ln_fast1P prec xi :=
   | true =>
     ln1p_fast0i prec (I.sub prec xi (I.bnd c1 c1))
   | false =>
-    let m := Fcore_digits.Zdigits2 (F.StoZ (F.mag (I.upper xi))) in
+    let m := Digits.Zdigits2 (F.StoZ (F.mag (I.upper xi))) in
     let prec := F.incr_prec prec 10 in
     let fix reduce xi (nb : nat) {struct nb} :=
       match F'.le (I.upper xi) th, nb with
@@ -994,8 +995,8 @@ assert (Hexit : forall k powu ft,
   rewrite F.zero_correct.
   rewrite F.div_correct, F.mul_correct, Hft.
   rewrite F.fromZ_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / Z2R (Z.of_nat ((k + 1) + 1)))%R).
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / IZR (Z.of_nat ((k + 1) + 1)))%R).
+    rewrite <- INR_IZR_INZ.
     replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (n + 1) * x ^ n)%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (x ^ _)).
@@ -1036,7 +1037,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   rewrite plus_comm.
   apply lt_0_Sn.
   bound_tac.
@@ -1081,7 +1082,7 @@ clear Hpu'.
 revert Hpl Hpu.
 unfold toR at 3.
 rewrite F.fromZ_correct.
-change (Z2R 1) with (pow x 0).
+change 1%R with (pow x 0).
 change 2%Z with (Z_of_nat ((0 + 1) + 1)).
 replace (Ai x 0%nat - ln1pc x)%R with ((-1) * 1 * (ln1pc x - Ai x 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
@@ -1125,7 +1126,7 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold I.convert.
   rewrite 2!F.div_correct, 2!F.mul_correct, Htp1.
   rewrite F.fromZ_correct.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   rewrite pow_add.
   change (x ^ 1)%R with (x * 1)%R.
   rewrite Rmult_1_r.
@@ -1188,8 +1189,8 @@ rewrite F.add_exact_correct, Htp1.
 unfold c1.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 1), <- (inj_plus _ 1).
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 rewrite H.
 now rewrite plus_0_r.
 clear -Hm ; omega.
@@ -1197,8 +1198,8 @@ unfold toR.
 rewrite F.mul_correct, Rpl, Hxl.
 simpl.
 split.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 now apply Rmult_le_pos.
 bound_tac.
 replace (n - m) with (n - S m + 1) by (clear -Hm ; omega).
@@ -1255,8 +1256,8 @@ rewrite F.sub_correct, Hxl1.
 unfold c1.
 rewrite F.fromZ_correct.
 simpl.
-rewrite <- (Fcore_generic_fmt.round_0 F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN)).
-apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+rewrite <- (Generic_fmt.round_0 F.radix (FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN)).
+apply Generic_fmt.round_le ; auto with typeclass_instances.
 now apply Rle_0_minus.
 apply F'.le_correct in Hxu.
 apply Rle_trans with (toR xu - 1)%R.
@@ -1287,7 +1288,7 @@ set (thre := F.add_exact c1 (F.scale2 c1 sm8)).
 case_eq (F'.le (I.upper (I.bnd xl xu)) thre) ; intros Hxu.
 now apply H.
 clear Hxu.
-set (m := Fcore_digits.Zdigits2 (F.StoZ (F.mag (I.upper (I.bnd xl xu))))).
+set (m := Zdigits2 (F.StoZ (F.mag (I.upper (I.bnd xl xu))))).
 clearbody m.
 generalize (F.incr_prec prec 10).
 clear prec. intro prec.
@@ -1352,13 +1353,12 @@ apply Rlt_le_trans with (1 := H').
 exact Rle_0_1.
 intros _.
 simpl.
-rewrite <- (Fcore_generic_fmt.round_generic F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1).
-apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+rewrite <- (Generic_fmt.round_generic F.radix (FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1).
+apply Generic_fmt.round_le ; auto with typeclass_instances.
 rewrite <- sqrt_1.
 now apply sqrt_le_1_alt.
-apply Fcore_FLX.generic_format_FLX.
-exists (Fcore_defs.Float F.radix 1 0).
-split.
+apply FLX.generic_format_FLX.
+exists (Definitions.Float F.radix 1 0).
 apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.
@@ -1445,17 +1445,16 @@ intros ->.
 elim Rlt_irrefl with (1 := Hx).
 intros _.
 simpl.
-rewrite <- (Fcore_generic_fmt.round_generic F.radix (Fcore_FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1) at 1.
-apply Fcore_generic_fmt.round_le ; auto with typeclass_instances.
+rewrite <- (Generic_fmt.round_generic F.radix (FLX.FLX_exp (Z.pos (F.prec prec))) (rnd_of_mode rnd_DN) 1) at 1.
+apply Generic_fmt.round_le ; auto with typeclass_instances.
 unfold Rdiv.
 rewrite Rmult_1_l.
 rewrite <- Rinv_1.
 apply Rinv_le.
 exact Hx.
 now apply Rlt_le.
-apply Fcore_FLX.generic_format_FLX.
-exists (Fcore_defs.Float F.radix 1 0).
-split.
+apply FLX.generic_format_FLX.
+exists (Definitions.Float F.radix 1 0).
 apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.
@@ -1639,8 +1638,8 @@ assert (Hexit : forall k powu ft,
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
-  assert (A: (0 <= (-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k) <= toR x ^ (2 * (k + 1)) / Z2R (Z.of_nat (fact (2 * (k + 1)))))%R).
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k) <= toR x ^ (2 * (k + 1)) / IZR (Z.of_nat (fact (2 * (k + 1)))))%R).
+    rewrite <- INR_IZR_INZ.
     replace (A1 (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ _)).
@@ -1680,7 +1679,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   apply lt_O_fact.
   bound_tac.
   replace (2 * (k + 1)) with (2 * k + 2) by ring.
@@ -1694,7 +1693,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_0_sqr.
   unfold toR at 2 in Hpu.
   now rewrite Hpu' in Hpu.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 unfold c1, c2, c3.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
@@ -1727,7 +1726,7 @@ apply Req_le in Hpu.
 revert Hpl Hpu.
 unfold toR at 3 4.
 rewrite F.fromZ_correct.
-change (Z2R 1) with (pow (toR x) (2 * 0)).
+change 1%R with (pow (toR x) (2 * 0)).
 change 3%Z with (Z_of_nat (2 * (0 + 1) + 1)).
 change 2%Z with (Z_of_nat (fact (2 * (0 + 1)))).
 replace (A1 (toR x) 0 - cos (toR x))%R with ((-1) * 1 * (cos (toR x) - A1 (toR x) 0))%R by ring.
@@ -1781,11 +1780,11 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
-  apply (eq_Z2R _ 0) in H'.
+  apply (eq_IZR _ 0) in H'.
   elim (fact_neq_0 (2 * (n - S m + 1))).
   now apply Nat2Z.inj.
   intros _.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   replace (2 * (n - S m + 1)) with (2 * (n - S m) + 2) by ring.
   rewrite pow_add.
   change (toR x ^ 2)%R with (toR x * (toR x * 1))%R.
@@ -1793,15 +1792,15 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   split ; bound_tac ; apply Rmult_le_compat_r ;
     (try apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0), lt_O_fact) ;
     bound_tac ; apply Rmult_le_compat ; try easy.
-  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-  apply Fcore_generic_fmt.generic_format_0.
+  apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Generic_fmt.generic_format_0.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
   rewrite pow_sqr.
   apply pow_le.
   apply Rle_0_sqr.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
@@ -1812,9 +1811,9 @@ rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
-rewrite <- 2!Z2R_mult, <- 2!inj_mult.
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 1), <- (inj_plus _ 1).
+rewrite <- 2!mult_IZR, <- 2!inj_mult.
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
@@ -1823,31 +1822,31 @@ rewrite F.add_exact_correct, Htp1, H.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 2), <- (inj_plus _ 2).
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 2), <- (inj_plus _ 2).
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 ring.
 clear -Hm ; omega.
 unfold toR, sqrl.
 rewrite 2!F.mul_correct, Rpl, Rx.
 simpl.
 split.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rmult_le_pos.
 apply Hpl.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 bound_tac.
 replace (n - m + (n - m + 0)) with (2 * (n - S m) + 2) by (clear -Hm ; omega).
 rewrite pow_add.
 apply Rmult_le_compat ; try easy.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
 unfold toR, sqru.
 rewrite 2!F.mul_correct, Rpu, Rx.
 simpl.
@@ -1861,7 +1860,7 @@ apply Rle_0_sqr.
 apply pow2_ge_0.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 apply f_equal.
 change (A1 (toR x) (n - S m) + (-1) ^ S (n - S m) * / INR (fact (2 * S (n - S m))) * toR x ^ (2 * S (n - S m)))%R
   with (A1 (toR x) (S (n - S m))).
@@ -1910,7 +1909,7 @@ apply Rle_trans with (1 := H0).
 apply Rlt_le.
 apply Rmult_lt_reg_l with (/4)%R.
 apply Rinv_0_lt_compat.
-now apply (Z2R_lt 0 4).
+now apply IZR_lt.
 rewrite <- (Rmult_comm PI).
 apply Rlt_le_trans with (2 := proj1 (PI_ineq 0)).
 unfold tg_alt, PI_tg.
@@ -1966,12 +1965,12 @@ generalize (I.sign_large_correct ci).
 case (I.sign_large ci) ; intros ; try exact I.
 apply Rmult_le_neg_neg.
 apply Rmult_le_pos_neg.
-now apply (Z2R_le 0 2).
+now apply IZR_le.
 exact Hs.
 exact (proj2 (H _ Hc)).
 apply Rmult_le_neg_pos.
 apply Rmult_le_pos_neg.
-now apply (Z2R_le 0 2).
+now apply IZR_le.
 exact Hs.
 exact (proj2 (H _ Hc)).
 change (cos hx) with (proj_val (Xreal (cos hx))).
@@ -1979,18 +1978,19 @@ generalize (I.sign_large_correct ci).
 case (I.sign_large ci) ; intros ; try exact I.
 apply Rmult_le_pos_neg.
 apply Rmult_le_pos_pos.
-now apply (Z2R_le 0 2).
+now apply IZR_le.
 exact Hs.
 exact (proj2 (H _ Hc)).
 apply Rmult_le_pos_pos.
 apply Rmult_le_pos_pos.
-now apply (Z2R_le 0 2).
+now apply IZR_le.
 exact Hs.
 exact (proj2 (H _ Hc)).
 (* - . *)
 unfold toR, sm1.
 rewrite F.scale2_correct, Hxr by easy.
 simpl.
+change (Z.pow_pos 2 1) with 2%Z.
 field.
 (* - . *)
 unfold toR, sm1.
@@ -2000,7 +2000,7 @@ rewrite F.scale2_correct, Hxr by easy.
 simpl.
 apply Rmult_le_pos with (1 := Hx).
 apply Rlt_le, Rinv_0_lt_compat.
-now apply (Z2R_lt 0 2).
+now apply IZR_lt.
 Qed.
 
 (* 0 <= input *)
@@ -2137,8 +2137,8 @@ assert (Hexit : forall k powu ft,
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
-  assert (A: (0 <= (-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k) <= toR x ^ (2 * (k + 1)) / Z2R (Z.of_nat (fact (2 * (k + 1) + 1))))%R).
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k) <= toR x ^ (2 * (k + 1)) / IZR (Z.of_nat (fact (2 * (k + 1) + 1))))%R).
+    rewrite <- INR_IZR_INZ.
     replace (Si (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n + 1)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ _)).
@@ -2205,7 +2205,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   apply lt_O_fact.
   bound_tac.
   replace (2 * (k + 1)) with (2 * k + 2) by ring.
@@ -2219,7 +2219,7 @@ assert (Hexit : forall k powu ft,
   apply Rle_0_sqr.
   unfold toR at 2 in Hpu.
   now rewrite Hpu' in Hpu.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 unfold c1, c4, c6.
 generalize (F.scale (F.fromZ 1) (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
@@ -2252,7 +2252,7 @@ apply Req_le in Hpu.
 revert Hpl Hpu.
 unfold toR at 3 4.
 rewrite F.fromZ_correct.
-change (Z2R 1) with (pow (toR x) (2 * 0)).
+change 1%R with (pow (toR x) (2 * 0)).
 change 4%Z with (Z_of_nat (2 * (0 + 1) + 2)).
 change 6%Z with (Z_of_nat (fact (2 * (0 + 1) + 1))).
 replace (Si (toR x) 0%nat - sinc (toR x))%R with ((-1) * 1 * (sinc (toR x) - Si (toR x) 0%nat))%R by ring.
@@ -2306,11 +2306,11 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   unfold Xdiv', Xbind2, Xround, Xbind.
   case is_zero_spec.
   intros H'.
-  apply (eq_Z2R _ 0) in H'.
+  apply (eq_IZR _ 0) in H'.
   elim (fact_neq_0 (2 * (n - S m + 1) + 1)).
   now apply Nat2Z.inj.
   intros _.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   replace (2 * (n - S m + 1)) with (2 * (n - S m) + 2) by ring.
   rewrite pow_add.
   change (toR x ^ 2)%R with (toR x * (toR x * 1))%R.
@@ -2318,15 +2318,15 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   split ; bound_tac ; apply Rmult_le_compat_r ;
     (try apply Rlt_le, Rinv_0_lt_compat, (lt_INR 0), lt_O_fact) ;
     bound_tac ; apply Rmult_le_compat ; try easy.
-  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-  apply Fcore_generic_fmt.generic_format_0.
+  apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Generic_fmt.generic_format_0.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
   rewrite pow_sqr.
   apply pow_le.
   apply Rle_0_sqr.
   apply Rle_0_sqr.
-  apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+  apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 evar_last.
 apply IHm.
 unfold toR, sqrl.
@@ -2337,9 +2337,9 @@ rewrite 2!F.mul_exact_correct, F.add_exact_correct, Hft, Htp1.
 unfold c1.
 rewrite 4!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
-rewrite <- 2!Z2R_mult, <- 2!inj_mult.
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 1), <- (inj_plus _ 1).
+rewrite <- 2!mult_IZR, <- 2!inj_mult.
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 rewrite H.
 replace (n - m + 1 + (n - m + 1 + 0)) with (S (S (n - m + 0 + (n - m + 0 + 0)))) by ring.
 simpl.
@@ -2348,31 +2348,31 @@ rewrite F.add_exact_correct, Htp1, H.
 unfold c2.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 2), <- (inj_plus _ 2).
-apply (f_equal (fun v => Xreal (Z2R (Z.of_nat v)))).
+rewrite <- (plus_IZR _ 2), <- (inj_plus _ 2).
+apply (f_equal (fun v => Xreal (IZR (Z.of_nat v)))).
 ring.
 clear -Hm ; omega.
 unfold toR, sqrl.
 rewrite 2!F.mul_correct, Rpl, Rx.
 simpl.
 split.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rmult_le_pos.
 apply Hpl.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 bound_tac.
 replace (n - m + (n - m + 0)) with (2 * (n - S m) + 2) by (clear -Hm ; omega).
 rewrite pow_add.
 apply Rmult_le_compat ; try easy.
-apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-apply Fcore_generic_fmt.generic_format_0.
+apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+apply Generic_fmt.generic_format_0.
 apply Rle_0_sqr.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_DN_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_DN_pt _ (FLX.FLX_exp _)).
 unfold toR, sqru.
 rewrite 2!F.mul_correct, Rpu, Rx.
 simpl.
@@ -2386,7 +2386,7 @@ apply Rle_0_sqr.
 apply pow2_ge_0.
 unfold pow.
 rewrite Rmult_1_r.
-apply (Fcore_generic_fmt.round_UP_pt _ (Fcore_FLX.FLX_exp _)).
+apply (Generic_fmt.round_UP_pt _ (FLX.FLX_exp _)).
 apply f_equal.
 change (Si (toR x) (n - S m)%nat + (-1) ^ S (n - S m) * / INR (fact (2 * S (n - S m) + 1)) * toR x ^ (2 * S (n - S m)))%R
   with (Si (toR x) (S (n - S m))).
@@ -2584,6 +2584,7 @@ case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
   rewrite Rx, F.scale2_correct, F.fromZ_correct by easy.
   intros Bx'.
   simpl in Bx'.
+  change (Z.pow_pos 2 1) with 2%Z in Bx'.
   rewrite Rmult_1_l in Bx'.
   simpl proj_val.
   replace (Xtan (Xreal (toR x))) with (Xdiv (Xreal (sin (toR x))) (Xsqrt (Xsub (Xreal 1) (Xsqr (Xreal (sin (toR x))))))).
@@ -2888,10 +2889,10 @@ assert (Hexit : forall k powxu fp2,
   rewrite F.fromZ_correct.
   rewrite Rx.
   simpl.
-  assert (A: (0 <= (-1) ^ k * (exp (- toR x) + - E1 (- toR x) (k + 1)) <= toR x ^ (k + 2) / Z2R (Z.of_nat (fact (k + 2))))%R).
+  assert (A: (0 <= (-1) ^ k * (exp (- toR x) + - E1 (- toR x) (k + 1)) <= toR x ^ (k + 2) / IZR (Z.of_nat (fact (k + 2))))%R).
     replace ((-1) ^ k)%R with ((-1) * ((-1) * (-1) ^ k))%R by ring.
     change ((-1) * ((-1) * (-1) ^ k))%R with ((-1) ^ (S (S k)))%R.
-    rewrite Z2R_IZR, <- INR_IZR_INZ.
+    rewrite <- INR_IZR_INZ.
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ (k + 2))).
     replace (E1 (- toR x) (k + 1)) with (sum_f_R0 (tg_alt (fun n => / INR (fact n) * toR x ^ n)%R) (k + 1)).
@@ -2940,7 +2941,7 @@ assert (Hexit : forall k powxu fp2,
   apply Rle_trans with (1 := proj2 A).
   apply Rmult_le_compat_r.
   apply Rlt_le, Rinv_0_lt_compat.
-  apply (Z2R_lt 0), (inj_lt 0).
+  apply IZR_lt, (inj_lt 0).
   apply lt_O_fact.
   bound_tac.
   rewrite <- plus_n_Sm.
@@ -3024,13 +3025,13 @@ apply (I.sub_correct prec (Ibnd _ _) (Ibnd _ _) (Xreal _) (Xreal _)).
   simpl.
   case is_zero_spec.
   intros H'.
-  apply (eq_Z2R _ 0) in H'.
+  apply (eq_IZR _ 0) in H'.
   elim (fact_neq_0 (n - S m + 2)).
   now apply Nat2Z.inj.
   intros _.
   simpl.
   rewrite H.
-  rewrite Z2R_IZR, <- INR_IZR_INZ.
+  rewrite <- INR_IZR_INZ.
   rewrite <- plus_n_Sm.
   simpl pow.
   rewrite (Rmult_comm (toR x)).
@@ -3044,13 +3045,13 @@ apply IHm.
 rewrite F.mul_exact_correct, Hfp2, Hp3, 2!H.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- Z2R_mult, <- inj_mult.
+rewrite <- mult_IZR, <- inj_mult.
 now rewrite mult_comm, <- plus_n_Sm.
 rewrite F.add_exact_correct, Hp3, H.
 unfold c1.
 rewrite 3!F.fromZ_correct.
 simpl.
-rewrite <- (Z2R_plus _ 1), <- (inj_plus _ 1).
+rewrite <- (plus_IZR _ 1), <- (inj_plus _ 1).
 now rewrite <- plus_assoc.
 clear -Hm ; omega.
 unfold toR.
@@ -3121,8 +3122,8 @@ intros Hx3.
 apply Rle_trans with (1 := Hx3).
 rewrite Rmult_1_l.
 apply Rle_Rinv_pos.
-now apply (Z2R_lt 0 2).
-now apply (Z2R_le 2 256).
+now apply IZR_lt.
+now apply IZR_le.
 (* . *)
 intros prec x Hx H0.
 unfold expn_reduce.

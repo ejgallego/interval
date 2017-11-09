@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Flocq.Core.Fcore_Raux.
+From Flocq Require Import Raux.
 Require Import ZArith.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -146,7 +146,7 @@ Parameter mantissa_digits_correct :
 Parameter mantissa_scale2_correct :
   forall x d, valid_mantissa x ->
   let (x',d') := mantissa_scale2 x d in
-  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  (IZR (Zpos (MtoP x')) * bpow radix (EtoZ d') = IZR (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
   valid_mantissa x'.
 
 Parameter mantissa_shl_correct :
@@ -168,7 +168,7 @@ Parameter mantissa_div_correct :
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
-  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  Bracket.inbetween_int (Zpos (MtoP q)) (IZR (Zpos (MtoP x)) / IZR (Zpos (MtoP y)))%R (convert_location_inv l) /\
   valid_mantissa q.
 
 Parameter mantissa_sqrt_correct :

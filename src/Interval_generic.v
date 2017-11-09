@@ -20,11 +20,9 @@ liability. See the COPYING file for more details.
 Require Import Reals.
 Require Import Bool.
 Require Import ZArith.
-Require Import Flocq.Core.Fcore_Raux.
+From Flocq Require Import Raux Div Sqrt.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
-Require Import Flocq.Calc.Fcalc_div.
-Require Import Flocq.Calc.Fcalc_sqrt.
 
 Inductive position : Set :=
   pos_Eq | pos_Lo | pos_Mi | pos_Up.
@@ -168,8 +166,8 @@ Definition UtoX {beta} (f : ufloat beta) :=
 
 Definition convert_location l :=
   match l with
-  | Fcalc_bracket.loc_Exact => pos_Eq
-  | Fcalc_bracket.loc_Inexact l =>
+  | Bracket.loc_Exact => pos_Eq
+  | Bracket.loc_Inexact l =>
     match l with Lt => pos_Lo | Eq => pos_Mi | Gt => pos_Up end
   end.
 

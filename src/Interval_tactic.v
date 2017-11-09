@@ -17,9 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals List ZArith.
+Require Import Reals List ZArith Psatz.
 Require Import Coquelicot.Coquelicot.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool.
+From mathcomp.ssreflect Require Import ssreflect ssrbool.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -31,7 +31,6 @@ Require Import Interval_bisect.
 Require Import coquelicot_compl.
 Require Import bertrand.
 Require Import various_integrals.
-Require Import Psatz.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -59,30 +58,7 @@ Module Bertrand := BertrandInterval F I.
 Module ExpNIntegral := ExpNInterval F I.
 
 Ltac get_float t :=
-  let get_mantissa t :=
-    let rec aux t :=
-      match t with
-      | R1 => xH
-      | (R1 + R1)%R => constr:(xO xH)
-      | (R1 + (R1 + R1))%R => constr:(xI xH)
-      | ((R1 + R1) * ?v)%R =>
-        let w := aux v in constr:(xO w)
-      | (R1 + (R1 + R1) * ?v)%R =>
-        let w := aux v in constr:(xI w)
-      end in
-    aux t in
   let get_float_rational s n d :=
-    let rec aux t :=
-      match t with
-      | (R1 + R1)%R => xH
-      | ((R1 + R1) * ?v)%R =>
-        let w := aux v in
-        constr:(Psucc w)
-      end in
-    let e := aux d in
-    let m := get_mantissa n in
-    eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m (Zneg e))) in
-  let get_float_rational2 s n d :=
     let rec aux t :=
       match t with
       | xO xH => xH
@@ -100,44 +76,18 @@ Ltac get_float t :=
         aux v u
       | _ => constr:((m, e))
       end in
-    let m := get_mantissa t in
-    let v := aux m Z0 in
-    match v with
-    | (?m, ?e) => eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m e))
-    end in
-  let get_float_integer2 s t :=
-    let rec aux m e :=
-      match m with
-      | xO ?v =>
-        let u := constr:(Zsucc e) in
-        aux v u
-      | _ => constr:((m, e))
-      end in
     let v := aux t Z0 in
     match v with
     | (?m, ?e) => eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s m e))
     end in
   match t with
   | 0%R => F.zero
-  | (IZR (Zneg ?n) * / IZR (Zpos ?d))%R => get_float_rational2 true n d
-  | (IZR (Zpos ?n) * / IZR (Zpos ?d))%R => get_float_rational2 false n d
-  | (IZR (Zneg ?n) / IZR (Zpos ?d))%R => get_float_rational2 true n d
-  | (IZR (Zpos ?n) / IZR (Zpos ?d))%R => get_float_rational2 false n d
-  | IZR (Zneg ?n) => get_float_integer2 true n
-  | IZR (Zpos ?n) => get_float_integer2 false n
-  | (Z2R (Zneg ?n) * / Z2R (Zpos ?d))%R => get_float_rational2 true n d
-  | (Z2R (Zpos ?n) * / Z2R (Zpos ?d))%R => get_float_rational2 false n d
-  | (Z2R (Zneg ?n) / Z2R (Zpos ?d))%R => get_float_rational2 true n d
-  | (Z2R (Zpos ?n) / Z2R (Zpos ?d))%R => get_float_rational2 false n d
-  | Z2R (Zneg ?n) => get_float_integer2 true n
-  | Z2R (Zpos ?n) => get_float_integer2 false n
-  | R0 => F.zero
-  | (-?n * /?d)%R => get_float_rational true n d
-  | (?n * /?d)%R => get_float_rational false n d
-  | (-?n / ?d)%R => get_float_rational true n d
-  | (?n / ?d)%R => get_float_rational false n d
-  | (-?n)%R => get_float_integer true n
-  | ?n => get_float_integer false n
+  | (IZR (Zneg ?n) * / IZR (Zpos ?d))%R => get_float_rational true n d
+  | (IZR (Zpos ?n) * / IZR (Zpos ?d))%R => get_float_rational false n d
+  | (IZR (Zneg ?n) / IZR (Zpos ?d))%R => get_float_rational true n d
+  | (IZR (Zpos ?n) / IZR (Zpos ?d))%R => get_float_rational false n d
+  | IZR (Zneg ?n) => get_float_integer true n
+  | IZR (Zpos ?n) => get_float_integer false n
   | _ => false
   end.
 
@@ -2181,7 +2131,7 @@ Ltac do_interval_generalize t b :=
     refine ((_ : contains (I.convert b) (Xreal t) -> P) _) ; [
     let H := fresh "H" in
     intro H ;
-    match eval cbv -[Z2R Rdiv] in (I.convert b) with
+    match eval cbv -[IZR Rdiv] in (I.convert b) with
     | Inan => fail 5 "Inan: Nothing known about" t
     | Ibnd ?l ?u =>
       match l with
@@ -2196,10 +2146,6 @@ Ltac do_interval_generalize t b :=
         | Xreal ?u => change (l <= t <= u)%R in H
         end
       end
-    end ;
-    match constr:(4%R) with
-    | IZR 4 => repeat match type of H with context [Z2R ?v] => change (Z2R v) with (IZR v) in H end
-    | _ => simpl Z2R in H
     end ;
     revert H |]
   end.

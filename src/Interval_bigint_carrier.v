@@ -19,8 +19,7 @@ liability. See the COPYING file for more details.
 
 Require Import Bool.
 Require Import BigNumsCompat.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import Flocq.Core.Fcore_digits.
+From Flocq Require Import Raux Digits.
 Require Import Interval_definitions.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
@@ -366,7 +365,7 @@ Qed.
 Lemma mantissa_scale2_correct :
   forall x d, valid_mantissa x ->
   let (x',d') := mantissa_scale2 x d in
-  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  (IZR (Zpos (MtoP x')) * bpow radix (EtoZ d') = IZR (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
   valid_mantissa x'.
 Proof.
 intros x d Vx.
@@ -633,7 +632,7 @@ Lemma mantissa_div_correct :
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
-  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  Bracket.inbetween_int (Zpos (MtoP q)) (IZR (Zpos (MtoP x)) / IZR (Zpos (MtoP y)))%R (convert_location_inv l) /\
   valid_mantissa q.
 Proof.
 intros x y [x' Vx] [y' Vy].
@@ -663,7 +662,7 @@ rewrite Vq.
 clear H Hxy.
 assert (Hq := Zdiv_unique _ _ _ _ H2 H1).
 refine (conj Hq (conj _ (ex_intro _ _ Vq))).
-unfold Fcalc_bracket.inbetween_int.
+unfold Bracket.inbetween_int.
 rewrite BigN.spec_eqb.
 rewrite BigN.spec_compare.
 rewrite BigN.spec_shiftl_pow2.
@@ -671,61 +670,57 @@ rewrite Hr', Vy.
 change (BigN.to_Z 0) with Z0.
 change (2 ^ [1]%bigN)%Z with 2%Z.
 destruct (Z.eqb_spec r' 0) as [Hr|Hr].
-- apply Fcalc_bracket.inbetween_Exact.
+- apply Bracket.inbetween_Exact.
   rewrite H1, Hq, Hr, Zplus_0_r.
-  rewrite Z2R_mult.
+  rewrite mult_IZR.
   field.
-  now apply (Z2R_neq _ 0).
-- replace (convert_location_inv _) with (Fcalc_bracket.loc_Inexact (Zcompare (r' * 2) (Zpos y'))).
+  now apply IZR_neq.
+- replace (convert_location_inv _) with (Bracket.loc_Inexact (Zcompare (r' * 2) (Zpos y'))).
   2: now case Zcompare.
-  apply Fcalc_bracket.inbetween_Inexact.
+  apply Bracket.inbetween_Inexact.
   unfold Rdiv.
   rewrite H1, Zmult_comm.
   split ;
-    apply Rmult_lt_reg_r with (Z2R (Zpos y')) ;
-    (try now apply (Z2R_lt 0)) ;
-    rewrite Rmult_assoc, Rinv_l, Rmult_1_r, <- Z2R_mult ;
-    (try now apply (Z2R_neq _ 0)) ;
-    apply Z2R_lt.
+    apply Rmult_lt_reg_r with (IZR (Zpos y')) ;
+    (try now apply IZR_lt) ;
+    rewrite Rmult_assoc, Rinv_l, Rmult_1_r, <- mult_IZR ;
+    (try now apply IZR_neq) ;
+    apply IZR_lt.
   clear -H2 Hr ; omega.
   rewrite Zmult_plus_distr_l.
   clear -H2 ; omega.
-  rewrite H1, 2!Z2R_plus, Z2R_mult.
-  simpl (Z2R 1).
+  rewrite H1, 2!plus_IZR, mult_IZR.
   destruct (Z.compare_spec (r' * 2) (Zpos y')) as [H|H|H].
   + apply Rcompare_Eq.
     rewrite <- H.
-    rewrite Z2R_mult.
-    simpl (Z2R 2).
+    rewrite mult_IZR.
     field.
-    now apply (Z2R_neq _ 0).
+    now apply IZR_neq.
   + apply Rcompare_Lt.
     apply Rminus_gt.
-    match goal with |- (?a > 0)%R => replace a with ((Z2R (Zpos y') - Z2R r' * 2) / (2 * Z2R (Zpos y')))%R end.
+    match goal with |- (?a > 0)%R => replace a with ((IZR (Zpos y') - IZR r' * 2) / (2 * IZR (Zpos y')))%R end.
     apply Fourier_util.Rlt_mult_inv_pos.
     apply Rgt_minus.
-    change 2%R with (Z2R 2).
-    rewrite <- Z2R_mult.
-    now apply Z2R_lt.
+    rewrite <- mult_IZR.
+    now apply IZR_lt.
     apply Rmult_lt_0_compat.
     apply Rlt_0_2.
-    now apply (Z2R_lt 0).
+    now apply IZR_lt.
     field.
-    now apply (Z2R_neq _ 0).
+    now apply IZR_neq.
   + apply Rcompare_Gt.
     apply Rminus_lt.
-    match goal with |- (?a < 0)%R => replace a with (- ((Z2R r' * 2 - Z2R (Zpos y')) / (2 * Z2R (Zpos y'))))%R end.
+    match goal with |- (?a < 0)%R => replace a with (- ((IZR r' * 2 - IZR (Zpos y')) / (2 * IZR (Zpos y'))))%R end.
     apply Ropp_lt_gt_0_contravar.
     apply Fourier_util.Rlt_mult_inv_pos.
     apply Rgt_minus.
-    change 2%R with (Z2R 2).
-    rewrite <- Z2R_mult.
-    now apply Z2R_lt.
+    rewrite <- mult_IZR.
+    now apply IZR_lt.
     apply Rmult_lt_0_compat.
     apply Rlt_0_2.
-    now apply (Z2R_lt 0).
+    now apply IZR_lt.
     field.
-    now apply (Z2R_neq _ 0).
+    now apply IZR_neq.
 Qed.
 
 Lemma mantissa_sqrt_correct :

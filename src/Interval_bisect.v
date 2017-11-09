@@ -94,7 +94,7 @@ destruct a as [n|o n|o n1 n2] ;
 Qed.
 
 Definition ext_operations :=
-  Build_operations (fun x => Xreal (Z2R x))
+  Build_operations (fun x => Xreal (IZR x))
    (fun o =>
     match o with
     | Neg => Xneg
@@ -148,7 +148,7 @@ destruct a as [n|o n|o n1 n2] ;
 Qed.
 
 Definition real_operations :=
-  Build_operations Z2R
+  Build_operations IZR
    (fun o =>
     match o with
     | Neg => Ropp
@@ -849,8 +849,8 @@ destruct o ; simpl ;
   | apply I.mul_correct
   | apply I.div_correct
   | apply I.fromZ_correct
-  | refine (I.add_correct _ _ _ (Xreal (Z2R 1)) _ _ _)
-  | refine (I.mul_correct _ _ _ (Xreal (Z2R _)) _ _ _) ] ;
+  | refine (I.add_correct _ _ _ (Xreal 1%R) _ _ _)
+  | refine (I.mul_correct _ _ _ (Xreal (IZR _)) _ _ _) ] ;
   try now first [ apply Hf | apply Hf' ].
 (* abs *)
 generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).

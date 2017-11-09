@@ -446,9 +446,9 @@ Ltac bound_tac :=
   unfold Xround, Xbind ;
   match goal with
   | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
-    apply Rle_trans with (1 := proj1 (proj2 (Fcore_generic_fmt.round_DN_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply Rle_trans with (1 := proj1 (proj2 (Generic_fmt.round_DN_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
-    apply Rle_trans with (2 := proj1 (proj2 (Fcore_generic_fmt.round_UP_pt F.radix (Fcore_FLX.FLX_exp (Zpos p)) v)))
+    apply Rle_trans with (2 := proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   end.
 
 Lemma lower_correct :
@@ -870,7 +870,7 @@ Qed.
 
 Theorem fromZ_correct :
   forall v,
-  contains (convert (fromZ v)) (Xreal (Z2R v)).
+  contains (convert (fromZ v)) (Xreal (IZR v)).
 Proof.
 intros.
 simpl.
@@ -893,8 +893,8 @@ intros (x, Hx).
 destruct x as [|x].
 elim Hx.
 destruct Hx as (Hx1,Hx2).
-assert (Hr: (1 <= Z2R (Zpower_pos F.radix 1))%R).
-rewrite Z2R_Zpower_pos.
+assert (Hr: (1 <= IZR (Zpower_pos F.radix 1))%R).
+rewrite IZR_Zpower_pos.
 rewrite <- bpow_powerRZ.
 now apply (bpow_le F.radix 0).
 (* . *)
@@ -916,7 +916,7 @@ exact Hr.
 rewrite H.
 rewrite F.fromZ_correct.
 repeat split.
-now apply (Z2R_le (-1) 0).
+now apply IZR_le.
 rewrite F.zero_correct.
 repeat split.
 exact (Rlt_le _ _ H).
@@ -928,7 +928,7 @@ exact (Rlt_le _ _ H).
 rewrite H.
 rewrite F.fromZ_correct.
 repeat split.
-now apply (Z2R_le 0 1).
+now apply IZR_le.
 rewrite F.scale_correct.
 rewrite X.
 simpl.
@@ -947,7 +947,7 @@ rewrite F.scale2_correct by easy.
 rewrite F.add_exact_correct.
 rewrite X, X0.
 simpl.
-change (Z2R _) with 2%R.
+change (Z.pow_pos 2 1) with 2%Z.
 lra.
 (* finite bounds 2 *)
 case_eq (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) ; intros.
@@ -1008,12 +1008,12 @@ apply Rle_trans with (1 := H).
 rewrite <- (Rmult_1_r xur) at 2.
 apply Rmult_le_compat_neg_l.
 now apply Rlt_le.
-now apply (Z2R_le 1), (Zpower_le _ 0 1).
+now apply IZR_le, (Zpower_le _ 0 1).
 rewrite F.fromZ_correct.
 intros [H1 H2].
 apply (conj I).
 rewrite (Rle_antisym _ _ H2 H1), Hu0.
-now apply (Z2R_le _ 0).
+now apply IZR_le.
 rewrite F.zero_correct.
 intros [H1 H2].
 apply (conj I).
@@ -1035,7 +1035,7 @@ rewrite F.fromZ_correct.
 intros [H1 H2].
 refine (conj _ I).
 rewrite (Rle_antisym _ _ H2 H1), Hl0.
-now apply (Z2R_le 0).
+now apply IZR_le.
 rewrite F.scale_correct, Hl.
 simpl.
 intros [H _].
@@ -1044,7 +1044,7 @@ apply Rle_trans with (2 := H).
 rewrite <- (Rmult_1_r xlr) at 1.
 apply Rmult_le_compat_l.
 now apply Rlt_le.
-now apply (Z2R_le 1), (Zpower_le _ 0 1).
+now apply IZR_le, (Zpower_le _ 0 1).
 intros _.
 case Rcompare ; apply He.
 (* finite bounds *)
@@ -1699,8 +1699,8 @@ assert (Hd: forall x xr, F.toX x = Xreal xr ->
   intros x xr Hx.
   rewrite F.mul_correct, Hx.
   simpl.
-  apply Fcore_generic_fmt.round_ge_generic ; auto with typeclass_instances.
-  apply Fcore_generic_fmt.generic_format_0.
+  apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
+  apply Generic_fmt.generic_format_0.
   apply Rle_0_sqr.
 assert (Hz: match F.toX F.zero with
     | Xnan => False
@@ -1794,15 +1794,15 @@ intros H.
 bound_tac.
 apply Rmult_le_compat_l with (1 := Hx).
 refine (Rle_trans _ _ _ (H _) _).
-apply (Fcore_generic_fmt.round_ge_generic _ _ _).
-apply Fcore_generic_fmt.generic_format_0.
+apply (Generic_fmt.round_ge_generic _ _ _).
+apply Generic_fmt.generic_format_0.
 now apply Rmult_le_pos.
 change (Pmult_nat n 2) with (nat_of_P (xO n)).
 rewrite nat_of_P_xO, pow_sqr.
 apply pow_incr.
 split.
-apply (Fcore_generic_fmt.round_ge_generic _ _ _).
-apply Fcore_generic_fmt.generic_format_0.
+apply (Generic_fmt.round_ge_generic _ _ _).
+apply Generic_fmt.generic_format_0.
 now apply Rmult_le_pos.
 bound_tac.
 apply Rle_refl.
@@ -1815,14 +1815,14 @@ xreal_tac (Fpower_pos rnd_DN prec (F.mul rnd_DN prec x x) n) ; simpl.
 easy.
 intros H.
 refine (Rle_trans _ _ _ (H _) _).
-apply (Fcore_generic_fmt.round_ge_generic _ _ _).
-apply Fcore_generic_fmt.generic_format_0.
+apply (Generic_fmt.round_ge_generic _ _ _).
+apply Generic_fmt.generic_format_0.
 now apply Rmult_le_pos.
 rewrite nat_of_P_xO, pow_sqr.
 apply pow_incr.
 split.
-apply (Fcore_generic_fmt.round_ge_generic _ _ _).
-apply Fcore_generic_fmt.generic_format_0.
+apply (Generic_fmt.round_ge_generic _ _ _).
+apply Generic_fmt.generic_format_0.
 now apply Rmult_le_pos.
 bound_tac.
 apply Rle_refl.

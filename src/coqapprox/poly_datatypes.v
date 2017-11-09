@@ -22,8 +22,8 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith Reals.
 Require Import Coquelicot.Coquelicot.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
-Require Import Flocq.Core.Fcore.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+From Flocq Require Import Core.
 Require Import Interval_missing.
 Require Import Interval_interval.
 Require Import Interval_xreal.
@@ -227,7 +227,7 @@ Definition power_int := --> powerRZ.
 Definition exp := --> exp.
 Definition ln := --> ln.
 Definition from_nat := INR.
-Definition fromZ := Z2R.
+Definition fromZ := IZR.
 Definition inv := --> Rinv.
 Definition cos := --> cos.
 Definition sin := --> sin.
@@ -1068,7 +1068,7 @@ do ![case: ifP] => /or3P A /or3P B.
   by move/or3P in A; move=> K; rewrite K orbT in A.
   by move/or3P in A; move=> K; rewrite K !orbT in A.
 - case A=> K.
-  apply (@mul_0_contains_0_r u (Xreal (Rdiv (Z2R (seq.nth 0%Z a k)) (Z2R (seq.nth 0%Z b k))))).
+  apply (@mul_0_contains_0_r u (Xreal (Rdiv (IZR (seq.nth 0%Z a k)) (IZR (seq.nth 0%Z b k))))).
   by apply: J.div_correct; apply: I.fromZ_correct.
   have->: 0%R = PolR.nth p k.
   by move/PolR.nth_default: K.
@@ -1212,10 +1212,10 @@ apply: (seq_foldri_correct (Rel := fun v t => t >: v)) =>//.
   + by move: (Hs k); rewrite nth_nil.
 - move=> x s i Hx Hs [|k] /=.
   rewrite -(Rmult_0_l (INR i)).
-  apply: J.mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+  apply: J.mul_correct =>//; rewrite INR_IZR_INZ; apply: I.fromZ_correct.
   by move: (Hs k); rewrite nth_nil.
 - move=> x xi y yi i Hx Hy [|k] //=.
-  by apply: J.mul_correct =>//; rewrite INR_Z2R; apply: I.fromZ_correct.
+  by apply: J.mul_correct =>//; rewrite INR_IZR_INZ; apply: I.fromZ_correct.
 Qed.
 
 Lemma set_nth_correct pi p n ai a :

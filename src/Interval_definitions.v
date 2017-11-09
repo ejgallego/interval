@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
-Require Import Flocq.Core.Fcore.
+From Flocq Require Import Core.
 Require Import Interval_xreal.
 
 Inductive rounding_mode : Set :=
@@ -45,9 +45,9 @@ Definition count_digits n :=
 Definition FtoR (s : bool) m e :=
   let sm := if s then Zneg m else Zpos m in
   match e with
-  | Zpos p => Z2R (sm * Zpower_pos beta p)
-  | Z0 => Z2R sm
-  | Zneg p => (Z2R sm / Z2R (Zpower_pos beta p))%R
+  | Zpos p => IZR (sm * Zpower_pos beta p)
+  | Z0 => IZR sm
+  | Zneg p => (IZR sm / IZR (Zpower_pos beta p))%R
   end.
 
 End Definitions.
@@ -93,14 +93,14 @@ Qed.
 
 Lemma FtoR_split :
   forall beta s m e,
-  FtoR beta s m e = F2R (Fcore_defs.Float beta (cond_Zopp s (Zpos m)) e).
+  FtoR beta s m e = F2R (Definitions.Float beta (cond_Zopp s (Zpos m)) e).
 Proof.
 intros.
 unfold FtoR, F2R, cond_Zopp. simpl.
 case e.
 now rewrite Rmult_1_r.
 intros p.
-now rewrite Z2R_mult.
+now rewrite mult_IZR.
 now intros p.
 Qed.
 

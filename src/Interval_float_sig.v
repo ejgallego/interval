@@ -70,7 +70,7 @@ Parameter toF_correct :
 Parameter zero_correct : toX zero = Xreal 0.
 Parameter nan_correct : toX nan = Xnan.
 Parameter fromZ_correct :
-  forall n, toX (fromZ n) = Xreal (Z2R n).
+  forall n, toX (fromZ n) = Xreal (IZR n).
 
 Parameter real_correct :
   forall f,
@@ -151,7 +151,7 @@ rewrite F.cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.
-now case Fcore_Raux.Rcompare_spec ; auto with real.
+now case Raux.Rcompare_spec ; auto with real.
 Qed.
 
 Definition lt x y :=
@@ -174,7 +174,7 @@ rewrite F.cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.
-now case Fcore_Raux.Rcompare_spec.
+now case Raux.Rcompare_spec.
 Qed.
 
 End FloatExt.

@@ -1,7 +1,7 @@
 Require Import Reals Coquelicot.Coquelicot.
 Require Import Coquelicot.AutoDerive.
 
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat.
 Require Import coquelicot_compl Interval_missing.
 Require Import mathcomp.ssreflect.bigop.
 Require Import ZArith Psatz.
@@ -96,13 +96,13 @@ move: (is_derive_n_powerRZ n 1 x Hnx).
 case Hn : n => [|p|p] /= .
 - by rewrite !Rmult_0_l; move => _; apply: is_derive_const.
 - rewrite big_ord_recl /= big_ord0 /=  subn0 Rmult_1_r.
-  try rewrite -Z2R_IZR INR_Z2R positive_nat_Z.
+  rewrite INR_IZR_INZ positive_nat_Z.
   rewrite pow_powerRZ.
   congr (is_derive _ _ (_ * powerRZ _ _)).
   rewrite -> Nat2Z.inj_sub by apply lt_le_S, Pos2Nat.is_pos.
   now rewrite positive_nat_Z.
 - rewrite big_ord_recl /= big_ord0 /= addn0 Rmult_1_r.
-  try rewrite -Z2R_IZR INR_Z2R positive_nat_Z.
+  rewrite INR_IZR_INZ positive_nat_Z.
   by rewrite Pos2Nat.inj_add.
 Qed.
 
@@ -1145,7 +1145,7 @@ Proof.
 apply: J.neg_correct.
 apply: J.inv_correct.
 apply: J.mul_correct.
-  rewrite INR_Z2R.
+  rewrite INR_IZR_INZ.
   exact: I.fromZ_correct.
 rewrite pow_powerRZ.
 apply: J.power_int_correct.
@@ -1189,7 +1189,7 @@ elim: beta => [|m HIm].
   apply: J.div_correct.
   apply: J.neg_correct.
   apply: J.power_int_correct => // ; apply: Hcontainsa.
-    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+    exact: I.fromZ_correct.
 - rewrite /f_int -/f_int /f_lim -/f_lim.
   apply: J.sub_correct.
   apply: J.div_correct.
@@ -1199,11 +1199,11 @@ elim: beta => [|m HIm].
   rewrite pow_powerRZ.
   apply: J.power_int_correct.
   apply: J.ln_correct; apply: Hcontainsa.
-    by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+    exact: I.fromZ_correct.
     apply: J.mul_correct => // .
     apply: J.div_correct.
-  by rewrite INR_Z2R; apply: I.fromZ_correct.
-  by rewrite -Z2R_IZR; apply: I.fromZ_correct.
+  by rewrite INR_IZR_INZ; apply: I.fromZ_correct.
+  exact: I.fromZ_correct.
 Qed.
 
 Lemma f_int_fast_f_int alpha beta : f_int_fast alpha beta = f_int alpha beta.

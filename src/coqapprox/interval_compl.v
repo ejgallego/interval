@@ -326,7 +326,7 @@ Lemma R_from_nat_correct :
   forall (b : I.type) (n : nat),
   contains (I.convert (I.fromZ (Z.of_nat n)))
            (Xreal (INR n)).
-Proof. move=> b n; rewrite INR_Z2R; exact: I.fromZ_correct. Qed.
+Proof. move=> b n; rewrite INR_IZR_INZ; exact: I.fromZ_correct. Qed.
 
 Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
 Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.

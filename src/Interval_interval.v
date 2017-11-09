@@ -430,7 +430,7 @@ Parameter bounded_correct :
 Parameter fromZ : Z -> type.
 
 Parameter fromZ_correct :
-  forall v, contains (convert (fromZ v)) (Xreal (Z2R v)).
+  forall v, contains (convert (fromZ v)) (Xreal (IZR v)).
 
 Definition propagate_l fi :=
   forall xi yi : type, convert xi = Inan -> convert (fi xi yi) = Inan.

@@ -47,11 +47,12 @@ Lemma pi_correct :
 Proof.
 intros prec.
 unfold pi.
-replace (Xreal PI) with (Xmul (Xreal (PI/4)) (Xreal (Fcore_Raux.bpow radix2 2))).
+replace (Xreal PI) with (Xmul (Xreal (PI/4)) (Xreal (Raux.bpow radix2 2))).
   apply scale2_correct, T.pi4_correct.
+change (Raux.bpow _ _) with 4%R.
 simpl.
-f_equal.
-now field.
+apply f_equal.
+field.
 Qed.
 
 (* accurate only for |xi| <= 2 * pi *)
@@ -117,7 +118,7 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   assert (Hxur: (xur <= PI)%R).
     revert Hu.
     rewrite F.scale2_correct by easy.
-    change (Fcore_Raux.bpow _ _) with 4%R.
+    change (Raux.bpow _ _) with 4%R.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
@@ -161,7 +162,7 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   assert (Hxur: (xur <= 2 * PI)%R).
     revert Hu.
     rewrite F.scale2_correct by easy.
-    change (Fcore_Raux.bpow _ _) with 8%R.
+    change (Raux.bpow _ _) with 8%R.
     generalize (T.pi4_correct prec).
     destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
     now rewrite F.nan_correct.
@@ -178,7 +179,7 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
     assert (Hxlr: (PI <= xlr)%R).
       revert Hl.
       rewrite F.scale2_correct by easy.
-      change (Fcore_Raux.bpow _ _) with 4%R.
+      change (Raux.bpow _ _) with 4%R.
       generalize (T.pi4_correct prec).
       destruct (T.pi4 prec) as [|pi4l pi4u] ; simpl.
       now rewrite F.nan_correct.
@@ -260,7 +261,7 @@ case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
   rewrite F.neg_correct, F.scale2_correct by easy.
   rewrite F.sub_exact_correct, Hlr, Hur.
   simpl.
-  apply Fcore_Raux.Rabs_le_inv.
+  apply Raux.Rabs_le_inv.
   destruct (MVT_abs Rtrigo_def.cos (fun t => Ropp (sin t)) m (Rabs x)) as [v [-> _]].
   intros c _.
   apply derivable_pt_lim_cos.
@@ -275,6 +276,7 @@ case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
   simpl.
   rewrite Hlr, Hur.
   unfold m.
+  change (Z.pow_pos 2 1) with 2%Z.
   lra.
 intros _.
 unfold convert, bnd.
@@ -355,13 +357,13 @@ case_eq (F'.le (F.neg pi2) xl).
       rewrite H.
       replace (PI / 2)%R with (PI / 4 * 2)%R by field.
       apply Rmult_le_compat_r with (2 := Hp).
-      now apply (Fcore_Raux.Z2R_le 0 2).
+      now apply IZR_le.
     assert (Hpu': (r0 <= PI/2)%R).
       apply Rle_trans with (1 := Hpu).
       rewrite H.
       replace (PI / 2)%R with (PI / 4 * 2)%R by field.
       apply Rmult_le_compat_r with (2 := Hp).
-      now apply (Fcore_Raux.Z2R_le 0 2).
+      now apply IZR_le.
     split.
       generalize (T.sin_fast_correct prec xl).
       destruct (T.sin_fast prec xl) as [|yl yu].
@@ -468,7 +470,7 @@ simpl in Hlt1, Hlt2.
 destruct (F.toX pi4l) as [|pi4r] ; try easy.
 simpl in Hlt1, Hlt2.
 apply (Rmult_le_compat_r 2) in Hpil.
-2: now apply (Fcore_Raux.Z2R_le 0 2).
+2: now apply IZR_le.
 unfold Rdiv in Hpil.
 replace (PI * /4 * 2)%R with (PI / 2)%R in Hpil by field.
 assert (H1: (- PI / 2 < rl)%R).
@@ -557,7 +559,7 @@ split.
   replace (- PI / 2)%R with (-(PI / 4 * 2))%R by field.
   apply Ropp_le_contravar.
   apply Rmult_le_compat_r with (2 := proj2 Hpi).
-  now apply (Fcore_Raux.Z2R_le 0 2).
+  now apply IZR_le.
   intros rl Hl Hx.
   generalize (T.atan_correct prec xl).
   destruct (T.atan_fast prec xl) as [|al au].
@@ -585,7 +587,7 @@ split.
   apply Rlt_le_trans with (1 := proj2 (atan_bound x)).
   replace (PI / 2)%R with (PI / 4 * 2)%R by field.
   apply Rmult_le_compat_r with (2 := proj2 Hpi).
-  now apply (Fcore_Raux.Z2R_le 0 2).
+  now apply IZR_le.
   intros rl Hl Hx.
   generalize (T.atan_correct prec xu).
   destruct (T.atan_fast prec xu) as [|al au].
@@ -638,7 +640,7 @@ intros (H, _).
 simpl.
 xreal_tac2.
 apply Rle_trans with (1 := H).
-now apply Fcore_Raux.exp_le.
+now apply Raux.exp_le.
 (* upper *)
 clear Hxl.
 rewrite F.real_correct.
@@ -653,7 +655,7 @@ intros (_, H).
 simpl.
 xreal_tac2.
 apply Rle_trans with (2 := H).
-now apply Fcore_Raux.exp_le.
+now apply Raux.exp_le.
 Qed.
 
 Definition ln prec xi :=

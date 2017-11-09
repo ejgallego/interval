@@ -93,7 +93,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Definition fromZ n : float radix := match n with Zpos p => Float false p Z0 | Zneg p => Float true p Z0 | Z0 => Fzero end.
 
-  Lemma fromZ_correct : forall n, FtoX (toF (fromZ n)) = Xreal (Z2R n).
+  Lemma fromZ_correct : forall n, FtoX (toF (fromZ n)) = Xreal (IZR n).
   Proof.
     intros. case n ; split.
   Qed.

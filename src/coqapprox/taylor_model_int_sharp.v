@@ -21,9 +21,9 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import ZArith Psatz Reals.
-Require Import Flocq.Core.Fcore_Raux.
+From Flocq Require Import Raux.
 Require Import Coquelicot.Coquelicot.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 Require Import Interval_xreal.
 Require Import Interval_interval.
 Require Import Interval_definitions.
@@ -1754,7 +1754,7 @@ Lemma size_TM_invsqrt (X0 X : I.type) (n : nat) :
 Proof. by rewrite /TM_invsqrt; case: gt0; rewrite Pol.size_rec1. Qed.
 
 Ltac Inc :=
-  rewrite (*?*) INR_IZR_INZ -Z2R_IZR;
+  rewrite (*?*) INR_IZR_INZ;
   apply: I.fromZ_correct.
 
 Lemma TM_invsqrt_correct (X0 X : I.type) n :
@@ -1965,11 +1965,11 @@ constructor.
         move/Zle_is_le_bool in Hpk.
         rewrite Hpow Hpk.
         rewrite /Rdiv; ring_simplify (*!*).
-        rewrite -INR_Z2R Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
+        rewrite -INR_IZR_INZ Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
         rewrite Rmult_1_r Rmult_comm; congr Rmult.
-        rewrite (big_morph Z2R (id1 := R1) (op1 := Rmult)) //; last exact: Z2R_mult.
+        rewrite (big_morph IZR (id1 := 1%R) (op1 := Rmult)) //; last exact: mult_IZR.
         rewrite big_mkord; apply: eq_bigr => [[i Hi] _].
-        rewrite INR_Z2R.
+        rewrite INR_IZR_INZ.
         rewrite Nat2Z.inj_sub ?(positive_nat_Z, addn1) //=.
         apply/leP; rewrite ltnS in Hi.
         apply: leq_trans Hi _.
@@ -2000,11 +2000,11 @@ constructor.
         by rewrite Pos2Nat.inj_add Nat2Pos.id.
       rewrite Hpow.
       rewrite /Rdiv; ring_simplify (*!*).
-      rewrite -INR_Z2R Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
+      rewrite -INR_IZR_INZ Rmult_assoc Rinv_l; last exact: INR_fact_neq_0.
       rewrite Rmult_1_r Rmult_comm; congr Rmult.
-      rewrite (big_morph Z2R (id1 := R1) (op1 := Rmult)) //; last exact: Z2R_mult.
+      rewrite (big_morph IZR (id1 := 1%R) (op1 := Rmult)) //; last exact: mult_IZR.
       rewrite big_mkord; apply: eq_bigr => [[i Hi] _].
-      rewrite INR_Z2R -Z2R_opp; congr Z2R.
+      rewrite INR_IZR_INZ -opp_IZR; congr IZR.
       rewrite Nat2Z.inj_add positive_nat_Z.
       by rewrite Z.opp_add_distr.
   }
@@ -2250,17 +2250,17 @@ constructor.
         rewrite -Z.add_opp_r -Z.opp_sub_distr -Z.add_opp_r Z.opp_involutive.
         by f_equal; rewrite -Nat2Z.inj_add; f_equal; rewrite plusE addn1.
     rewrite Hpow big_mkord.
-    rewrite -INR_Z2R /Rdiv Rmult_assoc.
-    rewrite (big_morph Z2R (id1 := R1) (op1 := Rmult)) //; last exact: Z2R_mult.
-    set bigRhs := \big[Rmult/1%R]_i Z2R _.
+    rewrite -INR_IZR_INZ /Rdiv Rmult_assoc.
+    rewrite (big_morph IZR (id1 := 1%R) (op1 := Rmult)) //; last exact: mult_IZR.
+    set bigRhs := \big[Rmult/1%R]_i IZR _.
     set fk2 := INR (fact k.+2).
     have->: (bigRhs * / fk2 * (/ x ^ (1 + k.+1) * fk2) =
       (/ fk2 * fk2) * bigRhs * / (x ^ (1 + k.+1)))%R by ring.
     rewrite Rinv_l ?Rmult_1_l; last exact: INR_fact_neq_0.
     congr Rmult; rewrite {}/bigRhs.
     apply: eq_bigr => [[i Hi] _].
-    rewrite INR_Z2R.
-    rewrite Nat2Z.inj_add -Z2R_opp; congr Z2R.
+    rewrite INR_IZR_INZ.
+    rewrite Nat2Z.inj_add -opp_IZR; congr IZR.
     simpl Z.of_nat.
     by rewrite Z.opp_add_distr.
   }

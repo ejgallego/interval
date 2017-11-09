@@ -22,8 +22,8 @@ liability. See the COPYING file for more details.
 
 
 Require Import BinPos.
-Require Import Flocq.Core.Fcore_Raux.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
+From Flocq Require Import Raux.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 Require Import Interval_interval.
 Require Import poly_datatypes basic_rec.
 

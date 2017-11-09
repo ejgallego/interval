@@ -19,8 +19,7 @@ liability. See the COPYING file for more details.
 
 Require Import ZArith.
 Require Import Bool.
-Require Import Flocq.Core.Fcore_digits.
-Require Import Flocq.Calc.Fcalc_bracket.
+From Flocq Require Import Digits Bracket.
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -119,7 +118,7 @@ Qed.
 Definition fromZ n := Float (ZtoM n) exponent_zero.
 
 Lemma fromZ_correct :
-  forall n, FtoX (toF (fromZ n)) = Xreal (Z2R n).
+  forall n, FtoX (toF (fromZ n)) = Xreal (IZR n).
 Proof.
 intros.
 simpl.
@@ -305,10 +304,10 @@ rewrite toF_float with (1 := Vp).
 rewrite exponent_add_correct.
 simpl.
 rewrite 2!FtoR_split.
-unfold Fcore_defs.F2R.
+unfold Definitions.F2R.
 simpl.
 rewrite Rmult_assoc, (Rmult_comm (bpow radix (EtoZ e))).
-rewrite 2!Z2R_cond_Zopp, <- 2!cond_Ropp_mult_l.
+rewrite 2!IZR_cond_Zopp, <- 2!cond_Ropp_mult_l.
 apply (f_equal (fun v => Xreal (cond_Ropp s v))).
 rewrite Zplus_comm, bpow_plus, <- 2!Rmult_assoc.
 now rewrite <- Ep.
@@ -1110,7 +1109,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_sub_correct, exponent_add_correct, exponent_zero_correct.
 rewrite 2!mantissa_digits_correct ; try easy.
 rewrite <- 2!digits_conversion.
-unfold Fdiv, Fdiv_aux, Fcalc_div.Fdiv_core.
+unfold Fdiv, Fdiv_aux, Div.Fdiv_core.
 set (p' := match exponent_cmp p exponent_zero with Gt => p | _ => exponent_one end).
 assert (Hp: EtoZ p' = Zpos (prec p)).
 unfold p', prec.
@@ -1119,7 +1118,7 @@ case_eq (EtoZ p) ; try (intros ; apply exponent_one_correct).
 easy.
 rewrite Hp.
 unfold radix.
-set (d := (Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - Fcore_digits.Zdigits Carrier.radix (Zpos (MtoP nx)))%Z).
+set (d := (Zdigits Carrier.radix (Zpos (MtoP ny)) + Zpos (prec p) - Zdigits Carrier.radix (Zpos (MtoP nx)))%Z).
 set (nd := exponent_sub (exponent_add (mantissa_digits ny) p') (mantissa_digits nx)).
 assert (Hs := fun d' (H : EtoZ nd = Zpos d') => mantissa_shl_correct d' nx nd Vmx H).
 assert (Hs': forall d', d = Zpos d' -> MtoP (mantissa_shl nx nd) = shift Carrier.radix (MtoP nx) d' /\ valid_mantissa (mantissa_shl nx nd)).
@@ -1207,31 +1206,28 @@ apply False_ind.
 revert H0.
 rewrite (proj1 H).
 unfold Rdiv.
-simpl (Z2R 1).
 rewrite Rinv_1, Rmult_1_r.
 intros (H0, H2).
-generalize (lt_Z2R _ _ H0) (lt_Z2R _ _ H2).
+generalize (lt_IZR _ _ H0) (lt_IZR _ _ H2).
 clear ; omega.
 (* . *)
-apply Fcalc_bracket.inbetween_unique with (1 := H2).
-rewrite Z2R_plus.
-replace (Z2R 1) with (Z2R (Zpos (MtoP ny)) * /Z2R (Zpos (MtoP ny)))%R.
-apply Fcalc_bracket.new_location_correct ; trivial.
+apply Bracket.inbetween_unique with (1 := H2).
+rewrite plus_IZR.
+replace 1%R with (IZR (Zpos (MtoP ny)) * /IZR (Zpos (MtoP ny)))%R.
+apply Bracket.new_location_correct ; trivial.
 apply Rinv_0_lt_compat.
-now apply (Z2R_lt 0).
+now apply IZR_lt.
 constructor.
 rewrite Hq, H1.
-rewrite Z2R_plus.
+rewrite plus_IZR.
 unfold Rdiv.
 rewrite Rmult_plus_distr_r.
-rewrite Z2R_mult, <- (Rmult_comm (Z2R q)), Rmult_assoc.
+rewrite mult_IZR, <- (Rmult_comm (IZR q)), Rmult_assoc.
 rewrite Rinv_r.
 now rewrite Rmult_1_r.
-apply Rgt_not_eq.
-now apply (Z2R_lt 0).
+now apply IZR_neq.
 apply Rinv_r.
-apply Rgt_not_eq.
-now apply (Z2R_lt 0).
+now apply IZR_neq.
 Qed.
 
 (*
@@ -1283,7 +1279,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_sub_correct.
 rewrite exponent_add_correct.
 rewrite exponent_zero_correct.
-unfold Fsqrt, Fsqrt_aux, Fcalc_sqrt.Fsqrt_core.
+unfold Fsqrt, Fsqrt_aux, Sqrt.Fsqrt_core.
 set (s1 := match Zcompare (EtoZ p' + EtoZ p' - EtoZ (mantissa_digits nx)) 0 with Gt => exponent_sub (exponent_add p' p') (mantissa_digits nx) | _ => exponent_zero end).
 set (s2 := Zmax (2 * Zpos (prec p) - Zdigits radix (Zpos (MtoP nx))) 0).
 assert (Hs: EtoZ s1 = s2).

@@ -2,7 +2,7 @@ Require Import Reals Interval_tactic.
 
 Open Scope R_scope.
 
-Notation pow2 := (Fcore_Raux.bpow Fcore_Zaux.radix2).
+Notation pow2 := (Raux.bpow Zaux.radix2).
 
 (*
 Example taken from:
@@ -18,6 +18,6 @@ Goal forall x : R, Rabs x <= 35/100 ->
 Proof.
 intros x Hx p q r.
 unfold r, p, q.
-simpl Fcore_Raux.bpow.
+unfold Raux.bpow, Z.pow_pos; simpl Pos.iter.
 interval with (i_prec 40, i_bisect_taylor x 3).
 Qed.

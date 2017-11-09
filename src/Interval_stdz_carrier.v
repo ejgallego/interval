@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Flocq.Core.Fcore_Raux.
+From Flocq Require Import Raux.
 Require Import ZArith.
 Require Import Bool.
 Require Import Interval_definitions.
@@ -191,11 +191,11 @@ Lemma mantissa_digits_correct :
 Proof.
 intros x _.
 rewrite <- digits_conversion.
-rewrite <- Fcore_digits.Zdigits2_Zdigits.
-unfold EtoZ, mantissa_digits, MtoP, Fcore_digits.Zdigits2.
-replace (Zpos (Fcore_digits.digits2_pos x)) with (Zpos (Fcore_digits.digits2_pos x) + 1 - 1)%Z by ring.
+rewrite <- Digits.Zdigits2_Zdigits.
+unfold EtoZ, mantissa_digits, MtoP, Digits.Zdigits2.
+replace (Zpos (Digits.digits2_pos x)) with (Zpos (Digits.digits2_pos x) + 1 - 1)%Z by ring.
 generalize xH at 1 2.
-induction x ; intros p ; simpl digits_aux ; simpl Fcore_digits.digits2_pos.
+induction x ; intros p ; simpl digits_aux ; simpl Digits.digits2_pos.
 rewrite IHx, 2!Pos2Z.inj_succ.
 ring.
 rewrite IHx, 2!Pos2Z.inj_succ.
@@ -206,7 +206,7 @@ Qed.
 Lemma mantissa_scale2_correct :
   forall x d, valid_mantissa x ->
   let (x',d') := mantissa_scale2 x d in
-  (Z2R (Zpos (MtoP x')) * bpow radix (EtoZ d') = Z2R (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
+  (IZR (Zpos (MtoP x')) * bpow radix (EtoZ d') = IZR (Zpos (MtoP x)) * bpow radix2 (EtoZ d))%R /\
   valid_mantissa x'.
 Proof.
 now intros x d Vx.
@@ -383,7 +383,7 @@ Lemma mantissa_div_correct :
   (Zpos (MtoP y) <= Zpos (MtoP x))%Z ->
   let (q,l) := mantissa_div x y in
   Zpos (MtoP q) = (Zpos (MtoP x) / Zpos (MtoP y))%Z /\
-  Fcalc_bracket.inbetween_int (Zpos (MtoP q)) (Z2R (Zpos (MtoP x)) / Z2R (Zpos (MtoP y)))%R (convert_location_inv l) /\
+  Bracket.inbetween_int (Zpos (MtoP q)) (IZR (Zpos (MtoP x)) / IZR (Zpos (MtoP y)))%R (convert_location_inv l) /\
   valid_mantissa q.
 Proof.
 intros x y _ _.
@@ -406,19 +406,18 @@ destruct q as [|q|q] ; try easy.
 clear H Hxy.
 assert (Hq := Zdiv_unique _ _ _ _ H2 H1).
 refine (conj Hq (conj _ I)).
-unfold Fcalc_bracket.inbetween_int.
+unfold Bracket.inbetween_int.
 destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
 - assert (H: (1 < Zpos y)%Z) by now apply Zgt_lt, Zle_succ_gt.
   rewrite adjust_pos_correct by assumption.
-  rewrite Z2R_plus.
-  simpl (Z2R 1).
-  rewrite <- (Rinv_r (Z2R (Zpos y))) by now apply (Z2R_neq _ 0).
-  apply Fcalc_bracket.new_location_correct ; try assumption.
-  now apply Rinv_0_lt_compat, (Z2R_lt 0).
-  apply Fcalc_bracket.inbetween_Exact.
-  rewrite H1, Z2R_plus, Z2R_mult.
+  rewrite plus_IZR.
+  rewrite <- (Rinv_r (IZR (Zpos y))) by now apply IZR_neq.
+  apply Bracket.new_location_correct ; try assumption.
+  now apply Rinv_0_lt_compat, IZR_lt.
+  apply Bracket.inbetween_Exact.
+  rewrite H1, plus_IZR, mult_IZR.
   field.
-  now apply (Z2R_neq _ 0).
+  now apply IZR_neq.
 - rewrite Hq, H1.
   clear H1 Hq.
   cut (Zpos y = 1 /\ r = 0)%Z.
@@ -426,7 +425,7 @@ destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
   clear.
   intros [-> ->].
   simpl.
-  apply Fcalc_bracket.inbetween_Exact.
+  apply Bracket.inbetween_Exact.
   unfold Rdiv.
   now rewrite Zdiv_1_r, Rinv_1, Rmult_1_r.
 Qed.

@@ -636,7 +636,7 @@ Qed.
 Theorem Xderive_pt_power_int :
   forall n f f' x,
   Xderive_pt f x f' ->
-  Xderive_pt (fun x => Xpower_int (f x) n) x (Xmul f' (Xmul (Xreal (Z2R n)) (Xpower_int (f x) (Zpred n)))).
+  Xderive_pt (fun x => Xpower_int (f x) n) x (Xmul f' (Xmul (Xreal (IZR n)) (Xpower_int (f x) (Zpred n)))).
 Proof.
 intros n f f' x Hf.
 destruct n as [|n|n].
@@ -666,7 +666,7 @@ apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
 rewrite X.
-rewrite <- (positive_nat_Z n), <- INR_Z2R.
+rewrite <- (positive_nat_Z n), <- INR_IZR_INZ.
 apply derivable_pt_lim_pow_pos.
 apply lt_O_nat_of_P.
 case (f x).
@@ -707,7 +707,8 @@ apply Hf.
 change (fun x => (/ x ^ nat_of_P n)%R) with (comp Rinv (fun x => pow x (nat_of_P n))).
 unfold proj_fun.
 rewrite X.
-rewrite P2R_INR.
+change (IZR (Zneg n)) with (Ropp (IZR (Zpos n))).
+rewrite <- positive_nat_Z, <- INR_IZR_INZ.
 replace (- INR (nat_of_P n) * / (r1 * r1 ^ nat_of_P n))%R with
   ((0 * r1 ^ (nat_of_P n) - 1 * fct_cte 1 r1) / Rsqr (r1 ^ (nat_of_P n)) * (INR (nat_of_P n) * (r1 ^ pred (nat_of_P n))))%R.
 apply derivable_pt_lim_comp.

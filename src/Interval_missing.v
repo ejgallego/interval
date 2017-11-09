@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals Psatz.
-Require Export Flocq.Core.Fcore_Raux.
+From Flocq Require Export Raux.
 
 Ltac evar_last :=
   match goal with
@@ -1160,7 +1160,7 @@ assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
   now rewrite Rinv_1, Rabs_pos_eq.
   intros n.
   apply pow_nonzero.
-  now apply (Z2R_neq (-1) 0).
+  now apply IZR_neq.
   exact Rlt_0_1.
   apply is_lim_seq_ext with (fun _ => 1%R).
     intros n.
@@ -1168,7 +1168,7 @@ assert (Hc: Rbar_lt (Rabs x) (CV_radius (fun n : nat => (-1) ^ n))).
     rewrite Rmult_assoc, Rinv_r, Rmult_1_r, Rabs_Ropp.
     apply eq_sym, Rabs_R1.
     apply pow_nonzero.
-    now apply (Z2R_neq (-1) 0).
+    now apply IZR_neq.
   apply is_lim_seq_const.
 rewrite <- RInt_PSeries with (1 := Hc).
 apply RInt_ext.
@@ -1203,7 +1203,7 @@ apply (is_RInt_ext (Derive (fun t => ln (1 + t)))).
   apply is_derive_unique.
   apply H.
   apply Rlt_trans with (2 := Ht).
-  now apply (Z2R_lt (-1) 0).
+  now apply IZR_lt.
 replace (ln (1 + x)) with (ln (1 + x) - ln (1 + 0))%R.
 apply (is_RInt_derive (fun t => ln (1 + t))).
   intros t.
@@ -1213,14 +1213,14 @@ apply (is_RInt_derive (fun t => ln (1 + t))).
   eexists.
   apply H.
   apply Rlt_le_trans with (2 := Ht).
-  now apply (Z2R_lt (-1) 0).
+  now apply IZR_lt.
 intros t.
 rewrite Rmin_left by easy.
 intros [Ht _].
 apply continuous_ext_loc with (fun t : R => /(1 + t)).
 apply locally_interval with (-1)%R p_infty.
 apply Rlt_le_trans with (2 := Ht).
-now apply (Z2R_lt (-1) 0).
+now apply IZR_lt.
 easy.
 clear t Ht.
 intros t Ht _.
@@ -1248,11 +1248,6 @@ rewrite pow_n_pow.
 unfold tg_alt.
 rewrite <- Rmult_assoc.
 apply Rmult_comm.
-Qed.
-
-Lemma INR_Z2R i : INR i = Z2R (Z.of_nat i).
-Proof.
-now rewrite INR_IZR_INZ, <-Z2R_IZR.
 Qed.
 
 (** Define a shorter name *)
