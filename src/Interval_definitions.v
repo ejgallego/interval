@@ -24,7 +24,7 @@ Require Import Interval_xreal.
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.
 
-Definition radix2 := Build_radix 2 (refl_equal _).
+Notation radix2 := Zaux.radix2 (only parsing).
 
 Section Definitions.
 
@@ -93,7 +93,7 @@ Qed.
 
 Lemma FtoR_split :
   forall beta s m e,
-  FtoR beta s m e = F2R (Definitions.Float beta (cond_Zopp s (Zpos m)) e).
+  FtoR beta s m e = F2R (Defs.Float beta (cond_Zopp s (Zpos m)) e).
 Proof.
 intros.
 unfold FtoR, F2R, cond_Zopp. simpl.
@@ -120,6 +120,6 @@ intros beta s m e.
 rewrite FtoR_split.
 case is_zero_spec ; try easy.
 intros H.
-apply F2R_eq_0_reg in H.
+apply eq_0_F2R in H.
 now destruct s.
 Qed.

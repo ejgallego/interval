@@ -304,7 +304,7 @@ rewrite toF_float with (1 := Vp).
 rewrite exponent_add_correct.
 simpl.
 rewrite 2!FtoR_split.
-unfold Definitions.F2R.
+unfold Defs.F2R.
 simpl.
 rewrite Rmult_assoc, (Rmult_comm (bpow radix (EtoZ e))).
 rewrite 2!IZR_cond_Zopp, <- 2!cond_Ropp_mult_l.
@@ -492,7 +492,7 @@ Proof.
 intros mode m pos sign Hm.
 unfold adjust_mantissa, Interval_generic.adjust_mantissa.
 rewrite mantissa_even_correct with (1 := Hm).
-unfold Zeven.
+unfold Z.even.
 case need_change.
 2: now split.
 destruct mantissa_one_correct as (Oe, Ov).
@@ -571,7 +571,7 @@ clear ; zify ; omega.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
-unfold need_change_radix2, even_radix, radix, Zeven.
+unfold need_change_radix2, even_radix, radix, Z.even.
 case need_change_radix.
 2: now apply toF_float.
 generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub (mantissa_digits m1) p)) Hm1).
@@ -1307,7 +1307,7 @@ case exponent_div2_floor ; intros e1 r He.
 rewrite exponent_cmp_correct.
 rewrite exponent_zero_correct.
 set (s3 := if r then exponent_add s1 exponent_one else s1).
-set (s4e2 := if Zeven (EtoZ ex - s2) then (s2, EtoZ ex - s2)%Z else (s2 + 1, EtoZ ex - s2 - 1)%Z).
+set (s4e2 := if Z.even (EtoZ ex - s2) then (s2, EtoZ ex - s2)%Z else (s2 + 1, EtoZ ex - s2 - 1)%Z).
 assert (Hes: EtoZ e1 = Z.div2 (snd s4e2) /\ EtoZ s3 = fst s4e2).
   clear -He Hs.
   generalize (Zdiv2_odd_eqn (EtoZ ex - s2)).

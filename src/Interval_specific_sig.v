@@ -114,7 +114,7 @@ Parameter mantissa_sign_correct :
 
 Parameter mantissa_even_correct :
   forall x, valid_mantissa x ->
-  mantissa_even x = Zeven (Zpos (MtoP x)).
+  mantissa_even x = Z.even (Zpos (MtoP x)).
 
 Parameter mantissa_one_correct :
   MtoP mantissa_one = xH /\ valid_mantissa mantissa_one.

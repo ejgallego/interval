@@ -1358,7 +1358,7 @@ apply Generic_fmt.round_le ; auto with typeclass_instances.
 rewrite <- sqrt_1.
 now apply sqrt_le_1_alt.
 apply FLX.generic_format_FLX.
-exists (Definitions.Float F.radix 1 0).
+exists (Defs.Float F.radix 1 0).
 apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.
@@ -1454,7 +1454,7 @@ apply Rinv_le.
 exact Hx.
 now apply Rlt_le.
 apply FLX.generic_format_FLX.
-exists (Definitions.Float F.radix 1 0).
+exists (Defs.Float F.radix 1 0).
 apply sym_eq, Rmult_1_r.
 simpl Z.abs.
 now apply Zpower_gt_1.

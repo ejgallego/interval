@@ -173,7 +173,7 @@ Definition mantissa_mul_correct :=
 Definition mantissa_cmp_correct :=
   fun x y (Hx Hy : True) => refl_equal (Zpos (MtoP x) ?= Zpos (MtoP y))%Z.
 Definition mantissa_even_correct :=
-  fun x (_ : True) => refl_equal (Zeven (Zpos x)).
+  fun x (_ : True) => refl_equal (Z.even (Zpos x)).
 
 Lemma mantissa_sign_correct :
   forall x,

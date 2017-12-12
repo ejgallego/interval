@@ -217,7 +217,7 @@ Qed.
 
 Lemma mantissa_even_correct :
   forall x, valid_mantissa x ->
-  mantissa_even x = Zeven (Zpos (MtoP x)).
+  mantissa_even x = Z.even (Zpos (MtoP x)).
 Proof.
 intros x (px, Hx).
 unfold mantissa_even, Zeven, MtoP.
@@ -529,10 +529,10 @@ case Zcompare_spec ; intros Hc.
     2: clear -Hc ; omega.
     change (2 ^ 1)%Z with 2%Z.
     clear ; intros.
-    apply (f_equal Zeven) in H.
+    apply (f_equal Z.even) in H.
     revert H.
-    rewrite Zeven_2xp1.
-    rewrite Zmult_assoc, Zeven_mult.
+    rewrite Zplus_comm, Z.even_add_mul_2.
+    rewrite Zmult_assoc, Z.even_mul.
     now rewrite orb_comm.
     rewrite Zdiv_small.
     easy.

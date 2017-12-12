@@ -32,7 +32,7 @@ Lemma FtoR_Rpos :
 Proof.
 intros beta m e.
 rewrite FtoR_split.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 Qed.
 
 Lemma FtoR_neg :
@@ -51,7 +51,7 @@ Lemma FtoR_Rneg :
 Proof.
 intros beta m e.
 rewrite FtoR_split.
-now apply F2R_lt_0_compat.
+now apply F2R_lt_0.
 Qed.
 
 Lemma FtoR_abs :
@@ -275,13 +275,13 @@ unfold FtoX.
 apply f_equal.
 rewrite 2!FtoR_split.
 simpl.
-replace (IZR (Zpower_pos 2 nb)) with (F2R (Definitions.Float beta (Zpower_pos 2 nb) 0)).
+replace (IZR (Zpower_pos 2 nb)) with (F2R (Defs.Float beta (Zpower_pos 2 nb) 0)).
 2: apply Rmult_1_r.
 rewrite <- F2R_mult.
 simpl.
 rewrite Zplus_0_r.
 rewrite <- cond_Zopp_mult.
-apply (f_equal (fun v => F2R (Definitions.Float beta (cond_Zopp s v) e))).
+apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s v) e))).
 apply (shift_correct radix2).
 (* . *)
 unfold FtoX.
@@ -294,7 +294,7 @@ change (Zneg nb) with (Zopp (Zpos nb)).
 rewrite Zplus_opp_l, Rmult_1_r.
 fold (e - Zpos nb)%Z.
 simpl.
-replace (IZR (Zpower_pos 2 nb)) with (F2R (Definitions.Float beta (Zpower_pos 2 nb) 0)).
+replace (IZR (Zpower_pos 2 nb)) with (F2R (Defs.Float beta (Zpower_pos 2 nb) 0)).
 2: apply Rmult_1_r.
 rewrite <- F2R_mult.
 simpl.
@@ -303,7 +303,7 @@ rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
 2: generalize (Zgt_pos_0 nb) ; omega.
 ring_simplify (e - (e - Zpos nb))%Z.
 rewrite <- 2!cond_Zopp_mult.
-apply (f_equal (fun v => F2R (Definitions.Float beta (cond_Zopp s v) _))).
+apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s v) _))).
 rewrite Z.pow_pos_fold.
 rewrite iter_pos_nat.
 rewrite 2!Zpower_Zpower_nat by easy.
@@ -339,12 +339,12 @@ unfold  Fcmp_aux2, Xcmp.
 rewrite <- 2!digits_conversion.
 rewrite (Zplus_comm e1), (Zplus_comm e2).
 rewrite <- 2!mag_F2R_Zdigits ; [|easy..].
-destruct (mag beta (F2R (Definitions.Float beta (Zpos m1) e1))) as (b1, B1).
-destruct (mag beta (F2R (Definitions.Float beta (Zpos m2) e2))) as (b2, B2).
+destruct (mag beta (F2R (Defs.Float beta (Zpos m1) e1))) as (b1, B1).
+destruct (mag beta (F2R (Defs.Float beta (Zpos m2) e2))) as (b2, B2).
 simpl.
-assert (Z: forall m e, (0 < F2R (Definitions.Float beta (Zpos m) e))%R).
+assert (Z: forall m e, (0 < F2R (Defs.Float beta (Zpos m) e))%R).
 intros m e.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 specialize (B1 (Rgt_not_eq _ _ (Z _ _))).
 specialize (B2 (Rgt_not_eq _ _ (Z _ _))).
 rewrite Rabs_pos_eq with (1 := Rlt_le _ _ (Z _ _)) in B1.
@@ -542,7 +542,7 @@ Definition mode_choice mode s m l :=
   | rnd_UP => cond_incr (round_sign_UP s l) m
   | rnd_DN => cond_incr (round_sign_DN s l) m
   | rnd_ZR => m
-  | rnd_NE => cond_incr (round_N (negb (Zeven m)) l) m
+  | rnd_NE => cond_incr (round_N (negb (Z.even m)) l) m
   end.
 
 Lemma adjust_mantissa_correct :
@@ -580,7 +580,7 @@ Qed.
 
 Lemma even_radix_correct :
   forall beta,
-  match radix_val beta with Zpos (xO _) => true | _ => false end = Zeven beta.
+  match radix_val beta with Zpos (xO _) => true | _ => false end = Z.even beta.
 Proof.
 intros (beta, Hb).
 revert Hb.
@@ -589,7 +589,7 @@ Qed.
 
 Lemma odd_radix_correct :
   forall beta,
-  match radix_val beta with Zpos (xO _) => false | _ => true end = negb (Zeven beta).
+  match radix_val beta with Zpos (xO _) => false | _ => true end = negb (Z.even beta).
 Proof.
 intros (beta, Hb).
 revert Hb.
@@ -651,7 +651,7 @@ apply (f_equal Xreal).
 rewrite FtoR_split.
 rewrite adjust_mantissa_correct.
 simpl.
-apply (f_equal (fun v => F2R (Definitions.Float beta (cond_Zopp s (mode_choice mode s (Zpos q) v)) (e2 + Zpos d)))).
+apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s (mode_choice mode s (Zpos q) v)) (e2 + Zpos d)))).
 rewrite <- (Zmult_1_l (Zpower_pos beta d)).
 rewrite <- shift_correct.
 apply adjust_pos_correct ; rewrite shift_correct, Zmult_1_l.
@@ -691,13 +691,13 @@ rewrite Zpos_succ_morphism, shift_correct.
 rewrite (F2R_change_exp beta (e1 + Zneg d)%Z (cond_Zopp s (Zpos m1)) e1).
 ring_simplify (e1 - (e1 + Zneg d))%Z.
 replace (cond_Zopp s (Zpos m1) * beta ^ (- Zneg d))%Z with (cond_Zopp s (Zpos m1 * Zpower_pos beta d)).
-rewrite <- (H Z ExtendedR (fun v => Xreal (F2R (Definitions.Float beta (cond_Zopp s v) (e1 + Zneg d))))).
+rewrite <- (H Z ExtendedR (fun v => Xreal (F2R (Defs.Float beta (cond_Zopp s v) (e1 + Zneg d))))).
 rewrite <- He.
-apply (f_equal (fun v => Xreal (F2R (Definitions.Float beta (cond_Zopp s v) (e1 + Zneg d))))).
+apply (f_equal (fun v => Xreal (F2R (Defs.Float beta (cond_Zopp s v) (e1 + Zneg d))))).
 clear.
 unfold mode_choice, need_change_radix.
 case mode ; case pos ; try easy.
-rewrite Zeven_mult, Zeven_Zpower. 2: easy.
+rewrite Z.even_mul, Z.even_pow by easy.
 unfold need_change_radix2.
 rewrite even_radix_correct.
 now case m1.
@@ -760,8 +760,8 @@ Qed.
 
 Lemma normalize_correct :
   forall beta prec m e,
-  F2R (Definitions.Float beta (Zpos m) e) =
-    let (m', e') := normalize beta prec m e in F2R (Definitions.Float beta (Zpos m') e').
+  F2R (Defs.Float beta (Zpos m) e) =
+    let (m', e') := normalize beta prec m e in F2R (Defs.Float beta (Zpos m') e').
 Proof.
 intros beta prec m e.
 unfold normalize.
@@ -799,10 +799,10 @@ simpl. unfold round.
 rewrite round_0...
 unfold Xround, UtoX.
 rewrite FtoR_split.
-replace (F2R (Definitions.Float beta (cond_Zopp s (Zpos m)) e)) with
-  (if s then Ropp (F2R (Definitions.Float beta (Zpos m) e)) else F2R (Definitions.Float beta (Zpos m) e)).
+replace (F2R (Defs.Float beta (cond_Zopp s (Zpos m)) e)) with
+  (if s then Ropp (F2R (Defs.Float beta (Zpos m) e)) else F2R (Defs.Float beta (Zpos m) e)).
 apply Fround_at_prec_correct.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 unfold inbetween_float.
 rewrite (normalize_correct beta prec m e).
 destruct (normalize beta prec m e) as (m', e').
@@ -1093,22 +1093,22 @@ rewrite convert_location_bij.
 now rewrite 2!FtoR_split.
 now rewrite <- digits_conversion.
 rewrite 4!FtoR_split.
-assert (F2R (Definitions.Float beta (Zpos my) ey) <> R0).
+assert (F2R (Defs.Float beta (Zpos my) ey) <> R0).
 apply Rgt_not_eq.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 unfold cond_Zopp.
 now case sx ; case sy ; repeat rewrite F2R_Zopp ; simpl ; field.
 destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.
-apply F2R_le_0_compat.
+apply F2R_le_0.
 unfold Fnum.
 now apply (Zlt_le_succ (Zneg p)).
 apply Rlt_le.
 apply Rmult_lt_0_compat.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 apply Rinv_0_lt_compat.
-now apply F2R_gt_0_compat.
+now apply F2R_gt_0.
 Qed.
 
 Lemma Fsqrt_correct :
@@ -1155,7 +1155,7 @@ now rewrite <- digits_conversion.
 destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.
-apply F2R_le_0_compat.
+apply F2R_le_0.
 unfold Fnum.
 now apply (Zlt_le_succ (Zneg p)).
 apply sqrt_ge_0.
