@@ -625,6 +625,18 @@ Definition Fsub_exact {beta} (x y : float beta) :=
  * Complexity is fine as long as px <= 2p and py <= p.
  *)
 
+Definition Fdiv_aux2 beta prec m1 e1 m2 e2 :=
+  let d1 := Digits.Zdigits beta m1 in
+  let d2 := Digits.Zdigits beta m2 in
+  let e := (e1 - e2)%Z in
+  let (m, e') :=
+    match (d2 + prec - d1)%Z with
+    | Zpos p => (m1 * Zpower_pos beta p, e + Zneg p)%Z
+    | _ => (m1, e)
+    end in
+  let '(q, r) :=  Zfast_div_eucl m m2 in
+  (q, e', Bracket.new_location m2 r Bracket.loc_Exact).
+
 Definition Fdiv_aux {beta} prec (x y : float beta) : ufloat beta :=
   match x, y with
   | Fnan, _ => Unan
@@ -632,7 +644,7 @@ Definition Fdiv_aux {beta} prec (x y : float beta) : ufloat beta :=
   | _, Fzero => Unan
   | Fzero, _ => Uzero
   | Float sx mx ex, Float sy my ey =>
-    match Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey with
+    match Fdiv_aux2 beta (Zpos prec) (Zpos mx) ex (Zpos my) ey with
     | (Zpos m, e, l) =>
       Ufloat (xorb sx sy) m e (convert_location l)
     | _ => Unan (* dummy *)
@@ -725,10 +737,26 @@ Definition Frem {beta} mode prec (x y : float beta) :=
  * Complexity is fine as long as p1 <= 2p-1.
  *)
 
+Definition Fsqrt_aux2 beta prec m e :=
+  let d := Digits.Zdigits beta m in
+  let s := Zmax (2 * prec - d) 0 in
+  let e' := (e - s)%Z in
+  let (s', e'') := if Z.even e' then (s, e') else (s + 1, e' - 1)%Z in
+  let m' :=
+    match s' with
+    | Zpos p => (m * Zpower_pos beta p)%Z
+    | _ => m
+    end in
+  let (q, r) := Z.sqrtrem m' in
+  let l :=
+    if Zeq_bool r 0 then Bracket.loc_Exact
+    else Bracket.loc_Inexact (if Zle_bool r q then Lt else Gt) in
+  (q, Zdiv2 e'', l).
+
 Definition Fsqrt_aux {beta} prec (f : float beta) : ufloat beta :=
   match f with
   | Float false m e =>
-    match Fsqrt_core beta (Zpos prec) (Zpos m) e with
+    match Fsqrt_aux2 beta (Zpos prec) (Zpos m) e with
     | (Zpos m, e, l) =>
       Ufloat false m e (convert_location l)
     | _ => Unan (* dummy *)

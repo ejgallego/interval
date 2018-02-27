@@ -1075,15 +1075,47 @@ rewrite Rmult_0_l.
 apply sym_eq.
 apply (f_equal Xreal).
 apply round_0...
-unfold Xround, Fdiv, Fdiv_aux.
-generalize (Div.Fdiv_core_correct beta (Zpos prec) (Zpos mx) ex (Zpos my) ey (refl_equal Lt)).
-destruct (Div.Fdiv_core beta (Zpos prec) (Zpos mx) ex (Zpos my) ey) as ((m', e'), l).
-intros (H3, H4) ; try easy.
-destruct m' as [|p|p].
-now elim H3.
-replace (FtoR beta sx mx ex / FtoR beta sy my ey)%R with
+unfold Xround, Fdiv, Fdiv_aux, Fdiv_aux2.
+set (e := Zmin ((Zdigits beta (Zpos mx) + ex) - (Zdigits beta (Zpos my) + ey) - Zpos prec) (ex - ey)).
+generalize (Div.Fdiv_core_correct beta (Zpos mx) ex (Zpos my) ey e eq_refl eq_refl).
+unfold Div.Fdiv_core.
+rewrite Zle_bool_true by apply Zle_min_r.
+match goal with |- context [let (m,e') := ?v in let '(q,r) := Zfast_div_eucl _ _ in _] => set (me := v) end.
+assert (me = (Zpos mx * Zpower beta (ex - ey - e), e))%Z as ->.
+{ unfold me, e ; clear.
+  destruct (_ + Zpos prec - _)%Z as [|p|p] eqn:He.
+  - rewrite Zmin_r by omega.
+    now rewrite Z.sub_diag, Zmult_1_r.
+  - rewrite Zmin_l by (zify ; omega).
+    change (Zneg p) with (Zopp (Zpos p)).
+    fold (Zpower beta (Zpos p)).
+    rewrite <- He.
+    apply (f_equal2 (fun v1 v2 => (_ * Zpower beta v1, v2)%Z)) ; ring.
+  - rewrite Zmin_r by (zify ; omega).
+    now rewrite Z.sub_diag, Zmult_1_r. }
+rewrite Zfast_div_eucl_correct.
+destruct Zdiv_eucl as [m r].
+set (l := new_location _ _ _).
+intros H1.
+assert (Zpos prec <= Zdigits beta m)%Z as H2.
+{ generalize (Div.mag_div_F2R beta (Zpos mx) ex (Zpos my) ey eq_refl eq_refl).
+  cbv zeta.
+  intros H2.
+  refine (_ (cexp_inbetween_float _ (FLX_exp (Zpos prec)) _ _ _ _ _ H1 (or_introl _))).
+  unfold cexp, FLX_exp, e.
+  intros H3.
+  zify ; omega.
+  apply Rmult_lt_0_compat.
+  now apply F2R_gt_0.
+  apply Rinv_0_lt_compat.
+  now apply F2R_gt_0.
+  unfold cexp, FLX_exp, e.
+  zify ; omega. }
+destruct m as [|p|p].
+- now elim H2.
+- replace (FtoR beta sx mx ex / FtoR beta sy my ey)%R with
   (if xorb sx sy then - (FtoR beta false mx ex / FtoR beta false my ey) else (FtoR beta false mx ex / FtoR beta false my ey))%R.
-apply (Fround_at_prec_correct beta mode prec _ p e').
+apply (Fround_at_prec_correct beta mode prec _ p e).
 apply Rmult_lt_0_compat.
 apply FtoR_Rpos.
 apply Rinv_0_lt_compat.
@@ -1093,18 +1125,18 @@ rewrite convert_location_bij.
 now rewrite 2!FtoR_split.
 now rewrite <- digits_conversion.
 rewrite 4!FtoR_split.
-assert (F2R (Defs.Float beta (Zpos my) ey) <> R0).
+assert (F2R (Defs.Float beta (Zpos my) ey) <> 0%R).
 apply Rgt_not_eq.
 now apply F2R_gt_0.
 unfold cond_Zopp.
 now case sx ; case sy ; repeat rewrite F2R_Zopp ; simpl ; field.
-destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
+destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H1) as (_, H5).
 elim (Rlt_not_le _ _ H5).
-apply Rle_trans with R0.
+apply Rle_trans with 0%R.
 apply F2R_le_0.
 unfold Fnum.
 now apply (Zlt_le_succ (Zneg p)).
-apply Rlt_le.
+- apply Rlt_le.
 apply Rmult_lt_0_compat.
 now apply F2R_gt_0.
 apply Rinv_0_lt_compat.
@@ -1126,7 +1158,7 @@ apply (f_equal Xreal).
 rewrite sqrt_0.
 apply round_0...
 (* *)
-unfold Fsqrt, Fsqrt_aux.
+unfold Fsqrt, Fsqrt_aux, Fsqrt_aux2.
 case is_negative_spec.
 case sx ; simpl.
 easy.
@@ -1140,11 +1172,86 @@ elim (Rle_not_lt _ _ H).
 apply FtoR_Rneg.
 intros _.
 unfold Xround.
-generalize (Sqrt.Fsqrt_core_correct beta (Zpos prec) (Zpos mx) ex (refl_equal Lt)).
-destruct (Sqrt.Fsqrt_core beta (Zpos prec) (Zpos mx)) as ((m', e'), l).
-intros (H3, H4).
+set (e1 := Zmax _ _).
+destruct (if Z.even _ then _ else _) as [s' e''] eqn:Hse.
+set (e' := Zdiv2 e'').
+assert (e'' = 2 * Zdiv2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
+{ generalize (Zdiv2_odd_eqn (ex - e1)).
+  rewrite <- Z.negb_even.
+  destruct Z.even eqn:H ; injection Hse ; intros <- <-.
+  rewrite Zplus_0_r.
+  split.
+  easy.
+  fold e' in H0.
+  rewrite <- H0.
+  ring.
+  change (if negb false then _ else _) with 1%Z.
+  intros H'.
+  rewrite H' at 1.
+  split.
+  apply Z.add_simpl_r.
+  unfold e'.
+  generalize (Zdiv2_odd_eqn (ex - e1 - 1)).
+  rewrite <- Z.negb_even, Z.even_sub, H.
+  rewrite Zplus_0_r.
+  intros <-.
+  ring. }
+assert (2 * e' <= ex)%Z as He.
+{ unfold e'. rewrite He1.
+  rewrite Zdiv2_div, <- (Zmult_comm (Zdiv2 (ex - e1))), Z.div_mul by easy.
+  unfold e1.
+  rewrite <- Z.sub_min_distr_l, Zminus_0_r.
+  rewrite <- Z.min_mono.
+  set (foo := Zdiv2 _).
+  clear.
+  assert (Zmin foo (Zdiv2 ex) <= Zdiv2 ex)%Z as H by apply Zle_min_r.
+  generalize (Zdiv2_odd_eqn ex).
+  destruct Z.odd ; intros ; omega.
+  intros x y ; apply f_equal.
+  intros x y.
+  rewrite 2!Zdiv2_div.
+  now apply Z.div_le_mono. }
+generalize (Sqrt.Fsqrt_core_correct beta (Zpos mx) ex e' eq_refl He).
+unfold Sqrt.Fsqrt_core.
+set (m' := match s' with Z0 => _ | _ => _ end).
+assert (m' = Zpos mx * Zpower beta (ex - 2 * e'))%Z as ->.
+{ rewrite <- He2.
+  destruct s' as [|p|p].
+  now rewrite Zmult_1_r.
+  easy.
+  clear -He He2 ; zify ; omega. }
+destruct Z.sqrtrem as [m' r].
+set (lz := if Zeq_bool _ _ then _ else _).
+intros H1.
+assert (Zpos prec <= Zdigits beta m')%Z as H2.
+{ assert (e' <= Zdiv2 (Zdigits beta (Zpos mx) + ex + 1) - Zpos prec)%Z as He'.
+  { unfold e'. rewrite He1.
+    rewrite Zdiv2_div, <- (Zmult_comm (Zdiv2 (ex - e1))), Z.div_mul by easy.
+    unfold e1.
+    rewrite <- Z.sub_min_distr_l, Zminus_0_r.
+    rewrite <- Z.min_mono.
+    replace (ex - _)%Z with (Zdigits beta (Zpos mx) + ex + (-Zpos prec) * 2)%Z by ring.
+    rewrite Zdiv2_div, Z.div_add, <- Zdiv2_div by easy.
+    apply Zle_trans with (1 := Zle_min_l _ _).
+    apply Zplus_le_compat_r.
+    rewrite 2!Zdiv2_div.
+    apply Z.div_le_mono.
+    easy.
+    apply Z.le_succ_diag_r.
+    intros x y ; apply f_equal.
+    intros x y.
+    rewrite 2!Zdiv2_div.
+    now apply Z.div_le_mono. }
+  refine (_ (cexp_inbetween_float _ (FLX_exp (Zpos prec)) _ _ _ _ _ H1 (or_introl _))).
+  unfold cexp, FLX_exp.
+  rewrite (Sqrt.mag_sqrt_F2R beta (Zpos mx) ex eq_refl).
+  clear -He He' ; intros ; omega.
+  apply sqrt_lt_R0.
+  now apply F2R_gt_0.
+  unfold cexp, FLX_exp.
+  now rewrite (Sqrt.mag_sqrt_F2R beta (Zpos mx) ex eq_refl). }
 destruct m' as [|p|p].
-now elim H3.
+now elim H1.
 apply (Fround_at_prec_correct beta mode prec false p e').
 apply sqrt_lt_R0.
 apply FtoR_Rpos.
@@ -1152,7 +1259,7 @@ rewrite normalize_identity.
 rewrite convert_location_bij.
 now rewrite FtoR_split.
 now rewrite <- digits_conversion.
-destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H4) as (_, H5).
+destruct (Bracket.inbetween_float_bounds _ _ _ _ _ H1) as (_, H5).
 elim (Rlt_not_le _ _ H5).
 apply Rle_trans with R0.
 apply F2R_le_0.

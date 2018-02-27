@@ -1109,7 +1109,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_sub_correct, exponent_add_correct, exponent_zero_correct.
 rewrite 2!mantissa_digits_correct ; try easy.
 rewrite <- 2!digits_conversion.
-unfold Fdiv, Fdiv_aux, Div.Fdiv_core.
+unfold Fdiv, Fdiv_aux, Fdiv_aux2.
 set (p' := match exponent_cmp p exponent_zero with Gt => p | _ => exponent_one end).
 assert (Hp: EtoZ p' = Zpos (prec p)).
 unfold p', prec.
@@ -1179,6 +1179,7 @@ replace (match d with Zpos p0 => ((Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)
 revert H1.
 unfold Zdiv.
 generalize (Z_div_mod (match d with Zpos p0 => (Zpos (MtoP nx) * Zpower_pos Carrier.radix p0)%Z | _ => Zpos (MtoP nx) end) (Zpos (MtoP ny)) (refl_equal _)).
+rewrite Zfast_div_eucl_correct.
 case Zdiv_eucl.
 intros q r (Hq,Hr) H1.
 rewrite <- H1.
@@ -1279,7 +1280,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_sub_correct.
 rewrite exponent_add_correct.
 rewrite exponent_zero_correct.
-unfold Fsqrt, Fsqrt_aux, Sqrt.Fsqrt_core.
+unfold Fsqrt, Fsqrt_aux, Fsqrt_aux2.
 set (s1 := match Zcompare (EtoZ p' + EtoZ p' - EtoZ (mantissa_digits nx)) 0 with Gt => exponent_sub (exponent_add p' p') (mantissa_digits nx) | _ => exponent_zero end).
 set (s2 := Zmax (2 * Zpos (prec p) - Zdigits radix (Zpos (MtoP nx))) 0).
 assert (Hs: EtoZ s1 = s2).
