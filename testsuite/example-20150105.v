@@ -18,6 +18,5 @@ Goal forall x : R, Rabs x <= 35/100 ->
 Proof.
 intros x Hx p q r.
 unfold r, p, q.
-unfold Raux.bpow, Z.pow_pos; simpl Pos.iter.
 interval with (i_prec 40, i_bisect_taylor x 3).
 Qed.

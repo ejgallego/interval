@@ -68,6 +68,8 @@ Ltac get_float t :=
       end in
     let e := aux d in
     eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s n (Zneg e))) in
+  let get_float_bpow s n d :=
+    eval vm_compute in (F.fromF (@Interval_definitions.Float F.radix s n d)) in
   let get_float_integer s t :=
     let rec aux m e :=
       match m with
@@ -86,6 +88,8 @@ Ltac get_float t :=
   | (IZR (Zpos ?n) * / IZR (Zpos ?d))%R => get_float_rational false n d
   | (IZR (Zneg ?n) / IZR (Zpos ?d))%R => get_float_rational true n d
   | (IZR (Zpos ?n) / IZR (Zpos ?d))%R => get_float_rational false n d
+  | (IZR (Zneg ?n) * bpow radix2 ?d)%R => get_float_bpow true n d
+  | (IZR (Zpos ?n) * bpow radix2 ?d)%R => get_float_bpow false n d
   | IZR (Zneg ?n) => get_float_integer true n
   | IZR (Zpos ?n) => get_float_integer false n
   | _ => false
