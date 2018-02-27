@@ -1175,42 +1175,42 @@ unfold Xround.
 set (e1 := Zmax _ _).
 destruct (if Z.even _ then _ else _) as [s' e''] eqn:Hse.
 set (e' := Zdiv2 e'').
-assert (e'' = 2 * Zdiv2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
+assert (e' = Zdiv2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
 { generalize (Zdiv2_odd_eqn (ex - e1)).
   rewrite <- Z.negb_even.
   destruct Z.even eqn:H ; injection Hse ; intros <- <-.
   rewrite Zplus_0_r.
-  split.
-  easy.
+  intros H0.
+  apply (conj eq_refl).
   fold e' in H0.
   rewrite <- H0.
   ring.
   change (if negb false then _ else _) with 1%Z.
   intros H'.
-  rewrite H' at 1.
-  split.
-  apply Z.add_simpl_r.
   unfold e'.
-  generalize (Zdiv2_odd_eqn (ex - e1 - 1)).
-  rewrite <- Z.negb_even, Z.even_sub, H.
-  rewrite Zplus_0_r.
-  intros <-.
-  ring. }
-assert (2 * e' <= ex)%Z as He.
-{ unfold e'. rewrite He1.
-  rewrite Zdiv2_div, <- (Zmult_comm (Zdiv2 (ex - e1))), Z.div_mul by easy.
+  rewrite H' at 1 3.
+  rewrite Z.add_simpl_r.
+  rewrite Zdiv2_div, (Zmult_comm 2), Z.div_mul by easy.
+  apply (conj eq_refl).
+  clear -H' ; omega. }
+assert (e' = Zmin (Zdiv2 (Zdigits beta (Zpos mx) + ex) - Zpos prec) (Z.div2 ex)) as He1'.
+{ rewrite He1.
   unfold e1.
   rewrite <- Z.sub_min_distr_l, Zminus_0_r.
   rewrite <- Z.min_mono.
-  set (foo := Zdiv2 _).
-  clear.
-  assert (Zmin foo (Zdiv2 ex) <= Zdiv2 ex)%Z as H by apply Zle_min_r.
-  generalize (Zdiv2_odd_eqn ex).
-  destruct Z.odd ; intros ; omega.
+  replace (ex - _)%Z with (Zdigits beta (Zpos mx) + ex + (-Zpos prec) * 2)%Z by ring.
+  now rewrite Zdiv2_div, Z.div_add, <- Zdiv2_div.
   intros x y ; apply f_equal.
   intros x y.
   rewrite 2!Zdiv2_div.
   now apply Z.div_le_mono. }
+assert (2 * e' <= ex)%Z as He.
+{ rewrite He1'.
+  set (foo := (Zdiv2 _ - _)%Z).
+  clear.
+  assert (Zmin foo (Zdiv2 ex) <= Zdiv2 ex)%Z as H by apply Zle_min_r.
+  generalize (Zdiv2_odd_eqn ex).
+  destruct Z.odd ; intros ; omega. }
 generalize (Sqrt.Fsqrt_core_correct beta (Zpos mx) ex e' eq_refl He).
 unfold Sqrt.Fsqrt_core.
 set (m' := match s' with Z0 => _ | _ => _ end).
@@ -1225,23 +1225,13 @@ set (lz := if Zeq_bool _ _ then _ else _).
 intros H1.
 assert (Zpos prec <= Zdigits beta m')%Z as H2.
 { assert (e' <= Zdiv2 (Zdigits beta (Zpos mx) + ex + 1) - Zpos prec)%Z as He'.
-  { unfold e'. rewrite He1.
-    rewrite Zdiv2_div, <- (Zmult_comm (Zdiv2 (ex - e1))), Z.div_mul by easy.
-    unfold e1.
-    rewrite <- Z.sub_min_distr_l, Zminus_0_r.
-    rewrite <- Z.min_mono.
-    replace (ex - _)%Z with (Zdigits beta (Zpos mx) + ex + (-Zpos prec) * 2)%Z by ring.
-    rewrite Zdiv2_div, Z.div_add, <- Zdiv2_div by easy.
+  { rewrite He1'.
     apply Zle_trans with (1 := Zle_min_l _ _).
     apply Zplus_le_compat_r.
     rewrite 2!Zdiv2_div.
     apply Z.div_le_mono.
     easy.
-    apply Z.le_succ_diag_r.
-    intros x y ; apply f_equal.
-    intros x y.
-    rewrite 2!Zdiv2_div.
-    now apply Z.div_le_mono. }
+    apply Z.le_succ_diag_r. }
   refine (_ (cexp_inbetween_float _ (FLX_exp (Zpos prec)) _ _ _ _ _ H1 (or_introl _))).
   unfold cexp, FLX_exp.
   rewrite (Sqrt.mag_sqrt_F2R beta (Zpos mx) ex eq_refl).
