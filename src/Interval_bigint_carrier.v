@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Bool.
-Require Import BigNumsCompat.
+From Bignums Require Import BigN BigZ.
 Require Import Psatz.
 From Flocq Require Import Raux Digits.
 Require Import Interval_definitions.

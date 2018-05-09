@@ -1,5 +1,4 @@
 FILES = \
-	BigNumsCompat.v \
 	Interval_bigint_carrier.v \
 	Interval_bisect.v \
 	Interval_definitions.v \
@@ -53,14 +52,11 @@ check: testsuite/check
 Remakefile: Remakefile.in config.status
 	./config.status Remakefile
 
-src/BigNumsCompat.v: src/BigNumsCompat.v.in config.status
-	./config.status src/BigNumsCompat.v
-
 configure config.status: configure.in
 	autoconf
 	./config.status --recheck
 
-%.vo: %.v | src/BigNumsCompat.v
+%.vo: %.v
 	@COQDEP@ -R src Interval $< | @REMAKE@ -r $@
 	@COQC@ -R src Interval $<
 

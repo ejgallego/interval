@@ -19,4 +19,3 @@ Remakefile
 *#
 *.el
 *.bkp*
-src/BigNumsCompat.v

@@ -71,19 +71,11 @@ rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for Bignums])
 AS_IF(
-  [ echo "Require Import BigZ." > conftest.v
+  [ echo "Require Import Bignums.BigZ.BigZ." > conftest.v
     $COQC conftest.v 2> conftest.err ],
-  [ AC_MSG_RESULT([yes])
-    AC_SUBST([BIGNUMSCOMPAT], [Coq]) ],
+  [ AC_MSG_RESULT([yes]) ],
   [ AC_MSG_RESULT([no])
-    AC_MSG_CHECKING([for Bignums (external)])
-    AS_IF(
-      [ echo "Require Import Bignums.BigZ.BigZ." > conftest.v
-        $COQC conftest.v 2> conftest.err ],
-      [ AC_MSG_RESULT([yes])
-        AC_SUBST([BIGNUMSCOMPAT], [Bignums]) ],
-      [ AC_MSG_RESULT([no])
-        AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])])
+    AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])
 rm -f conftest.v conftest.vo conftest.err
 
 if test "$libdir" = '${exec_prefix}/lib'; then
@@ -104,5 +96,5 @@ MINGW*)
 	;;
 esac
 
-AC_CONFIG_FILES(Remakefile src/BigNumsCompat.v)
+AC_CONFIG_FILES(Remakefile)
 AC_OUTPUT
