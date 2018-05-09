@@ -1,3 +1,8 @@
+Version 3.4.0:
+ - moved to Flocq 3.0; minimal Coq version is now 8.7
+ - added support for Ztrunc, Zfloor, etc
+ - added support for constants written using "bpow radix2"
+
 Version 3.3.0:
  - added option i_integral_width for absolute width of integrals
  - improved accuracy for interval cos and sin away from zero

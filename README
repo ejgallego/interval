@@ -35,10 +35,11 @@ The complete list of recognized goals is as follows:
 
 Operators recognized by the tactic are: PI, Ropp, Rabs, Rinv, Rsqr, sqrt,
 cos, sin, tan, atan, exp, ln, pow, powerRZ, Rplus, Rminus, Rmult, Rdiv.
-There are some restrictions on the domain of a few functions: pow and
-powerRZ should be written with a numeric exponent; the input of cos and
-sin should be between -2*PI and 2*PI; the input of tan should be between
--PI/2 and PI/2.
+Operators Zfloor, Zceil, Ztrunc, ZnearestE (composed with IZR) are also
+recognized. There are some restrictions on the domain of a few functions:
+pow and powerRZ should be written with a numeric exponent; the input of
+cos and sin should be between -2*PI and 2*PI; the input of tan should be
+between -PI/2 and PI/2.
 
 The tactic also recognizes integral expressions RInt whose bounds are
 constants and whose integrand is an expression containing only constant

@@ -1,7 +1,7 @@
 Prerequisites
 -------------
 
-In addition to the Coq proof assistant (>= 8.5), you need the following
+In addition to the Coq proof assistant (>= 8.7), you need the following
 libraries:
 
 - Mathematical Components (>= 1.6, http://math-comp.github.io/math-comp/)
