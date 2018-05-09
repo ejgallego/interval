@@ -19,6 +19,7 @@ liability. See the COPYING file for more details.
 
 From Flocq Require Import Raux.
 Require Import ZArith.
+Require Import Psatz.
 Require Import Bool.
 Require Import Interval_definitions.
 Require Import Interval_generic.
@@ -104,6 +105,54 @@ Definition mantissa_shr m d pos :=
   | Zpos nb =>
     iter_pos mantissa_shr_aux nb (m, pos)
   | _ => (xH, pos_Eq) (* dummy *)
+  end.
+
+
+Fixpoint mantissa_shrp_aux m d :=
+  match m with 
+  | xO m1 => 
+      if (d =? 1)%positive then pos_Up else mantissa_shrp_aux m1 (Ppred d)
+  | xI m1 => pos_Up
+  | xH    =>
+      if (d =? 1)%positive then pos_Mi else pos_Up
+  end.
+
+Lemma mantissa_shrp_aux_correct m d :
+   mantissa_shrp_aux m (Psucc d) =
+   match (m ?= shift radix 1 d)%positive with
+        | Eq  => pos_Mi
+        |  _  => pos_Up
+        end.
+Proof.
+apply eq_trans with
+   (if (m =? shift radix 1 d)%positive then pos_Mi else pos_Up);
+     last first.
+  now rewrite Pos.eqb_compare; destruct Pos.compare.
+rewrite Pos2Z.inj_eqb, shift_correct, Z.pow_pos_fold, Zmult_1_l.
+rewrite <- radix_to_pos, <- Pos2Z.inj_pow.
+revert d; induction m as [| m | m]; intros d.
+- case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd; simpl; destruct m.
+  rewrite <- Hd, Pos.pow_succ_r.
+  now unfold mantissa_shrp_aux; case Pos.eqb.
+- case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd; destruct m.
+  rewrite <- Hd at 2.
+  rewrite Pos.pow_succ_r.
+  rewrite <- Pos2Z.inj_eqb, Pos.eqb_compare, Pos.compare_xO_xO.
+  rewrite <- Pos.eqb_compare, Pos2Z.inj_eqb, <- IHm; simpl.
+  now rewrite Hd, Pos.pred_succ; destruct d.
+case (Pos.succ_pred_or d); intro Hd.
+    now rewrite Hd.
+rewrite <- Hd at 2.
+rewrite Pos.pow_succ_r.
+now destruct d.
+Qed.
+
+Definition mantissa_shrp m d pos :=
+  match pos with
+  | pos_Eq => mantissa_shrp_aux m (Z.to_pos d)
+  | _ => pos_Up
   end.
 
 Definition mantissa_div := fun m d => mantissa_split_div m d pos_Eq.
@@ -376,6 +425,43 @@ induction (Pos.to_nat x) as [|p IHp].
     case Zcompare ; try easy ; case k ; easy.
     case Zcompare ; try easy ; case k ; easy.
     now rewrite Hr.
+Qed.
+
+Lemma mantissa_shrp_correct :
+  forall x y z k, valid_mantissa y -> EtoZ z = Zpos x ->
+  (Zpower radix (Zpos x - 1) <= Zpos (MtoP y) < Zpos (shift radix 1 x))%Z ->
+  let l := mantissa_shrp y z k in
+  l = adjust_pos (Zpos (MtoP y)) (shift radix 1 x) k.
+Proof.
+intros x y [|z|z] k _ Ezx; try discriminate.
+unfold MtoP.
+unfold EtoZ in Ezx; rewrite Ezx; simpl Z.to_pos; clear z Ezx.
+case (Pos.succ_pred_or x); intro Hx.
+  rewrite Hx.
+  now destruct y; destruct k.
+rewrite <- Hx at 1.
+rewrite Pos2Z.inj_succ.
+replace (Z.succ (Z.pos (Pos.pred x)) - 1)%Z  with (Z.pos (Pos.pred x)) by lia.
+intros [Hl _].
+unfold mantissa_shrp; simpl Z.to_pos.
+replace (mantissa_shrp_aux y x) with
+     (mantissa_shrp_aux (xO y) (Psucc x)); last first.
+  simpl.
+  now rewrite Pos.pred_succ; destruct x.
+rewrite mantissa_shrp_aux_correct.
+replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last first.
+  apply Pos2Z.inj.
+  rewrite <- (Pos.mul_1_r (_ ^ _)), <- (Pos.mul_xO_r _ xH).
+  rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
+  rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
+simpl.
+rewrite Pos.compare_xO_xO; try easy.
+revert Hl.
+rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.
+simpl.
+case Pos.compare_spec; try easy.
+  intro H; lia.
+now destruct k.
 Qed.
 
 Lemma mantissa_div_correct :

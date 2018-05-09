@@ -22,6 +22,7 @@ Require Import Coquelicot.Coquelicot.
 Require Import mathcomp.ssreflect.ssreflect.
 Require Import Interval_missing.
 Require Import Interval_xreal.
+Require Import Interval_definitions.
 
 Inductive interval : Set :=
   | Inan : interval
@@ -355,6 +356,7 @@ Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
 Parameter div : precision -> type -> type -> type.
 Parameter power_int : precision -> type -> Z -> type.
+Parameter nearbyint : rounding_mode -> type -> type.
 
 Parameter neg_correct : extension Xneg neg.
 Parameter pi_correct : forall prec, contains (convert (pi prec)) (Xreal PI).
@@ -373,6 +375,7 @@ Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).
 Parameter div_correct : forall prec, extension_2 Xdiv (div prec).
 Parameter power_int_correct : forall prec n, extension (fun x => Xpower_int x n) (fun x => power_int prec x n).
+Parameter nearbyint_correct : forall mode, extension (Xnearbyint mode) (nearbyint mode).
 
 Parameter bounded : type -> bool.
 Parameter lower_bounded : type -> bool.

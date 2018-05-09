@@ -18,11 +18,98 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
+Require Import Psatz.
 From Flocq Require Import Core.
 Require Import Interval_xreal.
 
 Inductive rounding_mode : Set :=
   rnd_UP | rnd_DN | rnd_ZR | rnd_NE.
+
+Definition Rnearbyint mode r :=
+  match mode with
+  | rnd_UP => IZR (Zceil r)
+  | rnd_DN => IZR (Zfloor r)
+  | rnd_ZR => IZR (Ztrunc r)
+  | rnd_NE => IZR (ZnearestE r)
+  end.
+
+Notation Xnearbyint := (fun mode => Xlift (Rnearbyint mode)).
+
+Lemma Rnearbyint_le :
+  forall mode x y,
+  (x <= y)%R ->
+  (Rnearbyint mode x <= Rnearbyint mode y)%R.
+Proof.
+intros mode x y Hxy.
+destruct mode ; simpl.
+now apply IZR_le, Zceil_le.
+now apply IZR_le, Zfloor_le.
+now apply IZR_le, Ztrunc_le.
+now apply IZR_le; destruct (valid_rnd_N (fun x => negb (Z.even x))); auto.
+Qed.
+
+
+Lemma Rnearbyint_error_DN x : 
+  (-1 <= Rnearbyint rnd_DN x - x <= 0)%R.
+Proof.
+assert (H := (Zfloor_ub x, Zfloor_lb x)).
+case H; simpl; lra.
+Qed.
+
+Lemma Rnearbyint_error_UP x : 
+  (0 <= Rnearbyint rnd_UP x - x <= 1)%R.
+Proof.
+assert (H := (Zfloor_ub (- x), Zfloor_lb (- x))).
+simpl; unfold Zceil; rewrite opp_IZR.
+case H; simpl; lra.
+Qed.
+
+Lemma Rnearbyint_error_ZR_neg x :
+  (x <= 0 -> 
+   0 <= Rnearbyint rnd_ZR x - x <= 1)%R.
+Proof.
+simpl; unfold Ztrunc.
+case Rlt_bool_spec; try lra.
+intros; apply Rnearbyint_error_UP.
+intros H H0.
+assert (H1 : x = 0%R) by lra.
+assert (H2 := Zfloor_IZR 0); simpl in H2.
+rewrite H1, H2; simpl; lra.
+Qed.
+
+Lemma Rnearbyint_error_ZR_pos x :
+  (0 <= x -> 
+   -1 <= Rnearbyint rnd_ZR x - x <= 0)%R.
+Proof.
+simpl; unfold Ztrunc.
+case Rlt_bool_spec; try lra.
+now intros; apply Rnearbyint_error_DN.
+Qed.
+
+Lemma Rnearbyint_error_ZR x :
+  (-1 <= Rnearbyint rnd_ZR x - x <= 1)%R.
+Proof.
+assert (H := (Rnearbyint_error_ZR_neg x, Rnearbyint_error_ZR_pos x)).
+case H; simpl; lra.
+Qed.
+
+Lemma Rnearbyint_error_NE x : 
+  (- (1/2) <= Rnearbyint rnd_NE x - x <= 1/2)%R.
+Proof.
+simpl.
+assert (H := Znearest_half (fun x => negb (Z.even x)) x).
+split_Rabs; lra.
+Qed.
+
+Lemma Rnearbyint_error m x : 
+  (-1 <= Rnearbyint m x - x <= 1)%R.
+Proof.
+assert (H1 := Rnearbyint_error_DN x).
+assert (H2 := Rnearbyint_error_UP x).
+assert (H3 := Rnearbyint_error_ZR x).
+assert (H4 := Rnearbyint_error_NE x).
+case m; lra.
+Qed.
 
 Notation radix2 := Zaux.radix2 (only parsing).
 

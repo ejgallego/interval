@@ -314,8 +314,7 @@ Definition Fround_at_exp {beta} mode e2 (uf : ufloat beta) : float beta :=
           Float sign xH e2
         else Fzero
       | Lt =>
-        let pos2 := match pos with pos_Eq => pos_Eq | _ => pos_Lo end in
-        if need_change_zero mode pos2 sign then
+        if need_change_zero mode pos_Lo sign then
           Float sign xH e2
         else Fzero
       end
@@ -335,17 +334,17 @@ Definition Fround {beta} mode prec (x : float beta) :=
   Fround_at_prec mode prec (float_to_ufloat x).
 
 (*
- * Fint_exact
+ * Fnearbyint_exact
  *)
 
-Definition Fint_exact {beta} mode (x : float beta) :=
+Definition Fnearbyint_exact {beta} mode (x : float beta) :=
   Fround_at_exp mode 0 (float_to_ufloat x).
 
 (*
- * Fint
+ * Fnearbyint
  *)
 
-Definition Fint {beta} mode prec x :=
+Definition Fnearbyint {beta} mode prec x :=
   match x with
   | Float sx mx ex =>
     match Zcompare (Zpos (count_digits beta mx) + ex) (Zpos prec) with

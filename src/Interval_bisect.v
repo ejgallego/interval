@@ -29,7 +29,12 @@ Require Import Interval_taylor_model.
 Require Import coquelicot_compl.
 
 Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt | Cos | Sin | Tan | Atan | Exp | Ln | PowerInt (n : Z).
+  | Neg | Abs | Inv | Sqr | Sqrt
+  | Cos | Sin | Tan | Atan | Exp | Ln
+  | PowerInt (n : Z) | Nearbyint (m : rounding_mode).
+
+Definition no_floor_op op := 
+  match op with Nearbyint _ => false | _ => true end.
 
 Inductive binary_op : Set :=
   | Add | Sub | Mul | Div.
@@ -38,6 +43,42 @@ Inductive term : Set :=
   | Forward : nat -> term
   | Unary : unary_op -> nat -> term
   | Binary : binary_op -> nat -> nat -> term.
+
+Definition no_floor_term term := 
+  match term with Unary op _ => no_floor_op op | _ => true end.
+
+Definition no_floor_prog prog :=
+  fold_left (fun r t => r && no_floor_term t) prog true.
+
+Lemma no_floor_prog_cons t prog :
+  no_floor_prog (t :: prog) = no_floor_term t && no_floor_prog prog.
+Proof.
+unfold no_floor_prog.
+generalize true.
+revert t; elim prog; simpl.
+  now intros t b; case b; case no_floor_term.
+intros a l IH t b.
+now rewrite !IH; case no_floor_term; simpl; case no_floor_term; simpl.
+Qed.
+
+Lemma no_floor_prog_rcons t prog :
+  no_floor_prog (prog ++ (t :: nil)) = no_floor_term t && no_floor_prog prog.
+Proof.
+unfold no_floor_prog.
+generalize true.
+revert t; elim prog; simpl.
+  now intros t b; case b; case no_floor_term.
+intros a l IH t b.
+now rewrite !IH; case no_floor_term; simpl; case no_floor_term; simpl.
+Qed.
+
+Lemma no_floor_prog_rev prog :
+  no_floor_prog (rev prog) = no_floor_prog prog.
+Proof.
+elim prog; simpl; try easy.
+intros a l IH.
+now rewrite no_floor_prog_rcons IH no_floor_prog_cons.
+Qed.
 
 Set Implicit Arguments.
 
@@ -93,6 +134,34 @@ destruct a as [n|o n|o n1 n2] ;
   [ idtac | apply Hun | apply Hbin ] ; apply IHl.
 Qed.
 
+Theorem eval_inductive_no_floor_prop :
+  forall A B (P : A -> B -> Prop) defA defB (opsA : operations A) (opsB : operations B),
+  P defA defB ->
+ (forall o a b, P a b -> no_floor_op o = true -> P (unary opsA o a) (unary opsB o b)) ->
+ (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
+  forall inpA inpB,
+ (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
+  forall prog, no_floor_prog prog = true -> 
+  forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
+Proof.
+intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
+rewrite -no_floor_prog_rev.
+do 2 rewrite rev_formula.
+induction (rev prog).
+intros _.
+exact Hinp.
+rewrite no_floor_prog_cons.
+intros H1.
+assert (H2 : no_floor_term a = true).
+  now revert H1; case no_floor_term.
+assert (H3 : no_floor_prog l = true).
+  now revert H1; case no_floor_term; try discriminate.
+intros [|n].
+2: now apply IHl.
+now destruct a as [n|o n|o n1 n2] ;
+  [ idtac | apply Hun | apply Hbin ]; try apply IHl.
+Qed.
+
 Definition ext_operations :=
   Build_operations (fun x => Xreal (IZR x))
    (fun o =>
@@ -109,6 +178,7 @@ Definition ext_operations :=
     | Exp => Xexp
     | Ln => Xln
     | PowerInt n => fun x => Xpower_int x n
+    | Nearbyint m => Xnearbyint m
     end)
    (fun o =>
     match o with
@@ -147,6 +217,39 @@ destruct a as [n|o n|o n1 n2] ;
   [ idtac | apply Hun | apply Hbin ] ; apply IHl.
 Qed.
 
+Theorem eval_inductive_prop_floor_fun :
+  forall {T} A B P defA defB (opsA : operations A) (opsB : operations B),
+ (forall a1 a2, (forall x, a1 x = a2 x) -> forall b, P a1 b -> P a2 b) ->
+  P (fun _ : T => defA) defB ->
+ (forall o a b, no_floor_op o = true -> P a b -> P (fun x => unary opsA o (a x)) (unary opsB o b)) ->
+ (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (fun x => binary opsA o (a1 x) (a2 x)) (binary opsB o b1 b2)) ->
+  forall inpA inpB,
+ (forall n, P (fun x => nth n (inpA x) defA) (nth n inpB defB)) ->
+  forall prog, no_floor_prog prog = true ->
+  forall n, P (fun x => nth n (eval_generic defA opsA prog (inpA x)) defA) (nth n (eval_generic defB opsB prog inpB) defB).
+Proof.
+intros T A B P defA defB opsA opsB HP Hdef Hun Hbin inpA inpB Hinp prog Hprog n.
+apply HP with (fun x => nth n (fold_right (fun y x => eval_generic_body defA opsA x y) (inpA x) (rev prog)) defA).
+intros x.
+now rewrite rev_formula.
+rewrite rev_formula.
+generalize n. clear n.
+revert Hprog; rewrite -no_floor_prog_rev.
+induction (rev prog).
+intros _.
+exact Hinp.
+rewrite no_floor_prog_cons.
+intros H1.
+assert (H2 : no_floor_term a = true).
+  now revert H1; case no_floor_term.
+assert (H3 : no_floor_prog l = true).
+  now revert H1; case no_floor_term; try discriminate.
+intros [|n].
+2: now apply IHl.
+now destruct a as [n|o n|o n1 n2] ;
+  [ idtac | apply Hun | apply Hbin ] ; try apply IHl.
+Qed.
+
 Definition real_operations :=
   Build_operations IZR
    (fun o =>
@@ -163,6 +266,7 @@ Definition real_operations :=
     | Exp => exp
     | Ln => ln
     | PowerInt n => fun x => powerRZ x n
+    | Nearbyint m => Rnearbyint m
     end)
    (fun o =>
     match o with
@@ -265,12 +369,13 @@ Qed.
 
 Lemma continuous_unary :
   forall unop a b x,
+  no_floor_op unop = true ->
   (notXnan b -> b = Xreal (a x) /\ continuous a x) ->
   notXnan (unary ext_operations unop b) ->
   unary ext_operations unop b = Xreal (unary real_operations unop (a x)) /\
   continuous (fun x0 : R => unary real_operations unop (a x0)) x.
 Proof.
-move => unop a b x Hb HbnotXnan.
+move => unop a b x NF Hb HbnotXnan.
 case Hbnan: b Hb => [|b1] // Hb.
 rewrite Hbnan /= in HbnotXnan.
 by case unop in HbnotXnan.
@@ -278,7 +383,7 @@ case: Hb => // Hb Hcontax.
 move: HbnotXnan.
 rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
 split.
-case: unop HnotXnan => //=.
+(case: unop NF HnotXnan; try discriminate) => //= [_|_|_|_|].
 - rewrite /Xinv'.
   by case is_zero.
 - rewrite /Xsqrt'.
@@ -290,7 +395,8 @@ case: unop HnotXnan => //=.
 - case => [||p] //.
   rewrite /Xpower_int'.
   by case is_zero.
-case: unop HnotXnan => /=.
+(case: unop NF HnotXnan; try discriminate) => //= 
+    [_|_|_|_|_|_|_|_|_|_|_|].
 - move => _. by apply: continuous_opp.
 - move => _. by apply: continuous_Rabs_comp.
 - move => HnotXnan.
@@ -316,7 +422,7 @@ case: unop HnotXnan => /=.
   by case: is_positive_spec HnotXnan.
 - move => n.
   rewrite /powerRZ.
-  case: n => [|n|n] HnotXnan.
+  case: n => [|n|n] _ HnotXnan.
   + exact: continuous_const.
   + apply: (continuous_comp a (fun x => pow x _)) => //.
     apply: ex_derive_continuous.
@@ -484,15 +590,16 @@ Qed.
 
 Lemma continuous_eval_ext :
   forall prog bounds x m,
+  no_floor_prog prog = true ->
   notXnan (nth m (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan) ->
   continuous (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) x.
 Proof.
 intros prog bounds x.
 rewrite /eval_ext /eval_real.
-intros m H.
+intros m Hf H.
 eapply proj2.
-revert H.
-apply: (eval_inductive_prop_fun _ _ (fun (f : R -> R) v => notXnan v -> v = Xreal (f x) /\ continuous f x)) => //.
+revert Hf m H.
+apply: (eval_inductive_prop_floor_fun _ _ (fun (f : R -> R) v => notXnan v -> v = Xreal (f x) /\ continuous f x)) => //.
 intros f1 f2 Heq b H Hb.
 case: (H Hb) => {H} H H'.
 split.
@@ -564,6 +671,7 @@ Definition operations prec :=
     | Exp => I.exp prec
     | Ln => I.ln prec
     | PowerInt n => fun x => I.power_int prec x n
+    | Nearbyint m => I.nearbyint m
     end)
    (fun o =>
     match o with
@@ -603,7 +711,8 @@ destruct o ; simpl ;
   | apply I.atan_correct
   | apply I.exp_correct
   | apply I.ln_correct
-  | apply I.power_int_correct ].
+  | apply I.power_int_correct
+  | apply I.nearbyint_correct ].
 (* binary *)
 destruct o ; simpl ;
   [ apply I.add_correct
@@ -641,12 +750,13 @@ Qed.
 
 Lemma continuous_eval :
   forall prec prog bounds m i x,
+  no_floor_prog prog = true ->
   contains (I.convert i) (Xreal x) ->
   I.convert (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) <> Inan ->
   continuous (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) x.
 Proof.
-move => prec prog bounds m i x Hcontains HnotInan.
-apply: continuous_eval_ext.
+move => prec prog bounds m i x Hf Hcontains HnotInan.
+apply: continuous_eval_ext => //.
 generalize (eval_correct_ext prec prog bounds m i (Xreal x) Hcontains).
 revert HnotInan.
 case I.convert => //.
@@ -655,14 +765,15 @@ Qed.
 
 Lemma ex_RInt_eval :
   forall prec prog bounds m a b i,
+  no_floor_prog prog = true ->
   (forall x, Rmin a b <= x <= Rmax a b -> contains (I.convert i) (Xreal x)) ->
   I.convert (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) <> Inan ->
   ex_RInt (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) a b.
 Proof.
-move => prec prog bounds m a b i Hcontains HnotInan.
+move => prec prog bounds m a b i Hf Hcontains HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
-apply: continuous_eval HnotInan.
+apply: continuous_eval HnotInan => //.
 exact: Hcontains.
 Qed.
 
@@ -699,6 +810,7 @@ Definition diff_operations A (ops : @operations A) :=
         match sign ops v with Xgt => binary ops Div d v | _ => unary ops Inv (constant ops 0) end)
       | PowerInt n =>
         (unary ops o v, binary ops Mul d (binary ops Mul (constant ops n) (unary ops (PowerInt (n-1)) v)))
+      | Nearbyint m => let w := unary ops (Nearbyint m) v in (w, unary ops Inv (constant ops 0))
       end
     end)
    (fun o x y =>
@@ -744,6 +856,8 @@ now apply Xderive_pt_exp.
 rewrite /Xinv' is_zero_correct_zero.
 now apply Xderive_pt_ln.
 now apply Xderive_pt_power_int.
+rewrite /Xinv' is_zero_correct_zero.
+now destruct x.
 Qed.
 
 Lemma binary_diff_correct :
@@ -888,6 +1002,9 @@ apply I.div_correct.
 now apply Hf'.
 exact Hf.
 apply H.
+(* nearbyint *)
+apply (I.inv_correct _ _ (Xreal 0)).
+apply I.fromZ_correct.
 Qed.
 
 Lemma binary_diff_bnd_correct :
@@ -970,7 +1087,8 @@ destruct o ; simpl ;
   | apply I.atan_correct
   | apply I.exp_correct
   | apply I.ln_correct
-  | apply I.power_int_correct ] ;
+  | apply I.power_int_correct
+  | apply I.nearbyint_correct ] ;
   exact Hf.
 apply (unary_diff_bnd_correct prec o (fun x => fst (f x)) (fun x => snd (f x))) with (3 := Hx).
 exact (fun x Hx => proj1 (H x Hx)).
@@ -1617,6 +1735,7 @@ Definition operations prec deg xi :=
     | Exp => TM.exp (prec, deg) xi
     | Ln => TM.ln (prec, deg) xi
     | PowerInt n => TM.power_int n (prec, deg) xi
+    | Nearbyint m => TM.nearbyint m (prec, deg) xi
  (* | _ => fun _ => TM.dummy *)
     end)
    (fun o =>
@@ -1691,6 +1810,7 @@ induction (rev prog) as [|t l].
     apply TM.exp_correct.
     apply TM.ln_correct.
     apply TM.power_int_correct.
+    apply TM.nearbyint_correct.
   + generalize (IHl n1) (IHl n2).
     destruct bo.
     apply TM.add_correct.

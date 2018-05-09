@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 Require Import Reals ZArith.
+Require Import Psatz.
 Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrfun mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.bigop.
 Require Import Interval_interval.
 Require Import Interval_xreal.
@@ -677,6 +678,374 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
 - foo.
 - foo.
 - foo.
+Qed.
+
+Definition Iconst (i : I.type) :=
+  I.bounded i && I.subset i (I.bnd (I.lower i) (I.lower i)).
+
+Lemma Iconst_true_correct i x :
+  Iconst i = true -> contains (I.convert i) x -> x = Xlower (I.convert i).
+Proof.
+rewrite /Iconst.
+case E1 : I.bounded => // .
+have [/(I.lower_bounded_correct _) /= [F1 F2]
+      /(I.upper_bounded_correct _) /= [F3 F4]] :=
+     I.bounded_correct _ E1.
+move/I.subset_correct => /=.
+rewrite I.bnd_correct /subset.
+case E2 : I.convert => [|x1 y1] //= .
+case E3 : x => [|r] //.
+case E4 : x1 => [|r1]; first by rewrite F1 /le_lower => [[]].
+rewrite /le_lower F1 /=.
+case E5 : y1 => [|r2]; first by rewrite F1 /le_upper => [[]].
+move=> [H1 H2 H3].
+by rewrite (_ : r1 = r) //; lra.
+Qed.
+
+Definition nearbyint (m : rounding_mode) 
+     (u : U) (X : I.type) (t : T) : T :=
+  if isDummy t then Dummy else
+  let e := eval u t X X in
+  let e1 := I.nearbyint m e in
+  if Iconst e1 then Const (I.bnd (I.lower e1) (I.lower e1))
+  else
+  let (p, i) := 
+     match m with
+     | rnd_UP =>
+         let p1 := I.fromZ 1 in
+         let p2 := I.fromZ 2 in
+         let vm1 := I.lower (I.fromZ (-1)) in
+         let v1 := I.upper p1 in
+         let i := I.bnd vm1 v1 in
+         (I.div u.1 p1 p2, I.div u.1 i p2)
+     | rnd_DN => 
+         let pm1 := I.fromZ (-1) in
+         let p2 := I.fromZ 2 in
+         let vm1 := I.lower pm1 in
+         let v1 := I.upper (I.fromZ 1) in
+         let i := I.bnd vm1 v1 in
+         (I.div u.1 pm1 p2, I.div u.1 i p2)
+     | rnd_ZR => 
+          match I.sign_large e with
+         | Xlt =>
+             let p1 := I.fromZ 1 in
+             let p2 := I.fromZ 2 in
+             let vm1 := I.lower (I.fromZ (-1)) in
+             let v1 := I.upper p1 in
+             let i := I.bnd vm1 v1 in
+             (I.div u.1 p1 p2, I.div u.1 i p2)
+         | Xund => 
+            let vm1 := I.lower (I.fromZ (-1))  in
+            let v1 := I.upper (I.fromZ 1) in
+            (I.zero, I.bnd vm1 v1)
+         | _ =>
+             let pm1 := I.fromZ (-1) in
+             let p2 := I.fromZ 2 in
+             let vm1 := I.lower pm1 in
+             let v1 := I.upper (I.fromZ 1) in
+             let i := I.bnd vm1 v1 in
+             (I.div u.1 pm1 p2, I.div u.1 i p2)
+         end
+     | rnd_NE =>
+         let vm1 := I.lower (I.fromZ (-1)) in
+         let v1 := I.upper (I.fromZ 1) in
+         let i := I.bnd vm1 v1 in
+         (I.zero, I.div u.1 i (I.fromZ 2))
+     end in
+  add u X t (Tm {|approx := Pol.polyC p;
+                  error := I.mask i e1 |}).
+
+Lemma contains_fromZ_lower_upper z1 z2 i :
+  (z1 <= 0)%Z -> (0 <= z2)%Z ->
+  contains
+  (I.convert
+     (I.mask (I.bnd (I.lower (I.fromZ z1)) (I.upper (I.fromZ z2))) i))
+  (Xreal 0).
+Proof.
+move=> /IZR_le /= z1N /IZR_le /= z2P.
+apply: I.mask_correct'.
+rewrite I.bnd_correct.
+have := I.fromZ_correct z1.
+have := I.fromZ_correct z2.
+rewrite I.lower_correct.
+rewrite I.upper_correct.
+set i1 := I.convert _.
+set i2 := I.convert _.
+case: i1 => [|[|x1] [|x2]] /=;
+    case: i2 => [|[|x3] [|x4]] //=; lra.
+Qed.
+
+Lemma contains_fromZ_lower_upper_div prec z1 z2 z3 i :
+  (z1 <= 0)%Z -> (0 <= z2)%Z -> (0 < z3)%Z ->
+  contains
+  (I.convert
+     (I.mask 
+       (I.div prec
+          (I.bnd (I.lower (I.fromZ z1)) (I.upper (I.fromZ z2)))
+           (I.fromZ z3)) i)) 
+    (Xreal 0).
+Proof.
+move=> /IZR_le /= z1N /IZR_le /= z2P z3P.
+apply: I.mask_correct'.
+rewrite (_ : Xreal _ = Xdiv (Xreal 0) (Xreal (IZR z3))); last first.
+  rewrite /= /Xdiv'.
+  case: is_zero_spec => [/eq_IZR| _]; first by lia.
+  by congr (Xreal); rewrite /Rdiv; ring.
+apply I.div_correct; last by apply: I.fromZ_correct.
+rewrite I.bnd_correct.
+have := I.fromZ_correct z1.
+have := I.fromZ_correct z2.
+rewrite I.lower_correct.
+rewrite I.upper_correct.
+set i1 := I.convert _.
+set i2 := I.convert _.
+case: i1 => [|[|x1] [|x2]] /=;
+    case: i2 => [|[|x3] [|x4]] //=; lra.
+Qed.
+
+Theorem nearbyint_correct m u (Y : I.type) tf f : 
+  approximates Y tf f ->
+  approximates Y (nearbyint m u Y tf) (fun x => Xnearbyint m (f x)).
+Proof.
+move=> Hf; case: (Hf) => [Hnil Hmain].
+rewrite /nearbyint.
+set v1 := I.fromZ 1.
+set vm1 := I.fromZ (- 1).
+set v2 := I.fromZ 2.
+set i :=  I.nearbyint _ _.
+set i1 := I.bnd _ _.
+set i2 := I.bnd _ _.
+set i3 := I.div _ _ _.
+set i4 := I.div _ _ _.
+set i5 := I.div _ _ _.
+case E: (isDummy tf); first by split; rewrite 1?Hnan.
+case E1 : Iconst => /=.
+- have H := Iconst_true_correct E1.
+- split => //=.
+  exists (Xlower (I.convert i)); last first.
+  move=> x Hx; apply: H.
+  apply:  I.nearbyint_correct.
+    by have := eval_correct u Hf Hx.
+  rewrite I.bnd_correct /=.
+  rewrite <- I.lower_correct.
+  case/andP: E1 => /I.bounded_correct [/I.lower_bounded_correct [-> _] _] _.
+  lra.
+apply: (@approximates_ext
+         (fun x : R => 
+                   Xadd (f x)
+                            (Xsub (Xlift (Rnearbyint m) (f x)) (f x)))).
+  by move=> x; case: (f x) => //= r; congr Xreal; lra.
+set vv := match m with rnd_UP => _ | rnd_DN => _ | rnd_NE => _ |rnd_ZR => _  end.
+rewrite (surjective_pairing vv).
+apply: add_correct => //=.
+rewrite {Hmain}//.
+split => //= He.
+split=> //=.
+- move=> x Hx.
+  have /(@I.nearbyint_correct m) := eval_correct u Hf Hx.
+  rewrite -/i /=.
+  case: (f x) => //= Hi _.
+  apply: I.mask_propagate_r.
+  by case: I.convert Hi.
+- move=> HY.
+  have F1 : contains (I.convert Y) Xnan by rewrite HY.
+  apply: I.mask_propagate_r.
+  have /= := eval_correct u Hf F1.
+  have := I.nearbyint_correct m (eval u tf Y Y) Xnan.
+  case: I.convert => //=.
+  rewrite -/i.
+  by case: I.convert => /=.
+- rewrite {}/vv; case m => //=;
+    try apply: contains_fromZ_lower_upper_div; try lia.
+  case: I.sign_large; 
+    try apply: contains_fromZ_lower_upper_div; try lia.
+  by apply: contains_fromZ_lower_upper; lia.
+- by apply: Imid_subset.
+move=> x Hx.
+move: E1.
+have F1 : Pol.contains_pointwise (Pol.polyC i3) (PolR.polyC (1/2)).
+  apply: Pol.polyC_correct.
+  rewrite (_ : Xreal _ =  Xdiv (Xreal 1) (Xreal 2)).
+    apply: I.div_correct; apply: I.fromZ_correct.
+  rewrite /= /Xdiv'.
+  by case: is_zero_spec; try lra.
+have F2 : contains (I.convert (I.mask i4 i)) (Xreal (- (1/2))).
+  apply: I.mask_correct'.
+  rewrite (_ :  Xreal (- (1 / 2)) =
+                Xdiv (Xreal (-1)) (Xreal 2)); last first.
+    rewrite /= /Xdiv'.
+    by case: is_zero_spec; try lra; move=> _; congr Xreal; lra.
+  apply: I.div_correct; last by apply: I.fromZ_correct.
+  rewrite I.bnd_correct I.lower_correct I.upper_correct.
+  have := I.fromZ_correct (-1).
+  have := I.fromZ_correct 1.
+  by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
+       [] [|x2] [|y2] //; lra.
+have F3 r : 
+  contains (I.convert (I.mask i4 i))
+  (Xreal (Rnearbyint rnd_UP r - r - 1 / 2)).
+  apply: I.mask_correct' => /=.
+  set ir := IZR _.
+  rewrite (_ : Xreal _ =
+            Xdiv (Xreal (2 * (ir - r - 1/2))) (Xreal 2)); last first.
+      rewrite /= /Xdiv'.
+      case: is_zero_spec; try lra; move=> _.
+      by congr Xreal; lra.
+  apply: I.div_correct; last by apply: I.fromZ_correct.
+  rewrite I.bnd_correct.
+  rewrite /contains.
+  have := I.fromZ_correct (-1).
+  have := I.fromZ_correct 1.
+  rewrite I.lower_correct.
+  rewrite I.upper_correct.
+  set iv1 := I.convert _.
+  set iv2 := I.convert _.
+  have  HR := Rnearbyint_error_UP r.
+  rewrite /= -/ir in HR.
+  by case: iv1 => [|[|x1] [|x2]] /=;
+    case: iv2 => [|[|x3] [|x4]] //=; try lra.
+have F4 : Pol.contains_pointwise (Pol.polyC i5) (PolR.polyC (- (1/2))).
+  apply: Pol.polyC_correct.
+  rewrite (_ : Xreal _ =  Xdiv (Xreal (-1)) (Xreal 2)).
+    by apply: I.div_correct; apply: I.fromZ_correct.
+  rewrite /= /Xdiv'.
+  by case: is_zero_spec; try lra; move=> _; congr Xreal; lra.
+have F5 : contains (I.convert (I.mask i4 i)) (Xreal (1/2)).
+  apply: I.mask_correct'.
+  rewrite (_ :  Xreal (1 / 2) =
+                Xdiv (Xreal 1) (Xreal 2)); last first.
+    rewrite /= /Xdiv'.
+    by case: is_zero_spec; try lra; move=> _; congr Xreal; lra.
+  apply: I.div_correct; last by apply: I.fromZ_correct.
+  rewrite I.bnd_correct I.lower_correct I.upper_correct.
+  have := I.fromZ_correct (-1).
+  have := I.fromZ_correct 1.
+  by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
+       [] [|x2] [|y2] //; lra.
+have F6 r : 
+  contains (I.convert (I.mask i4 i))
+  (Xreal (Rnearbyint rnd_DN r - r + 1 / 2)).
+  apply: I.mask_correct' => /=.
+  set ir := IZR _.
+  rewrite (_ : Xreal _ =
+            Xdiv (Xreal (2 * (ir - r + 1/2))) (Xreal 2)); last first.
+      rewrite /= /Xdiv'.
+      case: is_zero_spec; try lra; move=> _.
+      by congr Xreal; lra.
+  apply: I.div_correct; last by apply: I.fromZ_correct.
+  rewrite I.bnd_correct.
+  rewrite /contains.
+  have := I.fromZ_correct (-1).
+  have := I.fromZ_correct 1.
+  rewrite I.lower_correct.
+  rewrite I.upper_correct.
+  set iv1 := I.convert _.
+  set iv2 := I.convert _.
+  have  HR := Rnearbyint_error_DN r.
+  rewrite /= -/ir in HR.
+  by case: iv1 => [|[|x1] [|x2]] /=;
+    case: iv2 => [|[|x3] [|x4]] //=; try lra.
+move: F2 F3 F5 F6.
+rewrite {}/vv {}/i1 {}/i.
+case: m => //=; set i := I.nearbyint _ _ => F2 F3 F5 F6 E1.
+- exists (PolR.polyC (1/2)) => //= y _.
+  rewrite Rmult_0_l Rplus_0_l.
+  case: (f y) => [|r] //=.
+  by rewrite Rminus_0_l.
+- exists (PolR.polyC (-(1/2))) => //= y _.
+  rewrite Rmult_0_l Rplus_0_l /Rminus Ropp_involutive.
+  case: (f y) => //=.
+  by rewrite Rplus_0_l.
+- case: I.sign_large (I.sign_large_correct 
+                         (eval u tf Y Y)) => Hsign.
+  - exists (PolR.polyC (-(1/2))) => //= y Cy.
+    rewrite Rmult_0_l Rplus_0_l.
+    case Er : (f y) => [|r] //=.
+      by rewrite Rminus_0_l Ropp_involutive.
+    rewrite {1}/Rminus Ropp_involutive.
+    rewrite Raux.Ztrunc_floor //.
+    have : f y = Xreal 0.
+      apply: Hsign.
+      by apply: (eval_correct u Hf Cy).
+    by rewrite Er => [[]]; lra.
+  - exists (PolR.polyC (1/2)) => //= y Cy.
+    rewrite Rmult_0_l Rplus_0_l.
+    case Er : (f y) => [|r] //=.
+      by rewrite Rminus_0_l.
+    rewrite Raux.Ztrunc_ceil //.
+    have [_ /=] := Hsign _ (eval_correct u Hf Cy).
+    by rewrite Er. 
+  - exists (PolR.polyC (-(1/2))) => //= y Cy.
+    rewrite Rmult_0_l Rplus_0_l.
+    case Er : (f y) => [|r] /=.
+      by rewrite Rminus_0_l Ropp_involutive.
+    rewrite Raux.Ztrunc_floor //.
+      rewrite /Rminus Ropp_involutive.
+      by apply F6.
+    have [_ /=] := Hsign _ (eval_correct u Hf Cy).
+    by rewrite Er.
+  - exists (PolR.polyC 0) => //= [|y _].
+      apply: Pol.polyC_correct.
+      by apply: J.zero_correct.
+    rewrite Rmult_0_l Rplus_0_l.
+    case Er : (f y) => [|r] /=.
+      rewrite Rminus_0_l.
+      apply: I.mask_correct'.
+      rewrite I.bnd_correct I.lower_correct I.upper_correct.
+      have := I.fromZ_correct (-1).
+      have := I.fromZ_correct 1.
+      by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
+         [] [|x2] [|y2] //; lra.
+    apply: I.mask_correct'.
+    rewrite I.bnd_correct.
+    rewrite /contains.
+    have := I.fromZ_correct (-1).
+    have := I.fromZ_correct 1.
+    rewrite I.lower_correct.
+    rewrite I.upper_correct.
+    set iv1 := I.convert _.
+    set iv2 := I.convert _.
+    have  HR := Rnearbyint_error_ZR r.
+    rewrite /= in HR.
+    by case: iv1 => [|[|x1] [|x2]] /=;
+       case: iv2 => [|[|x3] [|x4]] //=; try lra.
+exists (PolR.polyC 0) => //= [|y Cy].
+  apply: Pol.polyC_correct.
+  by apply: J.zero_correct.
+rewrite Rmult_0_l Rplus_0_r Rminus_0_r.
+case: (f y) => /=.
+  apply: I.mask_correct'.
+  rewrite (_ :  Xreal _ =
+                Xdiv (Xreal 0) (Xreal 2)); last first.
+    rewrite /= /Xdiv'.
+    by case: is_zero_spec; try lra; move=> _; congr Xreal; lra.
+  apply: I.div_correct; last by apply: I.fromZ_correct.
+  rewrite I.bnd_correct I.lower_correct I.upper_correct.
+  have := I.fromZ_correct (-1).
+  have := I.fromZ_correct 1.
+  by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
+       [] [|x2] [|y2] //; lra.
+move=> r.
+apply: I.mask_correct'.
+set ir := IZR _.
+rewrite (_ : Xreal _ =
+          Xdiv (Xreal (2 * (ir - r))) (Xreal 2)); last first.
+  rewrite /= /Xdiv'.
+  case: is_zero_spec; try lra; move=> _.
+  by congr Xreal; lra.
+apply: I.div_correct; last by apply: I.fromZ_correct.
+rewrite I.bnd_correct.
+rewrite /contains.
+have := I.fromZ_correct (-1).
+have := I.fromZ_correct 1.
+rewrite I.lower_correct.
+rewrite I.upper_correct.
+set iv1 := I.convert _.
+set iv2 := I.convert _.
+have  HR := Rnearbyint_error_NE r.
+rewrite /= -/ir in HR.
+by case: iv1 => [|[|x1] [|x2]] /=;
+   case: iv2 => [|[|x3] [|x4]] //=; try lra.
 Qed.
 
 (** ** Generic implementation of basic functions *)

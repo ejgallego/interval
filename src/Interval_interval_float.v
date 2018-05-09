@@ -428,6 +428,12 @@ Definition power_int prec xi n :=
   | Zneg p => inv prec (power_pos prec xi p)
   end.
 
+Definition nearbyint mode xi :=
+  match xi with
+  | Inan => Inan
+  | Ibnd xl xu => Ibnd (F.nearbyint mode xl) (F.nearbyint mode xu)
+  end.
+
 Ltac xreal_tac v :=
   let X := fresh "X" in
   case_eq (F.toX v) ;
@@ -2217,5 +2223,17 @@ Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
 
 Lemma div_propagate_r : forall prec, propagate_r (div prec).
 Proof. intros prec xi yi; destruct xi; destruct yi; easy. Qed.
+
+Lemma nearbyint_correct :
+  forall mode, extension (Xnearbyint mode) (nearbyint mode).
+Proof.
+intros mode [|xl xu] [|xr] ; try easy.
+simpl.
+intros [Hl Hu].
+rewrite 2!F.nearbyint_correct.
+split ; xreal_tac2; simpl.
+now apply Rnearbyint_le.
+now apply Rnearbyint_le.
+Qed.
 
 End FloatInterval.

@@ -72,6 +72,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition mul := @Fmul radix.
   Definition div := @Fdiv radix.
   Definition sqrt := @Fsqrt radix.
+  Definition nearbyint := @Fnearbyint_exact radix.
   Definition toF_correct := fun x => refl_equal (@FtoX radix x).
   Definition zero_correct := refl_equal (Xreal R0).
   Definition nan_correct := refl_equal Xnan.
@@ -90,6 +91,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition mul_correct := @Fmul_correct radix.
   Definition div_correct := @Fdiv_correct radix.
   Definition sqrt_correct := @Fsqrt_correct radix.
+  Definition nearbyint_correct := @Fnearbyint_exact_correct radix.
 
   Definition fromZ n : float radix := match n with Zpos p => Float false p Z0 | Zneg p => Float true p Z0 | Z0 => Fzero end.
 
