@@ -1137,8 +1137,8 @@ Qed.
 
 Lemma remainder_correct_sing_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon alpha beta,
-  no_floor_prog prog_f = true -> 
-  no_floor_prog prog_g = true -> 
+  no_floor_prog prog_f = true ->
+  no_floor_prog prog_g = true ->
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
@@ -1754,7 +1754,7 @@ Ltac get_RInt_gen_bounds prec rint_depth rint_prec rint_deg x :=
               match vlam with
                 | (?plam,?llam) =>
                   let lclam := get_trivial_bounds llam prec in
-                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg rint_prec 
+                  let c := constr:(proj2 (remainder_correct_expn_tactic prec rint_deg rint_depth pa lca pf pg plam lclam lcf lcg rint_prec
                                              (refl_equal true) (refl_equal true) (fun z => @eq_refl _ (nth 0 (eval_real pg (z::lg)) 0)))) in
                   (* work-around for a bug in the pretyper *)
                   match type of c with

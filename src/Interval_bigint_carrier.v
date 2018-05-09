@@ -128,7 +128,7 @@ Definition mantissa_shr m d pos :=
 
 Definition mantissa_shrp m d pos :=
   match pos with
-  | pos_Eq => 
+  | pos_Eq =>
         let dd := BigZ.to_N d in
          match BigN.compare (BigN.shiftl m 1) (BigN.shiftl 1 dd) with
         | Eq  => pos_Mi
@@ -656,7 +656,7 @@ case (Pos.succ_pred_or x); intro Hx.
   destruct k; simpl; try easy.
   unfold EtoZ in Ezx.
   case BigN.compare_spec; try easy;
-  intro H1; red in H1; 
+  intro H1; red in H1;
   rewrite !BigN.spec_shiftl, spec_to_Z, Ezx in H1;
   simpl Z.sgn in H1;
   rewrite Hx, Hv in H1; simpl in H1; lia.
@@ -671,9 +671,9 @@ replace  (shift radix 1 x) with (xO ((Z.to_pos radix) ^ (Pos.pred x))); last fir
   rewrite Pos.mul_comm, <- Pos.pow_succ_r, Hx, shift_correct.
   rewrite !Z.pow_pos_fold, Pos2Z.inj_pow, radix_to_pos; lia.
 simpl.
-replace 
-  (BigN.shiftl y 1 ?= BigN.shiftl 1 (BigZ.to_N z))%bigN 
-with 
+replace
+  (BigN.shiftl y 1 ?= BigN.shiftl 1 (BigZ.to_N z))%bigN
+with
    (MtoP y ?= 2 ^ Pos.pred x)%positive.
   revert Hl.
   rewrite <-Z.pow_pos_fold, <- radix_to_pos, <- Pos2Z.inj_pow_pos.

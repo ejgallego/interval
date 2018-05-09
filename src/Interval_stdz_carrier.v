@@ -109,8 +109,8 @@ Definition mantissa_shr m d pos :=
 
 
 Fixpoint mantissa_shrp_aux m d :=
-  match m with 
-  | xO m1 => 
+  match m with
+  | xO m1 =>
       if (d =? 1)%positive then pos_Up else mantissa_shrp_aux m1 (Ppred d)
   | xI m1 => pos_Up
   | xH    =>

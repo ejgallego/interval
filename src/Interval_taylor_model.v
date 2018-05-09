@@ -702,14 +702,14 @@ move=> [H1 H2 H3].
 by rewrite (_ : r1 = r) //; lra.
 Qed.
 
-Definition nearbyint (m : rounding_mode) 
+Definition nearbyint (m : rounding_mode)
      (u : U) (X : I.type) (t : T) : T :=
   if isDummy t then Dummy else
   let e := eval u t X X in
   let e1 := I.nearbyint m e in
   if Iconst e1 then Const (I.bnd (I.lower e1) (I.lower e1))
   else
-  let (p, i) := 
+  let (p, i) :=
      match m with
      | rnd_UP =>
          let p1 := I.fromZ 1 in
@@ -718,14 +718,14 @@ Definition nearbyint (m : rounding_mode)
          let v1 := I.upper p1 in
          let i := I.bnd vm1 v1 in
          (I.div u.1 p1 p2, I.div u.1 i p2)
-     | rnd_DN => 
+     | rnd_DN =>
          let pm1 := I.fromZ (-1) in
          let p2 := I.fromZ 2 in
          let vm1 := I.lower pm1 in
          let v1 := I.upper (I.fromZ 1) in
          let i := I.bnd vm1 v1 in
          (I.div u.1 pm1 p2, I.div u.1 i p2)
-     | rnd_ZR => 
+     | rnd_ZR =>
           match I.sign_large e with
          | Xlt =>
              let p1 := I.fromZ 1 in
@@ -734,7 +734,7 @@ Definition nearbyint (m : rounding_mode)
              let v1 := I.upper p1 in
              let i := I.bnd vm1 v1 in
              (I.div u.1 p1 p2, I.div u.1 i p2)
-         | Xund => 
+         | Xund =>
             let vm1 := I.lower (I.fromZ (-1))  in
             let v1 := I.upper (I.fromZ 1) in
             (I.zero, I.bnd vm1 v1)
@@ -779,10 +779,10 @@ Lemma contains_fromZ_lower_upper_div prec z1 z2 z3 i :
   (z1 <= 0)%Z -> (0 <= z2)%Z -> (0 < z3)%Z ->
   contains
   (I.convert
-     (I.mask 
+     (I.mask
        (I.div prec
           (I.bnd (I.lower (I.fromZ z1)) (I.upper (I.fromZ z2)))
-           (I.fromZ z3)) i)) 
+           (I.fromZ z3)) i))
     (Xreal 0).
 Proof.
 move=> /IZR_le /= z1N /IZR_le /= z2P z3P.
@@ -803,7 +803,7 @@ case: i1 => [|[|x1] [|x2]] /=;
     case: i2 => [|[|x3] [|x4]] //=; lra.
 Qed.
 
-Theorem nearbyint_correct m u (Y : I.type) tf f : 
+Theorem nearbyint_correct m u (Y : I.type) tf f :
   approximates Y tf f ->
   approximates Y (nearbyint m u Y tf) (fun x => Xnearbyint m (f x)).
 Proof.
@@ -831,7 +831,7 @@ case E1 : Iconst => /=.
   case/andP: E1 => /I.bounded_correct [/I.lower_bounded_correct [-> _] _] _.
   lra.
 apply: (@approximates_ext
-         (fun x : R => 
+         (fun x : R =>
                    Xadd (f x)
                             (Xsub (Xlift (Rnearbyint m) (f x)) (f x)))).
   by move=> x; case: (f x) => //= r; congr Xreal; lra.
@@ -857,7 +857,7 @@ split=> //=.
   by case: I.convert => /=.
 - rewrite {}/vv; case m => //=;
     try apply: contains_fromZ_lower_upper_div; try lia.
-  case: I.sign_large; 
+  case: I.sign_large;
     try apply: contains_fromZ_lower_upper_div; try lia.
   by apply: contains_fromZ_lower_upper; lia.
 - by apply: Imid_subset.
@@ -881,7 +881,7 @@ have F2 : contains (I.convert (I.mask i4 i)) (Xreal (- (1/2))).
   have := I.fromZ_correct 1.
   by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
        [] [|x2] [|y2] //; lra.
-have F3 r : 
+have F3 r :
   contains (I.convert (I.mask i4 i))
   (Xreal (Rnearbyint rnd_UP r - r - 1 / 2)).
   apply: I.mask_correct' => /=.
@@ -922,7 +922,7 @@ have F5 : contains (I.convert (I.mask i4 i)) (Xreal (1/2)).
   have := I.fromZ_correct 1.
   by ((do 2 case: I.convert) => //= [] [|x1] [|y1] //; try lra) =>
        [] [|x2] [|y2] //; lra.
-have F6 r : 
+have F6 r :
   contains (I.convert (I.mask i4 i))
   (Xreal (Rnearbyint rnd_DN r - r + 1 / 2)).
   apply: I.mask_correct' => /=.
@@ -956,7 +956,7 @@ case: m => //=; set i := I.nearbyint _ _ => F2 F3 F5 F6 E1.
   rewrite Rmult_0_l Rplus_0_l /Rminus Ropp_involutive.
   case: (f y) => //=.
   by rewrite Rplus_0_l.
-- case: I.sign_large (I.sign_large_correct 
+- case: I.sign_large (I.sign_large_correct
                          (eval u tf Y Y)) => Hsign.
   - exists (PolR.polyC (-(1/2))) => //= y Cy.
     rewrite Rmult_0_l Rplus_0_l.
@@ -974,7 +974,7 @@ case: m => //=; set i := I.nearbyint _ _ => F2 F3 F5 F6 E1.
       by rewrite Rminus_0_l.
     rewrite Raux.Ztrunc_ceil //.
     have [_ /=] := Hsign _ (eval_correct u Hf Cy).
-    by rewrite Er. 
+    by rewrite Er.
   - exists (PolR.polyC (-(1/2))) => //= y Cy.
     rewrite Rmult_0_l Rplus_0_l.
     case Er : (f y) => [|r] /=.

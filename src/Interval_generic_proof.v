@@ -870,7 +870,7 @@ Proof. now destruct mode; simpl. Qed.
 Lemma radix_to_pos (r : radix) : Z.pos (Z.to_pos r) = r.
 Proof.  now destruct r as [[]]. Qed.
 
-Lemma shift1_correct r e :  
+Lemma shift1_correct r e :
   shift r 1 e =  (Z.to_pos r ^ e)%positive.
 Proof.
 generalize (shift_correct r 1 e).
@@ -879,7 +879,7 @@ rewrite <-Pos2Z.inj_pow_pos.
 now intro H; injection H.
 Qed.
 
-Lemma Rcompare_div_l x y z : 
+Lemma Rcompare_div_l x y z :
   (0 < y)%R -> Rcompare (x / y) z = Rcompare x (y * z).
 Proof.
 intro yP.
@@ -888,7 +888,7 @@ replace x with (y * (x / y))%R at 2.
 field; lra.
 Qed.
 
-Lemma Rcompare_div_r x y z : 
+Lemma Rcompare_div_r x y z :
   (0 < z)%R -> Rcompare x (y / z) = Rcompare (z * x) y.
 Proof.
 intro yP.
@@ -945,7 +945,7 @@ pose (y := (FtoR beta b p (Z.neg n1))).
 apply trans_equal with (y :=
  Xreal (IZR
  (cond_Zopp (Rlt_bool y 0)
-      (mode_choice mode (Rlt_bool y 0) 
+      (mode_choice mode (Rlt_bool y 0)
                     0  (convert_location_inv p1))))).
   unfold y; rewrite Rlt_bool_float.
   now destruct b; destruct mode; simpl; destruct p1.
@@ -963,7 +963,7 @@ assert (V2 : inbetween_int 0 (Rabs y) (convert_location_inv p1)).
   - now rewrite Pos2Z.inj_pow, radix_to_pos; lia.
   simpl; unfold y, p1;  rewrite FtoR_abs.
   rewrite Pos2Z.inj_pow, radix_to_pos.
-  replace  1%R 
+  replace  1%R
     with
     (0 +
       IZR (beta ^ Z.pos n1)* (1 / IZR (beta ^ Z.pos n1)))%R; last first.
@@ -986,7 +986,7 @@ pose (y := (FtoR beta b p (Z.neg n1))).
 apply trans_equal with (y :=
  Xreal (IZR
  (cond_Zopp (Rlt_bool y 0)
-      (mode_choice mode (Rlt_bool y 0) 
+      (mode_choice mode (Rlt_bool y 0)
                     0  (convert_location_inv p1))))).
   unfold y; rewrite Rlt_bool_float.
   now destruct b; destruct mode; simpl; destruct p1.

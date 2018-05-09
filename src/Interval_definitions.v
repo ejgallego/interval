@@ -49,14 +49,14 @@ now apply IZR_le; destruct (valid_rnd_N (fun x => negb (Z.even x))); auto.
 Qed.
 
 
-Lemma Rnearbyint_error_DN x : 
+Lemma Rnearbyint_error_DN x :
   (-1 <= Rnearbyint rnd_DN x - x <= 0)%R.
 Proof.
 assert (H := (Zfloor_ub x, Zfloor_lb x)).
 case H; simpl; lra.
 Qed.
 
-Lemma Rnearbyint_error_UP x : 
+Lemma Rnearbyint_error_UP x :
   (0 <= Rnearbyint rnd_UP x - x <= 1)%R.
 Proof.
 assert (H := (Zfloor_ub (- x), Zfloor_lb (- x))).
@@ -65,7 +65,7 @@ case H; simpl; lra.
 Qed.
 
 Lemma Rnearbyint_error_ZR_neg x :
-  (x <= 0 -> 
+  (x <= 0 ->
    0 <= Rnearbyint rnd_ZR x - x <= 1)%R.
 Proof.
 simpl; unfold Ztrunc.
@@ -78,7 +78,7 @@ rewrite H1, H2; simpl; lra.
 Qed.
 
 Lemma Rnearbyint_error_ZR_pos x :
-  (0 <= x -> 
+  (0 <= x ->
    -1 <= Rnearbyint rnd_ZR x - x <= 0)%R.
 Proof.
 simpl; unfold Ztrunc.
@@ -93,7 +93,7 @@ assert (H := (Rnearbyint_error_ZR_neg x, Rnearbyint_error_ZR_pos x)).
 case H; simpl; lra.
 Qed.
 
-Lemma Rnearbyint_error_NE x : 
+Lemma Rnearbyint_error_NE x :
   (- (1/2) <= Rnearbyint rnd_NE x - x <= 1/2)%R.
 Proof.
 simpl.
@@ -101,7 +101,7 @@ assert (H := Znearest_half (fun x => negb (Z.even x)) x).
 split_Rabs; lra.
 Qed.
 
-Lemma Rnearbyint_error m x : 
+Lemma Rnearbyint_error m x :
   (-1 <= Rnearbyint m x - x <= 1)%R.
 Proof.
 assert (H1 := Rnearbyint_error_DN x).

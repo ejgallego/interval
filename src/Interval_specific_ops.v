@@ -601,7 +601,7 @@ Definition round_at_exp_aux mode e2 sign m1 e1 pos :=
     | Gt =>
       let (m2, pos2) := mantissa_shr m1 nb pos in
       float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
-    | Eq => 
+    | Eq =>
       let pos2 := mantissa_shrp m1 nb pos in
       if need_change_zero mode pos2 sign then
         float_aux sign mantissa_one e2
@@ -662,7 +662,7 @@ case Pcompare_spec.
     now lia.
   - destruct need_change_zero; try easy.
     - destruct mantissa_one_correct as [Ho1 Ho2].
-      now rewrite toF_float, Ho1. 
+      now rewrite toF_float, Ho1.
     - now apply toF_zero.
 - intros Hc.
   rewrite fun_if with (f := toF).

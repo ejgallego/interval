@@ -33,7 +33,7 @@ Inductive unary_op : Set :=
   | Cos | Sin | Tan | Atan | Exp | Ln
   | PowerInt (n : Z) | Nearbyint (m : rounding_mode).
 
-Definition no_floor_op op := 
+Definition no_floor_op op :=
   match op with Nearbyint _ => false | _ => true end.
 
 Inductive binary_op : Set :=
@@ -44,7 +44,7 @@ Inductive term : Set :=
   | Unary : unary_op -> nat -> term
   | Binary : binary_op -> nat -> nat -> term.
 
-Definition no_floor_term term := 
+Definition no_floor_term term :=
   match term with Unary op _ => no_floor_op op | _ => true end.
 
 Definition no_floor_prog prog :=
@@ -141,7 +141,7 @@ Theorem eval_inductive_no_floor_prop :
  (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
   forall inpA inpB,
  (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
-  forall prog, no_floor_prog prog = true -> 
+  forall prog, no_floor_prog prog = true ->
   forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
 Proof.
 intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
@@ -395,7 +395,7 @@ split.
 - case => [||p] //.
   rewrite /Xpower_int'.
   by case is_zero.
-(case: unop NF HnotXnan; try discriminate) => //= 
+(case: unop NF HnotXnan; try discriminate) => //=
     [_|_|_|_|_|_|_|_|_|_|_|].
 - move => _. by apply: continuous_opp.
 - move => _. by apply: continuous_Rabs_comp.
