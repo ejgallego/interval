@@ -278,7 +278,7 @@ Definition real_operations :=
    (fun x => Xcmp (Xreal x) (Xreal 0)).
 
 Definition eval_real :=
-  eval_generic R0 real_operations.
+  eval_generic 0%R real_operations.
 
 Lemma rewrite_inv_diff :
   forall u u',
