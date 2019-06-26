@@ -1,4 +1,4 @@
-Require Import Reals Interval_tactic.
+Require Import Reals Interval.Tactic.
 
 Goal forall x, (-1 / 3 <= x - x <= 1 / 7)%R.
 Proof.

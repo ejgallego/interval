@@ -13,7 +13,7 @@ Invocation
 ----------
 
 In order to use the tactics of the library, one has to import the
-`Interval_tactic` file into a Coq proof script. The main tactic is named
+`Interval.Tactic` file into a Coq proof script. The main tactic is named
 `interval`.
 
 The tactic can be applied on a goal of the form `c1 <= e <= c2` with
@@ -123,7 +123,7 @@ Examples
 
 ```coq
 Require Import Reals.
-Require Import Interval.Interval_tactic.
+Require Import Interval.Tactic.
 
 Open Scope R_scope.
 

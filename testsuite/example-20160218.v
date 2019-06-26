@@ -1,5 +1,5 @@
 Require Import Reals Coquelicot.Coquelicot.
-Require Import Interval_tactic.
+Require Import Interval.Tactic.
 
 Lemma constant :
   3 <= RInt (fun x => 1) 0 3 <= 3.

@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import Interval_tactic.
+Require Import Interval.Tactic.
 
 Goal forall x, (1 <= x)%R -> (0 < x)%R.
 intros.

@@ -1,49 +1,48 @@
 FILES = \
-	Interval_bigint_carrier.v \
-	Interval_bisect.v \
-	Interval_definitions.v \
-	Interval_float_sig.v \
-	Interval_generic_ops.v \
-	Interval_generic_proof.v \
-	Interval_generic.v \
-	Interval_integral.v \
-	Interval_interval.v \
-	Interval_interval_float.v \
-	Interval_interval_float_full.v \
-	Interval_missing.v \
-	Interval_specific_ops.v \
-	Interval_specific_sig.v \
-	Interval_stdz_carrier.v \
-	Interval_tactic.v \
-	Interval_taylor_model.v \
-	Interval_transcend.v \
-	Interval_univariate.v \
-	Interval_xreal.v \
-	Interval_xreal_derive.v \
-	bertrand.v \
-	various_integrals.v
+	Tactic \
+	Float/Basic \
+	Float/Generic \
+	Float/Generic_ops \
+	Float/Generic_proof \
+	Float/Specific_bigint \
+	Float/Specific_ops \
+	Float/Specific_sig \
+	Float/Specific_stdz \
+	Float/Sig \
+	Integral/Bertrand \
+	Integral/Integral \
+	Integral/Polynom \
+	Integral/Various \
+	Interval/Eval \
+	Interval/Interval \
+	Interval/Interval_compl \
+	Interval/Float \
+	Interval/Float_full \
+	Interval/Transcend \
+	Interval/Univariate \
+	Poly/Basic_rec \
+	Poly/Bound \
+	Poly/Bound_quad \
+	Poly/Datatypes \
+	Poly/Seq_compl \
+	Poly/Taylor_model \
+	Poly/Taylor_model_sharp \
+	Poly/Taylor_poly \
+	Real/Aux \
+	Real/Coquelicot_compl \
+	Real/Rstruct \
+	Real/Taylor \
+	Real/Xreal_ssr_compat \
+	Real/Xreal \
+	Real/Xreal_derive
 
-CAFILES = \
-	basic_rec.v \
-	interval_compl.v \
-	poly_bound.v \
-	poly_bound_quad.v \
-	poly_datatypes.v \
-	Rstruct.v \
-	seq_compl.v \
-	taylor_model_int_sharp.v \
-	taylor_poly.v \
-	taylor_thm.v \
-	xreal_ssr_compat.v \
-	coquelicot_compl.v \
-	integral_pol.v
-
-OBJS = $(addprefix src/,$(addsuffix o,$(FILES)))
-CAOBJS = $(addprefix src/coqapprox/,$(addsuffix o,$(CAFILES)))
+VFILES  = $(addprefix src/,$(addsuffix .v,$(FILES)))
+VOFILES = $(addprefix src/,$(addsuffix .vo,$(FILES)))
+GLOBS   = $(addprefix src/,$(addsuffix .glob,$(FILES)))
 
 .PHONY: all check clean dist install
 
-all: $(OBJS) $(CAOBJS)
+all: $(VOFILES)
 
 clean: src/clean testsuite/clean
 
@@ -61,12 +60,12 @@ configure config.status: configure.in
 	@COQC@ -R src Interval $<
 
 src/clean:
-	rm -f $(OBJS) $(CAOBJS) src/*.glob src/coqapprox/*.glob
-	for d in src src/coqapprox; do \
+	rm -f $(VOFILES) $(GLOBS)
+	for d in src/*/; do \
 	  rm -f $d/.coq-native/*.o $d/.coq-native/*.cm*; done
 	find src -type d -name ".coq-native" -empty -prune -exec rmdir "{}" \;
 
-testsuite/check: src/Interval_tactic.vo
+testsuite/check: src/Tactic.vo
 	set +e
 	cd testsuite
 	logfile="failures-`date '+%Y-%m-%d'`.log"
@@ -97,10 +96,10 @@ testsuite/check: src/Interval_tactic.vo
 testsuite/clean:
 	rm -f testsuite/failures-*.log
 
-deps.dot: $(addprefix src/,$(FILES)) $(addprefix src/coqapprox/,$(CAFILES))
+deps.dot: $(VFILES)
 	(echo "digraph interval_deps {" ;
 	echo "node [shape = ellipse, style=filled, URL=\"Interval.\N.html\", color=black, fillcolor=cornflowerblue];";
-	(cd src ; @COQDEP@ -R . Interval $(FILES) $(addprefix coqapprox/,$(CAFILES))) |
+	(cd src ; @COQDEP@ -R . Interval $(addsuffix .v,$(FILES))) |
 	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |
 	  while read src dst; do
 	    for d in $dst; do
@@ -112,10 +111,8 @@ deps.dot: $(addprefix src/,$(FILES)) $(addprefix src/coqapprox/,$(CAFILES))
 install:
 	prefix=@prefix@
 	exec_prefix=@exec_prefix@
-	mkdir -p @libdir@
-	cp $(OBJS) @libdir@
-	mkdir -p @libdir@/coqapprox
-	cp $(CAOBJS) @libdir@/coqapprox
+	mkdir -p @libdir@ $(addprefix @libdir@/,Float Integral Interval Poly Real)
+	for f in $(FILES); do cp src/$f.vo @libdir@/$f.vo; done
 	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "@libdir@/{}" \; )
 
 EXTRA_DIST = \

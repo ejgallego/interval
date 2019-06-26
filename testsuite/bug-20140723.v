@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import Interval_tactic.
+Require Import Interval.Tactic.
 
 Goal True.
 interval_intro PI lower.

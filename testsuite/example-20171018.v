@@ -1,6 +1,5 @@
 Require Import Reals.
-Require Import Interval.Interval_tactic.
-Require Import Interval.Interval_definitions.
+From Interval Require Import Tactic Basic.
 
 Open Scope R_scope.
 

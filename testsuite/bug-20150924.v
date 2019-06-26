@@ -1,4 +1,4 @@
-Require Import Reals Interval_tactic.
+Require Import Reals Interval.Tactic.
 
 Goal forall x : R,
   (Rabs (x - x) <= 1/5)%R.

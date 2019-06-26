@@ -1,5 +1,5 @@
 Require Import Reals.
-Require Import Interval.Interval_tactic.
+Require Import Interval.Tactic.
 
 (* Note: the error messages below were obtained with Coq 8.4pl6 *)
 

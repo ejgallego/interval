@@ -1,4 +1,4 @@
-Require Import Reals Interval_tactic.
+Require Import Reals Interval.Tactic.
 
 Open Scope R_scope.
 
