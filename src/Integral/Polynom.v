@@ -25,20 +25,6 @@ apply: ex_RInt_continuous => x _.
 exact: Rpol_continuous.
 Qed.
 
-Lemma ex_Rpol_derive p (x : R) : ex_derive (horner tt p) x.
-Proof.
-have Hext : forall t, foldr (fun a b =>
-                                (b * t) + a) 0 (toSeq p) =
-                      horner tt p t  => [t|].
-by rewrite PolR.horner_seq.
-apply: (ex_derive_ext _ _ _ Hext). (* implicit parameters? *)
-elim: (toSeq p) => [|a q HI] /=.
-- exact: ex_derive_const.
-- apply: ex_derive_plus; last by exact: ex_derive_const.
-  by apply: ex_derive_mult => //; exact: ex_derive_id.
-Qed.
-
-
 (* Check Derive_sum_n. *)
 
 Lemma ex_derive_big I (s : seq I) :
@@ -141,7 +127,7 @@ apply is_RInt_unique.
 apply: (is_RInt_ext (Derive (horner tt (primitive tt R0 p)))).
 by move => x _; rewrite  Rpol_derive.
 apply: is_RInt_derive.
-move => x _; apply: Derive_correct; apply: ex_Rpol_derive.
+move => x _; apply: Derive_correct; apply: ex_derive_horner.
 move => x _. apply: (continuous_ext (horner tt p) ) => [t|] .
   by rewrite Rpol_derive.
 exact: Rpol_continuous.
