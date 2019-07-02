@@ -236,16 +236,6 @@ apply: is_RInt_minus.
     field; lra.
 Qed.
 
-Lemma Bertrand_beta0 alpha (A : R) (B : R) (HneqN1 : alpha <> (-1)%Z) (H : 0 < A <= B) :
-  Bertrand alpha 0 A B ((powerRZ B (alpha+1)- powerRZ A (alpha+1)) / (IZR (alpha + 1))).
-Proof.
-rewrite /Bertrand.
-apply: (is_RInt_ext (fun x => powerRZ x alpha)).
-by move => x Hx; rewrite pow_O Rmult_1_r.
-apply: is_RInt_powerRZ => // .
-Qed.
-
-
 Lemma f_correct alpha beta A B (H : 0 < A <= B) (Halpha:  alpha <> (-1)%Z) :
  Bertrand alpha beta A B (f alpha beta A B).
 Proof.
@@ -1189,13 +1179,6 @@ by lia.
 Qed.
 
 End Sing.
-(* not sure if necessary *)
-(* Definition f_int_sing alpha beta := f_int (- 2 - alpha) beta. *)
-
-(* Lemma f_int_sing_correct alpha beta (H : 0 < a) (Halpha:  alpha <> (-1)%Z) : *)
-(*   contains (I.convert (f_int alpha beta)) (Xreal (f_lim alpha beta a)). *)
-(* Proof. *)
-
 
 End EffectiveBertrand.
 

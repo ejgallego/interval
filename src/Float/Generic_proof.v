@@ -587,16 +587,6 @@ revert Hb.
 case beta ; try easy.
 Qed.
 
-Lemma odd_radix_correct :
-  forall beta,
-  match radix_val beta with Zpos (xO _) => false | _ => true end = negb (Z.even beta).
-Proof.
-intros (beta, Hb).
-revert Hb.
-case beta ; try easy.
-now intros [p|p|].
-Qed.
-
 Lemma Fround_at_prec_correct :
   forall beta mode prec s m1 e1 pos x,
   (0 < x)%R ->

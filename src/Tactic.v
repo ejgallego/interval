@@ -2302,105 +2302,107 @@ Module SFBI2 := SpecificFloat BigIntRadix2.
 Module ITSFBI2 := IntervalTactic SFBI2.
 Export ITSFBI2.
 
-(* beginning of zone to comment out in releases *)
+(*
 
-(* Require Import Generic_ops. *)
-(* Module GFSZ2 := GenericFloat Radix2. *)
-(* Module ITGFSZ2 := IntervalTactic GFSZ2. *)
-(* Export ITGFSZ2. *)
+Require Import Generic_ops.
+Module GFSZ2 := GenericFloat Radix2.
+Module ITGFSZ2 := IntervalTactic GFSZ2.
+Export ITGFSZ2.
 
-(* Goal True. *)
-(* interval_intro *)
-(*   (RInt_gen *)
-(*      (fun x => (1 * (/ (x * (pow (ln x) 2))))) *)
-(*      (at_right 0) *)
-(*      (at_point (1/3))) with (i_integral_deg 2). *)
-(* done. *)
-
-
-(* Goal True. *)
-(* interval_intro *)
-(*   (RInt_gen *)
-(*      (fun x => (1 / x * (/ (x * (ln x)^3)))) *)
-(*      (at_point 10) *)
-(*      (Rbar_locally p_infty)) with (i_integral_deg 0). *)
-(* done. *)
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (1 * (/ (x * (pow (ln x) 2)))))
+     (at_right 0)
+     (at_point (1/3))) with (i_integral_deg 2).
+done.
 
 
-(* Goal True. *)
-(* interval_intro *)
-(*   (RInt_gen *)
-(*      (fun x => (1 / ((x^2 - 1)*(x^4 + 1)) * (powerRZ x 2 * (ln x)^1))) *)
-(*      (at_right 0) *)
-(*      (at_point (1/2))). *)
-(* done. *)
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (1 / x * (/ (x * (ln x)^3))))
+     (at_point 10)
+     (Rbar_locally p_infty)) with (i_integral_deg 0).
+done.
 
-(* Lemma blo0 : *)
-(*    1 <= RInt (fun x => exp x) 0 1 <= 2. *)
-(* Proof. *)
-(* interval. *)
-(* Qed. *)
 
-(* Lemma blo1 : *)
-(*   forall x, (Rabs x <= 15/3)%R -> *)
-(*   (-4 <= x + 1)%R. *)
-(* intros. *)
-(* interval. *)
-(* Qed. *)
+Goal True.
+interval_intro
+  (RInt_gen
+     (fun x => (1 / ((x^2 - 1)*(x^4 + 1)) * (powerRZ x 2 * (ln x)^1)))
+     (at_right 0)
+     (at_point (1/2))).
+done.
 
-(* Lemma blo2 : *)
-(*   (2/3 <= 5/7)%R. *)
-(* intros. *)
-(* interval_intro (5/7)%R lower with (i_prec 4%nat). *)
-(* apply Rle_trans with (2 := H). *)
-(* interval. *)
-(* Qed. *)
+Lemma blo0 :
+   1 <= RInt (fun x => exp x) 0 1 <= 2.
+Proof.
+interval.
+Qed.
 
-(* Lemma blo3 : *)
-(*   forall x, (x <= 0)%R -> *)
-(*   (0 <= x - x <= 0)%R. *)
-(* intros. *)
-(* Time interval with (i_bisect_diff x). *)
-(* Qed. *)
+Lemma blo1 :
+  forall x, (Rabs x <= 15/3)%R ->
+  (-4 <= x + 1)%R.
+intros.
+interval.
+Qed.
 
-(* Lemma blo4 : *)
-(*   forall x, (3/2 <= x <= 2)%R -> *)
-(*   forall y, (1 <= y <= 33/32)%R -> *)
-(*   (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R. *)
-(* intros. *)
-(* interval with (i_bisect x). *)
-(* Qed. *)
+Lemma blo2 :
+  (2/3 <= 5/7)%R.
+intros.
+interval_intro (5/7)%R lower with (i_prec 4%nat).
+apply Rle_trans with (2 := H).
+interval.
+Qed.
 
-(* Lemma blo5 : *)
-(*   forall x, (-1 <= x <= 1)%R -> *)
-(*   (0 <= exp x - (1 + x) <= 3/4)%R. *)
-(* Proof. *)
-(* intros. *)
-(* interval_intro (1 + x)%R with (i_bisect_taylor x 2). *)
-(* split; try interval with (i_bisect_taylor x 2). *)
-(* interval with (i_bisect_diff x). *)
-(* Qed. *)
+Lemma blo3 :
+  forall x, (x <= 0)%R ->
+  (0 <= x - x <= 0)%R.
+intros.
+Time interval with (i_bisect_diff x).
+Qed.
 
-(* Lemma blo6 : 51/1000 <= RInt_gen (fun x => sin x * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point R1) (Rbar_locally p_infty) <= 52/1000. *)
-(* Proof. *)
-(* interval. *)
-(* Qed. *)
+Lemma blo4 :
+  forall x, (3/2 <= x <= 2)%R ->
+  forall y, (1 <= y <= 33/32)%R ->
+  (Rabs (sqrt(1 + x/sqrt(x+y)) - 144/1000*x - 118/100) <= 71/32768)%R.
+intros.
+interval with (i_bisect x).
+Qed.
 
-(* Lemma blo7 :  -962587772 * / 8589934592 <= *)
-(*       RInt_gen (fun x : R => x * (powerRZ x 1 * ln x ^ 1))  *)
-(*         (at_right 0) (at_point 1) <= -940939775 * / 8589934592. *)
-(* Proof. *)
-(* interval. *)
-(* Qed. *)
+Lemma blo5 :
+  forall x, (-1 <= x <= 1)%R ->
+  (0 <= exp x - (1 + x) <= 3/4)%R.
+Proof.
+intros.
+interval_intro (1 + x)%R with (i_bisect_taylor x 2).
+split; try interval with (i_bisect_taylor x 2).
+interval with (i_bisect_diff x).
+Qed.
 
-(* Lemma blo8 : 876496966 * / 4398046511104 <= *)
-(*       RInt_gen (fun x : R => 1 / x ^ 2 * exp (- x))  *)
-(*         (at_point 5) (Rbar_locally p_infty) <= 876509397 * / 4398046511104. *)
-(* Proof. *)
-(* interval. *)
-(* Qed. *)
+Lemma blo6 : 51/1000 <= RInt_gen (fun x => sin x * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point R1) (Rbar_locally p_infty) <= 52/1000.
+Proof.
+interval.
+Qed.
 
-(* Lemma pi10 : (31415926535/10000000000 < PI < 31415926536/10000000000)%R. *)
-(* Proof. *)
-(* split; interval with (i_prec 40). *)
-(* Qed. *)
+Lemma blo7 :  -962587772 * / 8589934592 <=
+      RInt_gen (fun x : R => x * (powerRZ x 1 * ln x ^ 1))
+        (at_right 0) (at_point 1) <= -940939775 * / 8589934592.
+Proof.
+interval.
+Qed.
+
+Lemma blo8 : 876496966 * / 4398046511104 <=
+      RInt_gen (fun x : R => 1 / x ^ 2 * exp (- x))
+        (at_point 5) (Rbar_locally p_infty) <= 876509397 * / 4398046511104.
+Proof.
+interval.
+Qed.
+
+Lemma pi10 : (31415926535/10000000000 < PI < 31415926536/10000000000)%R.
+Proof.
+split; interval with (i_prec 40).
+Qed.
+
+*)

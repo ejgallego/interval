@@ -135,34 +135,6 @@ destruct a as [n|o n|o n1 n2] ;
   [ idtac | apply Hun | apply Hbin ] ; apply IHl.
 Qed.
 
-Theorem eval_inductive_no_floor_prop :
-  forall A B (P : A -> B -> Prop) defA defB (opsA : operations A) (opsB : operations B),
-  P defA defB ->
- (forall o a b, P a b -> no_floor_op o = true -> P (unary opsA o a) (unary opsB o b)) ->
- (forall o a1 a2 b1 b2, P a1 b1 -> P a2 b2 -> P (binary opsA o a1 a2) (binary opsB o b1 b2)) ->
-  forall inpA inpB,
- (forall n, P (nth n inpA defA) (nth n inpB defB)) ->
-  forall prog, no_floor_prog prog = true ->
-  forall n, P (nth n (eval_generic defA opsA prog inpA) defA) (nth n (eval_generic defB opsB prog inpB) defB).
-Proof.
-intros A B P defA defB opsA opsB Hdef Hun Hbin inpA inpB Hinp prog.
-rewrite -no_floor_prog_rev.
-do 2 rewrite rev_formula.
-induction (rev prog).
-intros _.
-exact Hinp.
-rewrite no_floor_prog_cons.
-intros H1.
-assert (H2 : no_floor_term a = true).
-  now revert H1; case no_floor_term.
-assert (H3 : no_floor_prog l = true).
-  now revert H1; case no_floor_term; try discriminate.
-intros [|n].
-2: now apply IHl.
-now destruct a as [n|o n|o n1 n2] ;
-  [ idtac | apply Hun | apply Hbin ]; try apply IHl.
-Qed.
-
 Definition ext_operations :=
   Build_operations (fun x => Xreal (IZR x))
    (fun o =>

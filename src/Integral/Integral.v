@@ -422,28 +422,6 @@ case: F.toX => //= ra _.
 by case: F.toX.
 Qed.
 
-(* Remember : toR = fun x : F.type => proj_val (FtoX (F.toF x)) *)
-(* The statement of I.midpoint_correct is really clumsy *)
-(* contains_le is also difficult to use... *)
-(* I.midpoint_correct should be stated using toR *)
-(* le_lower should either be a notation over le_upper or a new def *)
-(* so that it simplifies to <= or else provide suitable lemmas *)
-Lemma midpoint_bnd_in (a b : F.type) :
-  F.real a -> F.real b -> toR a <= toR b ->
-  toR a <= toR (I.midpoint (I.bnd a b)) <= toR b.
-Proof.
-intros Ha Hb Hab.
-have non_empty_iab : exists x : ExtendedR, contains (I.convert (I.bnd a b)) x.
-  by exists (F.toX a); apply: contains_convert_bnd_l.
-generalize (I.midpoint_correct (I.bnd a b) non_empty_iab).
-unfold I.convert_bound.
-set m := F.toX _.
-move => [->].
-rewrite I.bnd_correct /= /I.convert_bound.
-move/F_realP: Ha => ->.
-by move/F_realP: Hb => ->.
-Qed.
-
 Definition thin (f : F.type) : I.type :=
   if F.real f then I.bnd f f else I.nai.
 
@@ -455,17 +433,6 @@ case ex: (F.toX fl) => [|r] /=.
 by rewrite I.nai_correct.
 rewrite I.bnd_correct /I.convert_bound ex.
 split; exact: Rle_refl.
-Qed.
-
-Lemma thin_correct_toR (fl : F.type) :
-  contains (I.convert (thin fl)) (Xreal (toR fl)).
-Proof.
-  case Hrealfl : (F.real fl);move: Hrealfl; move/F_realP => Hrealfl.
-  * rewrite -Hrealfl.
-      by apply: (thin_correct fl).
-  * move/F_realP: Hrealfl; rewrite /thin.
-    move /negbTE => ->.
-    by rewrite I.nai_correct.
 Qed.
 
 Section IntervalIntegral.
