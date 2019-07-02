@@ -403,7 +403,7 @@ split.
 - move => HnotXnan.
   apply: continuous_Rinv_comp => // Ha.
   move: HnotXnan.
-  by rewrite /Xinv' Ha is_zero_correct_zero.
+  by rewrite /Xinv' Ha is_zero_0.
 - move => _. by apply: continuous_mult.
 - move => HnotXnan.
   exact: continuous_sqrt_comp.
@@ -413,7 +413,7 @@ split.
   apply: continuous_comp => //.
   apply: continuous_tan => Ha.
     move: HnotXnan.
-    by rewrite /Xtan' Ha is_zero_correct_zero.
+    by rewrite /Xtan' Ha is_zero_0.
 - move => _. by apply: continuous_atan_comp.
 - move => _. by apply: continuous_exp_comp.
 - move => HnotXnan.
@@ -632,7 +632,7 @@ case => a1 a2 b1 b2 Ha1 Ha2 HnotXnan /=.
     by inversion Heq1; inversion Heq2.
   + apply: continuous_mult => // .
     apply: continuous_Rinv_comp => // Habs .
-    by move: Heq2 HnotXnan => ->; rewrite /= /Xdiv' Habs is_zero_correct_zero.
+    by move: Heq2 HnotXnan => ->; rewrite /= /Xdiv' Habs is_zero_0.
 intros [|n].
 simpl.
 intros _.
@@ -839,7 +839,7 @@ Proof.
 intros o f d x Hd.
 destruct o ; simpl ; repeat split.
 now apply Xderive_pt_neg.
-rewrite /Xinv' is_zero_correct_zero.
+rewrite /Xinv' is_zero_0.
 now apply Xderive_pt_abs.
 rewrite rewrite_inv_diff.
 now apply Xderive_pt_inv.
@@ -854,10 +854,10 @@ now apply Xderive_pt_sin.
 now apply Xderive_pt_tan.
 now apply Xderive_pt_atan.
 now apply Xderive_pt_exp.
-rewrite /Xinv' is_zero_correct_zero.
+rewrite /Xinv' is_zero_0.
 now apply Xderive_pt_ln.
 now apply Xderive_pt_power_int.
-rewrite /Xinv' is_zero_correct_zero.
+rewrite /Xinv' is_zero_0.
 now destruct x.
 Qed.
 
@@ -969,7 +969,7 @@ destruct o ; simpl ;
   try now first [ apply Hf | apply Hf' ].
 (* abs *)
 generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
-rewrite /= /Xinv' is_zero_correct_zero.
+rewrite /= /Xinv' is_zero_0.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
 case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
@@ -990,7 +990,7 @@ now apply Hf'.
 apply H.
 (* ln *)
 generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
-rewrite /= /Xinv' is_zero_correct_zero.
+rewrite /= /Xinv' is_zero_0.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
 case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.

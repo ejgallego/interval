@@ -1342,7 +1342,7 @@ Theorem Fdiv_correct :
 Proof with auto with typeclass_instances.
 intros beta mode prec [ | | sx mx ex] [ | | sy my ey] ;
   simpl ; unfold Xdiv' ;
-  try rewrite is_zero_correct_zero ;
+  try rewrite is_zero_0 ;
   try apply refl_equal ;
   rewrite is_zero_correct_float.
 unfold Rdiv.

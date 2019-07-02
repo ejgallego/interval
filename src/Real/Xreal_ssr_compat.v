@@ -24,7 +24,6 @@ From Coq Require Import Reals Psatz.
 From mathcomp.ssreflect Require Import ssreflect ssrbool ssrnat bigop.
 
 Require Import Aux.
-Require Import Basic.
 Require Import Xreal.
 Require Import Rstruct.
 
@@ -53,7 +52,7 @@ by rewrite (Rcompare_Eq_inv _ _ E).
 Qed.
 
 Lemma zeroT r : (r = 0)%R -> is_zero r = true.
-Proof. by move ->; rewrite is_zero_correct_zero. Qed.
+Proof. by move ->; rewrite is_zero_0. Qed.
 
 Lemma positiveT x : (0 < x)%R -> is_positive x = true.
 Proof. by case: is_positive_spec =>//; move/Rle_not_lt. Qed.

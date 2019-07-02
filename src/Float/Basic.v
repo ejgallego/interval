@@ -191,14 +191,6 @@ now rewrite mult_IZR.
 now intros p.
 Qed.
 
-Lemma is_zero_correct_zero :
-  is_zero 0 = true.
-Proof.
-destruct (is_zero_spec 0).
-apply refl_equal.
-now elim H.
-Qed.
-
 Lemma is_zero_correct_float :
   forall beta s m e,
   is_zero (FtoR beta s m e) = false.

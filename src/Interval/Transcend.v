@@ -2661,7 +2661,7 @@ case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
     simpl.
     case is_zero_spec ; intros Zc.
     rewrite Rsqr_0_uniq with (1 := Zc).
-    now rewrite is_zero_correct_zero.
+    now rewrite is_zero_0.
     case is_zero_spec ; intros Zc'.
     rewrite Zc' in Zc.
     elim Zc.

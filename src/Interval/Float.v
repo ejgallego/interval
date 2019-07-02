@@ -2188,7 +2188,7 @@ replace (is_zero x) with (is_zero (x ^ nat_of_P n)).
 easy.
 case (is_zero_spec x) ; intros Zx.
 rewrite Zx, pow_i.
-apply is_zero_correct_zero.
+apply is_zero_0.
 apply lt_O_nat_of_P.
 case is_zero_spec ; try easy.
 intros H.

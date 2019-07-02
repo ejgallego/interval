@@ -46,6 +46,14 @@ intros x.
 exact (Rlt_bool_spec x 0).
 Qed.
 
+Lemma is_zero_0 :
+  is_zero 0 = true.
+Proof.
+destruct (is_zero_spec 0).
+apply refl_equal.
+now elim H.
+Qed.
+
 (*
  * Extended reals
  *)
