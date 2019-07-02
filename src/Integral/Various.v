@@ -3,7 +3,6 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 
 Require Import Coquelicot_compl Aux.
-Require Import Interval_compl.
 Require Import Bertrand.
 Require Import Xreal.
 Require Import Sig.
@@ -124,7 +123,7 @@ Lemma ExpN_correct (Hlam : lam <> 0) : contains (I.convert ExpN) (Xreal ((expn l
 Proof.
 have -> : Xreal (expn lam a / lam) = Xdiv (Xreal (expn lam a)) (Xreal lam).
 rewrite/= /Xdiv'.
-by move/Xreal_ssr_compat.zeroF: Hlam ->.
+by rewrite is_zero_false.
 apply: I.div_correct => // .
 apply: J.exp_correct.
 apply: J.neg_correct.

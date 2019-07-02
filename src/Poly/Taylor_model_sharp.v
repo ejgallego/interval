@@ -1520,7 +1520,7 @@ constructor.
           (fun y _ => continuous_cos y)
         (open_neq R0)) (3 := Hdef).
       move=> {Hdef Hx x} x Hdef.
-      by rewrite /Xtan' zeroF.
+      by rewrite /Xtan' is_zero_false.
     rewrite last_grec1up // head_gloop1.
     rewrite [size _]/= subn0.
     have Hdef : cos x <> 0%R.
@@ -1598,7 +1598,7 @@ constructor.
       (fun y _ => continuous_cos y)
     (open_neq 0%R)) (3 := E0).
   move => /= x0 Hx0.
-  by rewrite /Xtan' zeroF.
+  by rewrite /Xtan' is_zero_false.
 
 simpl.
 split =>//.
@@ -1665,7 +1665,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ sqrt); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
-      by move=> y Hy; rewrite /Xsqrt' negativeF //; apply: Rlt_le.
+      by move=> y Hy; rewrite /Xsqrt' is_negative_false //; apply: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -1716,7 +1716,7 @@ constructor.
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc sqrt).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt' negativeF //.
+      simpl=> y Hy; rewrite /Xsqrt' is_negative_false //.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_sqrt n x E1).
   }
@@ -1780,7 +1780,7 @@ constructor.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
       move=> y Hy.
-      rewrite /Xinv' /Xsqrt' /= negativeF /= ?zeroF //.
+      rewrite /Xinv' /Xsqrt' /= is_negative_false /= ?is_zero_false //.
       now apply Rgt_not_eq, sqrt_lt_R0.
       exact: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
@@ -1835,7 +1835,7 @@ by move=> *;
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc (fun t => / sqrt t)).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt' /Xinv' /Xbind negativeF ?zeroF //.
+      simpl=> y Hy; rewrite /Xsqrt' /Xinv' /Xbind is_negative_false ?is_zero_false //.
       apply: Rgt_not_eq; exact: sqrt_lt_R0.
       exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_invsqrt n x E1).
@@ -1887,7 +1887,7 @@ Lemma toR_power_int p x : (0 <= p)%Z \/ x <> R0 ->
 Proof.
 case => [Hp|Hx].
   by case: p Hp =>// p [].
-by case: p =>//; rewrite /Xpower_int' zeroF.
+by case: p =>//; rewrite /Xpower_int' is_zero_false.
 Qed.
 
 Lemma toR_power_int_loc p x : (0 <= p)%Z \/ x <> R0 ->
@@ -1897,7 +1897,7 @@ case: p => [|p|p] Hx.
 - eapply (locally_open (fun _ => True)) =>//; exact: open_true.
 - eapply (locally_open (fun _ => True)) =>//; exact: open_true.
 - eapply (@locally_open _ (fun x => x <> 0)%R) =>//; first exact: open_neq.
-  by move => {x Hx} x Hx; rewrite /= zeroF.
+  by move => {x Hx} x Hx; rewrite /= is_zero_false.
   case: Hx => // ; by case.
 Qed.
 
@@ -2114,7 +2114,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ Rinv); last first.
       apply: (locally_open (fun t => t <> 0)%R);
         [exact: open_neq| |exact: apart0_correct E0].
-      by move=> y Hy; rewrite /Xinv' zeroF.
+      by move=> y Hy; rewrite /Xinv' is_zero_false.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -2161,7 +2161,7 @@ constructor.
     apply: (ex_derive_n_ext_loc Rinv).
       apply: (locally_open (fun t => t <> 0)%R) =>//.
       exact: open_neq.
-      by simpl=> y Hy; rewrite /Xinv' zeroF.
+      by simpl=> y Hy; rewrite /Xinv' is_zero_false.
     exact: ex_derive_n_is_derive_n (is_derive_n_inv n x E0).
   }
 
@@ -2221,7 +2221,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ ln); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E0].
-      by move=> y Hy; rewrite /Xln' positiveT.
+      by move=> y Hy; rewrite /Xln' is_positive_true.
       rewrite /PolR.nth; case: k Hkn => [|k] Hkn; first by rewrite Rdiv_1.
       case: n Hkn => [|n] Hkn //.
       rewrite [nth _ _ _]PolR.nth_dotmuldiv ifF; last first.
@@ -2312,7 +2312,7 @@ constructor.
     move/(gt0_correct Hx) in E0.
     apply: (ex_derive_n_ext_loc ln).
       apply: locally_open E0; first exact: open_gt.
-      by simpl=> t Ht; rewrite /Xln' positiveT.
+      by simpl=> t Ht; rewrite /Xln' is_positive_true.
     exact: ex_derive_n_is_derive_n (is_derive_n_ln n x E0).
   }
 split =>//.
@@ -2574,10 +2574,10 @@ split=>//.
   move=> x Hx Dx; rewrite /TM_div_mixed_r /=.
   rewrite I.div_propagate_l //; apply/(Hdef x Hx).
   case: (f x) Dx => [|fx] //=.
-  by rewrite /Xdiv' zeroF.
+  by rewrite /Xdiv' is_zero_false.
   by move=> HX; rewrite I.div_propagate_l // Hnai.
   have->: (Xreal 0) = (Xdiv (Xreal 0) (Xreal y)).
-  by rewrite /Xdiv' /= zeroF // /Rdiv Rmult_0_l.
+  by rewrite /Xdiv' /= is_zero_false // /Rdiv Rmult_0_l.
   exact: I.div_correct.
 move=> /= x0 Hx0.
 have [q H1 H2] := Hmain x0 Hx0.
@@ -2590,7 +2590,7 @@ exists (PolR.map (Rdiv ^~ y) q).
   case Df: (f x) => [|fx].
   by rewrite I.div_propagate_l // (Hdef x Hx).
   clear - H2 Hy Hy0 Df Hdef Hx.
-  rewrite PolR.horner_div_mixed_r /Xdiv' /Xbind2 zeroF // /proj_val.
+  rewrite PolR.horner_div_mixed_r /Xdiv' /Xbind2 is_zero_false // /proj_val.
   rewrite Df in H2.
   replace (fx / y - q.[x - x0] / y)%R with ((fx - q.[x - x0]) / y)%R by now field.
   exact: J.div_correct.

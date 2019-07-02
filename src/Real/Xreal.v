@@ -33,10 +33,44 @@ intros x.
 exact (Req_bool_spec x 0).
 Qed.
 
+Lemma is_zero_0 :
+  is_zero 0 = true.
+Proof.
+now apply Req_bool_true.
+Qed.
+
+Lemma is_zero_true :
+  forall x, x = 0%R -> is_zero x = true.
+Proof.
+intros x ->.
+exact is_zero_0.
+Qed.
+
+Lemma is_zero_false :
+  forall x, x <> 0%R -> is_zero x = false.
+Proof.
+intros x Hx.
+now apply Req_bool_false.
+Qed.
+
 Lemma is_positive_spec :
   forall x, Rlt_bool_prop 0 x (is_positive x).
 Proof.
 exact (Rlt_bool_spec 0).
+Qed.
+
+Lemma is_positive_true :
+  forall x, (0 < x)%R -> is_positive x = true.
+Proof.
+intros x Hx.
+now apply Rlt_bool_true.
+Qed.
+
+Lemma is_positive_false :
+  forall x, (x <= 0)%R -> is_positive x = false.
+Proof.
+intros x Hx.
+now apply Rlt_bool_false.
 Qed.
 
 Lemma is_negative_spec :
@@ -46,12 +80,18 @@ intros x.
 exact (Rlt_bool_spec x 0).
 Qed.
 
-Lemma is_zero_0 :
-  is_zero 0 = true.
+Lemma is_negative_true :
+  forall x, (x < 0)%R -> is_negative x = true.
 Proof.
-destruct (is_zero_spec 0).
-apply refl_equal.
-now elim H.
+intros x Hx.
+now apply Rlt_bool_true.
+Qed.
+
+Lemma is_negative_false :
+  forall x, (0 <= x)%R -> is_negative x = false.
+Proof.
+intros x Hx.
+now apply Rlt_bool_false.
 Qed.
 
 (*
