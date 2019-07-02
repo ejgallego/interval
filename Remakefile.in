@@ -33,7 +33,6 @@ FILES = \
 	Real/Coquelicot_compl \
 	Real/Rstruct \
 	Real/Taylor \
-	Real/Xreal_ssr_compat \
 	Real/Xreal \
 	Real/Xreal_derive
 

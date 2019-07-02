@@ -27,7 +27,7 @@ From Coquelicot Require Import Coquelicot.
 Require Import Aux.
 Require Import Xreal.
 Require Import Interval.
-Require Import Rstruct Xreal_ssr_compat Taylor.
+Require Import Rstruct Taylor.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -158,8 +158,15 @@ Qed.
 End PredArg.
 
 (********************************************************************)
-(** Instantiation of [taylor_thm.Cor_Taylor_Lagrange] for intervals *)
+(** Instantiation of [Taylor.Cor_Taylor_Lagrange] for intervals *)
 (********************************************************************)
+
+Lemma sum_f_to_big n (f : nat -> R) :
+  sum_f_R0 f n = \big[Rplus/0%R]_(0 <= i < n.+1) f i.
+Proof.
+elim: n =>[|n IHn]; first by rewrite big_nat_recl // big_mkord big_ord0 Rplus_0_r.
+by rewrite big_nat_recr //= IHn.
+Qed.
 
 Section NDerive.
 Variable xf : R -> ExtendedR.

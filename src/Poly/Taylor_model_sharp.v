@@ -31,7 +31,6 @@ Require Import Basic.
 Require Import Xreal_derive.
 Require Import Aux.
 Require Import Rstruct.
-Require Import Xreal_ssr_compat.
 Require Import Seq_compl.
 Require Import Interval_compl.
 Require Import Datatypes.

@@ -180,6 +180,14 @@ Notation Xdiv := (Xbind2 Xdiv').
 Notation Xmin := (Xlift2 Rmin).
 Notation Xmax := (Xlift2 Rmax).
 
+Delimit Scope XR_scope with XR.
+
+Notation "x + y" := (Xadd x y) : XR_scope.
+Notation "x - y" := (Xsub x y) : XR_scope.
+Notation " - y" := (Xneg y) : XR_scope.
+Notation "x * y" := (Xmul x y) : XR_scope.
+Notation "x / y" := (Xdiv x y) : XR_scope.
+
 Lemma Xsub_split :
   forall x y, Xsub x y = Xadd x (Xneg y).
 Proof.
