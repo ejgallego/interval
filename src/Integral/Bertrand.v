@@ -31,61 +31,6 @@ case: m => [|p|p].
   exact: Hneg.
 Qed.
 
-Lemma powerRZ_Rpower x z : (x > 0) (* -> (z > 0)%Z *) -> powerRZ x z = Rpower x (IZR z).
-Proof.
-apply: (powerRZ_ind (fun alpha f => forall x, (x > 0) -> (* (alpha > 0)%Z -> *) f x = Rpower x (IZR alpha))) => [x0 Hx0 |n x0 Hx0 (* Hn *)|n x0 Hx0 (* Hn *) |] // .
-- by rewrite /= Rpower_O //.
-- rewrite -Rpower_pow // .
-  by rewrite INR_IZR_INZ.
-- rewrite -Rpower_pow // .
-  by rewrite -Rpower_Ropp INR_IZR_INZ opp_IZR.
-- move => f g Hfg n Hf x0 Hx0. by rewrite -Hfg Hf.
-Qed.
-
-  (* so long... *)
-Lemma powerRZ_inv x alpha : (x <> 0) -> powerRZ (/ x) alpha = / powerRZ x alpha.
-Proof.
-move => Hx.
-apply: (powerRZ_ind (fun alpha f => forall x, x<>0 -> f (/ x) = / powerRZ (x) (alpha))) => [x0 Hx0|n x0 Hx0|n x0 Hx0||] //.
-- by rewrite /=; field.
-- by rewrite -pow_powerRZ ?Rinv_pow ?pow_powerRZ.
-- elim: n => [|n Hn] // .
-  rewrite [in LHS]/=.
-  rewrite -addn1; rewrite Nat2Z.inj_add.
-  rewrite Z.opp_add_distr powerRZ_add; try by [].
-  rewrite Rinv_mult_distr; try (apply: Rinv_neq_0_compat; by []).
-  rewrite Hn /=; field.
-  by split; try lra; try exact: powerRZ_NOR.
-  by apply: pow_nonzero; apply: Rinv_neq_0_compat.
-  move => f g Hfg n Hf x0 Hx0.
-  by rewrite -Hfg Hf //.
-Qed.
-
-Lemma powerRZ_inv_neg x alpha : (x <> 0) -> powerRZ x alpha = powerRZ (/ x) (- alpha).
-Proof.
-  move => Hx.
-apply: (powerRZ_ind (fun alpha f => forall x, x<>0 -> f x = powerRZ (/ x) (- alpha))) => [x0|n x0 Hx0|n x0 Hx0||] // .
-- elim: n => [|n Hn] => // .
-  rewrite[in LHS]/= Hn.
-  have {1}->: x0 = powerRZ (/ x0) (-1).
-  by rewrite /=; field.
-  rewrite -powerRZ_add.
-  congr (powerRZ _ _).
-  by rewrite -addn1; rewrite Nat2Z.inj_add; ring.
-  exact: Rinv_neq_0_compat.
-- rewrite pow_powerRZ Z.opp_involutive.
-  by rewrite -pow_powerRZ ?Rinv_pow ?pow_powerRZ.
-- move => f g Hfg n Hf x0 Hx0.
-  rewrite -Hfg Hf //.
-Qed.
-
-Lemma powerRZ_neg_inv x alpha : (x <> 0) -> powerRZ (/ x) alpha = powerRZ x (- alpha).
-Proof.
-move => Hx.
-rewrite -[alpha]Z.opp_involutive.
-by rewrite -powerRZ_inv_neg //;rewrite Z.opp_involutive.
-Qed.
-
 Lemma is_derive_powerRZ (n : Z) (x : R):
   ((0 <= n)%Z \/ x <> 0) ->
   is_derive (fun x : R => powerRZ x n) x (IZR n * (powerRZ x (n - 1))).
@@ -969,10 +914,10 @@ Proof.
             (dg x) * (- (-1) ^ beta * powerRZ (g x) (-2 - alpha) * ln (g x) ^ beta) by [].
   rewrite /dg /g.
   rewrite powerRZ_add ?ln_Rinv; try lra.
-  rewrite powerRZ_neg_inv //= .
+  rewrite -> (powerRZ_neg _ 2), powerRZ_neg, Rinv_involutive by easy.
   rewrite [(- ln x) ^beta] pow_negx.
   replace (powerRZ x alpha * ln x ^ beta) with ((-1)^beta * (-1)^beta * (powerRZ x alpha * ln x ^ beta)).
-  rewrite powerRZ_neg_inv ?Z.opp_involutive //= .
+  rewrite /(powerRZ x 2) /=.
   now field.
   rewrite -Rpow_mult_distr.
   have -> : -1 * -1 = 1 by ring. by rewrite pow1 Rmult_1_l.
