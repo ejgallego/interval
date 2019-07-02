@@ -72,6 +72,7 @@ testsuite/check: src/Tactic.vo
 	logfile="failures-`date '+%Y-%m-%d'`.log"
 	cat /dev/null > log.tmp
 	cat /dev/null > "$logfile"
+	rm -f check_tmp.v
 	for f in *.v; do
 	  cp "$f" check_tmp.v
 	  @COQC@ -R ../src Interval check_tmp.v > output.tmp 2>&1
