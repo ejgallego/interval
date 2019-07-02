@@ -789,21 +789,21 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   apply pi4_correct.
   apply atan_fast0i_correct.
   apply Rabs_le.
-  assert (Bx1: (0 < toR x + 1)%R) by (clear -Bx ; Fourier.fourier).
+  assert (Bx1: (0 < toR x + 1)%R) by (clear -Bx ; lra).
   split.
   apply Rmult_le_reg_r with (1 := Bx1).
   unfold Rdiv.
   rewrite Rmult_assoc, Rinv_l, Rmult_1_r.
   apply Rminus_le.
   replace (- / 2 * (toR x + 1) - (toR x - 1))%R with (-3/2 * toR x + /2)%R by field.
-  clear -Bx' ; Fourier.fourier.
+  clear -Bx' ; lra.
   now apply Rgt_not_eq.
   apply Rmult_le_reg_r with (1 := Bx1).
   unfold Rdiv.
   rewrite Rmult_assoc, Rinv_l, Rmult_1_r.
   apply Rminus_le.
   replace (toR x - 1 - / 2 * (toR x + 1))%R with (/2 * toR x - 3/2)%R by field.
-  Fourier.fourier.
+  lra.
   now apply Rgt_not_eq.
   simpl.
   rewrite 2!F.div_correct, F.sub_exact_correct, F.add_exact_correct, F.fromZ_correct.
@@ -811,13 +811,13 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   unfold Xdiv'.
   simpl.
   case is_zero_spec ; intros Zx.
-  Fourier.fourier.
+  lra.
   simpl.
   split ; bound_tac.
   apply (f_equal Xreal).
   rewrite Rplus_comm.
   apply atan_plus_PI4.
-  Fourier.fourier.
+  lra.
 case Rcompare_spec ; intros Bx''.
 apply H.
 now apply Rlt_le.

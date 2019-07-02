@@ -734,12 +734,12 @@ Proof.
 intros x Hx.
 assert (H1: ((x - 1) / (x + 1) < 1)%R).
   apply Rmult_lt_reg_r with (x + 1)%R.
-  Fourier.fourier.
+  lra.
   unfold Rdiv.
   rewrite Rmult_1_l, Rmult_assoc, Rinv_l, Rmult_1_r.
-  Fourier.fourier.
+  lra.
   apply Rgt_not_eq.
-  Fourier.fourier.
+  lra.
 assert (H2: (- PI / 2 < atan ((x - 1) / (x + 1)) + PI / 4 < PI / 2)%R).
   split.
   rewrite <- (Rplus_0_r (- PI / 2)).
@@ -761,7 +761,7 @@ rewrite tan_PI4.
 field.
 split.
 apply Rgt_not_eq.
-Fourier.fourier.
+lra.
 apply Rgt_not_eq.
 ring_simplify.
 apply Rlt_0_2.
