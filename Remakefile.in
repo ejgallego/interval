@@ -1,4 +1,5 @@
 FILES = \
+	Interval_tactic \
 	Tactic \
 	Float/Basic \
 	Float/Generic \
