@@ -29,7 +29,6 @@ Require Import Xreal.
 Require Import Interval.
 Require Import Rstruct.
 Require Import Seq_compl.
-Require Import Interval_compl.
 Require Import Datatypes.
 Require Import Bound.
 
@@ -124,7 +123,7 @@ have H4 : (a2 + a2 + (a2 + a2) <> 0)%R.
   case/(I.upper_bounded_correct _) => _.
   rewrite /I.bounded_prop.
   set d := I.div prec _ _.
-  suff->: I.convert d = IInan by [].
+  suff->: I.convert d = Inan by [].
   apply -> contains_Xnan.
   rewrite -(Xdiv_0_r (Xsqr (Xreal a1))).
   apply: I.div_correct =>//.
