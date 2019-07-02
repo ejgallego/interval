@@ -28,7 +28,7 @@ From Flocq Require Import Core.
 Require Import Aux.
 Require Import Interval.
 Require Import Xreal.
-Require Import Rstruct Interval_compl Basic_rec Seq_compl.
+Require Import Rstruct Basic_rec Seq_compl.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -974,7 +974,6 @@ Module SeqPolyInt (I : IntervalOps) <: PolyIntOps I.
 Module Int := FullInt I.
 Include SeqPoly Int.
 
-Module Import Aux := IntervalAux I.
 Module J := IntervalExt I.
 
 Definition contains_pointwise pi p : Prop :=
@@ -1012,7 +1011,7 @@ Proof.
 move=> Hp k; rewrite /opp /PolR.opp /nth /PolR.nth.
 apply(*:*) (@map_correct R I.type) =>//.
 - exact: J.zero_correct.
-- by move=> ? /only0 ->; rewrite Ropp_0; apply: J.zero_correct.
+- by move=> ? /J.contains_only_0 ->; rewrite Ropp_0; apply: J.zero_correct.
 - by move=> *; rewrite -(Ropp_0); apply: J.neg_correct.
 - move=> *; exact: J.neg_correct.
 Qed.
@@ -1026,7 +1025,7 @@ Proof.
 move=> H0 Hf Hp k; rewrite /map /PolR.map /nth /PolR.nth.
 apply(*:*) (@map_correct R I.type) =>//.
 - exact: J.zero_correct.
-- by move=> ? /only0 ->; rewrite H0; apply: J.zero_correct.
+- by move=> ? /J.contains_only_0 ->; rewrite H0; apply: J.zero_correct.
 - by move=> *; rewrite -(H0); apply: Hf.
 - move=> *; exact: Hf.
 Qed.
@@ -1037,9 +1036,9 @@ Proof.
 move=> Hp Hq k; rewrite /PolR.add /add /nth /PolR.nth.
 apply (@map2_correct R I.type) =>//.
 - exact: J.zero_correct.
-- exact: only0.
-- by move=> ? ? ? H1 /only0 ->; rewrite Rplus_0_r.
-- by move=> ? ? ? /only0 -> H2; rewrite Rplus_0_l.
+- exact: J.contains_only_0.
+- by move=> ? ? ? H1 /J.contains_only_0 ->; rewrite Rplus_0_r.
+- by move=> ? ? ? /J.contains_only_0 -> H2; rewrite Rplus_0_l.
 - by move=> v1 ? ? ? ?; rewrite -(Rplus_0_r v1); apply: J.add_correct.
 - by move=> v2 ? ? ? ?; rewrite -(Rplus_0_l v2); apply: J.add_correct.
 - by move=> *; apply: J.add_correct.
@@ -1052,7 +1051,7 @@ Proof.
 move=> Hpi n Hn.
 case: (leqP (PolR.size p) (size pi)) => Hsz.
   rewrite PolR.nth_default //; exact: leq_trans Hsz Hn.
-by move/(_ n): Hpi; rewrite nth_default //; move/only0=>->.
+by move/(_ n): Hpi; rewrite nth_default //; move/J.contains_only_0=>->.
 Qed.
 
 Lemma dotmuldiv_correct u a b pi p :
@@ -1069,7 +1068,8 @@ do ![case: ifP] => /or3P A /or3P B.
   by move/or3P in A; move=> K; rewrite K orbT in A.
   by move/or3P in A; move=> K; rewrite K !orbT in A.
 - case A=> K.
-  apply (@mul_0_contains_0_r u (Xreal (Rdiv (IZR (seq.nth 0%Z a k)) (IZR (seq.nth 0%Z b k))))).
+  rewrite <- (Rmult_0_r (Rdiv (IZR (seq.nth 0%Z a k)) (IZR (seq.nth 0%Z b k)))).
+  apply J.mul_correct.
   by apply: J.div_correct; apply: I.fromZ_correct.
   have->: 0%R = PolR.nth p k.
   by move/PolR.nth_default: K.
@@ -1086,12 +1086,12 @@ Proof.
 move=> Hp Hq k; rewrite /PolR.sub /sub /nth /PolR.nth.
 apply (@map2_correct R I.type) =>//.
 - exact: J.zero_correct.
-- by move=> v /only0 ->; rewrite Ropp_0; apply: J.zero_correct.
+- by move=> v /J.contains_only_0 ->; rewrite Ropp_0; apply: J.zero_correct.
 - by move=> t ?; rewrite -Ropp_0; apply: J.neg_correct.
 - move=> *; exact: J.neg_correct.
-- exact: only0.
-- by move=> ? ? ? H1 /only0 ->; rewrite Rminus_0_r.
-- by move=> ? ? ? /only0 -> H2; rewrite Rminus_0_l; apply: J.neg_correct.
+- exact: J.contains_only_0.
+- by move=> ? ? ? H1 /J.contains_only_0 ->; rewrite Rminus_0_r.
+- by move=> ? ? ? /J.contains_only_0 -> H2; rewrite Rminus_0_l; apply: J.neg_correct.
 - by move=> v1 ? ? ? ?; rewrite -(Rminus_0_r v1); apply: J.sub_correct.
 - by move=> v2 ? ? ? ?; rewrite -(Rminus_0_l v2); apply: J.sub_correct.
 - by move=> *; apply: J.sub_correct.
@@ -1166,7 +1166,7 @@ Lemma mul_mixed_correct  u ai pi a p :
 Proof.
 move=> Ha Hp; rewrite /mul_mixed /PolR.mul_mixed.
 apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
-- move=> x s /only0 -> Hs [|k] /=; first by rewrite Rmult_0_r; apply: J.zero_correct.
+- move=> x s /J.contains_only_0 -> Hs [|k] /=; first by rewrite Rmult_0_r; apply: J.zero_correct.
   by move: (Hs k); rewrite nth_nil.
 - move=> x s Hx Hs [|k]; first by rewrite -(Rmult_0_r a); apply: J.mul_correct.
   by move: (Hs k); rewrite nth_nil.
@@ -1181,7 +1181,7 @@ Lemma div_mixed_r_correct u pi bi p b :
 Proof.
 move=> Ha Hp; rewrite /div_mixed_r /PolR.div_mixed_r.
 apply: (seq_foldr_correct (Rel := fun v t => t >: v)) =>//.
-- move=> x s /only0 -> Hs [|k] /=; first by rewrite /Rdiv Rmult_0_l; apply: J.zero_correct.
+- move=> x s /J.contains_only_0 -> Hs [|k] /=; first by rewrite /Rdiv Rmult_0_l; apply: J.zero_correct.
   by move: (Hs k); rewrite nth_nil.
 - move=> x s Hx Hs [|k]; last by move: (Hs k); rewrite nth_nil.
   by rewrite -(Rmult_0_l (Rinv b)); apply: J.div_correct.
@@ -1197,7 +1197,7 @@ rewrite /horner /PolR.horner.
 apply: I.mask_correct'.
 apply: (foldr_correct (Rel := fun v t => t >: v)) =>//.
 - exact: J.zero_correct.
-- move=> x y /only0 -> /only0 ->; rewrite Rmult_0_l Rplus_0_r; exact: J.zero_correct.
+- move=> x y /J.contains_only_0 -> /J.contains_only_0 ->; rewrite Rmult_0_l Rplus_0_r; exact: J.zero_correct.
 - move=> x y Hx Hy; rewrite -(Rplus_0_r 0) -{1}(Rmult_0_l a).
   apply: J.add_correct =>//; exact: J.mul_correct.
 - move=> x xi y yi Hx Hy; apply: J.add_correct=>//; exact: J.mul_correct.
@@ -1209,7 +1209,7 @@ move=> Hpi; rewrite /deriv /PolR.deriv /deriv_loop /PolR.deriv_loop.
 apply: (seq_foldri_correct (Rel := fun v t => t >: v)) =>//.
 - by move=> k; rewrite !nth_behead.
 - move=> x s i Hx Hs [|k] /=.
-  + by move/only0: Hx->; rewrite Rmult_0_l; apply: J.zero_correct.
+  + by move/J.contains_only_0: Hx->; rewrite Rmult_0_l; apply: J.zero_correct.
   + by move: (Hs k); rewrite nth_nil.
 - move=> x s i Hx Hs [|k] /=.
   rewrite -(Rmult_0_l (INR i)).
@@ -1304,7 +1304,8 @@ apply: (mkseq_correct (Rel := fun r i => i >: r)) =>//.
 - exact: J.zero_correct.
 - move=> k; rewrite /int_coeff_shift /PolR.int_coeff_shift.
   apply: J.div_correct =>//.
-  exact: R_from_nat_correct.
+  rewrite INR_IZR_INZ.
+  exact: I.fromZ_correct.
 - move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.
   by rewrite [seq.nth _ _ _](PolR.nth_default _k) /Rdiv Rmult_0_l.
 - move=> k /andP [_k k_]; rewrite /PolR.int_coeff_shift.

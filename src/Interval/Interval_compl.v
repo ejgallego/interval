@@ -329,9 +329,6 @@ Lemma R_from_nat_correct :
            (Xreal (INR n)).
 Proof. move=> b n; rewrite INR_IZR_INZ; exact: I.fromZ_correct. Qed.
 
-Lemma only0 v : contains (I.convert I.zero) (Xreal v) -> v = 0%R.
-Proof. by rewrite I.zero_correct; case; symmetry; apply Rle_antisym. Qed.
-
 Section PrecArgument.
 
 Variable prec : I.precision.

@@ -620,6 +620,14 @@ rewrite I.zero_correct.
 split ; apply Rle_refl.
 Qed.
 
+Lemma contains_only_0 r :
+  contains (I.convert I.zero) (Xreal r) -> r = 0%R.
+Proof.
+rewrite I.zero_correct.
+intros [H1 H2].
+now apply Rle_antisym.
+Qed.
+
 Lemma contains_RInt prec (f3 : R -> R) x1 x2 Y X1 X2 :
   ex_RInt f3 x1 x2->
   contains (I.convert X1) (Xreal x1) ->
