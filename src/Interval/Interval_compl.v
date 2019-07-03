@@ -25,9 +25,10 @@ From mathcomp.ssreflect Require Import ssreflect ssrbool ssrfun eqtype ssrnat bi
 From Coquelicot Require Import Coquelicot.
 
 Require Import Stdlib.
+Require Import MathComp.
 Require Import Xreal.
 Require Import Interval.
-Require Import Rstruct Taylor.
+Require Import Taylor.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

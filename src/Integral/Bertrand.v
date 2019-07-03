@@ -2,7 +2,8 @@ From Coq Require Import Reals ZArith Psatz Fourier_util.
 From Coquelicot Require Import Coquelicot AutoDerive.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 
-Require Import Coquelicot_compl Stdlib.
+Require Import Stdlib.
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Sig.
 Require Import Interval.

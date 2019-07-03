@@ -26,9 +26,10 @@ From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat se
 From Flocq Require Import Core.
 
 Require Import Stdlib.
+Require Import MathComp.
 Require Import Interval.
 Require Import Xreal.
-Require Import Rstruct Basic_rec MathComp.
+Require Import Basic_rec.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -20,7 +20,8 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.bigop.
+From Coq Require Import Rdefinitions Raxioms RIneq Rbasic_fun.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq bigop.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -364,3 +365,32 @@ Lemma ncons_correct sv st n :
 Proof. by move=> Hs k; rewrite !nth_ncons; case: ifP. Qed.
 
 End misc_proofs.
+
+
+Definition eqr (r1 r2 : R) : bool :=
+  if Req_EM_T r1 r2 is left _ then true else false.
+
+Lemma eqrP : Equality.axiom eqr.
+Proof.
+by move=> r1 r2; rewrite /eqr; case: Req_EM_T=> H; apply: (iffP idP).
+Qed.
+
+Canonical Structure real_eqMixin := EqMixin eqrP.
+Canonical Structure real_eqType := Eval hnf in EqType R real_eqMixin.
+
+Fact RplusA : associative (Rplus).
+Proof. by move=> *; rewrite Rplus_assoc. Qed.
+
+Fact RmultA : associative (Rmult).
+Proof. by move=> *; rewrite Rmult_assoc. Qed.
+
+Import Monoid.
+
+Canonical Radd_monoid := Law RplusA Rplus_0_l Rplus_0_r.
+Canonical Radd_comoid := ComLaw Rplus_comm.
+
+Canonical Rmul_monoid := Law RmultA Rmult_1_l Rmult_1_r.
+Canonical Rmul_comoid := ComLaw Rmult_comm.
+
+Canonical Rmul_mul_law := MulLaw Rmult_0_l Rmult_0_r.
+Canonical Radd_add_law := AddLaw Rmult_plus_distr_r Rmult_plus_distr_l.

@@ -22,10 +22,10 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool.
 
 Require Import Stdlib.
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Sig.
 Require Import Interval.
-Require Import Coquelicot_compl.
 Require Import Taylor_model.
 Require Import Interval_compl.
 

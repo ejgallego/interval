@@ -26,7 +26,6 @@ From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat se
 
 Require Import Xreal.
 Require Import Interval.
-Require Import Rstruct.
 Require Import MathComp.
 Require Import Datatypes.
 Require Import Bound.

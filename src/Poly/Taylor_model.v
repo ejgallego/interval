@@ -28,7 +28,7 @@ Require Import Datatypes.
 Require Import Taylor_model_sharp.
 Require Import Bound.
 Require Import Bound_quad.
-Require Import Univariate Rstruct.
+Require Import Univariate.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

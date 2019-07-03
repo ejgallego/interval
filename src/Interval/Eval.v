@@ -22,12 +22,12 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect.
 
 Require Import Stdlib.
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Xreal_derive.
 Require Import Basic.
 Require Import Interval.
 Require Import Taylor_model.
-Require Import Coquelicot_compl.
 
 Inductive unary_op : Set :=
   | Neg | Abs | Inv | Sqr | Sqrt

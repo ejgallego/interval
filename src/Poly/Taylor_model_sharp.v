@@ -27,11 +27,11 @@ From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat se
 
 Require Import Stdlib.
 Require Import MathComp.
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Interval.
 Require Import Basic.
 Require Import Xreal_derive.
-Require Import Rstruct.
 Require Import Interval_compl.
 Require Import Datatypes.
 Require Import Taylor_poly.

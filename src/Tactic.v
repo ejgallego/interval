@@ -22,6 +22,7 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrbool.
 
 Require Import Stdlib.
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Basic.
 Require Import Sig.
@@ -29,7 +30,6 @@ Require Import Interval.
 Require Import Float_full.
 Require Import Integral.
 Require Import Eval.
-Require Import Coquelicot_compl.
 Require Import Bertrand.
 Require Import Various.
 
@@ -717,7 +717,7 @@ apply: Int.integral_interval_mul_infty.
   apply: ex_derive_powerRZ; right; lra.
   apply: ex_derive_continuous.
   apply: ex_derive_pow.
-  eexists; apply: Coquelicot_compl.is_derive_ln; lra.
+  eexists; apply: is_derive_ln; lra.
 - intros x Hax.
   apply Rmult_le_pos_pos.
   apply powerRZ_le.
@@ -1117,7 +1117,7 @@ apply: (Int.integral_interval_mul_sing prec 0 epsilon (I.join (I.fromZ 0) ia) f)
   apply: ex_derive_powerRZ; right; lra.
   apply: ex_derive_continuous.
   apply: ex_derive_pow.
-  by eexists; apply: Coquelicot_compl.is_derive_ln; lra.
+  by eexists; apply: is_derive_ln; lra.
   case HEvenOdd: (Z.even (Z.of_nat beta)); [left| right] => x Hx.
   + apply: Rmult_le_pos_pos.
     apply: powerRZ_le; lra.

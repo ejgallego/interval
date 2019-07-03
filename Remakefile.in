@@ -21,6 +21,7 @@ FILES = \
 	Interval/Float_full \
 	Interval/Transcend \
 	Interval/Univariate \
+	Missing/Coquelicot \
 	Missing/MathComp \
 	Missing/Stdlib \
 	Poly/Basic_rec \
@@ -31,7 +32,6 @@ FILES = \
 	Poly/Taylor_model_sharp \
 	Poly/Taylor_poly \
 	Real/Coquelicot_compl \
-	Real/Rstruct \
 	Real/Taylor \
 	Real/Xreal \
 	Real/Xreal_derive

@@ -24,7 +24,6 @@ From Coq Require Import ZArith Reals Psatz.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
 Require Import Interval.
-Require Import Rstruct.
 Require Import MathComp.
 Require Import Datatypes.
 

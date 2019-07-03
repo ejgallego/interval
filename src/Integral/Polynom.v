@@ -2,7 +2,7 @@ From Coq Require Import Reals.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
-Require Import Stdlib Datatypes Rstruct.
+Require Import Stdlib Datatypes.
 
 Import PolR.
 
