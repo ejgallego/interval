@@ -452,7 +452,7 @@ right.
 now apply f_equal.
 exists (S k).
 left.
-omega.
+lia.
 Qed.
 
 Lemma alternated_series_ineq' :
@@ -587,7 +587,7 @@ clear -Hf.
 induction n.
 apply le_0_n.
 specialize (Hf n).
-omega.
+lia.
 Qed.
 
 Definition sinc (x : R) := proj1_sig (exist_sin (Rsqr x)).

@@ -85,7 +85,7 @@ Proof.
 elim n.
   now intro Hf; simpl; apply continuity_pt_ext with (f O); trivial; apply Hf.
 intros n' IHn Hf; simpl; apply continuity_pt_plus.
-  apply IHn; intros k Hk; apply Hf; omega.
+  apply IHn; intros k Hk; apply Hf; lia.
 now apply Hf.
 Qed.
 
