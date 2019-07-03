@@ -584,7 +584,10 @@ Qed.
 
 Definition is_derive_atan x :
   is_derive atan x (/ (1 + x²)).
-Proof. exact/is_derive_Reals/derivable_pt_lim_atan. Qed.
+Proof.
+rewrite Rsqr_pow2.
+apply is_derive_Reals, derivable_pt_lim_atan.
+Qed.
 
 Import PolR.Notations.
 

@@ -631,6 +631,7 @@ apply derivable_pt_lim_comp.
 apply Hf.
 unfold proj_fun.
 rewrite X.
+rewrite Rsqr_pow2.
 apply (derivable_pt_lim_atan r1).
 Qed.
 

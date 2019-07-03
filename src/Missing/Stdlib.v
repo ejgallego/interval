@@ -31,24 +31,6 @@ Ltac evar_last :=
     unfold tmp ; clear tmp
   end.
 
-Lemma Rplus_lt_reg_l :
-  forall r r1 r2 : R,
-  (r + r1 < r + r2)%R -> (r1 < r2)%R.
-Proof.
-intros.
-solve [ apply Rplus_lt_reg_l with (1 := H) |
-        apply Rplus_lt_reg_r with (1 := H) ].
-Qed.
-
-Lemma Rplus_lt_reg_r :
-  forall r r1 r2 : R,
-  (r1 + r < r2 + r)%R -> (r1 < r2)%R.
-Proof.
-intros.
-apply Rplus_lt_reg_l with r.
-now rewrite 2!(Rplus_comm r).
-Qed.
-
 Lemma Rmult_le_compat_neg_r :
   forall r r1 r2 : R,
   (r <= 0)%R -> (r1 <= r2)%R -> (r2 * r <= r1 * r)%R.
@@ -59,27 +41,6 @@ rewrite (Rmult_comm r1).
 apply Rmult_le_compat_neg_l.
 exact H.
 exact H0.
-Qed.
-
-Lemma Rmult_eq_compat_r :
-  forall r r1 r2 : R,
-  r1 = r2 -> (r1 * r)%R = (r2 * r)%R.
-Proof.
-intros.
-rewrite (Rmult_comm r1).
-rewrite (Rmult_comm r2).
-apply Rmult_eq_compat_l.
-exact H.
-Qed.
-
-Lemma Rmult_eq_reg_r :
-  forall r r1 r2 : R,
-  (r1 * r)%R = (r2 * r)%R -> r <> 0%R -> r1 = r2.
-Proof.
-intros.
-apply Rmult_eq_reg_l with (2 := H0).
-do 2 rewrite (Rmult_comm r).
-exact H.
 Qed.
 
 Lemma Rsqr_plus1_pos x : (0 < 1 + Rsqr x)%R.
@@ -170,13 +131,6 @@ Proof.
 intros.
 rewrite <- (Rmult_0_r x).
 apply Rmult_le_compat_neg_l ; assumption.
-Qed.
-
-Lemma pow_powerRZ (r : R) (n : nat) :
-  (r ^ n)%R = powerRZ r (Z_of_nat n).
-Proof.
-induction n; [easy|simpl].
-now rewrite SuccNat2Pos.id_succ.
 Qed.
 
 Lemma Rabs_def1_le :
@@ -412,16 +366,6 @@ exact Hx.
 unfold Rsqr, tan.
 field.
 exact Hx.
-Qed.
-
-Theorem derivable_pt_lim_atan :
-  forall x,
-  derivable_pt_lim atan x (Rinv (1 + Rsqr x)).
-Proof.
-intros x.
-apply derive_pt_eq_1 with (pr := derivable_pt_atan x).
-rewrite <- (Rmult_1_l (Rinv _)).
-apply derive_pt_atan.
 Qed.
 
 Definition connected (P : R -> Prop) :=
