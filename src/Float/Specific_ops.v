@@ -18,9 +18,8 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import ZArith Lia Bool.
-From Flocq Require Import Digits Bracket.
+From Flocq Require Import Raux Digits Bracket.
 
-Require Import Aux.
 Require Import Xreal.
 Require Import Basic.
 Require Import Generic.

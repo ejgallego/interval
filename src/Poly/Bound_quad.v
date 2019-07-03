@@ -24,11 +24,10 @@ From Coq Require Import ZArith.
 From Flocq Require Import Raux.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
-Require Import Aux.
 Require Import Xreal.
 Require Import Interval.
 Require Import Rstruct.
-Require Import Seq_compl.
+Require Import MathComp.
 Require Import Datatypes.
 Require Import Bound.
 

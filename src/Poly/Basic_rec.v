@@ -23,7 +23,7 @@ liability. See the COPYING file for more details.
 From Coq Require Import ZArith Rfunctions NaryFunctions.
 From mathcomp.ssreflect Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigop tuple.
 
-Require Import Seq_compl.
+Require Import MathComp.
 
 (*
 This library defines polymorphic definitions rec1up (resp. rec2up) that

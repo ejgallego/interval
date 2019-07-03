@@ -25,10 +25,10 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 From Flocq Require Import Core.
 
-Require Import Aux.
+Require Import Stdlib.
 Require Import Interval.
 Require Import Xreal.
-Require Import Rstruct Basic_rec Seq_compl.
+Require Import Rstruct Basic_rec MathComp.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1223,7 +1223,7 @@ Lemma set_nth_correct pi p n ai a :
   pi >:: p -> ai >: a -> set_nth pi n ai >:: PolR.set_nth p n a.
 Proof.
 move=> Hp Ha k; rewrite /nth /PolR.nth.
-exact: (Seq_compl.set_nth_correct (Rel := fun v t => t >: v)).
+exact: (MathComp.set_nth_correct (Rel := fun v t => t >: v)).
 Qed.
 
 Lemma lift_correct n pi p : pi >:: p -> lift n pi >:: PolR.lift n p.

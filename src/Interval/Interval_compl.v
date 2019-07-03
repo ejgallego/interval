@@ -24,7 +24,7 @@ From Coq Require Import ZArith Reals Psatz.
 From mathcomp.ssreflect Require Import ssreflect ssrbool ssrfun eqtype ssrnat bigop.
 From Coquelicot Require Import Coquelicot.
 
-Require Import Aux.
+Require Import Stdlib.
 Require Import Xreal.
 Require Import Interval.
 Require Import Rstruct Taylor.

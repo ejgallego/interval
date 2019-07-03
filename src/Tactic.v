@@ -21,7 +21,7 @@ From Coq Require Import Reals List ZArith Psatz.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrbool.
 
-Require Import Aux.
+Require Import Stdlib.
 Require Import Xreal.
 Require Import Basic.
 Require Import Sig.

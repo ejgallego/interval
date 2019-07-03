@@ -21,10 +21,10 @@ From Coq Require Import Reals List Psatz.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool.
 
+Require Import Stdlib.
 Require Import Xreal.
 Require Import Sig.
 Require Import Interval.
-Require Import Aux.
 Require Import Coquelicot_compl.
 Require Import Taylor_model.
 Require Import Interval_compl.

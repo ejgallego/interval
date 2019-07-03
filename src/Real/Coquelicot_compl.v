@@ -22,7 +22,7 @@ From Coq Require Import Reals Psatz.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
-Require Import Rstruct Aux Datatypes.
+Require Import Rstruct Stdlib Datatypes.
 
 Section MissingContinuity.
 

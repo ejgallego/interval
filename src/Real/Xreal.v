@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 From Coq Require Import Reals Bool.
 From mathcomp.ssreflect Require Import ssreflect.
 
-Require Import Aux.
+Require Import Stdlib.
 
 Definition is_zero x := Req_bool x 0.
 Definition is_positive x := Rlt_bool 0 x.

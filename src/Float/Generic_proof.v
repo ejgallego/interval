@@ -21,7 +21,7 @@ From Coq Require Import Reals Bool ZArith Psatz.
 From Flocq Require Import Core Digits Bracket Round Operations.
 From mathcomp.ssreflect Require Import ssrbool.
 
-Require Import Aux.
+Require Import Stdlib.
 Require Import Xreal.
 Require Import Basic.
 Require Import Generic.

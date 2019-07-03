@@ -18,7 +18,8 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import Reals.
-Require Import Aux.
+
+Require Import Stdlib.
 Require Import Xreal.
 
 Theorem derivable_imp_defined :

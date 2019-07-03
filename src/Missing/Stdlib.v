@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Psatz.
+From Coq Require Import Reals Psatz.
 From Flocq Require Export Raux.
 
 Ltac evar_last :=

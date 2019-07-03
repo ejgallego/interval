@@ -2,7 +2,7 @@ From Coq Require Import Reals ZArith Psatz Fourier_util.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 
-Require Import Coquelicot_compl Aux.
+Require Import Coquelicot_compl.
 Require Import Bertrand.
 Require Import Xreal.
 Require Import Sig.

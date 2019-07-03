@@ -2,7 +2,7 @@ From Coq Require Import Reals.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
-Require Import Datatypes Rstruct.
+Require Import Stdlib Datatypes Rstruct.
 
 Import PolR.
 
@@ -75,7 +75,7 @@ c + \big[Rplus/0]_(0 <= i < (size p)) (nth (primitive tt c p) i.+1 *
 Proof.
 rewrite hornerE size_primitive big_nat_recl //.
 congr (_ + _); first by rewrite /= Rmult_1_r.
-by apply: eq_big_nat => i Hi; rewrite Aux.pow_powerRZ.
+by apply: eq_big_nat => i Hi; rewrite pow_powerRZ.
 Qed.
 
 Lemma Rpol_derive p (c : R) (x : R) : Derive (horner tt (primitive tt c p)) x = horner tt p x.
@@ -88,7 +88,7 @@ move => k.
 apply: ex_derive_mult.
 apply: ex_derive_const.
 apply: (ex_derive_ext (fun x => x ^ (k.+1))).
-  by move => t; rewrite -Aux.pow_powerRZ.
+  by move => t; rewrite -pow_powerRZ.
 apply: ex_derive_pow; apply: ex_derive_id.
 rewrite hornerE.
 rewrite (Derive_ext _ _  _ (horner_primitive c p)).
@@ -106,7 +106,7 @@ have -> :
   by apply: Derive_const.
 ring_simplify.
 rewrite (Derive_ext _ (fun x => x ^ (i.+1))); last first.
- by move => t; rewrite -Aux.pow_powerRZ.
+ by move => t; rewrite -pow_powerRZ.
 rewrite nth_primitive ifF /int_coeff => //.
 rewrite Derive_pow ?Derive_id -?pred_Sn. field.
 apply: not_0_INR => // .
@@ -114,7 +114,7 @@ exact: ex_derive_id.
 by apply/negbTE; rewrite -leqNgt; case/andP: Hi.
 apply: ex_derive_const.
 apply: (ex_derive_ext (fun x => x ^ (i.+1))).
-  by move => t; rewrite -Aux.pow_powerRZ.
+  by move => t; rewrite -pow_powerRZ.
 apply: ex_derive_pow; apply: ex_derive_id.
 by [].
 by apply: ex_derive_big.

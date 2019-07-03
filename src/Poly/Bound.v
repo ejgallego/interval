@@ -20,13 +20,12 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Psatz.
+From Coq Require Import ZArith Reals Psatz.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
-Require Import Aux.
 Require Import Interval.
 Require Import Rstruct.
-Require Import Seq_compl.
+Require Import MathComp.
 Require Import Datatypes.
 
 Set Implicit Arguments.

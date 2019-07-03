@@ -20,7 +20,7 @@ liability. See the COPYING file for more details.
 From Coq Require Import Reals Psatz.
 From Flocq Require Import Digits.
 
-Require Import Aux.
+Require Import Stdlib.
 Require Import Xreal.
 Require Import Basic.
 Require Import Sig.

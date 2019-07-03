@@ -25,13 +25,13 @@ From Flocq Require Import Raux.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
 
+Require Import Stdlib.
+Require Import MathComp.
 Require Import Xreal.
 Require Import Interval.
 Require Import Basic.
 Require Import Xreal_derive.
-Require Import Aux.
 Require Import Rstruct.
-Require Import Seq_compl.
 Require Import Interval_compl.
 Require Import Datatypes.
 Require Import Taylor_poly.

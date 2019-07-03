@@ -21,15 +21,15 @@ FILES = \
 	Interval/Float_full \
 	Interval/Transcend \
 	Interval/Univariate \
+	Missing/MathComp \
+	Missing/Stdlib \
 	Poly/Basic_rec \
 	Poly/Bound \
 	Poly/Bound_quad \
 	Poly/Datatypes \
-	Poly/Seq_compl \
 	Poly/Taylor_model \
 	Poly/Taylor_model_sharp \
 	Poly/Taylor_poly \
-	Real/Aux \
 	Real/Coquelicot_compl \
 	Real/Rstruct \
 	Real/Taylor \
@@ -103,7 +103,7 @@ deps.dot: $(VFILES)
 	(cd src ; @COQDEP@ -R . Interval $(addsuffix .v,$(FILES))) |
 	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |
 	  while read src dst; do
-	    color=$$(echo "$src" | sed -e 's,Real.*,turquoise,;s,Interval[.].*,plum,;s,Integral.*,lightcoral,;s,Poly.*,yellow,;s,Float.*,cornflowerblue,;s,\(Tactic\|Interval_tactic\),white,')
+	    color=$$(echo "$src" | sed -e 's,Real.*,turquoise,;s,Interval[.].*,plum,;s,Integral.*,lightcoral,;s,Poly.*,yellow,;s,Float.*,cornflowerblue,;s,[A-Z].*,white,')
 	    echo "\"$src\" [fillcolor=$color];"
 	    for d in $dst; do
 	      echo "\"$src\" -> \"${d%.vo}\" ;"

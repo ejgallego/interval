@@ -20,9 +20,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Psatz.
-Require Import Coquelicot.Coquelicot.
-Require Import Aux.
+From Coq Require Import Reals Psatz.
+From Coquelicot Require Import Coquelicot.
+
+Require Import Stdlib.
 
 Local Open Scope R_scope.
 
