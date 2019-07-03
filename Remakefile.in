@@ -20,7 +20,7 @@ FILES = \
 	Interval/Float \
 	Interval/Float_full \
 	Interval/Transcend \
-	Interval/Univariate \
+	Interval/Univariate_sig \
 	Missing/Coquelicot \
 	Missing/MathComp \
 	Missing/Stdlib \
