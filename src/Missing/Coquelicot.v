@@ -545,3 +545,68 @@ Qed.
 Definition is_derive_tan x :
   cos x <> 0%R -> is_derive tan x (tan x ^ 2 + 1)%R.
 Proof. now intros Hx; unfold tan; auto_derive; trivial; field_simplify. Qed.
+
+Lemma filterlimi_lim_ext_loc {T U} {F G} {FF : Filter F} (f : T -> U) (g : T -> U -> Prop) :
+  F (fun x => g x (f x)) ->
+  filterlim f F G ->
+  filterlimi g F G.
+Proof.
+intros HF Hf P HP.
+generalize (filter_and (fun x => g x (f x)) _ HF (Hf P HP)).
+unfold filtermapi.
+apply: filter_imp.
+intros x [H1 H2].
+now exists (f x).
+Qed.
+
+Lemma prod_to_single {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : T -> U -> V) :
+  filterlim (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
+  filterlim (fun u : U => f x u) F G.
+Proof.
+split => H P GP.
+- rewrite /filtermap.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HFR => y HRy.
+  exact: HPf.
+- specialize (H P GP).
+  econstructor.
+  exact: Logic.eq_refl.
+  exact: H.
+  by move => t u <-.
+Qed.
+
+Lemma prodi_to_single_l {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : T -> U -> V -> Prop) :
+  filterlimi (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
+  filterlimi (fun u : U => f x u) F G.
+Proof.
+split => H P GP.
+- rewrite /filtermapi.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HFR => y HRy.
+  exact: HPf.
+- specialize (H P GP).
+  econstructor.
+  exact: Logic.eq_refl.
+  exact: H.
+  by move => t u <-.
+Qed.
+
+Lemma prodi_to_single_r {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
+  (G : (V -> Prop) -> Prop) x (f : U -> T -> V -> Prop) :
+  filterlimi (fun tu : U * T => f tu.1 tu.2) (filter_prod F (at_point x)) G <->
+  filterlimi (fun u : U => f u x) F G.
+Proof.
+split => H P GP.
+- rewrite /filtermapi.
+  destruct (H _ GP) as [Q R HAQ HFR HPf].
+  apply: filter_imp HAQ => y HRy.
+  exact: HPf.
+- specialize (H P GP).
+  econstructor.
+  exact: H.
+  exact: Logic.eq_refl.
+  move => t u /= .
+  by case => y Hy <-; exists y.
+Qed.

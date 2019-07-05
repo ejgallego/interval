@@ -3,7 +3,6 @@ From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 
 Require Import Coquelicot.
-Require Import Bertrand.
 Require Import Xreal.
 Require Import Sig.
 Require Import Interval.

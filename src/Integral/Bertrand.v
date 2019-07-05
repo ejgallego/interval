@@ -255,60 +255,6 @@ Proof.
   exact: f_correct.
 Qed.
 
-Lemma prod_to_single {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
-  (G : (V -> Prop) -> Prop) x (f : T -> U -> V) :
-  filterlim (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
-  filterlim (fun u : U => f x u) F G.
-Proof.
-split => H P GP.
-- rewrite /filtermap.
-  destruct (H _ GP) as [Q R HAQ HFR HPf].
-  apply: filter_imp HFR => y HRy.
-  exact: HPf.
-- specialize (H P GP).
-  econstructor.
-  exact: eq_refl.
-  exact: H.
-  by move => t u <-.
-Qed.
-
-Lemma prodi_to_single_l {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
-  (G : (V -> Prop) -> Prop) x (f : T -> U -> V -> Prop) :
-  filterlimi (fun tu : T * U => f tu.1 tu.2) (filter_prod (at_point x) F) G <->
-  filterlimi (fun u : U => f x u) F G.
-Proof.
-split => H P GP.
-- rewrite /filtermapi.
-  destruct (H _ GP) as [Q R HAQ HFR HPf].
-  apply: filter_imp HFR => y HRy.
-  exact: HPf.
-- specialize (H P GP).
-  econstructor.
-  exact: eq_refl.
-  exact: H.
-  by move => t u <-.
-Qed.
-
-
-Lemma prodi_to_single_r {T U V : UniformSpace} {F: (U -> Prop) -> Prop} {FF : Filter F}
-  (G : (V -> Prop) -> Prop) x (f : U -> T -> V -> Prop) :
-  filterlimi (fun tu : U * T => f tu.1 tu.2) (filter_prod F (at_point x)) G <->
-  filterlimi (fun u : U => f u x) F G.
-Proof.
-split => H P GP.
-- rewrite /filtermapi.
-  destruct (H _ GP) as [Q R HAQ HFR HPf].
-  apply: filter_imp HAQ => y HRy.
-  exact: HPf.
-- specialize (H P GP).
-  econstructor.
-  exact: H.
-  exact: eq_refl.
-  move => t u /= .
-  by case => y Hy <-; exists y.
-Qed.
-
-
 Lemma is_lim_RInv_p_infty:
 is_lim [eta Rinv] p_infty 0.
 Proof.
@@ -512,19 +458,6 @@ apply: (is_lim_comp (fun x => ln x / x) X p_infty 0 p_infty).
   + exact: is_lim_div_ln_p.
   + apply: is_lim_Rpower => // .
   + exists 0 => x Hx // .
-Qed.
-
-Lemma filterlimi_lim_ext_loc {T U} {F G} {FF : Filter F} (f : T -> U) (g : T -> U -> Prop) :
-  F (fun x => g x (f x)) ->
-  filterlim f F G ->
-  filterlimi g F G.
-Proof.
-intros HF Hf P HP.
-generalize (filter_and (fun x => g x (f x)) _ HF (Hf P HP)).
-unfold filtermapi.
-apply: filter_imp.
-intros x [H1 H2].
-now exists (f x).
 Qed.
 
 Lemma f_lim_is_lim alpha beta A (H : 0 < A) (Halpha : (alpha < -1)%Z):
