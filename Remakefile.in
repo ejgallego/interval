@@ -31,7 +31,6 @@ FILES = \
 	Poly/Taylor_model \
 	Poly/Taylor_model_sharp \
 	Poly/Taylor_poly \
-	Real/Coquelicot_compl \
 	Real/Taylor \
 	Real/Xreal \
 	Real/Xreal_derive
