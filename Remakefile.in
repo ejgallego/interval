@@ -12,7 +12,6 @@ FILES = \
 	Float/Sig \
 	Integral/Bertrand \
 	Integral/Integral \
-	Integral/Polynom \
 	Integral/Various \
 	Interval/Eval \
 	Interval/Interval \
