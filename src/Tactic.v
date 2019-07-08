@@ -31,7 +31,6 @@ Require Import Float_full.
 Require Import Integral.
 Require Import Eval.
 Require Import Bertrand.
-Require Import Various.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -56,7 +55,6 @@ Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
 Module Int' := IntegralTaylor I.
 Module Bertrand := BertrandInterval F I.
-Module ExpNIntegral := ExpNInterval F I.
 
 Ltac get_float t :=
   let get_float_rational s n d :=
@@ -854,7 +852,8 @@ Lemma remainder_correct_exp_at_infty :
   forall prec prog bounds ia lam iLam,
   no_floor_prog prog = true ->
   let test _ _ := true in
-  let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
+  let iKernelInt ia iLam :=
+    I.div prec (I.exp prec ((I.neg (I.mul prec iLam ia)))) iLam in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
@@ -865,16 +864,24 @@ Lemma remainder_correct_exp_at_infty :
       else I.nai in
   lam > 0 ->
   contains (I.convert iLam) (Xreal lam) ->
-  Int.integralEstimatorCorrect_infty (fun x => f x * expn lam x) (estimator ia) ia.
+  Int.integralEstimatorCorrect_infty (fun x => f x * exp (- (lam * x))) (estimator ia) ia.
 Proof.
 move => prec prog bounds ia lam iLam Hf test iKernelInt f fi estimator Hlam Hcontains.
-apply (remainder_correct_generic_fun_at_infty (fun x => expn lam x)
+apply (remainder_correct_generic_fun_at_infty _
                 (fun a => exp (-(lam * a)) / lam) _ (fun _ _ => 0 < lam) (fun x => True)).
-- by move => a x _ _ Hax; apply: continuous_expn.
+- move => a x _ _ Hax.
+  apply: continuous_exp_comp.
+  apply: continuous_opp.
+  apply: continuous_mult.
+    exact: continuous_const.
+    exact: continuous_id.
 - move => a _ Hlam'; exact: is_RInt_gen_exp_infty.
-- move => a ia0 H; apply: ExpNIntegral.ExpN_correct => //; lra.
+- move => a ia0 H.
+  apply: J.div_correct (Hcontains).
+  apply J.exp_correct, J.neg_correct.
+  exact: J.mul_correct.
 - by [].
-- move => x; move: (exp_pos (-(lam * x))) ;rewrite /expn; lra.
+- move => x; move: (exp_pos (-(lam * x))); lra.
 - by [].
 - by [].
 Qed.
@@ -886,7 +893,8 @@ prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
   let lam := nth 0 (eval_real prog_lam (map A.real_from_bp bounds_lam)) 0 in
   let iLam := nth 0 (A.BndValuator.eval prec prog_lam (map A.interval_from_bp bounds_lam)) I.nai in
   let test _ _ := true in
-  let iKernelInt ia iLam := ExpNIntegral.ExpN prec ia iLam in
+  let iKernelInt ia iLam :=
+    I.div prec (I.exp prec ((I.neg (I.mul prec iLam ia)))) iLam in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
@@ -941,7 +949,7 @@ apply: integral_epsilon_infty_correct_RInt_gen => // .
   - rewrite /correct_estimator_infty.
     move => ia0.
     suff:  Int.integralEstimatorCorrect_infty
-             (fun x : R => f x * (expn lam x))
+             (fun x : R => f x * exp (- (lam*x)))
              (estimator_infty ia0) ia0.
       apply: integralEstimatorCorrect_infty_ext.
       by move => x; rewrite -Hfg.

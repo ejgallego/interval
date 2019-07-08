@@ -610,3 +610,50 @@ split => H P GP.
   move => t u /= .
   by case => y Hy <-; exists y.
 Qed.
+
+Lemma is_RInt_gen_exp_infty a lam (Hlam : 0 < lam) :
+  is_RInt_gen (fun x => exp (- (lam * x))) (at_point a) (Rbar_locally p_infty) (exp (-(lam * a)) / lam).
+Proof.
+rewrite /is_RInt_gen.
+rewrite prodi_to_single_l.
+apply: (filterlimi_lim_ext_loc (* (fun x => - (exp(- lam * x) - exp(-lam * a)) / lam) *)).
+  exists a.
+  move => x Hx.
+  apply: (is_RInt_derive (fun x => - exp (-(lam * x)) / lam)).
+    move => x0 Hx0.
+    by auto_derive => // ; try field; lra.
+  move => x0 Hx0.
+  apply: continuous_exp_comp.
+  apply: continuous_opp.
+  apply: continuous_mult.
+    exact: continuous_const.
+    exact: continuous_id.
+
+rewrite /=.
+apply: (filterlim_ext (fun x => minus (exp (-(lam * a)) / lam) (exp (-(lam * x)) / lam))).
+move => x;rewrite /minus plus_comm; congr plus. rewrite /opp /=; field; lra.
+rewrite /opp /=; field; lra.
+rewrite /minus.
+apply: (filterlim_comp _ _ _ (fun x => opp (exp (-(lam * x)) / lam)) (fun x => plus (exp (- (lam * a)) / lam) x) (Rbar_locally p_infty) (locally (0)) (locally (exp (- (lam * a)) / lam))); last first.
+  rewrite -[X in (_ _ _ (locally X))]Rplus_0_r.
+  apply: (continuous_plus (fun x => exp (-(lam*a)) / lam) (fun x => x) 0).
+  exact: continuous_const.
+  exact: continuous_id.
+  apply: filterlim_comp; last first. rewrite -[0]Ropp_involutive. exact: filterlim_opp.
+have -> : - 0 = Rbar_mult (Finite 0) (Finite (/ lam)) by rewrite /=; ring.
+rewrite /Rdiv.
+apply: (is_lim_mult (fun x => exp (-(lam * x))) (fun x => / lam) p_infty 0 (/ lam)) => // .
+  apply: is_lim_comp.
+    exact: is_lim_exp_m.
+    apply: (is_lim_ext (fun x => (-lam) * x)).
+      move => y; ring.
+    have -> : m_infty = (Rbar_mult (- lam) p_infty).
+      rewrite /Rbar_mult /Rbar_mult'.
+      case: (Rle_dec 0 (-lam)) => [Hy1|Hy1] //.
+      exfalso; lra.
+    apply: (is_lim_mult (fun x => (- lam)) (fun x => x) p_infty (-lam) p_infty) => // .
+      exact: is_lim_const.
+      rewrite /ex_Rbar_mult; lra.
+      exists 0 => // .
+exact: is_lim_const.
+Qed.
