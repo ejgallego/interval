@@ -27,6 +27,7 @@ Require Import Generic.
 Require Import Generic_proof.
 Require Import Sig.
 Require Import Specific_sig.
+Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
@@ -821,6 +822,32 @@ apply refl_equal.
 exact H2.
 Qed.
 
+Definition mul_UP := mul rnd_UP.
+
+Lemma mul_UP_correct :
+  forall p x y, le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y)).
+Proof.
+intros p x y.
+unfold mul_UP.
+rewrite mul_correct.
+unfold Xround, Xlift.
+set (z := Xmul _ _); case z; [exact I|]; intro zr.
+now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
+Qed.
+
+Definition mul_DN := mul rnd_DN.
+
+Lemma mul_DN_correct :
+  forall p x y, le_lower (toX (mul_DN p x y)) (Xmul (toX x) (toX y)).
+Proof.
+intros p x y.
+unfold mul_DN.
+rewrite mul_correct.
+unfold Xround, Xlift.
+set (z := Xmul _ _); case z; [exact I|]; intro zr.
+now apply Ropp_le_contravar, Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
+Qed.
+
 (*
  * add_exact
  *)
@@ -1107,30 +1134,56 @@ case_eq (mantissa_sign mx).
   now intros s n ->.
 Qed.
 
-Definition add := add_slow.
+Definition add_UP := add_slow rnd_UP.
 
-Lemma add_correct :
-  forall mode p x y,
-  toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
+Lemma add_UP_correct :
+  forall p x y, le_upper (Xadd (toX x) (toX y)) (toX (add_UP p x y)).
 Proof.
-exact add_slow_correct.
+intros p x y.
+unfold add_UP.
+rewrite add_slow_correct.
+unfold Xround, Xlift.
+set (z := Xadd _ _); case z; [exact I|]; intro zr.
+now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
+Qed.
+
+Definition add_DN := add_slow rnd_DN.
+
+Lemma add_DN_correct :
+  forall p x y, le_lower (toX (add_DN p x y)) (Xadd (toX x) (toX y)).
+Proof.
+intros p x y.
+unfold add_DN.
+rewrite add_slow_correct.
+unfold Xround, Xlift.
+set (z := Xadd _ _); case z; [exact I|]; intro zr.
+now apply Ropp_le_contravar, Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
 Qed.
 
 (*
  * sub
  *)
 
-Definition sub mode prec (x y : type) := add mode prec x (neg y).
+Definition sub_UP prec (x y : type) := add_UP prec x (neg y).
 
-Lemma sub_correct :
-  forall mode p x y,
-  toX (sub mode p x y) = Xround radix mode (prec p) (Xsub (toX x) (toX y)).
+Lemma sub_UP_correct :
+  forall p x y, le_upper (Xsub (toX x) (toX y)) (toX (sub_UP p x y)).
 Proof.
-intros.
-rewrite Xsub_split.
-unfold sub.
-rewrite add_correct.
-now rewrite neg_correct.
+intros p x y.
+unfold sub_UP.
+rewrite Xsub_split, <-neg_correct.
+apply add_UP_correct.
+Qed.
+
+Definition sub_DN prec (x y : type) := add_DN prec x (neg y).
+
+Lemma sub_DN_correct :
+  forall p x y, le_lower (toX (sub_DN p x y)) (Xsub (toX x) (toX y)).
+Proof.
+intros p x y.
+unfold sub_DN.
+rewrite Xsub_split, <-neg_correct.
+apply add_DN_correct.
 Qed.
 
 (*
@@ -1309,6 +1362,32 @@ apply Rinv_r.
 now apply IZR_neq.
 Qed.
 
+Definition div_UP := div rnd_UP.
+
+Lemma div_UP_correct :
+  forall p x y, le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y)).
+Proof.
+intros p x y.
+unfold div_UP.
+rewrite div_correct.
+unfold Xround, Xlift.
+set (z := Xdiv _ _); case z; [exact I|]; intro zr.
+now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
+Qed.
+
+Definition div_DN := div rnd_DN.
+
+Lemma div_DN_correct :
+  forall p x y, le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y)).
+Proof.
+intros p x y.
+unfold div_DN.
+rewrite div_correct.
+unfold Xround, Xlift.
+set (z := Xdiv _ _); case z; [exact I|]; intro zr.
+now apply Ropp_le_contravar, Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
+Qed.
+
 (*
  * sqrt
  *)
@@ -1458,6 +1537,34 @@ rewrite Zeq_bool_false.
 now rewrite Zle_bool_false.
 apply Zgt_not_eq.
 now apply Z.lt_trans with (2 := H1).
+Qed.
+
+Definition sqrt_UP := sqrt rnd_UP.
+
+Lemma sqrt_UP_correct :
+  forall p x, le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
+Proof.
+intros p x.
+unfold sqrt_UP.
+rewrite sqrt_correct.
+unfold Xround, Xlift.
+fold (Xsqrt (toX x)).
+set (z := Xsqrt (toX x)); case z; [exact I|]; intro zr.
+now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
+Qed.
+
+Definition sqrt_DN := sqrt rnd_DN.
+
+Lemma sqrt_DN_correct :
+  forall p x, le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x)).
+Proof.
+intros p x.
+unfold sqrt_DN.
+rewrite sqrt_correct.
+unfold Xround, Xlift.
+fold (Xsqrt (toX x)).
+set (z := Xsqrt _); case z; [exact I|]; intro zr.
+now apply Ropp_le_contravar, Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
 Qed.
 
 (*

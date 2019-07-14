@@ -539,8 +539,8 @@ Definition check_width prec (w : F.type * bool) yi :=
   let yl := I.lower yi in
   let yu := I.upper yi in
   let (f, r) := w in
-  let w := if r then F.mul rnd_NE prec (F.midpoint yl yu) f else f in
-  F'.le' (F.sub rnd_NE prec (I.upper yi) (I.lower yi)) f.
+  let w := if r then F.mul_UP prec (F.midpoint yl yu) f else f in
+  F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) f.
 
 Definition eval_RInt_plain prec deg limit hyps pf pu pv cf cu cv w :=
   let hyps := R.merge_hyps prec hyps in

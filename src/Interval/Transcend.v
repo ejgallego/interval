@@ -83,7 +83,7 @@ Definition i6 := I.fromZ_small 6.
 Definition i239 := I.fromZ_small 239.
 Definition c1_2 := F.div2 c1.
 Definition c1_8 := iter_pos F.div2 8 c1.
-Definition c1_p_c1_8 := F.add rnd_DN (F.PtoP 52) c1 c1_8.
+Definition c1_p_c1_8 := F.add_DN (F.PtoP 52) c1 c1_8.
 
 Lemma c1_n_correct :
   forall x n,
@@ -141,11 +141,11 @@ Qed.
 Ltac bound_tac :=
   unfold Xround, Xbind ;
   match goal with
-  | |- (round ?r rnd_DN ?p ?v <= ?v)%R =>
+  | |- (round ?r_DN ?p ?v <= ?v)%R =>
     apply (proj1 (proj2 (Generic_fmt.round_DN_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (?v <= round ?r rnd_UP ?p ?v)%R =>
     apply (proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
-  | |- (round ?r rnd_DN ?p ?v <= ?w)%R =>
+  | |- (round ?r_DN ?p ?v <= ?w)%R =>
     apply Rle_trans with (1 := proj1 (proj2 (Generic_fmt.round_DN_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   | |- (?w <= round ?r rnd_UP ?p ?v)%R =>
     apply Rle_trans with (2 := proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
@@ -540,7 +540,7 @@ Definition ln_fast prec x :=
     match F.cmp x c1 with
     | Eq => I.zero
     | Lt =>
-      let m := Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
+      let m := Z.opp (F.StoZ (F.mag (F.sub_UP prec c1 x))) in
       let prec := F.incr_prec prec (Z2P m) in
       I.neg (ln_fast1P prec (I.div prec i1 xi))
     | Gt => ln_fast1P prec xi
@@ -686,12 +686,15 @@ assert (H: forall prec xi x,
   revert Hxu.
   simpl.
   unfold thre, c1_p_c1_8, c1.
-  rewrite F.add_correct, c1_8_correct, F.fromZ_correct by easy.
+  generalize (F.add_DN_correct (F.PtoP 52) (F.fromZ 1) c1_8).
+  case (F.toX _); [easy|intro r].
+  rewrite c1_8_correct, F.fromZ_correct by easy.
   simpl.
+  intro Hr.
+  apply Ropp_le_cancel in Hr.
   intro H.
   assert (H' : (u <= 1 + / 256)%R).
-  { apply (Rle_trans _ _ _ H).
-    now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
+  { now apply (Rle_trans _ _ _ H). }
   generalize (proj2 Ix).
   lra.
   apply J.sub_correct with (1 := Ix).
@@ -769,7 +772,7 @@ rewrite is_positive_true by easy.
 case Rcompare_spec.
 (* x < 1 *)
 intros Hx'.
-generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec (F.fromZ 1) x)))))).
+generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub_UP prec (F.fromZ 1) x)))))).
 clear prec.
 intros prec.
 rewrite <- (Rinv_involutive (F.toR x)).
@@ -802,14 +805,14 @@ Qed.
 (*
 (* 0 <= inputs *)
 Fixpoint umc_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struct nb } :=
-  let npwu := F.mul rnd_UP prec powu sqru in
-  let valu := F.div rnd_UP prec npwu div in
+  let npwu := F.mul_UP prec powu sqru in
+  let valu := F.div_UP prec npwu div in
   match F.cmp valu thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero valu
   | _, S n =>
-    let npwl := F.mul rnd_DN prec powl sqrl in
-    let vall := F.div rnd_DN prec npwl div in
+    let npwl := F.mul_DN prec powl sqrl in
+    let vall := F.div_DN prec npwl div in
     let one := F.fromZ 1 in
     let nfact := F.add_exact fact (F.add_exact one one) in
     let ndiv := F.mul_exact div (F.mul_exact fact (F.add_exact fact one)) in
@@ -818,8 +821,8 @@ Fixpoint umc_fast0_aux prec thre powl powu sqrl sqru fact div (nb : nat) { struc
   end.
 
 Definition umc_fast0 prec x :=
-  let x2l := F.mul rnd_DN prec x x in
-  let x2u := F.mul rnd_UP prec x x in
+  let x2l := F.mul_DN prec x x in
+  let x2u := F.mul_UP prec x x in
   let c1 := F.fromZ 1 in
   let p := F.prec prec in
   let thre := F.scale c1 (F.ZtoS (Zneg p)) in
@@ -845,7 +848,7 @@ Definition umc_reduce prec x :=
     | _, O => umc_fast0 prec x
     | _, S n =>
       (*match reduce (F.scale2 x sm1) n with
-      | Ibnd yl yu => I.scale2 (Ibnd (F.mul rnd_DN prec yl (F.sub rnd_DN prec c2 yl)) (F.mul rnd_UP prec yu (F.sub rnd_UP prec c2 yu))) s1
+      | Ibnd yl yu => I.scale2 (Ibnd (F.mul_DN prec yl (F.sub_DN prec c2 yl)) (F.mul_UP prec yu (F.sub_UP prec c2 yu))) s1
       | Inan => Inan
       end*)
       let u := reduce (F.scale2 x sm1) n in

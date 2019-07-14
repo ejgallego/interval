@@ -22,6 +22,7 @@ From Flocq Require Import Raux.
 
 Require Import Xreal.
 Require Import Basic.
+Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Module Type FloatOps.
 
@@ -61,11 +62,16 @@ Parameter neg : type -> type.
 Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
 Parameter div2 : type -> type.
-Parameter add : rounding_mode -> precision -> type -> type -> type.
-Parameter sub : rounding_mode -> precision -> type -> type -> type.
-Parameter mul : rounding_mode -> precision -> type -> type -> type.
-Parameter div : rounding_mode -> precision -> type -> type -> type.
-Parameter sqrt : rounding_mode -> precision -> type -> type.
+Parameter add_UP : precision -> type -> type -> type.
+Parameter add_DN : precision -> type -> type -> type.
+Parameter sub_UP : precision -> type -> type -> type.
+Parameter sub_DN : precision -> type -> type -> type.
+Parameter mul_UP : precision -> type -> type -> type.
+Parameter mul_DN : precision -> type -> type -> type.
+Parameter div_UP : precision -> type -> type -> type.
+Parameter div_DN : precision -> type -> type -> type.
+Parameter sqrt_UP : precision -> type -> type.
+Parameter sqrt_DN : precision -> type -> type.
 Parameter nearbyint : rounding_mode -> type -> type.
 Parameter midpoint : type -> type -> type.
 
@@ -112,25 +118,35 @@ Parameter div2_correct :
   (1 / 256 <= Rabs (toR x))%R ->
   toX (div2 x) = Xdiv (toX x) (Xreal 2).
 
-Parameter add_correct :
-  forall mode p x y,
-  toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
+Parameter add_UP_correct :
+  forall p x y, le_upper (Xadd (toX x) (toX y)) (toX (add_UP p x y)).
 
-Parameter sub_correct :
-  forall mode p x y,
-  toX (sub mode p x y) = Xround radix mode (prec p) (Xsub (toX x) (toX y)).
+Parameter add_DN_correct :
+  forall p x y, le_lower (toX (add_DN p x y)) (Xadd (toX x) (toX y)).
 
-Parameter mul_correct :
-  forall mode p x y,
-  toX (mul mode p x y) = Xround radix mode (prec p) (Xmul (toX x) (toX y)).
+Parameter sub_UP_correct :
+  forall p x y, le_upper (Xsub (toX x) (toX y)) (toX (sub_UP p x y)).
 
-Parameter div_correct :
-  forall mode p x y,
-  toX (div mode p x y) = Xround radix mode (prec p) (Xdiv (toX x) (toX y)).
+Parameter sub_DN_correct :
+  forall p x y, le_lower (toX (sub_DN p x y)) (Xsub (toX x) (toX y)).
 
-Parameter sqrt_correct :
-  forall mode p x,
-  toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt (toX x)).
+Parameter mul_UP_correct :
+  forall p x y, le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y)).
+
+Parameter mul_DN_correct :
+  forall p x y, le_lower (toX (mul_DN p x y)) (Xmul (toX x) (toX y)).
+
+Parameter div_UP_correct :
+  forall p x y, le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y)).
+
+Parameter div_DN_correct :
+  forall p x y, le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y)).
+
+Parameter sqrt_UP_correct :
+  forall p x, le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
+
+Parameter sqrt_DN_correct :
+  forall p x, le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x)).
 
 Parameter nearbyint_correct :
   forall mode x,
