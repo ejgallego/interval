@@ -1,4 +1,4 @@
-AC_INIT([Interval], [3.4.0],
+AC_INIT([Interval], [3.4.1],
         [Guillaume Melquiond <guillaume.melquiond@inria.fr>],
         [interval])
 
@@ -79,7 +79,7 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 if test "$libdir" = '${exec_prefix}/lib'; then
-  libdir="`$COQC -where`/user-contrib/Interval"
+  libdir="`$COQC -where | tr -d '\r' | tr '\\\\' '/'`/user-contrib/Interval"
 fi
 
 AC_MSG_NOTICE([building remake...])
