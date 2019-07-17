@@ -9,6 +9,19 @@ This package is free software; you can redistribute it and/or modify it
 under the terms of CeCILL-C Free Software License (see the [COPYING](COPYING) file).
 Main author is Guillaume Melquiond <guillaume.melquiond@inria.fr>.
 
+See the file [INSTALL.md](INSTALL.md) for installation instructions.
+
+
+Project Home
+------------
+
+Homepage: http://coq-interval.gforge.inria.fr/
+
+Repository: https://gitlab.inria.fr/coqinterval/interval
+
+Bug tracker: https://gitlab.inria.fr/coqinterval/interval/issues
+
+
 Invocation
 ----------
 
