@@ -217,7 +217,7 @@ assert (Hexit : forall k powu ft,
     apply Un_cv_atanc.
     lra.
     unfold atanc.
-    case in_int ; intros Hx.
+    case Ratan.in_int ; intros Hx.
     case atanc_exists ; simpl projT1 ; intros l C.
     exact C.
     elim Hx.
@@ -501,7 +501,7 @@ assert (Hexit : forall k powu ft,
     apply Un_cv_atanc.
     lra.
     unfold atanc.
-    case in_int ; intros Hx.
+    case Ratan.in_int ; intros Hx.
     case atanc_exists ; simpl projT1 ; intros l C.
     exact C.
     elim Hx.
