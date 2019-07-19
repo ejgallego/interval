@@ -120,7 +120,11 @@ Qed.
 Definition subset xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
-    le_lower yl xl /\ le_upper xu yu
+    match xl, xu with
+    | Xreal xl, Xreal xu => (xu < xl)%R
+    | _, _ => False
+    end
+    \/ (le_lower yl xl /\ le_upper xu yu)
   | _, Inan => True
   | _, _ => False
   end.
@@ -138,6 +142,11 @@ destruct yi as [|yl yu].
 easy.
 destruct xi as [|xl xu].
 easy.
+intros [H|H]; revert H.
+{ case xl; [now simpl|]; intro rxl.
+  case xu; [now simpl|]; intros rxu Hr [|x] H; [now simpl|].
+  exfalso; apply (Rlt_irrefl rxl); revert Hr; apply Rle_lt_trans.
+  elim H; apply Rle_trans. }
 intros [H1 H2] [|v] Hv.
 easy.
 apply contains_le in Hv.
@@ -224,7 +233,11 @@ Parameter real : type -> bool.
 
 Parameter bnd_correct :
   forall l u,
+  not_empty (convert (bnd l u)) ->
   convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
+
+Parameter bnd_correct_ex :
+  forall l u, exists l' u', convert (bnd l u) = Ibnd l' u'.
 
 Parameter zero_correct :
   convert zero = Ibnd (Xreal 0) (Xreal 0).
@@ -401,12 +414,17 @@ Parameter lower : type -> bound_type.
 Parameter upper : type -> bound_type.
 
 Parameter lower_correct :
-  forall xi : type, convert_bound (lower xi) = Xlower (convert xi).
+  forall xi : type,
+  not_empty (convert xi) ->
+  convert_bound (lower xi) = Xlower (convert xi).
 
 Parameter upper_correct :
-  forall xi : type, convert_bound (upper xi) = Xupper (convert xi).
+  forall xi : type,
+  not_empty (convert xi) ->
+  convert_bound (upper xi) = Xupper (convert xi).
 
 Definition bounded_prop xi :=
+  not_empty (convert xi) ->
   convert xi = Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
 
 Parameter lower_bounded_correct :

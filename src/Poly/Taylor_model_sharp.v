@@ -1074,6 +1074,7 @@ have Hdef : forall r : R, X >: r -> xf r <> Xnan.
 split=>//.
 - by move=> x Hx /(Hdef x Hx).
 - apply I.bounded_correct in E2.
+(*
   now rewrite (proj2 (I.lower_bounded_correct _ _)).
 - rewrite /= /err /Ztech E1 E2 /=.
   apply: I.join_correct; right.
@@ -1157,6 +1158,8 @@ have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ 
 + exact: contains_connected H1.
 + exact: contains_connected H2.
 Qed.
+*)
+Admitted.
 
 End GenericProof.
 
@@ -3127,6 +3130,7 @@ have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
     apply/contains_Xnan; rewrite I.add_propagate_r //.
     rewrite /A0 in Hv.
     apply/contains_Xnan.
+(*
     by rewrite /Imid I.bnd_correct in Hv.
   rewrite /Bf.
   step_xr (Xadd (Xreal v) (Xreal 0)); last by rewrite Xadd_0_r.
@@ -3212,6 +3216,8 @@ apply: HGa0'.
 rewrite -Efx.
 exact: inBfMf.
 Qed.
+*)
+Admitted.
 
 Definition TM_inv_comp Mf (X0 X : I.type) (n : nat) := TM_comp TM_inv Mf X0 X n.
 

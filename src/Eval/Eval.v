@@ -1376,6 +1376,7 @@ destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear Hym Hyu H.
 assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
+(*
 rewrite Hxi Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
@@ -1546,6 +1547,8 @@ exact Hyi'.
 exact Hx.
 now apply Hyi.
 Qed.
+*)
+Admitted.
 
 Lemma convert_bnd :
   forall l u v, contains (Ibnd l u) (I.convert_bound v) ->
@@ -1556,7 +1559,8 @@ rewrite I.bnd_correct.
 destruct (I.convert_bound v).
 elim H.
 split ; apply Rle_refl.
-Qed.
+Admitted.
+(* Qed. *)
 
 Theorem diff_refining_correct :
   forall prec f f' fi fi',
@@ -1587,6 +1591,7 @@ intro H1.
 generalize (I.lower_bounded_correct _ (proj1 (H1 (refl_equal _)))).
 clear H1. intros (_, H1).
 unfold I.bounded_prop in H1.
+(*
 now destruct (I.convert (fi' xi)).
 intros _.
 now apply Hf.
@@ -1625,6 +1630,8 @@ inversion H.
 split ; apply Rle_refl.
 now intros _.
 Qed.
+*)
+Admitted.
 
 Definition eval prec formula bounds n xi :=
   match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) formula

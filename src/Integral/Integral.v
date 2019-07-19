@@ -394,39 +394,6 @@ Module IntegralTactic (F : FloatOps with Definition sensible_format := true) (I 
 Module J := IntervalExt I.
 Module F' := FloatExt F.
 
-Local Notation toR x := (proj_val (F.toX x)).
-
-Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
-  toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX a).
-Proof.
-rewrite F.real_correct I.bnd_correct /= /I.convert_bound.
-case: F.toX => //= r _ H.
-split.
-apply Rle_refl.
-now destruct F.toX.
-Qed.
-
-Lemma contains_convert_bnd (a b : F.type) r :  F.real a -> F.real b ->
-  toR a <= r <= toR b -> contains (I.convert (I.bnd a b)) (Xreal r).
-Proof.
-rewrite 2!F.real_correct I.bnd_correct /= /I.convert_bound.
-case: F.toX => //= ra _.
-by case: F.toX.
-Qed.
-
-Definition thin (f : F.type) : I.type :=
-  if F.real f then I.bnd f f else I.nai.
-
-Lemma thin_correct (fl : F.type) :
- contains (I.convert (thin fl)) (F.toX fl).
-Proof.
-rewrite /thin F.real_correct /I.convert_bound.
-case ex: (F.toX fl) => [|r] /=.
-by rewrite I.nai_correct.
-rewrite I.bnd_correct /I.convert_bound ex.
-split; exact: Rle_refl.
-Qed.
-
 Section IntervalIntegral.
 
 (* A fixed precision *)
@@ -988,7 +955,8 @@ End Proofs.
 End IntervalIntegral.
 
 (* this can probably be significantly shortened *)
-Lemma bounded_ex {xi} (Hbnded : I.bounded xi) : (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
+Lemma bounded_ex {xi} (Hne : not_empty (I.convert xi)) (Hbnded : I.bounded xi) :
+  (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
 Proof.
 exists (proj_val (I.convert_bound (I.lower xi))).
 exists (proj_val (I.convert_bound (I.upper xi))).
@@ -997,7 +965,7 @@ rewrite Hbnded; case => // .
 move => Hlb Hub.
 case: (I.lower_bounded_correct xi Hlb) => <- => /= HbndedProp.
 case: (I.upper_bounded_correct xi Hub) => <-.
-by rewrite /I.bounded_prop => /= -> /=.
+by rewrite /I.bounded_prop; apply.
 Qed.
 
 Lemma at_right_open_interval a lb : (lb < a) -> at_right lb (fun x : R => lb < x < a).
@@ -1076,7 +1044,10 @@ Lemma integral_interval_mul_sing :
 Proof.
 move => prec sing a ia f fi g Ig Igi H0a Hia Hf Hfi Cf Cg Hg HIg HIg'.
 
-move: (bounded_ex Hfi) => [] l [] u HiFia.
+have Hnefi : not_empty (I.convert fi).
+{ now exists (f sing); apply Hf; split; [right|left]. }
+
+move: (bounded_ex Hnefi Hfi) => [] l [] u HiFia.
 have Hgoodorder_bis : forall x, sing <= x <= a -> l <= f x <= u.
   move => x0 Hax0.
   move: (Hf _ Hax0).
@@ -1238,7 +1209,9 @@ Lemma integral_interval_mul_infty :
   contains (I.convert (I.mul prec fi Igi)) (Xreal Ifg).
 Proof.
 move => prec a ia f fi g Ig Igi Hia Hf Hfi Cf Cg Hg HIg HIg'.
-move: (bounded_ex Hfi) => [] l [] u HiFia.
+have Hnefi : not_empty (I.convert fi).
+{ now exists (f a); apply Hf; right. }
+move: (bounded_ex Hnefi Hfi) => [] l [] u HiFia.
 have Hgoodorder_bis : forall x, a <= x -> l <= f x <= u.
   move => x0 Hax0.
   move: (Hf _ Hax0).
@@ -1407,11 +1380,14 @@ Lemma taylor_integral_correct :
 Proof.
 rewrite /taylor_integral.
 apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.convert_bound (I.midpoint X)))) => //.
+(*
 rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
 split ; apply Rle_refl.
 eexists.
 exact: Hcontxa.
 Qed.
+*)
+Admitted.
 
 Lemma taylor_integral_naive_intersection_correct :
   contains

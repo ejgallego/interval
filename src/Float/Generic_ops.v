@@ -56,6 +56,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition PtoP := fun x : positive => x.
   Definition incr_prec := Pplus.
   Definition zero := @Fzero radix.
+  Definition one := @Float radix false 1 0.
   Definition nan := @Fnan radix.
   Definition mag := @Fmag radix.
   Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
@@ -77,12 +78,65 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition sqrt_DN := @Fsqrt radix rnd_DN.
   Definition nearbyint := @Fnearbyint_exact radix.
   Definition zero_correct := refl_equal (Xreal R0).
+  Definition one_correct := refl_equal (Xreal R1).
   Definition nan_correct := refl_equal Xnan.
-  Definition min_correct := @Fmin_correct radix.
-  Definition max_correct := @Fmax_correct radix.
-  Definition neg_correct := @Fneg_correct radix.
-  Definition abs_correct := @Fabs_correct radix.
   Definition nearbyint_correct := @Fnearbyint_exact_correct radix.
+
+  Definition real (f : float radix) := match f with Fnan => false | _ => true end.
+
+  Lemma real_correct :
+    forall f, real f = match toX f with Xnan => false | _ => true end.
+  Proof.
+  intros f.
+  now case f.
+  Qed.
+
+  Definition valid_ub (_ : type) := true.
+  Definition valid_lb (_ : type) := true.
+
+  Lemma valid_lb_correct :
+    forall f, real f = true -> valid_lb f = true.
+  Proof. easy. Qed.
+
+  Lemma valid_ub_correct :
+    forall f, real f = true -> valid_ub f = true.
+  Proof. easy. Qed.
+
+  Lemma valid_lb_nan : valid_lb nan = true.
+  Proof. easy. Qed.
+
+  Lemma valid_ub_nan : valid_ub nan = true.
+  Proof. easy. Qed.
+
+  Lemma min_correct :
+    forall x y,
+    ((valid_lb x = true \/ valid_lb y = true)
+     -> (valid_lb (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
+    /\ (valid_ub x = true -> valid_ub y = true
+       -> (valid_ub (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
+    /\ (valid_lb y = false -> min x y = x)
+    /\ (valid_lb x = false -> min x y = y).
+  Proof. now intros x y; rewrite (Fmin_correct radix). Qed.
+
+  Lemma max_correct :
+    forall x y,
+    ((valid_ub x = true \/ valid_ub y = true)
+     -> (valid_ub (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
+    /\ (valid_lb x = true -> valid_lb y = true
+       -> (valid_lb (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
+    /\ (valid_ub y = false -> max x y = x)
+    /\ (valid_ub x = false -> max x y = y).
+  Proof. now intros x y; rewrite (Fmax_correct radix). Qed.
+
+  Lemma neg_correct :
+    forall x, toX (neg x) = Xneg (toX x)
+    /\ (valid_lb (neg x) = valid_ub x)
+    /\ (valid_ub (neg x) = valid_lb x).
+  Proof. now intro x; rewrite (Fneg_correct radix). Qed.
+
+  Lemma abs_correct :
+    forall x, toX (abs x) = Xabs (toX x) /\ (valid_ub (abs x) = true).
+  Proof. now intro x; rewrite (Fabs_correct radix). Qed.
 
   Lemma rnd_binop_UP_correct op Rop :
     (forall mode p x y,
@@ -133,9 +187,11 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma fromZ_DN_correct :
     forall p n,
-    le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
+    valid_lb (fromZ_DN p n) = true /\ le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
   Proof.
   intros p n.
+  split.
+  easy.
   rewrite fromZ_correct'.
   apply Rle_refl.
   Qed.
@@ -144,40 +200,115 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma fromZ_UP_correct :
     forall p n,
-    le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
+    valid_ub (fromZ_UP p n) = true /\ le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
   Proof.
   intros p n.
+  split.
+  easy.
   rewrite fromZ_correct'.
   apply Rle_refl.
   Qed.
 
-  Definition real (f : float radix) := match f with Fnan => false | _ => true end.
-
-  Lemma real_correct :
-    forall f, real f = match toX f with Xnan => false | _ => true end.
+  Lemma add_UP_correct :
+    forall p x y, valid_ub x = true -> valid_ub y = true
+    -> (valid_ub (add_UP p x y) = true
+       /\ le_upper (Xadd (toX x) (toX y)) (toX (add_UP p x y))).
   Proof.
-  intros f.
-  now case f.
+  intros p x y _ _; split; [easy|].
+  now apply (rnd_binop_UP_correct _ _ (@Fadd_correct _)).
   Qed.
 
-  Definition add_UP_correct :=
-    rnd_binop_UP_correct Fadd Rplus (@Fadd_correct radix).
-  Definition add_DN_correct :=
-    rnd_binop_DN_correct Fadd Rplus (@Fadd_correct radix).
-  Definition sub_UP_correct :=
-    rnd_binop_UP_correct Fsub Rminus (@Fsub_correct radix).
-  Definition sub_DN_correct :=
-    rnd_binop_DN_correct Fsub Rminus (@Fsub_correct radix).
-  Definition mul_UP_correct :=
-    rnd_binop_UP_correct Fmul Rmult (@Fmul_correct radix).
-  Definition mul_DN_correct :=
-    rnd_binop_DN_correct Fmul Rmult (@Fmul_correct radix).
+  Lemma add_DN_correct :
+    forall p x y, valid_lb x = true -> valid_lb y = true
+    -> (valid_lb (add_DN p x y) = true
+       /\ le_lower (toX (add_DN p x y)) (Xadd (toX x) (toX y))).
+  Proof.
+  intros p x y _ _; split; [easy|].
+  now apply (rnd_binop_DN_correct _ _ (@Fadd_correct _)).
+  Qed.
+
+  Lemma sub_UP_correct :
+    forall p x y, valid_ub x = true -> valid_lb y = true
+    -> (valid_ub (sub_UP p x y) = true
+        /\ le_upper (Xsub (toX x) (toX y)) (toX (sub_UP p x y))).
+  Proof.
+  intros p x y _ _; split; [easy|].
+  now apply (rnd_binop_UP_correct _ _ (@Fsub_correct _)).
+  Qed.
+
+  Lemma sub_DN_correct :
+    forall p x y, valid_lb x = true -> valid_ub y = true
+    -> (valid_lb (sub_DN p x y) = true
+       /\ le_lower (toX (sub_DN p x y)) (Xsub (toX x) (toX y))).
+  Proof.
+  intros p x y _ _; split; [easy|].
+  now apply (rnd_binop_DN_correct _ _ (@Fsub_correct _)).
+  Qed.
+
+  Lemma mul_UP_correct :
+    forall p x y,
+    ((valid_ub x = true /\ valid_ub y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end)))
+    -> (valid_ub (mul_UP p x y) = true
+        /\ le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y))).
+  Proof.
+  intros p x y _; split; [easy|].
+  now apply (rnd_binop_UP_correct _ _ (@Fmul_correct _)).
+  Qed.
+
+  Lemma mul_DN_correct :
+    forall p x y,
+    ((valid_lb x = true /\ valid_lb y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_ub x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end)))
+    -> (valid_lb (mul_DN p x y) = true
+        /\ le_lower (toX (mul_DN p x y)) (Xmul (toX x) (toX y))).
+  Proof.
+  intros p x y _; split; [easy|].
+  now apply (rnd_binop_DN_correct _ _ (@Fmul_correct _)).
+  Qed.
 
   Lemma div_UP_correct :
     forall p x y,
-      le_upper (Xdiv (toX x) (toX y)) (toX (Fdiv rnd_UP p x y)).
+    ((valid_ub x = true /\ valid_lb y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
+         /\ real y = true)
+     \/ (valid_ub x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
+         /\ real y = true))
+    -> (valid_ub (div_UP p x y) = true
+        /\ le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y))).
   Proof.
-  intros p x y; rewrite (@Fdiv_correct radix).
+  intros p x y _; split; [easy|].
+  unfold div_UP.
+  rewrite (@Fdiv_correct radix).
   set (z := Xdiv _ _).
   unfold Xround, Xlift.
   case z; [exact I|intro z'; simpl].
@@ -186,9 +317,26 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma div_DN_correct :
     forall p x y,
-      le_lower (toX (Fdiv rnd_DN p x y)) (Xdiv (toX x) (toX y)).
+    ((valid_ub x = true /\ valid_ub y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
+         /\ real y = true)
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
+         /\ real y = true))
+    -> (valid_lb (div_DN p x y) = true
+        /\ le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y))).
   Proof.
-  intros p x y; rewrite (@Fdiv_correct radix).
+  intros p x y _; split; [easy|].
+  unfold div_DN.
+  rewrite (@Fdiv_correct radix).
   set (z := Xdiv _ _).
   unfold Xround, Xlift.
   case z; [exact I|intro z'].
@@ -198,9 +346,14 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma sqrt_UP_correct :
     forall p x,
-      le_upper (Xsqrt (toX x)) (toX (Fsqrt rnd_UP p x)).
+    valid_ub x = true
+    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+    -> (valid_ub (sqrt_UP p x) = true
+        /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x))).
   Proof.
-  intros p x; rewrite (@Fsqrt_correct radix).
+  intros p x _ _; split; [easy|].
+  unfold sqrt_UP.
+  rewrite (@Fsqrt_correct radix).
   set (z := Xsqrt _).
   unfold Xround, Xlift.
   case z; [exact I|intro z'; simpl].
@@ -209,9 +362,14 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma sqrt_DN_correct :
     forall p x,
-      le_lower (toX (Fsqrt rnd_DN p x)) (Xsqrt (toX x)).
+    valid_lb x = true
+    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+    -> (valid_lb (sqrt_DN p x) = true
+        /\ le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x))).
   Proof.
-  intros p x; rewrite (@Fsqrt_correct radix).
+  intros p x _ _; split; [easy|].
+  unfold sqrt_DN.
+  rewrite (@Fsqrt_correct radix).
   set (z := Xsqrt _).
   unfold Xround, Xlift.
   case z; [exact I|intro z'].

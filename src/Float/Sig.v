@@ -45,6 +45,7 @@ Parameter StoZ : sfactor -> Z.
 Parameter incr_prec : precision -> positive -> precision.
 
 Parameter zero : type.
+Parameter one : type.
 Parameter nan : type.
 
 Parameter fromZ : Z -> type.
@@ -54,6 +55,8 @@ Parameter fromZ_UP : precision -> Z -> type.
 Parameter fromF : float radix -> type.
 Parameter real : type -> bool.
 Parameter mag : type -> sfactor.
+Parameter valid_ub : type -> bool.  (* valid upper bound (typically, not -oo) *)
+Parameter valid_lb : type -> bool.  (* valid lower bound (typically, not +oo) *)
 
 Parameter cmp : type -> type -> comparison.
 Parameter min : type -> type -> type.
@@ -76,6 +79,7 @@ Parameter nearbyint : rounding_mode -> type -> type.
 Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
+Parameter one_correct : toX one = Xreal 1.
 Parameter nan_correct : toX nan = Xnan.
 
 Parameter fromZ_correct :
@@ -85,15 +89,25 @@ Parameter fromZ_correct :
 
 Parameter fromZ_DN_correct :
   forall p n,
-  le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
+  valid_lb (fromZ_DN p n) = true /\ le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
 
 Parameter fromZ_UP_correct :
   forall p n,
-  le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
+  valid_ub (fromZ_UP p n) = true /\ le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
 
 Parameter real_correct :
   forall f,
   real f = match toX f with Xnan => false | _ => true end.
+
+Parameter valid_lb_correct :
+  forall f, real f = true -> valid_lb f = true.
+
+Parameter valid_ub_correct :
+  forall f, real f = true -> valid_ub f = true.
+
+Parameter valid_lb_nan : valid_lb nan = true.
+
+Parameter valid_ub_nan : valid_ub nan = true.
 
 Parameter cmp_correct :
   forall x y,
@@ -102,16 +116,30 @@ Parameter cmp_correct :
   cmp x y = Rcompare (toR x) (toR y).
 
 Parameter min_correct :
-  forall x y, toX (min x y) = Xmin (toX x) (toX y).
+  forall x y,
+    ((valid_lb x = true \/ valid_lb y = true)
+     -> (valid_lb (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
+    /\ (valid_ub x = true -> valid_ub y = true
+       -> (valid_ub (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
+    /\ (valid_lb y = false -> min x y = x)
+    /\ (valid_lb x = false -> min x y = y).
 
 Parameter max_correct :
-  forall x y, toX (max x y) = Xmax (toX x) (toX y).
+  forall x y,
+    ((valid_ub x = true \/ valid_ub y = true)
+     -> (valid_ub (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
+    /\ (valid_lb x = true -> valid_lb y = true
+       -> (valid_lb (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
+    /\ (valid_ub y = false -> max x y = x)
+    /\ (valid_ub x = false -> max x y = y).
 
 Parameter neg_correct :
-  forall x, toX (neg x) = Xneg (toX x).
+  forall x, toX (neg x) = Xneg (toX x)
+    /\ (valid_lb (neg x) = valid_ub x)
+    /\ (valid_ub (neg x) = valid_lb x).
 
 Parameter abs_correct :
-  forall x, toX (abs x) = Xabs (toX x).
+  forall x, toX (abs x) = Xabs (toX x) /\ (valid_ub (abs x) = true).
 
 Parameter div2_correct :
   forall x, sensible_format = true ->
@@ -119,34 +147,110 @@ Parameter div2_correct :
   toX (div2 x) = Xdiv (toX x) (Xreal 2).
 
 Parameter add_UP_correct :
-  forall p x y, le_upper (Xadd (toX x) (toX y)) (toX (add_UP p x y)).
+  forall p x y, valid_ub x = true -> valid_ub y = true
+    -> (valid_ub (add_UP p x y) = true
+       /\ le_upper (Xadd (toX x) (toX y)) (toX (add_UP p x y))).
 
 Parameter add_DN_correct :
-  forall p x y, le_lower (toX (add_DN p x y)) (Xadd (toX x) (toX y)).
+  forall p x y, valid_lb x = true -> valid_lb y = true
+    -> (valid_lb (add_DN p x y) = true
+       /\ le_lower (toX (add_DN p x y)) (Xadd (toX x) (toX y))).
 
 Parameter sub_UP_correct :
-  forall p x y, le_upper (Xsub (toX x) (toX y)) (toX (sub_UP p x y)).
+  forall p x y, valid_ub x = true -> valid_lb y = true
+    -> (valid_ub (sub_UP p x y) = true
+       /\ le_upper (Xsub (toX x) (toX y)) (toX (sub_UP p x y))).
 
 Parameter sub_DN_correct :
-  forall p x y, le_lower (toX (sub_DN p x y)) (Xsub (toX x) (toX y)).
+  forall p x y, valid_lb x = true -> valid_ub y = true
+    -> (valid_lb (sub_DN p x y) = true
+       /\ le_lower (toX (sub_DN p x y)) (Xsub (toX x) (toX y))).
 
 Parameter mul_UP_correct :
-  forall p x y, le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y)).
+  forall p x y,
+    ((valid_ub x = true /\ valid_ub y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end)))
+    -> (valid_ub (mul_UP p x y) = true
+        /\ le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y))).
 
 Parameter mul_DN_correct :
-  forall p x y, le_lower (toX (mul_DN p x y)) (Xmul (toX x) (toX y)).
+  forall p x y,
+    ((valid_lb x = true /\ valid_lb y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
+     \/ (valid_ub x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end)))
+    -> (valid_lb (mul_DN p x y) = true
+        /\ le_lower (toX (mul_DN p x y)) (Xmul (toX x) (toX y))).
 
 Parameter div_UP_correct :
-  forall p x y, le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y)).
+  forall p x y,
+    ((valid_ub x = true /\ valid_lb y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
+         /\ real y = true)
+     \/ (valid_ub x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
+         /\ real y = true))
+    -> (valid_ub (div_UP p x y) = true
+        /\ le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y))).
 
 Parameter div_DN_correct :
-  forall p x y, le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y)).
+  forall p x y,
+    ((valid_ub x = true /\ valid_ub y = true
+      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+      /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
+     \/ (valid_lb x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
+     \/ (valid_lb x = true /\ valid_ub y = true
+         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
+         /\ real y = true)
+     \/ (valid_ub x = true /\ valid_lb y = true
+         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
+         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
+         /\ real y = true))
+    -> (valid_lb (div_DN p x y) = true
+        /\ le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y))).
 
 Parameter sqrt_UP_correct :
-  forall p x, le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
+  forall p x,
+    valid_ub x = true
+    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+    -> (valid_ub (sqrt_UP p x) = true
+        /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x))).
 
 Parameter sqrt_DN_correct :
-  forall p x, le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x)).
+  forall p x,
+    valid_lb x = true
+    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
+    -> (valid_lb (sqrt_DN p x) = true
+        /\ le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x))).
 
 Parameter nearbyint_correct :
   forall mode x,
