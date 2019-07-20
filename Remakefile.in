@@ -117,7 +117,8 @@ deps.map: deps.dot
 install:
 	prefix=@prefix@
 	exec_prefix=@exec_prefix@
-	mkdir -p @libdir@ $(addprefix @libdir@/,Float Integral Interval Poly Real)
+	mkdir -p @libdir@
+	for d in Float Integral Interval Missing Poly Real; do mkdir -p @libdir@/$d; done
 	for f in $(FILES); do cp src/$f.vo @libdir@/$f.vo; done
 	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "@libdir@/{}" \; )
 
