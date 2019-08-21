@@ -170,14 +170,13 @@ apply J.sub_correct.
 pose (Ai := fun x => sum_f_R0 (fun n : nat => ((-1) ^ n / INR (2 * n + 1) * x ^ (2 * n))%R)).
 assert (Hexit : forall k powi divi,
     contains (I.convert powi) (Xreal (x ^ (2 * k))) ->
-    contains (I.convert divi) (Xreal (IZR (Z.of_nat (2 * (k + 1) + 1)))) ->
+    contains (I.convert divi) (Xreal (INR (2 * (k + 1) + 1))) ->
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi (I.sqr prec xi)) divi))))
       (Xreal ((-1) ^ (k + 1) * (atanc x - Ai x k)))).
   intros k powi divi Hpow Hdiv.
   rewrite I.bnd_correct.
   rewrite F.zero_correct, I.upper_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / IZR (Z.of_nat (2 * (k + 1) + 1)))%R).
-    rewrite <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / INR (2 * (k + 1) + 1))%R).
     replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (x ^ _)).
@@ -218,7 +217,8 @@ fold i1 i3.
 generalize i1 i3.
 intros powi divi.
 change 1%R with (pow x (2 * 0)).
-change 3%Z with (Z_of_nat (2 * (0 + 1) + 1)).
+change 3%Z with (Z.of_nat (2 * (0 + 1) + 1)).
+rewrite <- INR_IZR_INZ.
 replace (Ai x 0%nat - atanc x)%R with ((-1) * 1 * (atanc x - Ai x 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
 rewrite <- (minus_diag n) at 2 4 7 9.
@@ -254,7 +254,6 @@ apply J.sub_correct.
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  rewrite INR_IZR_INZ.
   apply J.div_correct.
   exact Hpow'.
   exact Hdiv.
@@ -265,7 +264,7 @@ rewrite <- (plus_0_r (n - m)), <- H.
 exact Hpow'.
 rewrite H, plus_0_r in Hdiv.
 replace (2 * (n - m + 1) + 1) with (2 * (n - m) + 1 + 2) by ring.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hdiv).
 apply I.fromZ_correct.
 change (Ai x (n - S m)%nat + (-1) ^ S (n - S m) * / INR (2 * S (n - S m) + 1) * x ^ (2 * S (n - S m)))%R
@@ -515,14 +514,13 @@ apply I.fromZ_correct.
 pose (Ai := fun x => sum_f_R0 (fun n : nat => ((-1) ^ n / INR (n + 1) * x ^ n)%R)).
 assert (Hexit : forall k powi divi,
     contains (I.convert powi) (Xreal (x ^ k)) ->
-    contains (I.convert divi) (Xreal (IZR (Z.of_nat ((k + 1) + 1)))) ->
+    contains (I.convert divi) (Xreal (INR ((k + 1) + 1))) ->
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi xi) divi))))
       (Xreal ((-1) ^ (k + 1) * (ln1pc x - Ai x k)))).
   intros k powi divi Hpow Hdiv.
   rewrite I.bnd_correct.
   rewrite F.zero_correct, I.upper_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / IZR (Z.of_nat ((k + 1) + 1)))%R).
-    rewrite <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / INR ((k + 1) + 1))%R).
     replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (n + 1) * x ^ n)%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (x ^ _)).
@@ -561,6 +559,7 @@ generalize i1 i2.
 intros powi divi.
 change 1%R with (pow x 0).
 change 2%Z with (Z_of_nat ((0 + 1) + 1)).
+rewrite <- INR_IZR_INZ.
 replace (Ai x 0%nat - ln1pc x)%R with ((-1) * 1 * (ln1pc x - Ai x 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
 rewrite <- (minus_diag n) at 1 2 5 7.
@@ -592,11 +591,10 @@ apply J.sub_correct.
   rewrite <- pow_add.
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  apply J.div_correct.
+  apply J.div_correct with (2 := Hdiv).
   rewrite pow_1_even, Rmult_1_l.
   rewrite pow_add, pow_1.
   now apply J.mul_correct.
-  now rewrite INR_IZR_INZ.
 evar_last.
 apply IHm.
 clear -Hm ; lia.
@@ -605,7 +603,7 @@ rewrite pow_add, pow_1.
 now apply J.mul_correct.
 rewrite <- H.
 replace (_ + 2 + 1) with (n - S m + 1 + 1 + 1) by ring.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hdiv).
 apply I.fromZ_correct.
 change (Ai x (n - S m)%nat + (-1) ^ S (n - S m) * / INR (S (n - S m) + 1) * x ^ (S (n - S m)))%R
@@ -868,14 +866,13 @@ assert (Ix: contains (I.convert xi) (Xreal (toR x))).
 set (x2i := I.sqr prec xi).
 assert (Hexit: forall k powi divi,
     contains (I.convert powi) (Xreal (toR x ^ (2 * k))) ->
-    contains (I.convert divi) (Xreal (IZR (Z.of_nat (fact (2 * (k + 1)))))) ->
+    contains (I.convert divi) (Xreal (INR (fact (2 * (k + 1))))) ->
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
       (Xreal ((-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k)))).
   intros k powi facti Hpow Hdiv.
   rewrite I.bnd_correct.
   rewrite F.zero_correct, I.upper_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k) <= toR x ^ (2 * (k + 1)) / IZR (Z.of_nat (fact (2 * (k + 1)))))%R).
-    rewrite <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k) <= toR x ^ (2 * (k + 1)) / INR (fact (2 * (k + 1))))%R).
     replace (A1 (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ _)).
@@ -921,6 +918,7 @@ intros powi divi facti.
 change 1%R with (pow (toR x) (2 * 0)).
 change 3%Z with (Z_of_nat (2 * (0 + 1) + 1)).
 change 2%Z with (Z_of_nat (fact (2 * (0 + 1)))).
+rewrite <- 2!INR_IZR_INZ.
 replace (A1 (toR x) 0 - cos (toR x))%R with ((-1) * 1 * (cos (toR x) - A1 (toR x) 0))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
 rewrite <- (minus_diag n) at 2 4 7 10 12.
@@ -960,7 +958,6 @@ apply J.sub_correct.
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  rewrite INR_IZR_INZ.
   now apply J.div_correct.
 evar_last.
 apply IHm.
@@ -969,18 +966,18 @@ now rewrite <- (plus_0_r (n - m)), <- H.
 rewrite <- H.
 replace (2 * (n - S m + 2)) with (S (S (2 * (n - S m + 1)))) by ring.
 rewrite 2!fact_simpl.
-rewrite 2!inj_mult, 2!mult_IZR, <- Rmult_assoc, Rmult_comm.
+rewrite 2!mult_INR, <- Rmult_assoc, Rmult_comm.
 apply J.mul_correct with (1 := Hdiv).
 rewrite Rmult_comm.
 apply J.mul_correct.
 now rewrite <- Nat.add_1_r.
 rewrite <- 2!Nat.add_1_r.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hfact).
 apply I.fromZ_correct.
 rewrite <- H.
 replace (2 * (n - S m + 2) + 1) with (2 * (n - S m + 1) + 1 + 2) by ring.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hfact).
 apply I.fromZ_correct.
 apply f_equal.
@@ -1245,14 +1242,13 @@ set (x2i := I.sqr prec xi).
 pose (Si := fun x => sum_f_R0 (fun n : nat => ((-1) ^ n / INR (fact (2 * n + 1)) * x ^ (2 * n))%R)).
 assert (Hexit : forall k powi divi,
     contains (I.convert powi) (Xreal (toR x ^ (2 * k))) ->
-    contains (I.convert divi) (Xreal (IZR (Z.of_nat (fact (2 * (k + 1) + 1))))) ->
+    contains (I.convert divi) (Xreal (INR (fact (2 * (k + 1) + 1)))) ->
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
       (Xreal ((-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k)))).
   intros k powi divi Hpow Hdiv.
   rewrite I.bnd_correct.
   rewrite F.zero_correct, I.upper_correct.
-  assert (A: (0 <= (-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k) <= toR x ^ (2 * (k + 1)) / IZR (Z.of_nat (fact (2 * (k + 1) + 1))))%R).
-    rewrite <- INR_IZR_INZ.
+  assert (A: (0 <= (-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k) <= toR x ^ (2 * (k + 1)) / INR (fact (2 * (k + 1) + 1)))%R).
     replace (Si (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n + 1)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
     rewrite (Rmult_comm (toR x ^ _)).
@@ -1324,6 +1320,7 @@ intros powi divi facti.
 change 1%R with (pow (toR x) (2 * 0)).
 change 4%Z with (Z_of_nat (2 * (0 + 1) + 2)).
 change 6%Z with (Z_of_nat (fact (2 * (0 + 1) + 1))).
+rewrite <- 2!INR_IZR_INZ.
 replace (Si (toR x) 0%nat - sinc (toR x))%R with ((-1) * 1 * (sinc (toR x) - Si (toR x) 0%nat))%R by ring.
 change (-1 * 1)%R with (pow (-1) (0 + 1)).
 rewrite <- (minus_diag n) at 2 4 8 11 13.
@@ -1362,7 +1359,6 @@ apply J.sub_correct.
   replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
-  rewrite INR_IZR_INZ.
   now apply J.div_correct.
 evar_last.
 apply IHm.
@@ -1371,18 +1367,18 @@ now rewrite <- (plus_0_r (n - m)), <- H.
 rewrite <- H.
 replace (2 * (n - S m + 2) + 1) with (S (S (2 * (n - S m + 1) + 1))) by ring.
 rewrite 2!fact_simpl.
-rewrite 2!inj_mult, 2!mult_IZR, <- Rmult_assoc, Rmult_comm.
+rewrite 2!mult_INR, <- Rmult_assoc, Rmult_comm.
 apply J.mul_correct with (1 := Hdiv).
 rewrite Rmult_comm.
 apply J.mul_correct.
 now rewrite <- Nat.add_1_r, <- plus_assoc.
 replace (S (S (2 * (n - S m + 1) + 1))) with (2 * (n - S m + 1) + 2 + 1) by ring.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hfact).
 apply I.fromZ_correct.
 rewrite <- H.
 replace (2 * (n - S m + 2) + 2) with (2 * (n - S m + 1) + 2 + 2) by ring.
-rewrite inj_plus, plus_IZR.
+rewrite plus_INR.
 apply J.add_correct with (1 := Hfact).
 apply I.fromZ_correct.
 apply f_equal.
