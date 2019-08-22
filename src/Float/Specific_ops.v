@@ -714,81 +714,6 @@ Definition round mode prec (f : type) :=
   end.
 
 (*
- * mul_exact
- *)
-
-Definition mul_exact (x y : type) :=
-  match x, y with
-  | Fnan, _ => x
-  | _, Fnan => y
-  | Float mx ex, Float my ey =>
-    match mantissa_sign mx, mantissa_sign my with
-    | Mzero, _ => x
-    | _, Mzero => y
-    | Mnumber sx px, Mnumber sy py =>
-      float_aux (xorb sx sy) (mantissa_mul px py) (exponent_add ex ey)
-    end
-  end.
-
-Lemma mul_exact_correct :
-  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
-Proof.
-intros x y.
-unfold toX.
-rewrite <- Fmul_exact_correct.
-destruct x as [| mx ex].
-apply refl_equal.
-simpl.
-destruct y as [| my ey].
-now case (mantissa_sign mx).
-generalize (mantissa_sign_correct mx) (mantissa_sign_correct my).
-case_eq (mantissa_sign mx) ; simpl ; case_eq (mantissa_sign my) ; simpl.
-intros _ Hx _ _.
-rewrite Hx.
-apply refl_equal.
-intros sy py _ Hx _ _.
-rewrite Hx.
-apply refl_equal.
-intros Hy sx px _ _ _.
-rewrite Hy.
-apply refl_equal.
-intros sy py _ sx px _ (_, Hx2) (_, Hy2).
-generalize (mantissa_mul_correct px py).
-intro H.
-destruct (H Hx2 Hy2).
-clear H.
-generalize (mantissa_sign_correct ((if xorb sx sy then mantissa_neg else mantissa_pos)
-  (mantissa_mul px py))).
-case (mantissa_sign ((if xorb sx sy then mantissa_neg else mantissa_pos)
-  (mantissa_mul px py))).
-case (xorb sx sy).
-rewrite mantissa_neg_correct.
-intro H. discriminate H.
-exact (proj2 (mantissa_mul_correct _ _ Hx2 Hy2)).
-rewrite mantissa_pos_correct.
-intro H. discriminate H.
-exact (proj2 (mantissa_mul_correct _ _ Hx2 Hy2)).
-intros sz pz (Hz1, Hz2).
-simpl.
-rewrite exponent_add_correct.
-rewrite <- H0.
-assert (forall A B, forall b : bool, forall f1 f2 : A -> B, forall x, (if b then f1 else f2) x = if b then f1 x else f2 x).
-intros.
-now case b.
-do 2 rewrite H in Hz1.
-clear H.
-assert (forall A B, forall f : A -> B, forall b : bool, forall x1 x2, f (if b then x1 else x2) = if b then f x1 else f x2).
-intros.
-now case b.
-rewrite (H _ _ MtoZ) in Hz1.
-clear H.
-rewrite mantissa_neg_correct in Hz1 ; [idtac | exact H1].
-rewrite mantissa_pos_correct in Hz1 ; [idtac | exact H1].
-generalize Hz1. clear Hz1.
-case (xorb sx sy) ; case sz ; intro H ; try discriminate H ; inversion H ; apply refl_equal.
-Qed.
-
-(*
  * mul
  *)
 
@@ -1133,22 +1058,6 @@ Lemma add_correct :
   toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
 Proof.
 exact add_slow_correct.
-Qed.
-
-(*
- * sub_exact
- *)
-
-Definition sub_exact (x y : type) := add_exact x (neg y).
-
-Lemma sub_exact_correct :
-  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
-Proof.
-intros x y.
-unfold sub_exact.
-rewrite add_exact_correct.
-rewrite neg_correct.
-now rewrite Xsub_split.
 Qed.
 
 (*

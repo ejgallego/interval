@@ -1249,29 +1249,6 @@ apply Fadd_correct.
 Qed.
 
 (*
- * Fsub_exact
- *)
-
-Lemma Fsub_exact_split :
-  forall beta (x y : float beta),
-  FtoX (Fsub_exact x y) = FtoX (Fadd_exact x (Fneg y)).
-Proof.
-intros beta x y.
-now case y.
-Qed.
-
-Theorem Fsub_exact_correct :
-  forall beta (x y : float beta),
-  FtoX (Fsub_exact x y) = Xsub (FtoX x) (FtoX y).
-Proof.
-intros beta x y.
-rewrite Fsub_exact_split.
-rewrite Fadd_exact_correct.
-rewrite Fneg_correct.
-apply sym_eq, Xsub_split.
-Qed.
-
-(*
  * Fmul
  *)
 
@@ -1311,20 +1288,8 @@ now case y.
 Qed.
 
 (*
- * Fmul_exact
+ * Fdiv
  *)
-
-Theorem Fmul_exact_correct :
-  forall beta (x y : float beta),
-  FtoX (Fmul_exact x y) = Xmul (FtoX x) (FtoX y).
-Proof.
-intros beta x y.
-unfold Fmul_exact.
-rewrite <- (Fmul_aux_correct _ x y).
-case (Fmul_aux x y) ; try easy.
-intros s m e l.
-now case l.
-Qed.
 
 Theorem Fdiv_correct :
   forall beta mode prec (x y : float beta),
@@ -1407,6 +1372,10 @@ now apply F2R_gt_0.
 apply Rinv_0_lt_compat.
 now apply F2R_gt_0.
 Qed.
+
+(*
+ * Fsqrt
+ *)
 
 Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),

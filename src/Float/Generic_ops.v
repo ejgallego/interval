@@ -66,8 +66,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition scale := @Fscale radix.
   Definition scale2 := @Fscale2 radix.
   Definition add_exact := @Fadd_exact radix.
-  Definition sub_exact := @Fsub_exact radix.
-  Definition mul_exact := @Fmul_exact radix.
   Definition add := @Fadd radix.
   Definition sub := @Fsub radix.
   Definition mul := @Fmul radix.
@@ -85,8 +83,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition scale_correct := @Fscale_correct radix.
   Definition scale2_correct := @Fscale2_correct radix.
   Definition add_exact_correct := @Fadd_exact_correct radix.
-  Definition sub_exact_correct := @Fsub_exact_correct radix.
-  Definition mul_exact_correct := @Fmul_exact_correct radix.
   Definition add_correct := @Fadd_correct radix.
   Definition sub_correct := @Fsub_correct radix.
   Definition mul_correct := @Fmul_correct radix.

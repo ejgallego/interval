@@ -354,7 +354,7 @@ Definition Fnearbyint {beta} mode prec x :=
   end.
 
 (*
- * Fmul, Fmul_exact
+ * Fmul
  *)
 
 Definition Fmul_aux {beta} (x y : float beta) : ufloat beta :=
@@ -369,9 +369,6 @@ Definition Fmul_aux {beta} (x y : float beta) : ufloat beta :=
 
 Definition Fmul {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fmul_aux x y).
-
-Definition Fmul_exact {beta} (x y : float beta) :=
-  Fround_none (Fmul_aux x y).
 
 (*
  * Fadd_slow, Fadd_exact
@@ -590,7 +587,7 @@ Definition Fadd_fast {beta} mode prec (x y : float beta) :=
 Definition Fadd {beta} := @Fadd_slow beta.
 
 (*
- * Fsub, Fsub_exact
+ * Fsub
  *)
 
 Definition Fsub_slow_aux {beta} (x y : float beta) :=
@@ -608,9 +605,6 @@ Definition Fsub_slow {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fsub_slow_aux x y).
 
 Definition Fsub {beta} := @Fsub_slow beta.
-
-Definition Fsub_exact {beta} (x y : float beta) :=
-  Fround_none (Fsub_slow_aux x y).
 
 (*
  * Fdiv

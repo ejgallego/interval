@@ -57,8 +57,6 @@ Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
 Parameter scale2 : type -> sfactor -> type.
 Parameter add_exact : type -> type -> type.
-Parameter sub_exact : type -> type -> type.
-Parameter mul_exact : type -> type -> type.
 Parameter add : rounding_mode -> precision -> type -> type -> type.
 Parameter sub : rounding_mode -> precision -> type -> type -> type.
 Parameter mul : rounding_mode -> precision -> type -> type -> type.
@@ -102,12 +100,6 @@ Parameter scale2_correct :
 
 Parameter add_exact_correct :
   forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).
-
-Parameter sub_exact_correct :
-  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
-
-Parameter mul_exact_correct :
-  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
 
 Parameter add_correct :
   forall mode p x y,
