@@ -132,7 +132,7 @@ Definition atan_fastP prec x :=
   | Xgt =>
     let prec := F.incr_prec prec 2 in
     let pi4i := pi4 prec in
-    match F.cmp x (F.scale2 c1 s1) with
+    match F.cmp x c2 with
     | Xgt =>
       I.sub prec
        (I.scale2 pi4i s1)
@@ -326,7 +326,7 @@ Lemma atan_fastP_correct :
   contains (I.convert (atan_fastP prec x)) (Xreal (atan (toR x))).
 Proof.
 intros prec x Rx Bx.
-unfold atan_fastP, c1, sm1, s1.
+unfold atan_fastP, c1, c2, sm1.
 rewrite F.cmp_correct, F.scale2_correct by easy.
 rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
@@ -342,10 +342,9 @@ now apply Rlt_le.
 apply atan_fast0_correct with (2 := Ix).
 rewrite Rabs_pos_eq by easy.
 now apply Req_le.
-rewrite F.cmp_correct, F.scale2_correct by easy.
+rewrite F.cmp_correct.
 rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
-rewrite Rmult_1_l.
 assert (H: (toR x <= 2)%R -> contains (I.convert
     (I.add (F.incr_prec prec 2) (pi4 (F.incr_prec prec 2)) (atan_fast0 (F.incr_prec prec 2)
       (I.div (F.incr_prec prec 2) (I.sub (F.incr_prec prec 2) (I.bnd x x) i1)
@@ -1532,7 +1531,6 @@ Qed.
 
 (* 0 <= input *)
 Definition tan_fastP prec x :=
-  let i1 := I.bnd c1 c1 in
   let th := F.scale2 c1 sm1 in
   match F'.le x th with
   | true =>
@@ -1674,65 +1672,57 @@ case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
   generalize (I.sign_large_correct c).
   unfold Xtan', Xbind.
   destruct s ; try easy ; case I.sign_large ; try easy ; intros Hc'.
-  revert H.
-  destruct (is_zero_spec (cos (toR x))).
-  now case I.convert.
-  intros H'.
+  destruct (is_zero_spec (cos (toR x))) as [H0|H0].
+  easy.
   evar_last.
-  apply H'.
+  apply H.
   apply (f_equal Xreal).
   apply Rabs_pos_eq.
   apply Rmult_le_neg_neg with (1 := Hs).
   apply Rlt_le, Rinv_lt_0_compat.
   apply Rnot_le_lt.
-  contradict H.
-  apply Rle_antisym with (2 := H).
+  contradict H0.
+  apply Rle_antisym with (2 := H0).
   now specialize (Hc' _ Hc).
   rewrite <- (Xneg_involutive (if is_zero _ then _ else _)).
   apply I.neg_correct.
-  revert H.
-  destruct (is_zero_spec (cos (toR x))).
-  now case I.convert.
-  intros H'.
+  destruct (is_zero_spec (cos (toR x))) as [H0|H0].
+  easy.
   evar_last.
-  apply H'.
+  apply H.
   apply (f_equal Xreal).
   apply Rabs_left1.
   apply Rmult_le_neg_pos with (1 := Hs).
   apply Rlt_le, Rinv_0_lt_compat.
   apply Rnot_le_lt.
-  contradict H.
-  apply Rle_antisym with (1 := H).
+  contradict H0.
+  apply Rle_antisym with (1 := H0).
   now specialize (Hc' _ Hc).
   rewrite <- (Xneg_involutive (if is_zero _ then _ else _)).
   apply I.neg_correct.
-  revert H.
-  destruct (is_zero_spec (cos (toR x))).
-  now case I.convert.
-  intros H'.
+  destruct (is_zero_spec (cos (toR x))) as [H0|H0].
+  easy.
   evar_last.
-  apply H'.
+  apply H.
   apply (f_equal Xreal).
   apply Rabs_left1.
   apply Rmult_le_pos_neg with (1 := Hs).
   apply Rlt_le, Rinv_lt_0_compat.
   apply Rnot_le_lt.
-  contradict H.
-  apply Rle_antisym with (2 := H).
+  contradict H0.
+  apply Rle_antisym with (2 := H0).
   now specialize (Hc' _ Hc).
-  revert H.
-  destruct (is_zero_spec (cos (toR x))).
-  now case I.convert.
-  intros H'.
+  destruct (is_zero_spec (cos (toR x))) as [H0|H0].
+  easy.
   evar_last.
-  apply H'.
+  apply H.
   apply (f_equal Xreal).
   apply Rabs_pos_eq.
   apply Rmult_le_pos_pos with (1 := Hs).
   apply Rlt_le, Rinv_0_lt_compat.
   apply Rnot_le_lt.
-  contradict H.
-  apply Rle_antisym with (1 := H).
+  contradict H0.
+  apply Rle_antisym with (1 := H0).
   now specialize (Hc' _ Hc).
 Qed.
 
