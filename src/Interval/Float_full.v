@@ -71,7 +71,7 @@ Definition cos prec xi :=
         else
           bnd cm1 (F.max (upper (T.cos_fast prec xl)) (upper (T.cos_fast prec xu)))
       else
-        let d := F.sub_exact xu xl in
+        let d := F.sub rnd_UP prec xu xl in
         if F'.le d c3 then
           let m := F.scale2 (F.add_exact xl xu) sm1 in
           let d := F.scale2 d sm1 in
@@ -236,11 +236,11 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
   apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
 intros _.
-case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
+case_eq (F'.le (F.sub rnd_UP prec xu xl) (F.fromZ 3)).
   intros Hd.
   apply F'.le_correct in Hd.
   revert Hd.
-  rewrite F.sub_exact_correct, F.fromZ_correct.
+  rewrite F.sub_correct, F.fromZ_correct.
   case_eq (F.toX xu) ; try easy ; intros xur Hur.
   case_eq (F.toX xl) ; try easy ; intros xlr Hlr.
   intros _.
@@ -260,7 +260,7 @@ case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
     now rewrite Hlr, Hur.
   simpl.
   rewrite F.neg_correct, F.scale2_correct by easy.
-  rewrite F.sub_exact_correct, Hlr, Hur.
+  rewrite F.sub_correct, Hlr, Hur.
   simpl.
   apply Raux.Rabs_le_inv.
   destruct (MVT_abs Rtrigo_def.cos (fun t => Ropp (sin t)) m (Rabs x)) as [v [-> _]].
@@ -272,12 +272,14 @@ case_eq (F'.le (F.sub_exact xu xl) (F.fromZ 3)).
   rewrite Rabs_Ropp.
   apply Rabs_le, SIN_bound.
   rewrite Rmult_1_l.
+  change (Z.pow_pos 2 1) with 2%Z.
   apply Rabs_le.
   revert Ha.
   simpl.
   rewrite Hlr, Hur.
   unfold m.
-  change (Z.pow_pos 2 1) with 2%Z.
+  generalize (proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Z.pos (F.prec prec))) (xur - xlr)))).
+  unfold round, rnd_of_mode.
   lra.
 intros _.
 unfold convert, bnd.
