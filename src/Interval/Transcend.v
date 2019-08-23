@@ -482,14 +482,13 @@ Definition ln_fast prec x :=
   match F'.cmp x F.zero with
   | Xgt =>
     let xi := I.bnd x x in
-    match F'.cmp x c1 with
-    | Xeq => I.zero
-    | Xlt =>
+    match F.cmp x c1 with
+    | Eq => I.zero
+    | Lt =>
       let m := Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
       let prec := F.incr_prec prec (Z2P m) in
       I.neg (ln_fast1P prec (I.div prec i1 xi))
-    | Xgt => ln_fast1P prec xi
-    | Xund => I.nai
+    | Gt => ln_fast1P prec xi
     end
   | _ => I.nai
   end.
@@ -694,13 +693,16 @@ Theorem ln_fast_correct :
 Proof.
 intros prec x.
 unfold ln_fast.
-rewrite 2!F'.cmp_correct, F.zero_correct.
-unfold c1.
-rewrite F.fromZ_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (Xcmp (F.toX x) (Xreal 0)) ; try easy.
-case_eq (F.toX x) ; try easy.
-intros xr Hxr.
-simpl Xcmp.
+destruct (F'.toX_spec x) as [|Rx].
+easy.
+unfold c1.
+rewrite F.cmp_correct with (1 := Rx).
+2: unfold F.toR ; now rewrite F.fromZ_correct.
+unfold F.toR at 3.
+rewrite F.fromZ_correct.
+unfold Xcmp, proj_val.
 case Rcompare_spec ; try easy.
 intros Hx _.
 unfold Xln'.
@@ -712,7 +714,7 @@ intros Hx'.
 generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec (F.fromZ 1) x)))))).
 clear prec.
 intros prec.
-rewrite <- (Rinv_involutive xr).
+rewrite <- (Rinv_involutive (F.toR x)).
 rewrite ln_Rinv.
 apply J.neg_correct.
 apply ln_fast1P_correct.
@@ -720,10 +722,10 @@ rewrite <- Rinv_1.
 apply Rinv_le.
 exact Hx.
 now apply Rlt_le.
-rewrite <- (Rmult_1_l (/ xr)).
+rewrite <- (Rmult_1_l (/ _)).
 apply J.div_correct.
 apply I.fromZ_correct.
-rewrite I.bnd_correct, Hxr.
+rewrite I.bnd_correct, Rx.
 split ; apply Rle_refl.
 now apply Rinv_0_lt_compat.
 now apply Rgt_not_eq.
@@ -735,7 +737,7 @@ split ; apply Rle_refl.
 intros Hx'.
 apply ln_fast1P_correct.
 now apply Rlt_le.
-rewrite I.bnd_correct, Hxr.
+rewrite I.bnd_correct, Rx.
 split ; apply Rle_refl.
 Qed.
 
