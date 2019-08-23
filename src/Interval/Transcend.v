@@ -81,6 +81,7 @@ Definition i6 := I.fromZ 6.
 Definition s1 := F.ZtoS 1.
 Definition sm1 := F.ZtoS (-1).
 Definition sm8 := F.ZtoS (-8).
+Definition c1_2 := F.scale2 c1 sm1.
 
 Ltac bound_tac :=
   unfold Xround, Xbind ;
@@ -95,7 +96,7 @@ Ltac bound_tac :=
     apply Rle_trans with (2 := proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Zpos p)) v)))
   end.
 
-Definition toR x := proj_val (F.toX x).
+Notation toR := F.toR (only parsing).
 
 (* 0 <= inputs *)
 Fixpoint atan_fast0_aux prec thre powi sqri divi (nb : nat) { struct nb } :=
@@ -128,23 +129,20 @@ Definition pi4 := constant_getter pi4_seq.
 
 Definition atan_fastP prec x :=
   let xi := I.bnd x x in
-  match F'.cmp x (F.scale2 c1 sm1) with
-  | Xgt =>
+  if F'.lt c1_2 x then
     let prec := F.incr_prec prec 2 in
     let pi4i := pi4 prec in
-    match F'.cmp x c2 with
-    | Xgt =>
+    if F'.lt c2 x then
       I.sub prec
        (I.scale2 pi4i s1)
        (atan_fast0 prec (I.div prec i1 xi))
-    | _ =>
+    else
       let xm1i := I.sub prec xi i1 in
       let xp1i := I.add prec xi i1 in
       I.add prec pi4i
        (atan_fast0 prec (I.div prec xm1i xp1i))
-    end
-  | _ => atan_fast0 (F.incr_prec prec 1) xi
-  end.
+  else
+    atan_fast0 (F.incr_prec prec 1) xi.
 
 Definition atan_fast prec x :=
   match F'.cmp x F.zero with
@@ -326,34 +324,33 @@ Lemma atan_fastP_correct :
   contains (I.convert (atan_fastP prec x)) (Xreal (atan (toR x))).
 Proof.
 intros prec x Rx Bx.
-unfold atan_fastP, c1, c2, sm1.
-rewrite F'.cmp_correct, F.scale2_correct by easy.
-rewrite F.fromZ_correct, Rx.
-simpl Xcmp.
+unfold atan_fastP, c1_2, c1, c2, sm1.
+rewrite F'.lt_correct with (2 := Rx).
+2: {
+  unfold F.toR.
+  rewrite F.scale2_correct by easy.
+  now rewrite F.fromZ_correct. }
+unfold F.toR at 1.
+rewrite F.scale2_correct by easy.
+rewrite F.fromZ_correct.
+simpl Rlt_bool.
 rewrite Rmult_1_l.
 change (Z.pow_pos 2 1) with 2%Z.
 assert (Ix: contains (I.convert (I.bnd x x)) (Xreal (toR x))).
   rewrite I.bnd_correct, Rx.
   split ; apply Rle_refl.
-case Rcompare_spec ; intros Bx'.
-apply atan_fast0_correct with (2 := Ix).
-rewrite Rabs_pos_eq by easy.
-now apply Rlt_le.
-apply atan_fast0_correct with (2 := Ix).
-rewrite Rabs_pos_eq by easy.
-now apply Req_le.
-rewrite F'.cmp_correct.
-rewrite F.fromZ_correct, Rx.
-simpl Xcmp.
-assert (H: (toR x <= 2)%R -> contains (I.convert
-    (I.add (F.incr_prec prec 2) (pi4 (F.incr_prec prec 2)) (atan_fast0 (F.incr_prec prec 2)
-      (I.div (F.incr_prec prec 2) (I.sub (F.incr_prec prec 2) (I.bnd x x) i1)
-                 (I.add (F.incr_prec prec 2) (I.bnd x x) i1)))))
-    (Xreal (atan (toR x)))).
-  intros Bx''.
-  rewrite <- atan_plus_PI4 by lra.
-  rewrite Rplus_comm.
-  apply J.add_correct.
+case Rlt_bool_spec ; intros Bx'.
+2: {
+  apply atan_fast0_correct with (2 := Ix).
+  now rewrite Rabs_pos_eq. }
+rewrite F'.lt_correct with (2 := Rx).
+2: unfold F.toR ; now rewrite F.fromZ_correct.
+unfold F.toR at 1.
+rewrite F.fromZ_correct.
+simpl Rlt_bool.
+case Rlt_bool_spec ; intros Bx'' ; cycle 1.
+  replace (Xreal (atan (toR x))) with (Xadd (Xreal (PI / 4)) (Xatan (Xreal ((toR x - 1) / (toR x + 1))))).
+  apply I.add_correct.
   apply pi4_correct.
   apply atan_fast0_correct.
   apply Rabs_le.
@@ -378,16 +375,14 @@ assert (H: (toR x <= 2)%R -> contains (I.convert
   apply I.fromZ_correct.
   apply J.add_correct with (1 := Ix).
   apply I.fromZ_correct.
-case Rcompare_spec ; intros Bx''.
-apply H.
-now apply Rlt_le.
-apply H.
-now apply Req_le.
-clear H.
-replace (atan (toR x)) with (PI/4*2 - (PI/2 - atan (toR x)))%R by field.
-rewrite <- atan_inv by lra.
-apply J.sub_correct.
-apply (I.scale2_correct _ (Xreal (PI / 4))).
+  simpl.
+  apply (f_equal Xreal).
+  rewrite Rplus_comm.
+  apply atan_plus_PI4.
+  lra.
+replace (Xreal (atan (toR x))) with (Xsub (Xmul (Xreal (PI/4)) (Xreal 2)) (Xatan (Xreal (/ toR x)))).
+apply I.sub_correct.
+apply I.scale2_correct.
 apply pi4_correct.
 apply atan_fast0_correct.
   rewrite Rabs_pos_eq.
@@ -399,6 +394,9 @@ apply atan_fast0_correct.
 rewrite <- (Rmult_1_l (/ toR x)).
 apply J.div_correct with (2 := Ix).
 apply I.fromZ_correct.
+  simpl.
+  apply f_equal.
+  rewrite atan_inv; lra.
 Qed.
 
 Lemma atan_fast_correct :
