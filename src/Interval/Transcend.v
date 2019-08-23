@@ -824,9 +824,10 @@ Definition cos_fast0 prec x :=
 
 (* 0 <= input *)
 Definition sin_cos_reduce prec x :=
-  let th := F.scale2 c1 sm1 in
+  let i1 := I.bnd c1 c1 in
+  let th := c1_2 in
   let fix reduce x (nb : nat) {struct nb} :=
-    match F'.le' x th, nb with
+    match F'.le x th, nb with
     | true, _ => (Gt, cos_fast0 prec x)
     | _, O => (Eq, I.bnd (F.neg c1) c1)
     | _, S n =>
@@ -1004,17 +1005,23 @@ Proof.
 intros prec.
 (* . *)
 assert (forall x, F.toX x = Xreal (toR x) -> (0 <= toR x)%R ->
-        F'.le' x (F.scale2 (F.fromZ 1) (F.ZtoS (-1))) = true ->
+        F'.le x c1_2 = true ->
         contains (I.convert (cos_fast0 prec x)) (Xreal (cos (toR x))) /\
         (0 <= sin (toR x))%R).
 intros x Hxr Hx0 H.
+unfold c1_2, c1, sm1 in H.
 assert (toR x <= /2)%R.
-apply F'.le'_correct in H.
+rewrite F'.le_correct with (1 := Hxr) in H.
+2: {
+  unfold F.toR.
+  now rewrite F.scale2_correct, F.fromZ_correct. }
 revert H.
-rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
+case Rle_bool_spec ; try easy.
+unfold F.toR.
+rewrite F.scale2_correct, F.fromZ_correct by easy.
+rewrite Hxr.
 simpl.
-rewrite Rmult_1_l.
-now intros.
+now rewrite Rmult_1_l.
 (* .. *)
 split.
 apply cos_fast0_correct with (1 := Hxr).
@@ -1037,7 +1044,7 @@ lra.
 induction nb ; intros x Hxr Hx.
 (* nb = 0 *)
 simpl.
-case_eq (F'.le' x (F.scale2 c1 sm1)).
+case_eq (F'.le x c1_2).
 intros.
 exact (H x Hxr Hx H0).
 intros _.
@@ -1050,7 +1057,7 @@ simpl.
 apply COS_bound.
 (* nb > 0 *)
 simpl.
-case_eq (F'.le' x (F.scale2 c1 sm1)).
+case_eq (F'.le x c1_2).
 intros.
 exact (H x Hxr Hx H0).
 intros _.
