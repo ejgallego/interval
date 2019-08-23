@@ -396,14 +396,6 @@ Module F' := FloatExt F.
 
 Local Notation toR x := (proj_val (F.toX x)).
 
-Lemma F_realP (fl : F.type) :
- reflect (F.toX fl = Xreal (toR fl)) (F.real fl).
-Proof.
-have := F.real_correct fl.
-rewrite <- F.toF_correct.
-by case: (F.toF fl)=> [||y z t] ->; constructor.
-Qed.
-
 Lemma contains_convert_bnd_l (a b : F.type) : F.real a ->
   toR a <= toR b -> contains (I.convert (I.bnd a b)) (F.toX a).
 Proof.
@@ -991,13 +983,6 @@ apply: HiFIntExt.
 apply: contains_connected Hx; apply: I.join_correct.
 now apply Rmin_case ; [left|right].
 now apply Rmax_case ; [left|right].
-Qed.
-
-Lemma toX_toF_Freal a : F.toX a <> Xnan -> F.real a.
-Proof.
-move: (F.real_correct a).
-rewrite -F.toF_correct.
-by case: (F.toF a).
 Qed.
 
 End Proofs.
