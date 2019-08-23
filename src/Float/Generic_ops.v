@@ -253,12 +253,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
      \/ (valid_lb x = true /\ valid_lb y = true
          /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
          /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
-     \/ (valid_ub x = true /\ valid_lb y = true
-         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
-     \/ (valid_lb x = true /\ valid_ub y = true
-         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end)))
+     \/ (match toX x with Xnan => False | Xreal r => (r <= 0)%R end
+        /\ match toX y with Xnan => False | Xreal r => (0 <= r)%R end)
+     \/ (match toX x with Xnan => False | Xreal r => (0 <= r)%R end
+        /\ match toX y with Xnan => False | Xreal r => (r <= 0)%R end))
     -> (valid_ub (mul_UP p x y) = true
         /\ le_upper (Xmul (toX x) (toX y)) (toX (mul_UP p x y))).
   Proof.
@@ -268,12 +266,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma mul_DN_correct :
     forall p x y,
-    ((valid_lb x = true /\ valid_lb y = true
-      /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-      /\ (match toX y with Xnan => True | Xreal r => (0 <= r)%R end))
-     \/ (valid_ub x = true /\ valid_ub y = true
-         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
+    ((match toX x with Xnan => False | Xreal r => (0 <= r)%R end
+      /\ match toX y with Xnan => False | Xreal r => (0 <= r)%R end)
+     \/ (match toX x with Xnan => False | Xreal r => (r <= 0)%R end
+        /\ match toX y with Xnan => False | Xreal r => (r <= 0)%R end)
      \/ (valid_ub x = true /\ valid_lb y = true
          /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
          /\ (match toX y with Xnan => True | Xreal r => (r <= 0)%R end))
@@ -289,20 +285,16 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma div_UP_correct :
     forall p x y,
-    ((valid_ub x = true /\ valid_lb y = true
+    ((valid_ub x = true
       /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-      /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
-     \/ (valid_lb x = true /\ valid_ub y = true
+      /\ (match toX y with Xnan => False | Xreal r => (0 < r)%R end))
+     \/ (valid_lb x = true
          /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
-     \/ (valid_lb x = true /\ valid_lb y = true
-         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
-         /\ real y = true)
-     \/ (valid_ub x = true /\ valid_ub y = true
-         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
-         /\ real y = true))
+         /\ (match toX y with Xnan => False | Xreal r => (r < 0)%R end))
+     \/ (match toX x with Xnan => False | Xreal r => (0 <= r)%R end
+        /\ match toX y with Xnan => False | Xreal r => (r < 0)%R end)
+     \/ (match toX x with Xnan => False | Xreal r => (r <= 0)%R end
+        /\ match toX y with Xnan => False | Xreal r => (0 < r)%R end))
     -> (valid_ub (div_UP p x y) = true
         /\ le_upper (Xdiv (toX x) (toX y)) (toX (div_UP p x y))).
   Proof.
@@ -317,20 +309,16 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma div_DN_correct :
     forall p x y,
-    ((valid_ub x = true /\ valid_ub y = true
+    ((valid_ub x = true
       /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-      /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end))
-     \/ (valid_lb x = true /\ valid_lb y = true
+      /\ (match toX y with Xnan => False | Xreal r => (r < 0)%R end))
+     \/ (valid_lb x = true
          /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end))
-     \/ (valid_lb x = true /\ valid_ub y = true
-         /\ (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (0 < r)%R end)
-         /\ real y = true)
-     \/ (valid_ub x = true /\ valid_lb y = true
-         /\ (match toX x with Xnan => True | Xreal r => (r <= 0)%R end)
-         /\ (match toX y with Xnan => True | Xreal r => (r < 0)%R end)
-         /\ real y = true))
+         /\ (match toX y with Xnan => False | Xreal r => (0 < r)%R end))
+     \/ (match toX x with Xnan => False | Xreal r => (0 <= r)%R end
+        /\ match toX y with Xnan => False | Xreal r => (0 < r)%R end)
+     \/ (match toX x with Xnan => False | Xreal r => (r <= 0)%R end
+        /\ match toX y with Xnan => False | Xreal r => (r < 0)%R end))
     -> (valid_lb (div_DN p x y) = true
         /\ le_lower (toX (div_DN p x y)) (Xdiv (toX x) (toX y))).
   Proof.
