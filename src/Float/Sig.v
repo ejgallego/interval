@@ -244,4 +244,23 @@ unfold F.toR.
 now destruct F.toX as [|rx].
 Qed.
 
+Inductive toX_prop (x : F.type) : ExtendedR -> Prop :=
+  | toX_Xnan : toX_prop x Xnan
+  | toX_Xreal : F.toX x = Xreal (F.toR x) -> toX_prop x (Xreal (F.toR x)).
+
+Lemma toX_spec :
+  forall x, toX_prop x (F.toX x).
+Proof.
+intros x.
+case_eq (F.toX x).
+intros _.
+apply toX_Xnan.
+intros r H.
+change r with (proj_val (Xreal r)).
+rewrite <- H.
+apply toX_Xreal.
+unfold F.toR.
+now rewrite H at 2.
+Qed.
+
 End FloatExt.
