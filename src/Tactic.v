@@ -50,7 +50,7 @@ Inductive interval_tac_parameters :=
 Module Private.
 
 Module I := FloatIntervalFull F.
-Module Fext := FloatExt F.
+Module F' := FloatExt F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
 Module Int' := IntegralTaylor I.
@@ -108,7 +108,7 @@ case_eq (F.toF f) ; try easy.
 intros [|] m e Hf _.
 exact I.
 rewrite F.neg_correct in H1.
-rewrite <- F.toF_correct in H1, H2.
+unfold F.toX in H1, H2.
 rewrite Hf in H1, H2.
 simpl in H1, H2.
 now apply Rabs_def1_le.
@@ -130,8 +130,9 @@ easy.
 destruct (Rabs_def2_le _ _ H) as (H1,H2).
 split.
 rewrite F.neg_correct.
-now rewrite <- F.toF_correct, Hf.
-rewrite <- F.toF_correct.
+unfold F.toX.
+now rewrite Hf.
+unfold F.toX.
 now rewrite Hf.
 Qed.
 
@@ -671,7 +672,7 @@ Lemma remainder_correct_bertrand :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
-    if Fext.le (F.fromZ 1) (I.lower ia) then
+    if F'.le' (F.fromZ 1) (I.lower ia) then
       if (I.bounded (fi (I.upper_extent ia))) then
         I.mul prec (fi (I.upper_extent ia))
               (Bertrand.f_int_fast prec ia alpha beta)
@@ -682,9 +683,9 @@ Lemma remainder_correct_bertrand :
 Proof.
 intros prec prog bounds ia alpha beta Hf f fi estimator Halpha (* Hbnded *) a Ha.
 unfold estimator.
-case Ha1': Fext.le ; last by rewrite I.nai_correct.
+case Ha1': F'.le' ; last by rewrite I.nai_correct.
 have {Ha1'} Ha1: 1 <= a.
-  apply Fext.le_correct in Ha1'.
+  apply F'.le'_correct in Ha1'.
   revert Ha1'.
   rewrite F.fromZ_correct.
   rewrite I.lower_correct.
@@ -750,7 +751,7 @@ Lemma remainder_correct_bertrand_tactic :
   let a := nth 0 (eval_real proga (map A.real_from_bp boundsa)) 0 in
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_infty := fun ia =>
-    if Fext.le (F.fromZ 1) (I.lower ia) then
+    if F'.le' (F.fromZ 1) (I.lower ia) then
       if (I.bounded (iF (I.upper_extent ia))) then
         I.mul prec (iF (I.upper_extent ia))
               (Bertrand.f_int_fast prec ia alpha beta)
@@ -916,7 +917,7 @@ prog_f prog_g prog_lam bounds_lam bounds_f bounds_g epsilon:
     let xi := I.join fa fb in
     Int'.taylor_integral_naive_intersection prec iG (iG' xi) xi fa fb in
   let i :=
-      if Fext.lt (F.fromZ 0) (I.lower iLam) then
+      if F'.lt' (F.fromZ 0) (I.lower iLam) then
       Int.integral_interval_infty prec estimator estimator_infty depth ia epsilon else I.nai in
   (forall x,  g x = f x * (exp (-(lam * x)))) ->
   (I.convert i <> Inan ->
@@ -932,13 +933,13 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))
   case Hi: (I.convert i) => [|l u]; first by split.
   rewrite -Hi; split => [HnotInan|]; first by apply H.
   apply H; by rewrite Hi.
-case Hlam : (Fext.lt (F.fromZ 0) (I.lower iLam)); last first.
+case Hlam : (F'.lt' (F.fromZ 0) (I.lower iLam)); last first.
   by rewrite /i Hlam I.nai_correct.
 have Hcontains : contains (I.convert iLam) (Xreal lam).
   exact: contains_eval.
 have lt0lam : 0 < lam.
   move: Hcontains.
-  apply Fext.lt_correct in Hlam; rewrite F.fromZ_correct in Hlam.
+  apply F'.lt'_correct in Hlam; rewrite F.fromZ_correct in Hlam.
   rewrite I.lower_correct in Hlam; move: Hlam.
   case HiLam: (I.convert iLam) => [|laml lamu] //= .
   by case: laml HiLam => [|laml] // HiLam; lra.
@@ -960,7 +961,7 @@ Qed.
 
 Lemma remainder_correct_bertrand_log_neg_at_infty prec prog bounds ia beta:
   no_floor_prog prog = true ->
-  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
+  let test iF ia := F'.lt' (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
@@ -987,7 +988,7 @@ apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta)))
     move: (ln_increasing 1 x); rewrite ln_1; lra.
 - move => g ig ib b Hgext Hcontains.
   rewrite /test; case/andP.
-  move/Fext.lt_correct; rewrite F.fromZ_correct.
+  move/F'.lt'_correct; rewrite F.fromZ_correct.
   case: ib Hcontains => // l u /= ;case: (F.toX l) => // lr [] Hlrb _ lt1lr.
   by move => _; lra.
 - by [].
@@ -998,7 +999,7 @@ Lemma remainder_correct_log_neg_infty_tactic prec deg depth proga
 boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   no_floor_prog prog_f = true ->
   no_floor_prog prog_g = true ->
-  let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
+  let test iF ia := F'.lt' (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
   let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
@@ -1067,8 +1068,8 @@ Lemma remainder_correct_sing :
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
-  if Fext.lt (F.fromZ 0) (I.lower ia) then
-    if Fext.le (I.upper ia) (F.fromZ 1) then
+  if F'.lt' (F.fromZ 0) (I.lower ia) then
+    if F'.le' (I.upper ia) (F.fromZ 1) then
       if (I.bounded (fi (I.join (I.fromZ 0) ia))) then
         I.mul prec (fi (I.join (I.fromZ 0) ia))
               (Bertrand.f0eps_int prec ia alpha beta)
@@ -1081,14 +1082,14 @@ Proof.
 move => prec prog bounds ia alpha beta Hf f fi estimator Halpha.
 move => epsilon Hia HnotInan.
 rewrite /estimator.
-case Hlt : Fext.lt; last first.
+case Hlt : F'.lt'; last first.
   by move: HnotInan; rewrite /estimator Hlt I.nai_correct.
-case Hle : Fext.le; last first.
+case Hle : F'.le'; last first.
   by move: HnotInan; rewrite /estimator Hlt Hle I.nai_correct.
 case Hbnded : I.bounded; last first.
   by move: HnotInan; rewrite /estimator Hlt Hle Hbnded I.nai_correct.
 have Hepspos : 0 < epsilon.
-    apply Fext.lt_correct in Hlt. move: Hlt.
+    apply F'.lt'_correct in Hlt. move: Hlt.
     rewrite F.fromZ_correct.
     rewrite I.lower_correct.
     case Hia_ : (I.convert ia) => [|l_ia u_ia] //= .
@@ -1096,7 +1097,7 @@ have Hepspos : 0 < epsilon.
     by move: Hia; rewrite Hia_ /contains => [] []; lra.
 
   have lex1 x : 0 < x <= epsilon -> x <= 1.
-  apply Fext.le_correct in Hle. move: Hle.
+  apply F'.le'_correct in Hle. move: Hle.
   rewrite F.fromZ_correct.
   rewrite I.upper_correct.
   case Hia_ : (I.convert ia) => [|l_ia u_ia] //= .
@@ -1161,8 +1162,8 @@ Lemma remainder_correct_sing_tactic :
   let ia := nth 0 (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai in
   let estimator_sing :=
 fun ia =>
-  if Fext.lt (F.fromZ 0) (I.lower ia) then
-    if Fext.le (I.upper ia) (F.fromZ 1) then
+  if F'.lt' (F.fromZ 0) (I.lower ia) then
+    if F'.le' (I.upper ia) (F.fromZ 1) then
       if (I.bounded (iF (I.join (I.fromZ 0) ia))) then
         I.mul prec (iF (I.join (I.fromZ 0) ia))
               (Bertrand.f0eps_int prec ia alpha beta)
@@ -1318,7 +1319,7 @@ Lemma remainder_correct_bertrandEq_0_tactic :
   forall prec deg depth proga boundsa prog_f prog_g bounds_f bounds_g epsilon beta,
   no_floor_prog prog_f = true ->
   no_floor_prog prog_g = true ->
-  let test iF ia := Fext.lt (F.fromZ 0) (I.lower ia) && Fext.lt (I.upper ia) (F.fromZ 1) in
+  let test iF ia := F'.lt' (F.fromZ 0) (I.lower ia) && F'.lt' (I.upper ia) (F.fromZ 1) in
   let iKernelInt ia := (Bertrand.f_neg_int prec ia (S beta)) in
 
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
@@ -1383,8 +1384,8 @@ apply: integral_epsilon_sing_correct_RInt_gen => // .
       apply: constant_sign_pow; right => x Hx.
       by move: (ln_increasing x 1); rewrite ln_1; lra.
     + move => h ih ib b Hextih Hcontib /andP [Htest1 Htest2].
-        apply Fext.lt_correct in Htest1.
-        apply Fext.lt_correct in Htest2.
+        apply F'.lt'_correct in Htest1.
+        apply F'.lt'_correct in Htest2.
         move: Htest1 Htest2.
         rewrite !F.fromZ_correct I.lower_correct I.upper_correct.
         move: Hcontib.

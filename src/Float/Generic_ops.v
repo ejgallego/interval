@@ -44,9 +44,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
   Definition even_radix_correct := refl_equal even_radix.
   Definition type := float radix.
-  Definition toF := fun x : float radix => x.
-  Definition toX := fun x : float radix => FtoX x.
-  Definition fromF := fun x : float radix => x.
+  Definition toF (x : type) := x.
+  Definition toX (x : type) := FtoX x.
+  Definition toR x := proj_val (toX x).
+  Definition fromF (x : type) := x.
   Definition precision := positive.
   Definition sfactor := Z.
   Definition prec := fun x : positive => x.
@@ -57,7 +58,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition zero := @Fzero radix.
   Definition nan := @Fnan radix.
   Definition mag := @Fmag radix.
-  Definition cmp := @Fcmp radix.
+  Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
   Definition min := @Fmin radix.
   Definition max := @Fmax radix.
   Definition round := @Fround radix.
@@ -72,10 +73,8 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition div := @Fdiv radix.
   Definition sqrt := @Fsqrt radix.
   Definition nearbyint := @Fnearbyint_exact radix.
-  Definition toF_correct := fun x => refl_equal (@FtoX radix x).
   Definition zero_correct := refl_equal (Xreal R0).
   Definition nan_correct := refl_equal Xnan.
-  Definition cmp_correct := @Fcmp_correct radix.
   Definition min_correct := @Fmin_correct radix.
   Definition max_correct := @Fmax_correct radix.
   Definition neg_correct := @Fneg_correct radix.
@@ -104,6 +103,21 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Proof.
   intros f.
   now case f.
+  Qed.
+
+  Lemma cmp_correct :
+    forall x y,
+    toX x = Xreal (toR x) ->
+    toX y = Xreal (toR y) ->
+    cmp x y = Rcompare (toR x) (toR y).
+  Proof.
+  intros x y Rx Ry.
+  unfold cmp.
+  rewrite Fcmp_correct.
+  unfold toX in Rx, Ry.
+  rewrite Rx, Ry.
+  simpl.
+  now case Rcompare.
   Qed.
 
 End GenericFloat.

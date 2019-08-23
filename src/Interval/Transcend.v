@@ -101,7 +101,7 @@ Definition toR x := proj_val (F.toX x).
 Fixpoint atan_fast0_aux prec thre powi sqri divi (nb : nat) { struct nb } :=
   let npwi := I.mul prec powi sqri in
   let vali := I.div prec npwi divi in
-  match F.cmp (I.upper vali) thre, nb with
+  match F'.cmp (I.upper vali) thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero (I.upper vali)
   | _, S n =>
@@ -128,11 +128,11 @@ Definition pi4 := constant_getter pi4_seq.
 
 Definition atan_fastP prec x :=
   let xi := I.bnd x x in
-  match F.cmp x (F.scale2 c1 sm1) with
+  match F'.cmp x (F.scale2 c1 sm1) with
   | Xgt =>
     let prec := F.incr_prec prec 2 in
     let pi4i := pi4 prec in
-    match F.cmp x c2 with
+    match F'.cmp x c2 with
     | Xgt =>
       I.sub prec
        (I.scale2 pi4i s1)
@@ -147,7 +147,7 @@ Definition atan_fastP prec x :=
   end.
 
 Definition atan_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xeq => I.bnd F.zero F.zero
   | Xlt => I.neg (atan_fastP prec (F.neg x))
   | Xgt => atan_fastP prec x
@@ -229,7 +229,7 @@ revert powi divi.
 induction m as [|m IHm] ; intros powi divi Hm Hpow Hdiv.
   simpl atan_fast0_aux.
   specialize (Hexit (n - 0) _ _ Hpow Hdiv).
-  now case F.cmp.
+  now case F'.cmp.
 simpl atan_fast0_aux.
 set (powi' := I.mul prec powi (I.sqr prec xi)).
 set (divi' := I.add prec divi i2).
@@ -241,7 +241,7 @@ assert (H: forall p, n - S m + S p = n - m + p).
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi)
         (atan_fast0_aux prec thre powi' (I.sqr prec xi) divi' m)))
       (Xreal ((-1) ^ (n - S m + 1) * (atanc x - Ai x (n - S m))))).
-  now case F.cmp.
+  now case F'.cmp.
 replace ((-1) ^ (n - S m + 1) * (atanc x - Ai x (n - S m)%nat))%R
   with ((-1) ^ (n - S m + 1) * (-1) ^ S (n - S m) * x ^ (2 * S (n - S m)) * / INR (2 * S (n - S m) + 1) - (((-1) * (-1) ^ (n - S m + 1)) * (atanc x - (Ai x (n - S m)%nat + ((-1) ^ S (n - S m) * / INR (2 * S (n - S m) + 1) * x ^ (2 * S (n - S m)))))))%R by ring.
 assert (Hpow': contains (I.convert powi') (Xreal (x ^ (2 * (n - S m + 1))))).
@@ -327,7 +327,7 @@ Lemma atan_fastP_correct :
 Proof.
 intros prec x Rx Bx.
 unfold atan_fastP, c1, c2, sm1.
-rewrite F.cmp_correct, F.scale2_correct by easy.
+rewrite F'.cmp_correct, F.scale2_correct by easy.
 rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
 rewrite Rmult_1_l.
@@ -342,7 +342,7 @@ now apply Rlt_le.
 apply atan_fast0_correct with (2 := Ix).
 rewrite Rabs_pos_eq by easy.
 now apply Req_le.
-rewrite F.cmp_correct.
+rewrite F'.cmp_correct.
 rewrite F.fromZ_correct, Rx.
 simpl Xcmp.
 assert (H: (toR x <= 2)%R -> contains (I.convert
@@ -407,7 +407,7 @@ Lemma atan_fast_correct :
 Proof.
 intros prec x.
 unfold atan_fast.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (F.toX x) ; simpl.
 easy.
 intros r Hr.
@@ -448,7 +448,7 @@ Qed.
 Fixpoint ln1p_fast0_aux prec thre powi xi divi (nb : nat) { struct nb } :=
   let npwi := I.mul prec powi xi in
   let vali := I.div prec npwi divi in
-  match F.cmp (I.upper vali) thre, nb with
+  match F'.cmp (I.upper vali) thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero (I.upper vali)
   | _, S n =>
@@ -465,14 +465,14 @@ Definition ln1p_fast0 prec xi :=
 (* 1 <= input *)
 Definition ln_fast1P prec xi :=
   let th := F.add_exact c1 (F.scale2 c1 sm8) in
-  match F'.le (I.upper xi) th with
+  match F'.le' (I.upper xi) th with
   | true =>
     ln1p_fast0 prec (I.sub prec xi i1)
   | false =>
     let m := Digits.Zdigits2 (F.StoZ (F.mag (I.upper xi))) in
     let prec := F.incr_prec prec 10 in
     let fix reduce xi (nb : nat) {struct nb} :=
-      match F'.le (I.upper xi) th, nb with
+      match F'.le' (I.upper xi) th, nb with
       | true, _ => ln1p_fast0 prec (I.sub prec xi i1)
       | _, O => I.bnd F.zero F.nan
       | _, S n => I.scale2 (reduce (I.sqrt prec xi) n) s1
@@ -481,10 +481,10 @@ Definition ln_fast1P prec xi :=
   end.
 
 Definition ln_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xgt =>
     let xi := I.bnd x x in
-    match F.cmp x c1 with
+    match F'.cmp x c1 with
     | Xeq => I.zero
     | Xlt =>
       let m := Z.opp (F.StoZ (F.mag (F.sub rnd_UP prec c1 x))) in
@@ -570,7 +570,7 @@ induction m as [|m IHm] ; intros powi divi Hm Hpow Hdiv.
   simpl.
   cut (contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi xi) divi))))
         (Xreal ((-1) ^ (n - 0 + 1) * (ln1pc x - Ai x (n - 0))))).
-  now destruct F.cmp.
+  now destruct F'.cmp.
   now apply Hexit.
 simpl ln1p_fast0_aux.
 set (powi' := I.mul prec powi xi).
@@ -581,7 +581,7 @@ assert (H: forall p, n - S m + S p = n - m + p).
   clear -Hm ; omega.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (ln1p_fast0_aux prec thre powi' xi divi' m)))
     (Xreal ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m))))).
-  case F.cmp ; try easy.
+  case F'.cmp ; try easy.
   intros H'.
   now apply Hexit.
 replace ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m)%nat))%R
@@ -621,14 +621,14 @@ Proof.
 set (thre := F.add_exact c1 (F.scale2 c1 sm8)).
 assert (H: forall prec xi x,
     (1 <= x)%R ->
-    (F'.le (I.upper xi) thre = true) ->
+    (F'.le' (I.upper xi) thre = true) ->
     contains (I.convert xi) (Xreal x) ->
     contains (I.convert (ln1p_fast0 prec (I.sub prec xi i1))) (Xreal (ln x))).
   intros prec xi x Hx Hxu Ix.
   replace x with (1 + (x - 1))%R by ring.
   apply ln1p_fast0_correct.
   split. lra.
-  apply F'.le_correct in Hxu.
+  apply F'.le'_correct in Hxu.
   rewrite I.upper_correct in Hxu.
   destruct (I.convert xi) as [|l [|u]] ; try easy.
   revert Hxu.
@@ -644,7 +644,7 @@ assert (H: forall prec xi x,
 intros prec xi x Hx Ix.
 unfold ln_fast1P.
 fold thre.
-case_eq (F'.le (I.upper xi) thre) ; intros Hxu.
+case_eq (F'.le' (I.upper xi) thre) ; intros Hxu.
 now apply H.
 clear Hxu.
 set (m := Zdigits2 (F.StoZ (F.mag (I.upper xi)))).
@@ -657,7 +657,7 @@ revert xi x Hx Ix.
 induction nb as [|nb] ; intros xi x Hx Ix.
 (* nb = 0 *)
 simpl.
-case_eq (F'.le (I.upper xi) thre) ; intros Hxu.
+case_eq (F'.le' (I.upper xi) thre) ; intros Hxu.
 now apply H.
 simpl.
 rewrite F.zero_correct, F.nan_correct.
@@ -671,7 +671,7 @@ replace x with 1%R by lra.
 rewrite ln_1.
 apply Rle_refl.
 (* nb > 0 *)
-case_eq (F'.le (I.upper xi) thre) ; intros Hxu.
+case_eq (F'.le' (I.upper xi) thre) ; intros Hxu.
 now apply H.
 clear H Hxu.
 replace (ln x) with (ln (sqrt x) * 2)%R.
@@ -696,7 +696,7 @@ Theorem ln_fast_correct :
 Proof.
 intros prec x.
 unfold ln_fast.
-rewrite 2!F.cmp_correct, F.zero_correct.
+rewrite 2!F'.cmp_correct, F.zero_correct.
 unfold c1.
 rewrite F.fromZ_correct.
 case_eq (Xcmp (F.toX x) (Xreal 0)) ; try easy.
@@ -804,7 +804,7 @@ Definition cos_fast0 prec x :=
 Fixpoint cos_fast0_aux prec thre powi sqri facti divi (nb : nat) { struct nb } :=
   let npwi := I.mul prec powi sqri in
   let vali := I.div prec npwi divi in
-  match F.cmp (I.upper vali) thre, nb with
+  match F'.cmp (I.upper vali) thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero (I.upper vali)
   | _, S n =>
@@ -826,7 +826,7 @@ Definition cos_fast0 prec x :=
 Definition sin_cos_reduce prec x :=
   let th := F.scale2 c1 sm1 in
   let fix reduce x (nb : nat) {struct nb} :=
-    match F'.le x th, nb with
+    match F'.le' x th, nb with
     | true, _ => (Gt, cos_fast0 prec x)
     | _, O => (Eq, I.bnd (F.neg c1) c1)
     | _, S n =>
@@ -929,7 +929,7 @@ induction m as [|m IHm] ; intros powi divi facti Hm Hpow Hdiv Hfact.
   simpl cos_fast0_aux.
   cut (contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
         (Xreal ((-1) ^ (n - 0 + 1) * (cos (toR x) - A1 (toR x) (n - 0))))).
-  now destruct F.cmp.
+  now destruct F'.cmp.
   now apply Hexit.
 simpl cos_fast0_aux.
 set (powi' := I.mul prec powi x2i).
@@ -942,7 +942,7 @@ assert (H: forall p, n - S m + S p = n - m + p).
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi)
            (cos_fast0_aux prec thre powi' x2i facti' divi' m)))
     (Xreal ((-1) ^ (n - S m + 1) * (cos (toR x) - A1 (toR x) (n - S m))))).
-  case F.cmp ; try easy.
+  case F'.cmp ; try easy.
   intros H'.
   now apply Hexit.
 replace ((-1) ^ (n - S m + 1) * (cos (toR x) - A1 (toR x) (n - S m)))%R
@@ -1004,12 +1004,12 @@ Proof.
 intros prec.
 (* . *)
 assert (forall x, F.toX x = Xreal (toR x) -> (0 <= toR x)%R ->
-        F'.le x (F.scale2 (F.fromZ 1) (F.ZtoS (-1))) = true ->
+        F'.le' x (F.scale2 (F.fromZ 1) (F.ZtoS (-1))) = true ->
         contains (I.convert (cos_fast0 prec x)) (Xreal (cos (toR x))) /\
         (0 <= sin (toR x))%R).
 intros x Hxr Hx0 H.
 assert (toR x <= /2)%R.
-apply F'.le_correct in H.
+apply F'.le'_correct in H.
 revert H.
 rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
 simpl.
@@ -1037,7 +1037,7 @@ lra.
 induction nb ; intros x Hxr Hx.
 (* nb = 0 *)
 simpl.
-case_eq (F'.le x (F.scale2 c1 sm1)).
+case_eq (F'.le' x (F.scale2 c1 sm1)).
 intros.
 exact (H x Hxr Hx H0).
 intros _.
@@ -1050,7 +1050,7 @@ simpl.
 apply COS_bound.
 (* nb > 0 *)
 simpl.
-case_eq (F'.le x (F.scale2 c1 sm1)).
+case_eq (F'.le' x (F.scale2 c1 sm1)).
 intros.
 exact (H x Hxr Hx H0).
 intros _.
@@ -1124,7 +1124,7 @@ Qed.
 (* 0 <= input *)
 Definition cos_fastP prec x :=
   let th := F.scale2 c1 sm1 in
-  match F'.le x th with
+  match F'.le' x th with
   | true => cos_fast0 prec x
   | _ =>
     let m := F.StoZ (F.mag x) in
@@ -1140,11 +1140,11 @@ Lemma cos_fastP_correct :
 Proof.
 intros prec x Hxr Hx0.
 unfold cos_fastP.
-case_eq (F'.le x (F.scale2 c1 sm1)) ; intros H.
+case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros H.
 apply cos_fast0_correct.
 easy.
 rewrite Rabs_pos_eq with (1 := Hx0).
-apply F'.le_correct in H.
+apply F'.le'_correct in H.
 revert H.
 unfold toR, sm1, c1.
 rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
@@ -1158,7 +1158,7 @@ apply proj1.
 Qed.
 
 Definition cos_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xeq => I.bnd c1 c1
   | Xlt => cos_fastP prec (F.neg x)
   | Xgt => cos_fastP prec x
@@ -1171,7 +1171,7 @@ Theorem cos_fast_correct :
 Proof.
 intros prec x.
 unfold cos_fast.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -1331,7 +1331,7 @@ induction m as [|m IHm] ; intros powi divi facti Hm Hpow Hdiv Hfact.
   simpl cos_fast0_aux.
   cut (contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
     (Xreal ((-1) ^ (n - 0 + 1) * (sinc (toR x) - Si (toR x) (n - 0))))).
-  now destruct F.cmp.
+  now destruct F'.cmp.
   now apply Hexit.
 simpl cos_fast0_aux.
 set (powi' := I.mul prec powi x2i).
@@ -1343,7 +1343,7 @@ assert (H: forall p, n - S m + S p = n - m + p).
   clear -Hm ; omega.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (cos_fast0_aux prec thre powi' x2i facti' divi' m)))
     (Xreal ((-1) ^ (n - S m + 1) * (sinc (toR x) - Si (toR x) (n - S m))))).
-  case F.cmp ; try easy.
+  case F'.cmp ; try easy.
   intros H'.
   now apply Hexit.
 replace ((-1) ^ (n - S m + 1) * (sinc (toR x) - Si (toR x) (n - S m)%nat))%R
@@ -1391,7 +1391,7 @@ Qed.
 (* 0 <= input *)
 Definition sin_fastP prec x :=
   let th := F.scale2 c1 sm1 in
-  match F'.le x th with
+  match F'.le' x th with
   | true => sin_fast0 (F.incr_prec prec 1) x
   | _ =>
     let m := F.StoZ (F.mag x) in
@@ -1415,11 +1415,11 @@ Lemma sin_fastP_correct :
 Proof.
 intros prec x Hxr Hx0.
 unfold sin_fastP.
-case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
+case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros Hx.
 apply sin_fast0_correct.
 easy.
 rewrite Rabs_pos_eq with (1 := Hx0).
-apply F'.le_correct in Hx.
+apply F'.le'_correct in Hx.
 revert Hx.
 unfold toR, sm1, c1.
 rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
@@ -1477,7 +1477,7 @@ apply refl_equal.
 Qed.
 
 Definition sin_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xeq => I.bnd F.zero F.zero
   | Xlt => I.neg (sin_fastP prec (F.neg x))
   | Xgt => sin_fastP prec x
@@ -1490,7 +1490,7 @@ Theorem sin_fast_correct :
 Proof.
 intros prec x.
 unfold sin_fast.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -1532,7 +1532,7 @@ Qed.
 (* 0 <= input *)
 Definition tan_fastP prec x :=
   let th := F.scale2 c1 sm1 in
-  match F'.le x th with
+  match F'.le' x th with
   | true =>
     let prec := F.incr_prec prec 2 in
     let s := sin_fast0 prec x in
@@ -1554,7 +1554,7 @@ Definition tan_fastP prec x :=
   end.
 
 Definition tan_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xeq => I.bnd F.zero F.zero
   | Xlt => I.neg (tan_fastP prec (F.neg x))
   | Xgt => tan_fastP prec x
@@ -1569,8 +1569,8 @@ Lemma tan_fastP_correct :
 Proof.
 intros prec x Rx Bx.
 unfold tan_fastP.
-case_eq (F'.le x (F.scale2 c1 sm1)) ; intros Hx.
-- apply F'.le_correct in Hx.
+case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros Hx.
+- apply F'.le'_correct in Hx.
   revert Hx.
   unfold toR, c1, sm1.
   rewrite Rx, F.scale2_correct, F.fromZ_correct by easy.
@@ -1732,7 +1732,7 @@ Theorem tan_fast_correct :
 Proof.
 intros prec x.
 unfold tan_fast.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.
@@ -1794,7 +1794,7 @@ Definition atan_correct : forall prec, semi_extension Xatan (atan_fast prec) := 
 Fixpoint expn_fast0_aux prec thre powi xi facti divi (nb : nat) { struct nb } :=
   let npwi := I.mul prec powi xi in
   let vali := I.div prec npwi divi in
-  match F.cmp (I.upper vali) thre, nb with
+  match F'.cmp (I.upper vali) thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero (I.upper vali)
   | _, S n =>
@@ -1814,13 +1814,13 @@ Definition expn_fast0 prec x :=
 (* 0 <= input *)
 Definition expn_reduce prec x :=
   let th := F.scale2 c1 sm8 in
-  match F'.le x th with
+  match F'.le' x th with
   | true => expn_fast0 (F.incr_prec prec 1) x
   | false =>
     let m := F.StoZ (F.mag x) in
     let prec := F.incr_prec prec (Z2P (9 + m)) in
     let fix reduce x (nb : nat) {struct nb} :=
-      match F'.le x th, nb with
+      match F'.le' x th, nb with
       | true, _ => expn_fast0 prec x
       | _, O => I.bnd F.zero c1
       | _, S n => I.sqr prec (reduce (F.scale2 x sm1) n)
@@ -1829,7 +1829,7 @@ Definition expn_reduce prec x :=
   end.
 
 Definition exp_fast prec x :=
-  match F.cmp x F.zero with
+  match F'.cmp x F.zero with
   | Xeq => i1
   | Xlt => expn_reduce prec (F.neg x)
   | Xgt =>
@@ -1936,7 +1936,7 @@ induction m as [|m IHm] ; intros powi divi facti Hm Hpow Hdiv Hfact.
   simpl expn_fast0_aux.
   cut (contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi xi) divi))))
     (Xreal ((-1) ^ (n - 0) * (exp (- toR x) + - E1 (- toR x) (n - 0 + 1))))).
-  now destruct F.cmp.
+  now destruct F'.cmp.
   now apply Hexit.
 simpl expn_fast0_aux.
 set (powi' := I.mul prec powi xi).
@@ -1948,7 +1948,7 @@ assert (H: forall p, n - m + p = n - S m + p + 1).
   clear -Hm ; omega.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (expn_fast0_aux prec thre powi' xi facti' divi' m)))
     (Xreal ((-1) ^ (n - S m) * (exp (- toR x) + - E1 (- toR x) (n - S m + 1))))).
-  case F.cmp ; try easy.
+  case F'.cmp ; try easy.
   intros H'.
   now apply Hexit.
 replace ((-1) ^ (n - S m) * (exp (- toR x) + - E1 (- toR x) (n - S m + 1)))%R
@@ -2007,14 +2007,14 @@ Lemma expn_reduce_correct :
 Proof.
 assert (forall prec x,
   F.toX x = Xreal (toR x) ->
-  (0 < toR x)%R -> F'.le x (F.scale2 c1 sm8) = true ->
+  (0 < toR x)%R -> F'.le' x (F.scale2 c1 sm8) = true ->
   contains (I.convert (expn_fast0 prec x)) (Xreal (exp (- toR x)))).
 intros prec x Hx1 Hx2 Hx3.
 apply expn_fast0_correct.
 exact Hx1.
 split.
 now apply Rlt_le.
-apply F'.le_correct in Hx3.
+apply F'.le'_correct in Hx3.
 revert Hx3.
 rewrite Hx1.
 unfold c1, sm8.
@@ -2029,7 +2029,7 @@ now apply IZR_le.
 (* . *)
 intros prec x Hx H0.
 unfold expn_reduce.
-case_eq (F'.le x (F.scale2 c1 sm8)) ; intros Hx'.
+case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
 (* . no reduction *)
 now apply H.
 (* . reduction *)
@@ -2041,7 +2041,7 @@ intro nb.
 revert x Hx H0.
 induction nb ; intros ; simpl.
 (* nb = 0 *)
-case_eq (F'.le x (F.scale2 c1 sm8)) ; intros Hx'.
+case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
 now apply H.
 simpl.
 unfold c1.
@@ -2056,7 +2056,7 @@ apply exp_increasing.
 rewrite <- Ropp_0.
 now apply Ropp_lt_contravar.
 (* nb > 0 *)
-case_eq (F'.le x (F.scale2 c1 sm8)) ; intros Hx'.
+case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
 now apply H.
 assert (toR (F.scale2 x sm1) = toR x * /2)%R.
 unfold toR, sm1.
@@ -2084,7 +2084,7 @@ Theorem exp_fast_correct :
 Proof.
 intros prec x.
 unfold exp_fast.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 case_eq (F.toX x).
 easy.
 intros r Hr.

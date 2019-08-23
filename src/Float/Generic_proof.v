@@ -330,12 +330,12 @@ Qed.
 Lemma Fcmp_aux2_correct :
   forall beta m1 m2 e1 e2,
   Fcmp_aux2 beta m1 e1 m2 e2 =
-  Xcmp (Xreal (FtoR beta false m1 e1)) (Xreal (FtoR beta false m2 e2)).
+  Rcompare (FtoR beta false m1 e1) (FtoR beta false m2 e2).
 Proof.
 intros beta m1 m2 e1 e2.
 rewrite 2!FtoR_split.
 simpl cond_Zopp.
-unfold  Fcmp_aux2, Xcmp.
+unfold Fcmp_aux2.
 rewrite <- 2!digits_conversion.
 rewrite (Zplus_comm e1), (Zplus_comm e2).
 rewrite <- 2!mag_F2R_Zdigits ; [|easy..].
@@ -398,33 +398,30 @@ Theorem Fcmp_correct :
   Fcmp x y = Xcmp (FtoX x) (FtoX y).
 Proof.
 intros.
-case x ; intros ; simpl ; try apply refl_equal ;
-  case y ; intros ; simpl ; try apply refl_equal ; clear.
+destruct x as [| |sx mx ex] ; simpl ; try apply refl_equal ;
+  destruct y as [| |sy my ey] ; simpl ; try apply refl_equal ; clear.
 now rewrite Rcompare_Eq.
-case b.
+case sy.
 rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rneg.
 rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rpos.
-case b ; apply refl_equal.
-case b.
+now case sx.
+case sx.
 rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rneg.
 rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rpos.
-case b ; case b0.
+unfold Fcmp_aux3.
+case sx ; case sy.
 rewrite Fcmp_aux2_correct.
-simpl.
 change true with (negb false).
 repeat rewrite <- FtoR_neg.
-generalize (FtoR beta false p0 z0).
-generalize (FtoR beta false p z).
-intros.
-destruct (Rcompare_spec r0 r).
+case Rcompare_spec ; intros H.
 rewrite Rcompare_Lt.
 apply refl_equal.
 now apply Ropp_lt_contravar.

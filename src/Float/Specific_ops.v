@@ -57,8 +57,7 @@ Definition toF (x : type) : float radix :=
   end.
 
 Definition toX (x : type) := FtoX (toF x).
-
-Definition toF_correct := fun x => refl_equal (toX x).
+Definition toR (x : type) := proj_val (toX x).
 
 Definition fromF (f : Basic.float radix) :=
   match f with
@@ -172,6 +171,14 @@ case t ; intros (H1, H2).
 discriminate H1.
 now inversion H1.
 exact H.
+Qed.
+
+Lemma toX_Float :
+  forall m e, toX (Float m e) = Xreal (toR (Float m e)).
+Proof.
+intros m e.
+unfold toR, toX, toF.
+now destruct mantissa_sign.
 Qed.
 
 (*
@@ -318,35 +325,28 @@ Qed.
  * cmp
  *)
 
-Definition cmp_aux1 m1 m2 :=
-  match mantissa_cmp m1 m2 with
-  | Eq => Xeq
-  | Lt => Xlt
-  | Gt => Xgt
-  end.
-
-Definition cmp_aux2 m1 e1 m2 e2 :=
+Definition cmp_aux m1 e1 m2 e2 :=
   let d1 := mantissa_digits m1 in
   let d2 := mantissa_digits m2 in
   match exponent_cmp (exponent_add e1 d1) (exponent_add e2 d2) with
-  | Lt => Xlt
-  | Gt => Xgt
+  | Lt => Lt
+  | Gt => Gt
   | Eq =>
     let nb := exponent_sub e1 e2 in
     match exponent_cmp nb exponent_zero with
-    | Gt => cmp_aux1 (mantissa_shl m1 nb) m2
-    | Lt => cmp_aux1 m1 (mantissa_shl m2 (exponent_neg nb))
-    | Eq => cmp_aux1 m1 m2
+    | Gt => mantissa_cmp (mantissa_shl m1 nb) m2
+    | Lt => mantissa_cmp m1 (mantissa_shl m2 (exponent_neg nb))
+    | Eq => mantissa_cmp m1 m2
     end
   end.
 
-Lemma cmp_aux2_correct :
+Lemma cmp_aux_correct :
   forall m1 e1 m2 e2,
   valid_mantissa m1 -> valid_mantissa m2 ->
-  cmp_aux2 m1 e1 m2 e2 = Fcmp_aux2 radix (MtoP m1) (EtoZ e1) (MtoP m2) (EtoZ e2).
+  cmp_aux m1 e1 m2 e2 = Fcmp_aux2 radix (MtoP m1) (EtoZ e1) (MtoP m2) (EtoZ e2).
 Proof.
 intros m1 e1 m2 e2 H1 H2.
-unfold cmp_aux2, Fcmp_aux2.
+unfold cmp_aux, Fcmp_aux2.
 rewrite exponent_cmp_correct.
 do 2 rewrite exponent_add_correct.
 do 2 (rewrite mantissa_digits_correct ; [idtac | assumption]).
@@ -358,7 +358,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_zero_correct.
 rewrite exponent_sub_correct.
 case_eq (EtoZ e1 - EtoZ e2)%Z ; intros ; simpl ;
-  unfold cmp_aux1, Fcmp_aux1.
+  unfold Fcmp_aux1.
 now rewrite mantissa_cmp_correct.
 generalize (mantissa_shl_correct p m1 (exponent_sub e1 e2) H1).
 rewrite exponent_sub_correct.
@@ -386,45 +386,61 @@ Qed.
 
 Definition cmp (f1 f2 : type) :=
   match f1, f2 with
-  | Fnan, _ => Xund
-  | _, Fnan => Xund
+  | Fnan, _ => Eq
+  | _, Fnan => Eq
   | Float m1 e1, Float m2 e2 =>
     match mantissa_sign m1, mantissa_sign m2 with
-    | Mzero, Mzero => Xeq
-    | Mzero, Mnumber true _ => Xgt
-    | Mzero, Mnumber false _ => Xlt
-    | Mnumber true _, Mzero => Xlt
-    | Mnumber false _, Mzero => Xgt
-    | Mnumber true _, Mnumber false _ => Xlt
-    | Mnumber false _, Mnumber true _ => Xgt
-    | Mnumber true p1, Mnumber true p2 => cmp_aux2 p2 e2 p1 e1
-    | Mnumber false p1, Mnumber false p2 => cmp_aux2 p1 e1 p2 e2
+    | Mzero, Mzero => Eq
+    | Mzero, Mnumber true _ => Gt
+    | Mzero, Mnumber false _ => Lt
+    | Mnumber true _, Mzero => Lt
+    | Mnumber false _, Mzero => Gt
+    | Mnumber true _, Mnumber false _ => Lt
+    | Mnumber false _, Mnumber true _ => Gt
+    | Mnumber true p1, Mnumber true p2 => cmp_aux p2 e2 p1 e1
+    | Mnumber false p1, Mnumber false p2 => cmp_aux p1 e1 p2 e2
     end
   end.
 
 Lemma cmp_correct :
-  forall x y, cmp x y = Xcmp (toX x) (toX y).
+  forall x y,
+  toX x = Xreal (toR x) ->
+  toX y = Xreal (toR y) ->
+  cmp x y = Rcompare (toR x) (toR y).
 Proof.
-intros.
-unfold toX.
-rewrite <- Fcmp_correct.
-destruct x as [| mx ex].
-apply refl_equal.
-destruct y as [| my ey].
+intros x y Rx Ry.
+destruct x as [|mx ex]. easy.
+destruct y as [|my ey]. easy.
 simpl.
-case (mantissa_sign mx) ; intros ; try case s ; apply refl_equal.
-simpl.
+unfold toR, toX, toF.
 generalize (mantissa_sign_correct mx) (mantissa_sign_correct my).
-case (mantissa_sign mx) ; case (mantissa_sign my).
-trivial.
-intros sy py.
-now case sy.
-intros sx px.
-now case sx.
-intros sy py sx px.
-intros (Hx1, Hx2) (Hy1, Hy2).
-do 2 (rewrite cmp_aux2_correct ; try assumption).
-apply refl_equal.
+destruct (mantissa_sign mx) as [|[|] mx'] ;
+  destruct (mantissa_sign my) as [|[|] my'] ; intros Hx Hy.
+- now rewrite Rcompare_Eq.
+- rewrite Rcompare_Gt. easy.
+  apply FtoR_Rneg.
+- rewrite Rcompare_Lt. easy.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Lt. easy.
+  apply FtoR_Rneg.
+- rewrite cmp_aux_correct by easy.
+  rewrite Fcmp_aux2_correct.
+  simpl.
+  change true with (negb false).
+  rewrite <- 2!FtoR_neg.
+  now rewrite Rcompare_opp.
+- rewrite Rcompare_Lt. easy.
+  apply Rlt_trans with 0%R.
+  apply FtoR_Rneg.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Gt. easy.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Gt. easy.
+  apply Rlt_trans with 0%R.
+  apply FtoR_Rneg.
+  apply FtoR_Rpos.
+- rewrite cmp_aux_correct by easy.
+  now rewrite Fcmp_aux2_correct.
 Qed.
 
 (*
@@ -432,24 +448,30 @@ Qed.
  *)
 
 Definition min x y :=
-  match cmp x y with
-  | Xlt => x
-  | Xeq => x
-  | Xgt => y
-  | Xund => nan
+  match x, y with
+  | Fnan, _ => x
+  | _, Fnan => y
+  | _, _ =>
+    match cmp x y with
+    | Lt => x
+    | Eq => x
+    | Gt => y
+    end
   end.
 
 Lemma min_correct :
   forall x y,
   toX (min x y) = Xmin (toX x) (toX y).
 Proof.
-intros.
-unfold min.
-rewrite cmp_correct.
-unfold toX.
-rewrite <- Fcmp_correct, <- Fmin_correct.
-unfold Fmin.
-now case Fcmp.
+intros [|mx ex] [|my ey] ; try easy.
+now destruct (toX (Float mx ex)).
+rewrite 2!toX_Float.
+unfold min, Xmin.
+rewrite cmp_correct by apply toX_Float.
+case Rcompare_spec ; intros H ; rewrite toX_Float ; apply f_equal, sym_eq.
+now apply Rmin_left, Rlt_le.
+now apply Rmin_left, Req_le.
+now apply Rmin_right, Rlt_le.
 Qed.
 
 (*
@@ -457,24 +479,30 @@ Qed.
  *)
 
 Definition max x y :=
-  match cmp x y with
-  | Xlt => y
-  | Xeq => y
-  | Xgt => x
-  | Xund => nan
+  match x, y with
+  | Fnan, _ => x
+  | _, Fnan => y
+  | _, _ =>
+    match cmp x y with
+    | Lt => y
+    | Eq => y
+    | Gt => x
+    end
   end.
 
 Lemma max_correct :
   forall x y,
   toX (max x y) = Xmax (toX x) (toX y).
 Proof.
-intros.
-unfold max.
-rewrite cmp_correct.
-unfold toX.
-rewrite <- Fcmp_correct, <- Fmax_correct.
-unfold Fmax.
-now case Fcmp.
+intros [|mx ex] [|my ey] ; try easy.
+now destruct (toX (Float mx ex)).
+rewrite 2!toX_Float.
+unfold max, Xmax.
+rewrite cmp_correct by apply toX_Float.
+case Rcompare_spec ; intros H ; rewrite toX_Float ; apply f_equal, sym_eq.
+now apply Rmax_right, Rlt_le.
+now apply Rmax_right, Req_le.
+now apply Rmax_left, Rlt_le.
 Qed.
 
 (*

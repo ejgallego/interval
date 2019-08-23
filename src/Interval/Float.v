@@ -44,6 +44,8 @@ Definition le_lower' x y :=
 
 Module FloatInterval (F : FloatOps with Definition even_radix := true).
 
+Module F' := FloatExt F.
+
 Definition type := f_interval F.type.
 Definition bound_type := F.type.
 Definition precision := F.precision.
@@ -98,12 +100,12 @@ Definition upper_bounded xi :=
 Definition subset xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
-    match F.cmp xl yl with
+    match F'.cmp xl yl with
     | Xund => negb (F.real yl)
     | Xlt => false
     | _ => true
     end &&
-    match F.cmp xu yu with
+    match F'.cmp xu yu with
     | Xund => negb (F.real yu)
     | Xgt => false
     | _ => true
@@ -177,7 +179,7 @@ Definition midpoint xi :=
   match xi with
   | Inan => F.zero
   | Ibnd xl xu =>
-    match F.cmp xl F.zero, F.cmp xu F.zero with
+    match F'.cmp xl F.zero, F'.cmp xu F.zero with
     | Xund, Xund => F.zero
     | Xeq, Xeq => F.zero
     | Xlt, Xund => F.zero
@@ -194,7 +196,7 @@ Definition midpoint' xi :=
   match xi with
   | Inan => zero
   | Ibnd xl xu =>
-    match F.cmp xl F.zero, F.cmp xu F.zero with
+    match F'.cmp xl F.zero, F'.cmp xu F.zero with
     | Xund, Xund => zero
     | Xeq, Xeq => zero
     | Xlt, Xund => zero
@@ -204,7 +206,7 @@ Definition midpoint' xi :=
     | Xgt, Xund => let m := F.scale xl (F.ZtoS 1%Z) in Ibnd m m
     | Xund, Xlt => let m := F.scale xu (F.ZtoS 1%Z) in Ibnd m m
     | _, _ =>
-      if match F.cmp xl xu with Xgt => true | _ => false end then empty
+      if F'.lt xu xl then empty
       else let m := F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)%Z) in Ibnd m m
     end
   end.
@@ -218,7 +220,7 @@ Definition extension_2 f fi := forall ix iy x y,
   contains (convert (fi ix iy)) (f x y).
 
 Definition sign_large_ xl xu :=
-  match F.cmp xl F.zero, F.cmp xu F.zero with
+  match F'.cmp xl F.zero, F'.cmp xu F.zero with
   | Xeq, Xeq => Xeq
   | _, Xlt => Xlt
   | _, Xeq => Xlt
@@ -234,7 +236,7 @@ Definition sign_large xi :=
   end.
 
 Definition sign_strict_ xl xu :=
-  match F.cmp xl F.zero, F.cmp xu F.zero with
+  match F'.cmp xl F.zero, F'.cmp xu F.zero with
   | Xeq, Xeq => Xeq
   | _, Xlt => Xlt
   | Xgt, _ => Xgt
@@ -280,7 +282,7 @@ Definition scale2 xi d :=
 Definition sqrt prec xi :=
   match xi with
   | Ibnd xl xu =>
-    match F.cmp xl F.zero with
+    match F'.cmp xl F.zero with
     | Xeq => Ibnd F.zero (F.sqrt rnd_UP prec xu)
     | Xgt => Ibnd (F.sqrt rnd_DN prec xl) (F.sqrt rnd_UP prec xu)
     | _ => Inan
@@ -305,7 +307,7 @@ Definition sub prec xi yi :=
 Definition mul_mixed prec xi y :=
   match xi with
   | Ibnd xl xu =>
-    match F.cmp y F.zero with
+    match F'.cmp y F.zero with
     | Xlt => Ibnd (F.mul rnd_DN prec xu y) (F.mul rnd_UP prec xl y)
     | Xeq => Ibnd F.zero F.zero
     | Xgt => Ibnd (F.mul rnd_DN prec xl y) (F.mul rnd_UP prec xu y)
@@ -317,7 +319,7 @@ Definition mul_mixed prec xi y :=
 Definition div_mixed_r prec xi y :=
   match xi with
   | Ibnd xl xu =>
-    match F.cmp y F.zero with
+    match F'.cmp y F.zero with
     | Xlt => Ibnd (F.div rnd_DN prec xu y) (F.div rnd_UP prec xl y)
     | Xgt => Ibnd (F.div rnd_DN prec xl y) (F.div rnd_UP prec xu y)
     | _ => Inan
@@ -487,7 +489,7 @@ destruct (andb_prop _ _ H) as (H1, H2).
 split.
 (* lower bound *)
 generalize H1. clear.
-rewrite F.cmp_correct.
+rewrite F'.cmp_correct.
 unfold le_lower, le_upper, negb.
 rewrite F.real_correct.
 destruct (F.toX yl) as [|ylr].
@@ -503,7 +505,7 @@ apply Ropp_le_contravar.
 now left.
 (* upper bound *)
 generalize H2. clear.
-rewrite F.cmp_correct.
+rewrite F'.cmp_correct.
 unfold le_upper, negb.
 rewrite F.real_correct.
 destruct (F.toX yu) as [|yur].
@@ -586,12 +588,7 @@ generalize (F.real_correct xl).
 rewrite H.
 clear H.
 simpl.
-rewrite <- F.toF_correct.
-case (F.toF xl).
-intro H.
-discriminate H.
-repeat split.
-repeat split.
+now case (F.toX xl).
 Qed.
 
 Theorem upper_bounded_correct :
@@ -607,12 +604,7 @@ generalize (F.real_correct xu).
 rewrite H.
 clear H.
 simpl.
-rewrite <- F.toF_correct.
-case (F.toF xu).
-intro H.
-discriminate H.
-repeat split.
-repeat split.
+now case (F.toX xu).
 Qed.
 
 Theorem bounded_correct :
@@ -684,7 +676,7 @@ Lemma sign_large_correct_ :
 Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_large_.
-rewrite 2!F.cmp_correct.
+rewrite 2!F'.cmp_correct.
 rewrite F.zero_correct.
 destruct (F.toX xu) as [|xur].
 simpl.
@@ -794,7 +786,7 @@ Lemma sign_strict_correct_ :
 Proof.
 intros xl xu x (Hxl, Hxu).
 unfold sign_strict_.
-rewrite 2!F.cmp_correct.
+rewrite 2!F'.cmp_correct.
 rewrite F.zero_correct.
 destruct (F.toX xu) as [|xur].
 simpl.
@@ -906,7 +898,7 @@ rewrite <- bpow_powerRZ.
 now apply (bpow_le F.radix 0).
 (* . *)
 simpl.
-repeat rewrite F.cmp_correct.
+repeat rewrite F'.cmp_correct.
 xreal_tac xl ; xreal_tac xu ; simpl ;
   rewrite F.zero_correct ; simpl.
 repeat split.
@@ -986,8 +978,8 @@ rewrite F.zero_correct.
 split ; apply Rle_refl.
 unfold midpoint'.
 set (m := F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))).
-set (mi := if match F.cmp xl xu with Xgt => true | _ => false end then empty else Ibnd m m).
-rewrite 2!F.cmp_correct, F.zero_correct.
+set (mi := if F'.lt xu xl then empty else Ibnd m m).
+rewrite 2!F'.cmp_correct, F.zero_correct.
 unfold not_empty.
 simpl.
 assert (He: forall b, exists v : R, contains (convert (Ibnd b b)) (Xreal v)).
@@ -1059,74 +1051,43 @@ split.
 intros x.
 assert (contains (convert mi) x -> match x with Xnan => False | Xreal x => (xlr <= x <= xur)%R end).
 unfold mi, m. clear -Hl Hu.
-rewrite F.cmp_correct, Hl, Hu.
+rewrite F'.lt_correct.
+2: now unfold F.toR ; rewrite Hu.
+2: now unfold F.toR ; rewrite Hl.
+unfold F.toR.
+rewrite Hl, Hu.
 simpl.
-assert ((xlr <= xur)%R ->
-  match F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))) with
-  | Xnan => False
-  | Xreal m => (xlr <= m <= xur)%R
-  end).
-intros Hlu.
+case Rlt_bool_spec ; intros Hlu.
+simpl.
+destruct x as [|x].
+easy.
+rewrite F.fromZ_correct, F.zero_correct.
+lra.
+simpl.
 rewrite F.scale2_correct by easy.
 rewrite F.add_exact_correct, Hl, Hu.
 simpl.
 rewrite Rmult_plus_distr_r.
-split.
-pattern xlr at 1 ; rewrite <- eps2.
-apply Rplus_le_compat_l.
-apply Rmult_le_compat_r with (2 := Hlu).
-apply Rlt_le, pos_half_prf.
-pattern xur at 2 ; rewrite <- eps2.
-apply Rplus_le_compat_r.
-apply Rmult_le_compat_r with (2 := Hlu).
-apply Rlt_le, pos_half_prf.
-case Rcompare_spec ; intros Hlu.
 destruct x as [|x].
 easy.
-simpl.
-generalize (H (Rlt_le _ _ Hlu)).
-clear.
-destruct F.toX as [|m].
-easy.
-intros H [H1 H2].
-now rewrite (Rle_antisym _ _ H2 H1).
-destruct x as [|x].
-easy.
-simpl.
-generalize (H (Req_le _ _ Hlu)).
-clear.
-destruct F.toX as [|m].
-easy.
-intros H [H1 H2].
-now rewrite (Rle_antisym _ _ H2 H1).
-destruct x as [|x].
-easy.
-simpl.
-rewrite F.fromZ_correct, F.zero_correct.
-intros [H1 H2].
-elim Rle_not_lt with (1 := H2).
-apply Rlt_le_trans with (2 := H1).
-exact Rlt_0_1.
+change (Z.pow_pos 2 1) with 2%Z.
+lra.
 case Rcompare_spec ; intros Hl0 ;
   case Rcompare_spec ; intros Hu0 ; try exact H.
 destruct x as [|x].
 easy.
 simpl.
 rewrite F.zero_correct.
-intros [H1 H2].
-rewrite (Rle_antisym _ _ H2 H1), Hl0, Hu0.
-split ; apply Rle_refl.
+lra.
 intros [v Hv].
 revert mi.
-rewrite F.cmp_correct, Hl, Hu.
-intros mi.
-replace mi with (Ibnd m m).
+rewrite F'.lt_correct.
+2: now unfold F.toR ; rewrite Hu.
+2: now unfold F.toR ; rewrite Hl.
+unfold F.toR.
+rewrite Hl, Hu.
+rewrite Rlt_bool_false.
 case Rcompare ; case Rcompare ; apply He.
-unfold mi.
-simpl.
-case Rcompare_spec ; try easy.
-intros H.
-elim Rlt_not_le with (1 := H).
 now apply Rle_trans with v.
 Qed.
 
@@ -1214,7 +1175,7 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, F.zero_correct.
+rewrite 2!F'.cmp_correct, F.zero_correct.
 case_eq (F.toX xl) ; case_eq (F.toX xu).
 simpl.
 intros _ _.
@@ -1339,7 +1300,7 @@ intros prec [ | xl xu] [ | x] ; simpl ; trivial.
 intro.
 elim H.
 intros (Hxl, Hxu).
-rewrite F.cmp_correct.
+rewrite F'.cmp_correct.
 rewrite F.zero_correct.
 revert Hxl.
 case_eq (F.toX xl) ; [ split | idtac ].
@@ -1437,7 +1398,7 @@ Proof.
 intros prec yf [ | xl xu] [ | x] ; try easy.
 intros (Hxl, Hxu).
 simpl.
-rewrite F.cmp_correct,  F.zero_correct.
+rewrite F'.cmp_correct,  F.zero_correct.
 xreal_tac2.
 simpl.
 case Rcompare_spec ; intros Hr ;
@@ -1547,7 +1508,7 @@ Proof.
 intros prec yf [ | xl xu] [ | x] ; try easy.
 intros [Hxl Hxu].
 simpl.
-rewrite F.cmp_correct, F.zero_correct.
+rewrite F'.cmp_correct, F.zero_correct.
 xreal_tac2.
 unfold Xdiv'.
 simpl.
@@ -1697,7 +1658,7 @@ now elim H.
 intros _.
 simpl.
 unfold sign_large_.
-rewrite 2!F.cmp_correct, F.zero_correct.
+rewrite 2!F'.cmp_correct, F.zero_correct.
 assert (Hd: forall x xr, F.toX x = Xreal xr ->
     match F.toX (F.mul rnd_DN prec x x) with
     | Xnan => False

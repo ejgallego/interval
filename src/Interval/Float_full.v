@@ -28,7 +28,6 @@ Require Import Transcend.
 
 Module FloatIntervalFull (F : FloatOps with Definition even_radix := true) <: IntervalOps.
 
-Module F' := FloatExt F.
 Module T := TranscendentalFloatFast F.
 Include FloatInterval F.
 
@@ -60,19 +59,19 @@ Qed.
 Definition cos prec xi :=
   match abs xi with
   | Ibnd xl xu =>
-    if F'.le xu xl then T.cos_fast prec xl else
+    if F'.le' xu xl then T.cos_fast prec xl else
     let pi4 := T.pi4 prec in
-    if F'.le xu (F.scale2 (lower pi4) s2) then
+    if F'.le' xu (F.scale2 (lower pi4) s2) then
       bnd (lower (T.cos_fast prec xu)) (upper (T.cos_fast prec xl))
     else
-      if F'.le xu (F.scale2 (lower pi4) s3) then
-        if F'.le (F.scale2 (upper pi4) s2) xl then
+      if F'.le' xu (F.scale2 (lower pi4) s3) then
+        if F'.le' (F.scale2 (upper pi4) s2) xl then
           bnd (lower (T.cos_fast prec xl)) (upper (T.cos_fast prec xu))
         else
           bnd cm1 (F.max (upper (T.cos_fast prec xl)) (upper (T.cos_fast prec xu)))
       else
         let d := F.sub rnd_UP prec xu xl in
-        if F'.le d c3 then
+        if F'.le' d c3 then
           let m := F.scale2 (F.add_exact xl xu) sm1 in
           let d := F.scale2 d sm1 in
           let c := T.cos_fast prec m in
@@ -98,9 +97,9 @@ replace (Rtrigo_def.cos x) with (Rtrigo_def.cos (Rabs x)).
 clear Hx.
 assert (Hcxl := T.cos_fast_correct prec xl).
 assert (Hcxu := T.cos_fast_correct prec xu).
-case_eq (F'.le xu xl).
+case_eq (F'.le' xu xl).
   intros Hl.
-  apply F'.le_correct in Hl.
+  apply F'.le'_correct in Hl.
   simpl in Ha.
   destruct (F.toX xu) as [|xur] ; try easy.
   destruct (F.toX xl) as [|xlr] ; try easy.
@@ -111,9 +110,9 @@ case_eq (F'.le xu xl).
   now apply Rle_trans with (2 := Hl).
 intros _.
 unfold cm1, c1, c3, sm1, s2, s3.
-case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
+case_eq (F'.le' xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   intros Hu.
-  apply F'.le_correct in Hu.
+  apply F'.le'_correct in Hu.
   simpl in Ha.
   destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= PI)%R).
@@ -155,9 +154,9 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 2))).
   now apply Rle_trans with xur.
   apply Ha.
 intros _.
-case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
+case_eq (F'.le' xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   intros Hu.
-  apply F'.le_correct in Hu.
+  apply F'.le'_correct in Hu.
   simpl in Ha.
   destruct (F.toX xu) as [|xur] ; try easy.
   assert (Hxur: (xur <= 2 * PI)%R).
@@ -172,9 +171,9 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
     apply Rle_trans with (1 := Hu).
     lra.
   clear Hu.
-  case_eq (F'.le (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 2)) xl).
+  case_eq (F'.le' (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 2)) xl).
     intros Hl.
-    apply F'.le_correct in Hl.
+    apply F'.le'_correct in Hl.
     destruct (F.toX xl) as [|xlr].
     now destruct (F.toX (F.scale2 (upper (T.pi4 prec)) (F.ZtoS 2))).
     assert (Hxlr: (PI <= xlr)%R).
@@ -236,9 +235,9 @@ case_eq (F'.le xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   apply Rle_trans with (1 := proj2 Ha) (2 := Hxur).
   apply Rle_trans with (1 := Hx) (2 := proj2 Ha).
 intros _.
-case_eq (F'.le (F.sub rnd_UP prec xu xl) (F.fromZ 3)).
+case_eq (F'.le' (F.sub rnd_UP prec xu xl) (F.fromZ 3)).
   intros Hd.
-  apply F'.le_correct in Hd.
+  apply F'.le'_correct in Hd.
   revert Hd.
   rewrite F.sub_correct, F.fromZ_correct.
   case_eq (F.toX xu) ; try easy ; intros xur Hur.
@@ -291,10 +290,10 @@ Qed.
 Definition sin prec xi :=
   match xi with
   | Ibnd xl xu =>
-    if F'.le xu xl then T.sin_fast prec xl else
+    if F'.le' xu xl then T.sin_fast prec xl else
     let pi4 := T.pi4 prec in
     let pi2 := F.scale2 (lower pi4) s1 in
-    match F'.le (F.neg pi2) xl, F'.le xu pi2 with
+    match F'.le' (F.neg pi2) xl, F'.le' xu pi2 with
     | true, true =>
       bnd (lower (T.sin_fast prec xl)) (upper (T.sin_fast prec xu))
     | true, false =>
@@ -312,9 +311,9 @@ intros prec [|xl xu] [|x] Hx ; try easy.
 generalize Hx.
 intros [Hxl Hxu].
 simpl.
-case_eq (F'.le xu xl).
+case_eq (F'.le' xu xl).
   intros Hl.
-  apply F'.le_correct in Hl.
+  apply F'.le'_correct in Hl.
   assert (Hsxl := T.sin_fast_correct prec xl).
   destruct (F.toX xu) as [|xur] ; try easy.
   destruct (F.toX xl) as [|xlr] ; try easy.
@@ -325,15 +324,15 @@ case_eq (F'.le xu xl).
 intros _.
 unfold s1.
 set (pi2 := F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1)).
-case_eq (F'.le (F.neg pi2) xl).
+case_eq (F'.le' (F.neg pi2) xl).
   intros Hpl.
-  generalize (F'.le_correct _ _ Hpl).
+  generalize (F'.le'_correct _ _ Hpl).
   xreal_tac xl.
     now case (F.toX (F.neg pi2)).
   clear Hpl. intros Hpl.
-  case_eq (F'.le xu pi2).
+  case_eq (F'.le' xu pi2).
     intros Hpu.
-    generalize (F'.le_correct _ _ Hpu).
+    generalize (F'.le'_correct _ _ Hpu).
     xreal_tac xu. easy.
     xreal_tac pi2. easy.
     clear Hpu. intros Hpu.
@@ -420,9 +419,9 @@ Qed.
 Definition tan prec xi :=
   match xi with
   | Ibnd xl xu =>
-    if F'.le xu xl then T.tan_fast prec xl else
+    if F'.le' xu xl then T.tan_fast prec xl else
     let pi2 := F.scale2 (lower (T.pi4 prec)) s1 in
-    match F'.lt (F.neg pi2) xl, F'.lt xu pi2 with
+    match F'.lt' (F.neg pi2) xl, F'.lt' xu pi2 with
     | true, true =>
       bnd (lower (T.tan_fast prec xl)) (upper (T.tan_fast prec xu))
     | _, _ => Inan
@@ -435,9 +434,9 @@ Lemma tan_correct :
 Proof.
 intros prec [|xl xu] [|x] Hx ; try easy.
 unfold tan.
-case_eq (F'.le xu xl).
+case_eq (F'.le' xu xl).
   intros Hl.
-  apply F'.le_correct in Hl.
+  apply F'.le'_correct in Hl.
   assert (Htxl := T.tan_fast_correct prec xl).
   unfold convert in Hx, Hl.
   destruct (F.toX xu) as [|xur] ; try easy.
@@ -449,12 +448,12 @@ case_eq (F'.le xu xl).
   apply Hx.
 unfold s1.
 intros _.
-case_eq (F'.lt (F.neg (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1))) xl) ; try easy.
+case_eq (F'.lt' (F.neg (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1))) xl) ; try easy.
 intros Hlt1.
-apply F'.lt_correct in Hlt1.
-case_eq (F'.lt xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1))) ; try easy.
+apply F'.lt'_correct in Hlt1.
+case_eq (F'.lt' xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 1))) ; try easy.
 intros Hlt2.
-apply F'.lt_correct in Hlt2.
+apply F'.lt'_correct in Hlt2.
 generalize (T.tan_correct prec xl) (T.tan_correct prec xu).
 simpl in Hx.
 destruct (F.toX xl) as [|rl].
@@ -664,7 +663,7 @@ Qed.
 Definition ln prec xi :=
   match xi with
   | Ibnd xl xu =>
-    if F'.lt F.zero xl then
+    if F'.lt' F.zero xl then
       Ibnd
         (lower (T.ln_fast prec xl))
         (if F.real xu then upper (T.ln_fast prec xu) else F.nan)
@@ -682,8 +681,8 @@ intros [|x].
 easy.
 simpl.
 intros [Hl Hu].
-case_eq (F'.lt F.zero xl) ; intros Hlt ; try easy.
-apply F'.lt_correct in Hlt.
+case_eq (F'.lt' F.zero xl) ; intros Hlt ; try easy.
+apply F'.lt'_correct in Hlt.
 rewrite F.zero_correct in Hlt.
 simpl in Hlt.
 case is_positive_spec.
