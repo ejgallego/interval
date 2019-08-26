@@ -65,6 +65,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition abs := @Fabs radix.
   Definition scale := @Fscale radix.
   Definition scale2 := @Fscale2 radix.
+  Definition div2 := @Fdiv2 radix.
   Definition add_exact := @Fadd_exact radix.
   Definition add := @Fadd radix.
   Definition sub := @Fsub radix.
@@ -117,6 +118,20 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   rewrite Rx, Ry.
   simpl.
   now case Rcompare.
+  Qed.
+
+  Lemma div2_correct :
+    forall x, sensible_format = true ->
+    (1 / 256 <= Rabs (toR x))%R ->
+    toX (div2 x) = Xdiv (toX x) (Xreal 2).
+  Proof.
+  intros x Hf _.
+  unfold div2, Fdiv2.
+  rewrite scale2_correct; [|easy].
+  simpl; unfold Z.pow_pos; simpl.
+  rewrite Xdiv_split.
+  unfold Xinv, Xinv'.
+  now rewrite is_zero_false.
   Qed.
 
 End GenericFloat.

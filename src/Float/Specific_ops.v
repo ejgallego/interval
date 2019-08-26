@@ -322,6 +322,26 @@ now rewrite <- Ep.
 Qed.
 
 (*
+ * div2
+ *)
+
+Definition div2 (f : type) := scale2 f (ZtoS (-1)).
+
+Lemma div2_correct :
+  forall x, sensible_format = true ->
+  (1 / 256 <= Rabs (toR x))%R ->
+  toX (div2 x) = Xdiv (toX x) (Xreal 2).
+Proof.
+intros x Hf _.
+unfold div2.
+rewrite scale2_correct; [|easy].
+simpl; unfold Z.pow_pos; simpl.
+rewrite Xdiv_split.
+unfold Xinv, Xinv'.
+now rewrite is_zero_false.
+Qed.
+
+(*
  * cmp
  *)
 

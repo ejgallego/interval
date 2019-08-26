@@ -85,6 +85,12 @@ Definition Fscale2 {beta} (f : float beta) d :=
   end.
 
 (*
+ * Fdiv2
+ *)
+
+Definition Fdiv2 {beta} (f : float beta) := Fscale2 f (-1).
+
+(*
  * Fcmp
  *
  * 1. Compare signs.
