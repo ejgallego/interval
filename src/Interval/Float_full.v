@@ -26,7 +26,7 @@ Require Import Interval.
 Require Import Float.
 Require Import Transcend.
 
-Module FloatIntervalFull (F : FloatOps with Definition even_radix := true) <: IntervalOps.
+Module FloatIntervalFull (F : FloatOps with Definition sensible_format := true) <: IntervalOps.
 
 Module T := TranscendentalFloatFast F.
 Include FloatInterval F.

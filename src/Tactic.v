@@ -32,7 +32,7 @@ Require Import Integral.
 Require Import Eval.
 Require Import Bertrand.
 
-Module IntervalTactic (F : FloatOps with Definition even_radix := true).
+Module IntervalTactic (F : FloatOps with Definition sensible_format := true).
 
 Inductive interval_tac_parameters :=
   | i_prec : nat -> interval_tac_parameters

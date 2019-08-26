@@ -27,7 +27,7 @@ Require Import Sig.
 Require Import Interval.
 Require Import Float.
 
-Module TranscendentalFloatFast (F : FloatOps with Definition even_radix := true).
+Module TranscendentalFloatFast (F : FloatOps with Definition sensible_format := true).
 
 Module I := FloatInterval F.
 Module J := IntervalBasicExt I.

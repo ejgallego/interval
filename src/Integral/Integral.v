@@ -389,7 +389,7 @@ Qed.
 
 End Missing.
 
-Module IntegralTactic (F : FloatOps with Definition even_radix := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
+Module IntegralTactic (F : FloatOps with Definition sensible_format := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
 
 Module J := IntervalExt I.
 Module F' := FloatExt F.

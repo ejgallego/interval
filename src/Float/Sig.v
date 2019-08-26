@@ -25,9 +25,9 @@ Require Import Basic.
 
 Module Type FloatOps.
 
+Parameter sensible_format : bool.
+
 Parameter radix : radix.
-Parameter even_radix : bool.
-Parameter even_radix_correct : match radix_val radix with Zpos (xO _) => true | _ => false end = even_radix.
 Parameter type : Type.
 Parameter toF : type -> float radix.
 
@@ -97,7 +97,7 @@ Parameter scale_correct :
   forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
 
 Parameter scale2_correct :
-  forall x d, even_radix = true ->
+  forall x d, sensible_format = true ->
   toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
 
 Parameter add_exact_correct :

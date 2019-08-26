@@ -42,7 +42,7 @@ Definition le_lower' x y :=
     end
   end.
 
-Module FloatInterval (F : FloatOps with Definition even_radix := true).
+Module FloatInterval (F : FloatOps with Definition sensible_format := true).
 
 Module F' := FloatExt F.
 

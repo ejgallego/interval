@@ -40,9 +40,9 @@ Module SpecificFloat (Carrier : FloatCarrier) <: FloatOps.
 
 Import Carrier.
 
+Definition sensible_format := match radix_val radix with Zpos (xO _) => true | _ => false end.
+
 Definition radix := radix.
-Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
-Definition even_radix_correct := refl_equal even_radix.
 
 Definition type := s_float smantissa_type exponent_type.
 
@@ -289,7 +289,7 @@ Definition scale2 (f : type) d :=
   end.
 
 Lemma scale2_correct :
-  forall x d, even_radix = true ->
+  forall x d, sensible_format = true ->
   toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
 Proof.
 intros [|m e] d H.
@@ -540,7 +540,7 @@ Definition round_aux mode prec sign m1 e1 pos :=
     float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
-    if need_change_radix even_radix mode (mantissa_even m1) pos sign then
+    if need_change_radix sensible_format mode (mantissa_even m1) pos sign then
       let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
       float_aux sign m2 e2
     else float_aux sign m1 e1
@@ -600,7 +600,7 @@ clear ; zify ; omega.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
-unfold need_change_radix2, even_radix, radix, Z.even.
+unfold need_change_radix2, sensible_format, radix, Z.even.
 case need_change_radix.
 2: now apply toF_float.
 generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub (mantissa_digits m1) p)) Hm1).
@@ -640,7 +640,7 @@ Definition round_at_exp_aux mode e2 sign m1 e1 pos :=
     end
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
-      if need_change_radix even_radix mode (mantissa_even m1) pos sign then
+      if need_change_radix sensible_format mode (mantissa_even m1) pos sign then
         let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
         float_aux sign m2 e2
       else float_aux sign m1 e1
@@ -714,7 +714,7 @@ case Pos.compare_spec.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
-unfold need_change_radix2, even_radix, radix, Z.even.
+unfold need_change_radix2, sensible_format, radix, Z.even.
 case need_change_radix.
 2: now apply toF_float.
 generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub p' e1)) Hm1).

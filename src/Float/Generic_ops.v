@@ -41,8 +41,7 @@ End Radix10.
 Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Definition radix := Rad.val.
-  Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
-  Definition even_radix_correct := refl_equal even_radix.
+  Definition sensible_format := match radix_val radix with Zpos (xO _) => true | _ => false end.
   Definition type := float radix.
   Definition toF (x : type) := x.
   Definition toX (x : type) := FtoX x.
