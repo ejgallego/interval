@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Reals.
+From Coq Require Import ZArith Reals Psatz.
 From Flocq Require Import Raux.
 
 Require Import Xreal.
@@ -132,6 +132,25 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   rewrite Xdiv_split.
   unfold Xinv, Xinv'.
   now rewrite is_zero_false.
+  Qed.
+
+  Definition midpoint (x y : type) := scale2 (add_exact x y) (ZtoS (-1)).
+
+  Lemma midpoint_correct :
+    forall x y,
+    sensible_format = true ->
+    real x = true -> real y = true -> (toR x <= toR y)%R
+    -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
+  Proof.
+  intros x y He.
+  unfold toR, FtoX, midpoint.
+  rewrite !real_correct.
+  rewrite (scale2_correct _ _ He).
+  rewrite add_exact_correct.
+  unfold toX.
+  do 2 (case FtoX; [easy|]).
+  clear x y; simpl; intros x y _ _ Hxy.
+  now split; [|lra].
   Qed.
 
 End GenericFloat.

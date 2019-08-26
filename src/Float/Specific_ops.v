@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Lia Bool.
+From Coq Require Import ZArith Lia Bool Psatz.
 From Flocq Require Import Raux Digits Bracket.
 
 Require Import Xreal.
@@ -1486,6 +1486,28 @@ unfold Fnearbyint_exact.
 eapply f_equal.
 eapply f_equal2; try easy.
 now rewrite exponent_zero_correct.
+Qed.
+
+(*
+ * midpoint
+ *)
+
+Definition midpoint (x y : type) := scale2 (add_exact x y) (ZtoS (-1)).
+
+Lemma midpoint_correct :
+  forall x y,
+  sensible_format = true ->
+  real x = true -> real y = true -> (toR x <= toR y)%R
+  -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
+Proof.
+intros x y He.
+unfold toR, midpoint.
+rewrite !real_correct.
+rewrite (scale2_correct _ _ He).
+rewrite add_exact_correct.
+do 2 (case toX; [easy|]).
+clear x y; simpl; intros x y _ _ Hxy.
+now split; [|lra].
 Qed.
 
 End SpecificFloat.

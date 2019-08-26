@@ -66,6 +66,7 @@ Parameter mul : rounding_mode -> precision -> type -> type -> type.
 Parameter div : rounding_mode -> precision -> type -> type -> type.
 Parameter sqrt : rounding_mode -> precision -> type -> type.
 Parameter nearbyint : rounding_mode -> type -> type.
+Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
 Parameter nan_correct : toX nan = Xnan.
@@ -132,6 +133,12 @@ Parameter sqrt_correct :
 Parameter nearbyint_correct :
   forall mode x,
   toX (nearbyint mode x) = Xnearbyint mode (toX x).
+
+Parameter midpoint_correct :
+  forall x y,
+  sensible_format = true ->
+  real x = true -> real y = true -> (toR x <= toR y)%R
+  -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
 
 End FloatOps.
 
