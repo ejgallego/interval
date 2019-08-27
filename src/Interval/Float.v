@@ -188,7 +188,7 @@ Definition midpoint xi :=
     | Xund, Xeq => F.fromZ (-1)%Z
     | Xgt, Xund => F.scale xl (F.ZtoS 1%Z)
     | Xund, Xlt => F.scale xu (F.ZtoS 1%Z)
-    | _, _ => F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)%Z)
+    | _, _ => F.midpoint xl xu
     end
   end.
 
@@ -207,7 +207,7 @@ Definition midpoint' xi :=
     | Xund, Xlt => let m := F.scale xu (F.ZtoS 1%Z) in Ibnd m m
     | _, _ =>
       if F'.lt xu xl then empty
-      else let m := F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)%Z) in Ibnd m m
+      else let m := F.midpoint xl xu in Ibnd m m
     end
   end.
 
@@ -884,73 +884,71 @@ Theorem midpoint_correct :
   contains (convert xi) (F.toX (midpoint xi)).
 Proof.
 intros [|xl xu].
-intros _.
-refine (conj _ I).
-simpl.
-now rewrite F.zero_correct.
+{ intros _.
+  refine (conj _ I).
+  simpl.
+  now rewrite F.zero_correct. }
 intros (x, Hx).
-destruct x as [|x].
-elim Hx.
+destruct x as [|x]; [now elim Hx|].
 destruct Hx as (Hx1,Hx2).
 assert (Hr: (1 <= IZR (Zpower_pos F.radix 1))%R).
-rewrite IZR_Zpower_pos.
-rewrite <- bpow_powerRZ.
-now apply (bpow_le F.radix 0).
-(* . *)
+{ rewrite IZR_Zpower_pos.
+  rewrite <- bpow_powerRZ.
+  now apply (bpow_le F.radix 0). }
 simpl.
 repeat rewrite F'.cmp_correct.
 xreal_tac xl ; xreal_tac xu ; simpl ;
-  rewrite F.zero_correct ; simpl.
-repeat split.
-(* infinite lower *)
-destruct (Rcompare_spec r 0).
-rewrite F.scale_correct.
-rewrite X0.
-simpl.
-repeat split.
-pattern r at 2 ; rewrite <- Rmult_1_r.
-apply Rmult_le_compat_neg_l.
-exact (Rlt_le _ _ H).
-exact Hr.
-rewrite H.
-rewrite F.fromZ_correct.
-repeat split.
-now apply IZR_le.
-rewrite F.zero_correct.
-repeat split.
-exact (Rlt_le _ _ H).
-(* infinite upper *)
-destruct (Rcompare_spec r 0).
-rewrite F.zero_correct.
-repeat split.
-exact (Rlt_le _ _ H).
-rewrite H.
-rewrite F.fromZ_correct.
-repeat split.
-now apply IZR_le.
-rewrite F.scale_correct.
-rewrite X.
-simpl.
-repeat split.
-pattern r at 1 ; rewrite <- Rmult_1_r.
-apply Rmult_le_compat_l.
-exact (Rlt_le _ _ H).
-exact Hr.
+  rewrite F.zero_correct ; simpl; [now repeat split| | |].
+{ (* infinite lower *)
+  destruct (Rcompare_spec r 0).
+  { rewrite F.scale_correct.
+    rewrite X0.
+    simpl.
+    repeat split.
+    pattern r at 2 ; rewrite <- Rmult_1_r.
+    apply Rmult_le_compat_neg_l.
+    { exact (Rlt_le _ _ H). }
+    exact Hr. }
+  { rewrite H.
+    rewrite F.fromZ_correct.
+    repeat split.
+    now apply IZR_le. }
+  rewrite F.zero_correct.
+  repeat split.
+  exact (Rlt_le _ _ H). }
+{ (* infinite upper *)
+  destruct (Rcompare_spec r 0).
+  { rewrite F.zero_correct.
+    repeat split.
+    exact (Rlt_le _ _ H). }
+  { rewrite H.
+    rewrite F.fromZ_correct.
+    repeat split.
+    now apply IZR_le. }
+  rewrite F.scale_correct.
+  rewrite X.
+  simpl.
+  repeat split.
+  pattern r at 1 ; rewrite <- Rmult_1_r.
+  apply Rmult_le_compat_l.
+  { exact (Rlt_le _ _ H). }
+  exact Hr. }
 (* finite bounds *)
 assert (
-  match F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))) with
+  match F.toX (F.midpoint xl xu) with
   | Xnan => False
   | Xreal x0 => (r <= x0 <= r0)%R
   end).
-rewrite F.scale2_correct by easy.
-rewrite F.add_exact_correct.
-rewrite X, X0.
-simpl.
-change (Z.pow_pos 2 1) with 2%Z.
-lra.
+{ generalize (F.midpoint_correct xl xu (eq_refl _)).
+  unfold F.toR.
+  rewrite !F.real_correct, X, X0.
+  intro H.
+  specialize (H (eq_refl _) (eq_refl) (Rle_trans _ _ _ Hx1 Hx2)).
+  revert H.
+  now case F.toX. }
 (* finite bounds 2 *)
-case_eq (F.toX (F.scale2 (F.add_exact xl xu) (F.ZtoS (-1)))) ; intros.
-now rewrite H0 in H.
+case_eq (F.toX (F.midpoint xl xu)) ; intros.
+{ now rewrite H0 in H. }
 destruct (Rcompare_spec r 0) as [H1|H1|H1] ;
   destruct (Rcompare_spec r0 0) as [H2|H2|H2] ;
   try (
@@ -969,116 +967,116 @@ Theorem midpoint'_correct :
   (not_empty (convert xi) -> not_empty (convert (midpoint' xi))).
 Proof.
 intros [|xl xu].
-split.
-easy.
-intros _.
-exists R0.
-simpl.
-rewrite F.zero_correct.
-split ; apply Rle_refl.
+{ split; [easy|].
+  intros _.
+  exists R0.
+  simpl.
+  rewrite F.zero_correct.
+  split ; apply Rle_refl. }
 unfold midpoint'.
-set (m := F.scale2 (F.add_exact xl xu) (F.ZtoS (-1))).
+set (m := F.midpoint xl xu).
 set (mi := if F'.lt xu xl then empty else Ibnd m m).
 rewrite 2!F'.cmp_correct, F.zero_correct.
 unfold not_empty.
 simpl.
 assert (He: forall b, exists v : R, contains (convert (Ibnd b b)) (Xreal v)).
-intros b.
-exists (proj_val (F.toX b)).
-simpl.
-destruct (F.toX b) as [|br] ; split ; try exact I ; apply Rle_refl.
+{ intros b.
+  exists (proj_val (F.toX b)).
+  simpl.
+  destruct (F.toX b) as [|br] ; split ; try exact I ; apply Rle_refl. }
 case_eq (F.toX xl) ; [|intros xlr] ; intros Hl.
-(* infinite lower *)
+{ (* infinite lower *)
+  case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
+  { split.
+    { now intros [|x]. }
+    intros _.
+    exists R0.
+    rewrite F.zero_correct.
+    split ; apply Rle_refl. }
+  split.
+  { case Rcompare_spec ; intros Hu0 ; simpl ;
+      (intros [|x] ; [easy|]).
+    { rewrite F.scale_correct, Hu.
+      simpl.
+      intros [_ H].
+      apply (conj I).
+      apply Rle_trans with (1 := H).
+      rewrite <- (Rmult_1_r xur) at 2.
+      apply Rmult_le_compat_neg_l.
+      { now apply Rlt_le. }
+      now apply IZR_le, (Zpower_le _ 0 1). }
+    { rewrite F.fromZ_correct.
+      intros [H1 H2].
+      apply (conj I).
+      rewrite (Rle_antisym _ _ H2 H1), Hu0.
+      now apply IZR_le. }
+    rewrite F.zero_correct.
+    intros [H1 H2].
+    apply (conj I).
+    rewrite (Rle_antisym _ _ H2 H1).
+    now apply Rlt_le. }
+  intros _.
+  case Rcompare ; apply He. }
 case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
-split.
-now intros [|x].
-intros _.
-exists R0.
-rewrite F.zero_correct.
-split ; apply Rle_refl.
-split.
-case Rcompare_spec ; intros Hu0 ; simpl ;
-  (intros [|x] ; [easy|]).
-rewrite F.scale_correct, Hu.
-simpl.
-intros [_ H].
-apply (conj I).
-apply Rle_trans with (1 := H).
-rewrite <- (Rmult_1_r xur) at 2.
-apply Rmult_le_compat_neg_l.
-now apply Rlt_le.
-now apply IZR_le, (Zpower_le _ 0 1).
-rewrite F.fromZ_correct.
-intros [H1 H2].
-apply (conj I).
-rewrite (Rle_antisym _ _ H2 H1), Hu0.
-now apply IZR_le.
-rewrite F.zero_correct.
-intros [H1 H2].
-apply (conj I).
-rewrite (Rle_antisym _ _ H2 H1).
-now apply Rlt_le.
-intros _.
-case Rcompare ; apply He.
-case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
-(* infinite upper *)
-split.
-case Rcompare_spec ; intros Hl0 ; simpl ;
-  (intros [|x] ; [easy|]).
-rewrite F.zero_correct.
-intros [H1 H2].
-refine (conj _ I).
-rewrite (Rle_antisym _ _ H2 H1).
-now apply Rlt_le.
-rewrite F.fromZ_correct.
-intros [H1 H2].
-refine (conj _ I).
-rewrite (Rle_antisym _ _ H2 H1), Hl0.
-now apply IZR_le.
-rewrite F.scale_correct, Hl.
-simpl.
-intros [H _].
-refine (conj _ I).
-apply Rle_trans with (2 := H).
-rewrite <- (Rmult_1_r xlr) at 1.
-apply Rmult_le_compat_l.
-now apply Rlt_le.
-now apply IZR_le, (Zpower_le _ 0 1).
-intros _.
-case Rcompare ; apply He.
+{ (* infinite upper *)
+  split.
+  case Rcompare_spec ; intros Hl0 ; simpl ;
+    (intros [|x] ; [easy|]).
+  { rewrite F.zero_correct.
+    intros [H1 H2].
+    refine (conj _ I).
+    rewrite (Rle_antisym _ _ H2 H1).
+    now apply Rlt_le. }
+  { rewrite F.fromZ_correct.
+    intros [H1 H2].
+    refine (conj _ I).
+    rewrite (Rle_antisym _ _ H2 H1), Hl0.
+    now apply IZR_le. }
+  { rewrite F.scale_correct, Hl.
+    simpl.
+    intros [H _].
+    refine (conj _ I).
+    apply Rle_trans with (2 := H).
+    rewrite <- (Rmult_1_r xlr) at 1.
+    apply Rmult_le_compat_l.
+    { now apply Rlt_le. }
+    now apply IZR_le, (Zpower_le _ 0 1). }
+  intros _.
+  case Rcompare ; apply He. }
 (* finite bounds *)
 split.
-intros x.
-assert (contains (convert mi) x -> match x with Xnan => False | Xreal x => (xlr <= x <= xur)%R end).
-unfold mi, m. clear -Hl Hu.
-rewrite F'.lt_correct.
-2: now unfold F.toR ; rewrite Hu.
-2: now unfold F.toR ; rewrite Hl.
-unfold F.toR.
-rewrite Hl, Hu.
-simpl.
-case Rlt_bool_spec ; intros Hlu.
-simpl.
-destruct x as [|x].
-easy.
-rewrite F.fromZ_correct, F.zero_correct.
-lra.
-simpl.
-rewrite F.scale2_correct by easy.
-rewrite F.add_exact_correct, Hl, Hu.
-simpl.
-rewrite Rmult_plus_distr_r.
-destruct x as [|x].
-easy.
-change (Z.pow_pos 2 1) with 2%Z.
-lra.
-case Rcompare_spec ; intros Hl0 ;
+{ intros x.
+  assert (contains (convert mi) x -> match x with Xnan => False | Xreal x => (xlr <= x <= xur)%R end).
+  { unfold mi, m. clear -Hl Hu.
+    rewrite F'.lt_correct.
+    2: now unfold F.toR ; rewrite Hu.
+    2: now unfold F.toR ; rewrite Hl.
+    unfold F.toR.
+    rewrite Hl, Hu.
+    simpl.
+    case Rlt_bool_spec ; intros Hlu.
+    { simpl.
+      destruct x as [|x].
+      easy.
+      rewrite F.fromZ_correct, F.zero_correct.
+      lra. }
+    simpl.
+    destruct x as [|x]; [easy|].
+    generalize (F.midpoint_correct xl xu (eq_refl _)).
+    unfold F.toR.
+    rewrite !F.real_correct, Hl, Hu.
+    intro H.
+    specialize (H (eq_refl _) (eq_refl _) Hlu).
+    revert H.
+    case F.toX; [easy|]; intro rm.
+    simpl.
+    lra. }
+  case Rcompare_spec ; intros Hl0 ;
   case Rcompare_spec ; intros Hu0 ; try exact H.
-destruct x as [|x].
-easy.
-simpl.
-rewrite F.zero_correct.
-lra.
+  destruct x as [|x]; [easy|].
+  simpl.
+  rewrite F.zero_correct.
+  lra. }
 intros [v Hv].
 revert mi.
 rewrite F'.lt_correct.
@@ -1087,7 +1085,7 @@ rewrite F'.lt_correct.
 unfold F.toR.
 rewrite Hl, Hu.
 rewrite Rlt_bool_false.
-case Rcompare ; case Rcompare ; apply He.
+{ case Rcompare ; case Rcompare ; apply He. }
 now apply Rle_trans with v.
 Qed.
 
