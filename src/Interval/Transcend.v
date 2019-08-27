@@ -81,7 +81,16 @@ Definition i6 := I.fromZ 6.
 Definition s1 := F.ZtoS 1.
 Definition sm1 := F.ZtoS (-1).
 Definition sm8 := F.ZtoS (-8).
-Definition c1_2 := F.scale2 c1 sm1.
+Definition c1_2 := F.div2 c1.
+
+Lemma c1_2_correct : F.toX c1_2 = Xreal (/ 2).
+Proof.
+unfold c1_2; rewrite F.div2_correct; [|easy|].
+{ unfold c1; rewrite F.fromZ_correct, Xdiv_split.
+  now simpl; unfold Xinv'; rewrite is_zero_false; [rewrite Rmult_1_l|]. }
+unfold F.toR, c1; rewrite F.fromZ_correct.
+rewrite Rabs_pos_eq; simpl; lra.
+Qed.
 
 Ltac bound_tac :=
   unfold Xround, Xbind ;
@@ -328,14 +337,10 @@ unfold atan_fastP, c1_2, c1, c2, sm1.
 rewrite F'.lt_correct with (2 := Rx).
 2: {
   unfold F.toR.
-  rewrite F.scale2_correct by easy.
-  now rewrite F.fromZ_correct. }
+  now fold c1; fold c1_2; rewrite c1_2_correct. }
 unfold F.toR at 1.
-rewrite F.scale2_correct by easy.
-rewrite F.fromZ_correct.
+fold c1; fold c1_2; rewrite c1_2_correct.
 simpl Rlt_bool.
-rewrite Rmult_1_l.
-change (Z.pow_pos 2 1) with 2%Z.
 assert (Ix: contains (I.convert (I.bnd x x)) (Xreal (toR x))).
   rewrite I.bnd_correct, Rx.
   split ; apply Rle_refl.
@@ -831,7 +836,7 @@ Definition sin_cos_reduce prec x :=
     | true, _ => (Gt, cos_fast0 prec x)
     | _, O => (Eq, I.bnd (F.neg c1) c1)
     | _, S n =>
-      match reduce (F.scale2 x sm1) n with
+      match reduce (F.div2 x) n with
       | (s, c) =>
        (match s, I.sign_large c with
         | Lt, Xgt => Lt
@@ -1003,134 +1008,127 @@ Lemma sin_cos_reduce_correct :
   end.
 Proof.
 intros prec.
-(* . *)
 assert (forall x, F.toX x = Xreal (toR x) -> (0 <= toR x)%R ->
         F'.le x c1_2 = true ->
         contains (I.convert (cos_fast0 prec x)) (Xreal (cos (toR x))) /\
         (0 <= sin (toR x))%R).
-intros x Hxr Hx0 H.
-unfold c1_2, c1, sm1 in H.
-assert (toR x <= /2)%R.
-rewrite F'.le_correct with (1 := Hxr) in H.
-2: {
-  unfold F.toR.
-  now rewrite F.scale2_correct, F.fromZ_correct. }
-revert H.
-case Rle_bool_spec ; try easy.
-unfold F.toR.
-rewrite F.scale2_correct, F.fromZ_correct by easy.
-rewrite Hxr.
-simpl.
-now rewrite Rmult_1_l.
-(* .. *)
-split.
-apply cos_fast0_correct with (1 := Hxr).
-rewrite Rabs_right.
-exact H0.
-now apply Rle_ge.
-apply sin_ge_0 with (1 := Hx0).
-(*   x <= pi *)
-apply Rle_trans with (1 := H0).
-apply Rlt_le.
-apply Rmult_lt_reg_l with (/4)%R.
-apply Rinv_0_lt_compat.
-now apply IZR_lt.
-rewrite <- (Rmult_comm PI).
-apply Rlt_le_trans with (2 := proj1 (PI_ineq 0)).
-unfold tg_alt, PI_tg.
-simpl.
-lra.
-(* . *)
+{ intros x Hxr Hx0 H.
+  unfold c1_2, c1, sm1 in H.
+  assert (toR x <= /2)%R.
+  { rewrite F'.le_correct with (1 := Hxr) in H.
+    2: {
+      unfold F.toR.
+      now fold c1; fold c1_2; rewrite c1_2_correct. }
+    revert H.
+    case Rle_bool_spec ; try easy.
+    unfold F.toR.
+    now fold c1; fold c1_2; rewrite c1_2_correct. }
+  split.
+  { apply cos_fast0_correct with (1 := Hxr).
+    now rewrite Rabs_right; [|apply Rle_ge]. }
+  apply sin_ge_0 with (1 := Hx0).
+  (*   x <= pi *)
+  apply Rle_trans with (1 := H0).
+  apply Rlt_le.
+  apply Rmult_lt_reg_l with (/4)%R.
+  { apply Rinv_0_lt_compat.
+    now apply IZR_lt. }
+  rewrite <- (Rmult_comm PI).
+  apply Rlt_le_trans with (2 := proj1 (PI_ineq 0)).
+  unfold tg_alt, PI_tg.
+  simpl.
+  lra. }
 induction nb ; intros x Hxr Hx.
-(* nb = 0 *)
-simpl.
-case_eq (F'.le x c1_2).
-intros.
-exact (H x Hxr Hx H0).
-intros _.
-simpl.
-unfold c1.
-rewrite F.neg_correct.
-rewrite F.fromZ_correct.
-refine (conj _ I).
-simpl.
-apply COS_bound.
+{ (* nb = 0 *)
+  simpl.
+  case_eq (F'.le x c1_2).
+  { intros.
+    exact (H x Hxr Hx H0). }
+  intros _.
+  simpl.
+  unfold c1.
+  rewrite F.neg_correct.
+  rewrite F.fromZ_correct.
+  refine (conj _ I).
+  simpl.
+  apply COS_bound. }
 (* nb > 0 *)
 simpl.
 case_eq (F'.le x c1_2).
-intros.
-exact (H x Hxr Hx H0).
-intros _.
-refine (_ (IHnb (F.scale2 x sm1) _ _)).
-destruct (sin_cos_reduce prec (F.scale2 x sm1) nb) as (ss, ci).
-clear -Hxr.
-replace (toR x) with (2 * (toR (F.scale2 x sm1)))%R.
-generalize (toR (F.scale2 x sm1)).
-clear.
-intros hx (Hc, Hs).
-split.
-(* - cos *)
-replace (Xreal (cos (2 * hx))) with (Xsub (Xmul (Xsqr (Xreal (cos hx))) (Xreal 2)) (Xreal 1)).
-apply I.sub_correct.
-apply I.scale2_correct.
-apply I.sqr_correct.
-exact Hc.
-apply I.fromZ_correct.
-simpl.
-apply f_equal.
-rewrite cos_2a_cos.
-unfold Rsqr.
-ring.
-(* - sin *)
-rewrite sin_2a.
-destruct ss.
-exact I.
-change (cos hx) with (proj_val (Xreal (cos hx))).
-generalize (I.sign_large_correct ci).
-case (I.sign_large ci) ; intros ; try exact I.
-apply Rmult_le_neg_neg.
-apply Rmult_le_pos_neg.
-now apply IZR_le.
-exact Hs.
-exact (proj2 (H _ Hc)).
-apply Rmult_le_neg_pos.
-apply Rmult_le_pos_neg.
-now apply IZR_le.
-exact Hs.
-exact (proj2 (H _ Hc)).
-change (cos hx) with (proj_val (Xreal (cos hx))).
-generalize (I.sign_large_correct ci).
-case (I.sign_large ci) ; intros ; try exact I.
-apply Rmult_le_pos_neg.
-apply Rmult_le_pos_pos.
-now apply IZR_le.
-exact Hs.
-exact (proj2 (H _ Hc)).
-apply Rmult_le_pos_pos.
-apply Rmult_le_pos_pos.
-now apply IZR_le.
-exact Hs.
-exact (proj2 (H _ Hc)).
-(* - . *)
-unfold toR, sm1.
-rewrite F.scale2_correct, Hxr by easy.
-simpl.
-change (Z.pow_pos 2 1) with 2%Z.
-field.
-(* - . *)
-unfold toR, sm1.
-now rewrite F.scale2_correct, Hxr.
-unfold toR, sm1.
-rewrite F.scale2_correct, Hxr by easy.
-simpl.
-apply Rmult_le_pos with (1 := Hx).
-apply Rlt_le, Rinv_0_lt_compat.
-now apply IZR_lt.
+{ intros.
+  exact (H x Hxr Hx H0). }
+rewrite F'.le_correct; try (unfold F.toR; rewrite c1_2_correct); [simpl|easy..].
+intros Hxhalf.
+refine (_ (IHnb (F.div2 x) _ _)).
+{ destruct (sin_cos_reduce prec (F.div2 x) nb) as (ss, ci).
+  fold (F.toR x).
+  replace (F.toR x) with (2 * (toR (F.div2 x)))%R.
+  { generalize (toR (F.div2 x)).
+    revert Hxr Hxhalf; clear; intros Hxr Hxhalf.
+    intros hx (Hc, Hs).
+    split.
+    { (* - cos *)
+      replace (Xreal (cos (2 * hx))) with (Xsub (Xmul (Xsqr (Xreal (cos hx))) (Xreal 2)) (Xreal 1)).
+      { apply I.sub_correct.
+        { apply I.scale2_correct.
+          apply I.sqr_correct.
+          exact Hc. }
+        apply I.fromZ_correct. }
+      simpl.
+      apply f_equal.
+      rewrite cos_2a_cos.
+      unfold Rsqr.
+      ring. }
+    (* - sin *)
+    rewrite sin_2a.
+    destruct ss.
+    { exact I. }
+    { change (cos hx) with (proj_val (Xreal (cos hx))).
+      generalize (I.sign_large_correct ci).
+      case (I.sign_large ci) ; intros ; try exact I.
+      { apply Rmult_le_neg_neg.
+        { apply Rmult_le_pos_neg.
+          { now apply IZR_le. }
+          exact Hs. }
+        exact (proj2 (H _ Hc)). }
+      apply Rmult_le_neg_pos.
+      { apply Rmult_le_pos_neg.
+        { now apply IZR_le. }
+        exact Hs. }
+      exact (proj2 (H _ Hc)). }
+    change (cos hx) with (proj_val (Xreal (cos hx))).
+    generalize (I.sign_large_correct ci).
+    case (I.sign_large ci) ; intros ; try exact I.
+    { apply Rmult_le_pos_neg.
+      { apply Rmult_le_pos_pos.
+        { now apply IZR_le. }
+        exact Hs. }
+      exact (proj2 (H _ Hc)). }
+    apply Rmult_le_pos_pos.
+    { apply Rmult_le_pos_pos.
+      { now apply IZR_le. }
+      exact Hs. }
+    exact (proj2 (H _ Hc)). }
+  unfold toR; rewrite F.div2_correct; [|easy|].
+  { rewrite Xdiv_split; simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+    rewrite Hxr; simpl; lra. }
+  rewrite (Rabs_pos_eq _ Hx).
+  revert Hxhalf; case Rle_bool_spec; [easy|]; fold (F.toR x); lra. }
+{ unfold toR; rewrite F.div2_correct; [|easy|].
+  { rewrite Xdiv_split; simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+    now rewrite Hxr. }
+  rewrite (Rabs_pos_eq _ Hx).
+  revert Hxhalf; case Rle_bool_spec; [easy|]; fold (F.toR x); lra. }
+unfold toR; rewrite F.div2_correct; [|easy|].
+{ rewrite Xdiv_split; simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+  rewrite Hxr; simpl; lra. }
+rewrite (Rabs_pos_eq _ Hx).
+revert Hxhalf; case Rle_bool_spec; [easy|]; fold (F.toR x); lra.
 Qed.
 
 (* 0 <= input *)
 Definition cos_fastP prec x :=
-  let th := F.scale2 c1 sm1 in
+  let th := c1_2 in
   match F'.le' x th with
   | true => cos_fast0 prec x
   | _ =>
@@ -1147,16 +1145,13 @@ Lemma cos_fastP_correct :
 Proof.
 intros prec x Hxr Hx0.
 unfold cos_fastP.
-case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros H.
-apply cos_fast0_correct.
-easy.
-rewrite Rabs_pos_eq with (1 := Hx0).
-apply F'.le'_correct in H.
-revert H.
-unfold toR, sm1, c1.
-rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
-simpl.
-now rewrite Rmult_1_l.
+case_eq (F'.le' x c1_2) ; intros H.
+{ apply cos_fast0_correct.
+  { easy. }
+  rewrite Rabs_pos_eq with (1 := Hx0).
+  apply F'.le'_correct in H.
+  revert H.
+  now rewrite c1_2_correct, Hxr. }
 generalize (S (Z2nat (F.StoZ (F.mag x)))) (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
 intros nb prec'.
 generalize (sin_cos_reduce_correct prec' nb x Hxr Hx0).
@@ -1397,7 +1392,7 @@ Qed.
 
 (* 0 <= input *)
 Definition sin_fastP prec x :=
-  let th := F.scale2 c1 sm1 in
+  let th := c1_2 in
   match F'.le' x th with
   | true => sin_fast0 (F.incr_prec prec 1) x
   | _ =>
@@ -1422,64 +1417,62 @@ Lemma sin_fastP_correct :
 Proof.
 intros prec x Hxr Hx0.
 unfold sin_fastP.
-case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros Hx.
-apply sin_fast0_correct.
-easy.
-rewrite Rabs_pos_eq with (1 := Hx0).
-apply F'.le'_correct in Hx.
-revert Hx.
-unfold toR, sm1, c1.
-rewrite Hxr, F.scale2_correct, F.fromZ_correct by easy.
-simpl.
-now rewrite Rmult_1_l.
+case_eq (F'.le' x c1_2) ; intros Hx.
+{ apply sin_fast0_correct.
+  { easy. }
+  rewrite Rabs_pos_eq with (1 := Hx0).
+  apply F'.le'_correct in Hx.
+  revert Hx.
+  unfold toR, sm1, c1.
+  now rewrite Hxr, c1_2_correct. }
 generalize (S (Z2nat (F.StoZ (F.mag x)))) (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
 intros nb prec'.
 generalize (sin_cos_reduce_correct prec' nb x Hxr Hx0).
 destruct sin_cos_reduce as [ss ci].
 intros [Hc Hs].
 destruct ss.
-simpl.
-unfold c1.
-rewrite F.neg_correct, F.fromZ_correct.
-apply SIN_bound.
-rewrite <- (Ropp_involutive (sin (toR x))).
-change (Xreal (- - sin (toR x))) with (Xneg (Xreal (- sin (toR x)))).
-apply I.neg_correct.
-rewrite <- Rabs_left1 with (1 := Hs).
-rewrite <- sqrt_Rsqr_abs.
-replace (Xreal (sqrt (sin (toR x))²)) with (Xsqrt (Xreal (sin (toR x))²)).
-apply I.sqrt_correct.
-rewrite sin2.
-change (Xreal (1 - (cos (toR x))²)) with (Xsub (Xreal 1) (Xsqr (Xreal (cos (toR x))))).
-apply I.sub_correct.
-simpl.
-unfold c1.
-rewrite F.fromZ_correct.
-split ; apply Rle_refl.
-now apply I.sqr_correct.
-unfold Xsqrt'.
-simpl.
-destruct (is_negative_spec (sin (toR x))²).
-elim (Rlt_not_le _ _ H).
-apply Rle_0_sqr.
-apply refl_equal.
+{ simpl.
+  unfold c1.
+  rewrite F.neg_correct, F.fromZ_correct.
+  apply SIN_bound. }
+{ rewrite <- (Ropp_involutive (sin (toR x))).
+  change (Xreal (- - sin (toR x))) with (Xneg (Xreal (- sin (toR x)))).
+  apply I.neg_correct.
+  rewrite <- Rabs_left1 with (1 := Hs).
+  rewrite <- sqrt_Rsqr_abs.
+  replace (Xreal (sqrt (sin (toR x))²)) with (Xsqrt (Xreal (sin (toR x))²)).
+  { apply I.sqrt_correct.
+    rewrite sin2.
+    change (Xreal (1 - (cos (toR x))²)) with (Xsub (Xreal 1) (Xsqr (Xreal (cos (toR x))))).
+    apply I.sub_correct.
+    { simpl.
+      unfold c1.
+      rewrite F.fromZ_correct.
+      split ; apply Rle_refl. }
+    now apply I.sqr_correct. }
+  unfold Xsqrt'.
+  simpl.
+  destruct (is_negative_spec (sin (toR x))²).
+  { elim (Rlt_not_le _ _ H).
+    apply Rle_0_sqr. }
+  apply refl_equal. }
 rewrite <- (Rabs_pos_eq (sin (toR x))) with (1 := Hs).
 rewrite <- sqrt_Rsqr_abs.
 replace (Xreal (sqrt (sin (toR x))²)) with (Xsqrt (Xreal (sin (toR x))²)).
-apply I.sqrt_correct.
-rewrite sin2.
-change (Xreal (1 - (cos (toR x))²)) with (Xsub (Xreal 1) (Xsqr (Xreal (cos (toR x))))).
-apply I.sub_correct.
-simpl.
-unfold I.convert_bound, c1.
-rewrite F.fromZ_correct.
-split ; apply Rle_refl.
-now apply I.sqr_correct.
+{ apply I.sqrt_correct.
+  rewrite sin2.
+  change (Xreal (1 - (cos (toR x))²)) with (Xsub (Xreal 1) (Xsqr (Xreal (cos (toR x))))).
+  apply I.sub_correct.
+  { simpl.
+    unfold I.convert_bound, c1.
+    rewrite F.fromZ_correct.
+    split ; apply Rle_refl. }
+  now apply I.sqr_correct. }
 unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec (sin (toR x))²).
-elim (Rlt_not_le _ _ H).
-apply Rle_0_sqr.
+{ elim (Rlt_not_le _ _ H).
+  apply Rle_0_sqr. }
 apply refl_equal.
 Qed.
 
@@ -1538,7 +1531,7 @@ Qed.
 
 (* 0 <= input *)
 Definition tan_fastP prec x :=
-  let th := F.scale2 c1 sm1 in
+  let th := c1_2 in
   match F'.le' x th with
   | true =>
     let prec := F.incr_prec prec 2 in
@@ -1576,16 +1569,11 @@ Lemma tan_fastP_correct :
 Proof.
 intros prec x Rx Bx.
 unfold tan_fastP.
-case_eq (F'.le' x (F.scale2 c1 sm1)) ; intros Hx.
+case_eq (F'.le' x c1_2) ; intros Hx.
 - apply F'.le'_correct in Hx.
   revert Hx.
-  unfold toR, c1, sm1.
-  rewrite Rx, F.scale2_correct, F.fromZ_correct by easy.
+  rewrite c1_2_correct, Rx.
   intros Bx'.
-  simpl in Bx'.
-  change (Z.pow_pos 2 1) with 2%Z in Bx'.
-  rewrite Rmult_1_l in Bx'.
-  simpl proj_val.
   replace (Xtan (Xreal (toR x))) with (Xdiv (Xreal (sin (toR x))) (Xsqrt (Xsub (Xreal 1) (Xsqr (Xreal (sin (toR x))))))).
   apply I.div_correct.
   apply sin_fast0_correct with (1 := Rx).
@@ -1830,7 +1818,7 @@ Definition expn_reduce prec x :=
       match F'.le' x th, nb with
       | true, _ => expn_fast0 prec x
       | _, O => I.bnd F.zero c1
-      | _, S n => I.sqr prec (reduce (F.scale2 x sm1) n)
+      | _, S n => I.sqr prec (reduce (F.div2 x) n)
       end in
     reduce x (8 + Z2nat m)
   end.
@@ -2016,29 +2004,28 @@ assert (forall prec x,
   F.toX x = Xreal (toR x) ->
   (0 < toR x)%R -> F'.le' x (F.scale2 c1 sm8) = true ->
   contains (I.convert (expn_fast0 prec x)) (Xreal (exp (- toR x)))).
-intros prec x Hx1 Hx2 Hx3.
-apply expn_fast0_correct.
-exact Hx1.
-split.
-now apply Rlt_le.
-apply F'.le'_correct in Hx3.
-revert Hx3.
-rewrite Hx1.
-unfold c1, sm8.
-rewrite F.scale2_correct, F.fromZ_correct by easy.
-simpl.
-intros Hx3.
-apply Rle_trans with (1 := Hx3).
-rewrite Rmult_1_l.
-apply Rle_Rinv_pos.
-now apply IZR_lt.
-now apply IZR_le.
-(* . *)
+{ intros prec x Hx1 Hx2 Hx3.
+  apply expn_fast0_correct.
+  { exact Hx1. }
+  split.
+  { now apply Rlt_le. }
+  apply F'.le'_correct in Hx3.
+  revert Hx3.
+  rewrite Hx1.
+  unfold c1, sm8.
+  rewrite F.scale2_correct, F.fromZ_correct by easy.
+  simpl.
+  intros Hx3.
+  apply Rle_trans with (1 := Hx3).
+  rewrite Rmult_1_l.
+  apply Rle_Rinv_pos.
+  { now apply IZR_lt. }
+  now apply IZR_le. }
 intros prec x Hx H0.
 unfold expn_reduce.
 case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
-(* . no reduction *)
-now apply H.
+{ (* . no reduction *)
+  now apply H. }
 (* . reduction *)
 clear Hx'.
 generalize (F.incr_prec prec (Z2P (9 + F.StoZ (F.mag x)))).
@@ -2047,41 +2034,50 @@ generalize (8 + Z2nat (F.StoZ (F.mag x))).
 intro nb.
 revert x Hx H0.
 induction nb ; intros ; simpl.
-(* nb = 0 *)
-case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
-now apply H.
-simpl.
-unfold c1.
-rewrite F.zero_correct, F.fromZ_correct.
-split.
-apply Rlt_le.
-apply exp_pos.
-simpl.
-rewrite <- exp_0.
-apply Rlt_le.
-apply exp_increasing.
-rewrite <- Ropp_0.
-now apply Ropp_lt_contravar.
+{ (* nb = 0 *)
+  case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
+  { now apply H. }
+  simpl.
+  unfold c1.
+  rewrite F.zero_correct, F.fromZ_correct.
+  split.
+  { apply Rlt_le.
+    apply exp_pos. }
+  simpl.
+  rewrite <- exp_0.
+  apply Rlt_le.
+  apply exp_increasing.
+  rewrite <- Ropp_0.
+  now apply Ropp_lt_contravar. }
 (* nb > 0 *)
 case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
-now apply H.
-assert (toR (F.scale2 x sm1) = toR x * /2)%R.
-unfold toR, sm1.
-now rewrite F.scale2_correct, Hx.
-replace (toR x) with (toR (F.scale2 x sm1) + toR (F.scale2 x sm1))%R.
-rewrite Ropp_plus_distr.
-rewrite exp_plus.
-change (Xreal (exp (- toR (F.scale2 x sm1)) * exp (- toR (F.scale2 x sm1))))
-  with (Xsqr (Xreal (exp (- toR (F.scale2 x sm1))))).
-apply I.sqr_correct.
-apply IHnb.
-unfold toR, sm1.
-now rewrite F.scale2_correct, Hx.
-rewrite H1.
-apply Rmult_lt_0_compat.
-exact H0.
-apply Rinv_0_lt_compat, Rlt_0_2.
-rewrite H1.
+{ now apply H. }
+assert (1 / 256 <= Rabs (F.toR x))%R.
+{ rewrite (Rabs_pos_eq _ (Rlt_le _ _ H0)).
+  revert Hx'.
+  unfold F'.le'.
+  rewrite F'.cmp_correct.
+  rewrite Hx.
+  change sm8 with (F.ZtoS (-8)).
+  rewrite F.scale2_correct; [|easy].
+  unfold c1; rewrite F.fromZ_correct; simpl; unfold Z.pow_pos; simpl.
+  now case Rcompare_spec; [easy..|]; intros H' _; apply Rlt_le. }
+assert (toR (F.div2 x) = toR x * /2)%R.
+{ unfold toR; rewrite F.div2_correct; [|easy..].
+  rewrite Xdiv_split; simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+  rewrite Hx; simpl; lra. }
+replace (toR x) with (toR (F.div2 x) + toR (F.div2 x))%R.
+{ rewrite Ropp_plus_distr.
+  rewrite exp_plus.
+  change (Xreal (exp (- toR (F.div2 x)) * exp (- toR (F.div2 x))))
+    with (Xsqr (Xreal (exp (- toR (F.div2 x))))).
+  apply I.sqr_correct.
+  apply IHnb.
+  { unfold F.toR; rewrite F.div2_correct; [|easy..].
+    rewrite Xdiv_split; simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+    now rewrite Hx. }
+  rewrite H2; lra. }
+rewrite H2.
 apply sym_eq, double_var.
 Qed.
 
