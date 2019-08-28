@@ -273,9 +273,11 @@ Definition scale xi d :=
   | Inan => Inan
   end.
 
-Definition scale2 xi d :=
+Definition mul2 prec xi :=
   match xi with
-  | Ibnd xl xu => Ibnd (F.scale2 xl d) (F.scale2 xu d)
+  | Ibnd xl xu =>
+    let two := F.fromZ 2 in  (* TODO: eval *compute in? *)
+    Ibnd (F.mul rnd_DN prec xl two) (F.mul rnd_UP prec xu two)
   | Inan => Inan
   end.
 
@@ -1246,22 +1248,22 @@ simpl.
 now case F.toX.
 Qed.
 
-Theorem scale2_correct :
-  forall xi x d,
+Theorem mul2_correct :
+  forall prec xi x,
   contains (convert xi) x ->
-  contains (convert (scale2 xi (F.ZtoS d))) (Xmul x (Xreal (bpow radix2 d))).
+  contains (convert (mul2 prec xi)) (Xmul x (Xreal 2)).
 Proof.
-intros [ | xl xu].
+intros prec [ | xl xu].
 split.
-intros [ | x] d Hx.
+intros [ | x] Hx.
 elim Hx.
 unfold convert in Hx.
 destruct Hx as (Hxl, Hxu).
-unfold convert, scale2.
-rewrite 2!F.scale2_correct by easy.
-split ; xreal_tac2 ; simpl ;
-  ( apply Rmult_le_compat_r ;
-    [ (apply Rlt_le ; apply bpow_gt_0) | assumption ] ).
+unfold convert, mul2.
+rewrite 2!F.mul_correct, F.fromZ_correct.
+split ; xreal_tac2 ; simpl ; apply (Rle_trans _ (r * 2)) ; try lra.
+{ now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
+now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
 Qed.
 
 Theorem add_correct :

@@ -40,7 +40,7 @@ Definition cm1 := F.fromZ (-1).
 Definition c3 := F.fromZ 3.
 
 Definition pi prec :=
-  scale2 (T.pi4 prec) s2.
+  mul2 prec (mul2 prec (T.pi4 prec)).
 
 Lemma pi_correct :
   forall prec, contains (convert (pi prec)) (Xreal PI).
@@ -48,7 +48,10 @@ Proof.
 intros prec.
 unfold pi.
 replace (Xreal PI) with (Xmul (Xreal (PI/4)) (Xreal (Raux.bpow radix2 2))).
-  apply scale2_correct, T.pi4_correct.
+change (Xreal (Raux.bpow _ _)) with (Xreal 2 * Xreal 2)%XR.
+rewrite <-Xmul_assoc.
+do 2 apply mul2_correct.
+apply T.pi4_correct.
 change (Raux.bpow _ _) with 4%R.
 simpl.
 apply f_equal.
@@ -316,9 +319,9 @@ Definition sin prec xi :=
     | true, true =>
       bnd (lower (T.sin_fast prec xl)) (upper (T.sin_fast prec xu))
     | true, false =>
-      cos prec (sub prec (scale2 pi4 s1) xi)
+      cos prec (sub prec (mul2 prec pi4) xi)
     | _, _ =>
-      neg (cos prec (add prec xi (scale2 pi4 s1)))
+      neg (cos prec (add prec xi (mul2 prec pi4)))
     end
   | Inan => Inan
   end.
@@ -418,7 +421,8 @@ case_eq (F'.le' (F.neg pi2) xl).
   apply cos_correct.
   apply sub_correct with (2 := Hx).
   replace (PI / 2)%R with (PI / 4 * 2)%R by field.
-  apply (scale2_correct _ (Xreal (PI / 4)) 1%Z).
+  change (Xreal _) with (Xreal (PI / 4) * Xreal 2)%XR.
+  apply mul2_correct.
   apply T.pi4_correct.
 intros _.
 rewrite <- (Ropp_involutive x).
@@ -430,7 +434,8 @@ change (Xreal (Rtrigo_def.cos (x + PI / 2))) with (Xcos (Xadd (Xreal x) (Xreal (
 apply cos_correct.
 apply (add_correct _ _ _ _ _ Hx).
 replace (PI / 2)%R with (PI / 4 * 2)%R by field.
-apply (scale2_correct _ (Xreal (PI / 4)) 1%Z).
+change (Xreal _) with (Xreal (PI / 4) * Xreal 2)%XR.
+apply mul2_correct.
 apply T.pi4_correct.
 Qed.
 

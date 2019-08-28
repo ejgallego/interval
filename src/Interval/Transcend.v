@@ -174,7 +174,7 @@ Definition atan_fast0 prec xi :=
 Definition pi4_gen prec :=
   let s2 := F.ZtoS 2 in
   I.sub prec
-   (I.scale2 (atan_fast0 prec (I.inv prec (I.fromZ 5))) s2)
+   (I.mul2 prec (I.mul2 prec (atan_fast0 prec (I.inv prec (I.fromZ 5)))))
    (atan_fast0 prec (I.inv prec (I.fromZ 239))).
 
 Definition pi4_seq := constant_generator pi4_gen.
@@ -187,7 +187,7 @@ Definition atan_fastP prec x :=
     let pi4i := pi4 prec in
     if F'.lt c2 x then
       I.sub prec
-       (I.scale2 pi4i s1)
+       (I.mul2 prec pi4i)
        (atan_fast0 prec (I.div prec i1 xi))
     else
       let xm1i := I.sub prec xi i1 in
@@ -365,7 +365,10 @@ assert (H: forall p, (2 <= p)%Z ->
 unfold pi4_gen.
 apply (I.sub_correct _ _ _ (Xreal _) (Xreal _)).
 rewrite Rmult_comm.
-apply (I.scale2_correct _ (Xreal _)).
+replace (Xreal (atan (/ 5) * 4))
+  with (Xreal (atan (/ 5)) * Xreal 2 * Xreal 2)%XR;
+  [|simpl; apply f_equal; ring].
+do 2 apply I.mul2_correct.
 now apply (H 5%Z).
 now apply (H 239%Z).
 Qed.
@@ -431,7 +434,7 @@ case Rlt_bool_spec ; intros Bx'' ; cycle 1.
   lra.
 replace (Xreal (atan (toR x))) with (Xsub (Xmul (Xreal (PI/4)) (Xreal 2)) (Xatan (Xreal (/ toR x)))).
 apply I.sub_correct.
-apply I.scale2_correct.
+apply I.mul2_correct.
 apply pi4_correct.
 apply atan_fast0_correct.
   rewrite Rabs_pos_eq.
@@ -522,7 +525,7 @@ Definition ln_fast1P prec xi :=
       match F'.le' (I.upper xi) th, nb with
       | true, _ => ln1p_fast0 prec (I.sub prec xi i1)
       | _, O => I.bnd F.zero F.nan
-      | _, S n => I.scale2 (reduce (I.sqrt prec xi) n) s1
+      | _, S n => I.mul2 prec (reduce (I.sqrt prec xi) n)
       end in
     reduce xi (8 + Z2nat m)
   end.
@@ -725,7 +728,7 @@ now apply H.
 clear H Hxu.
 replace (ln x) with (ln (sqrt x) * 2)%R.
 change (Xreal (ln (sqrt x) * 2)) with (Xmul (Xreal (ln (sqrt x))) (Xreal (bpow radix2 1))).
-apply I.scale2_correct.
+apply I.mul2_correct.
 apply IHnb.
 clear IHnb.
 rewrite <- sqrt_1.
@@ -894,7 +897,7 @@ Definition sin_cos_reduce prec x :=
         | Gt, _ => Eq
         | _, _ => s
         end,
-        I.sub prec (I.scale2 (I.sqr prec c) s1) i1)
+        I.sub prec (I.mul2 prec (I.sqr prec c)) i1)
       end
     end in
   reduce x.
@@ -1117,7 +1120,7 @@ refine (_ (IHnb (F.div2 x) _ _)).
     { (* - cos *)
       replace (Xreal (cos (2 * hx))) with (Xsub (Xmul (Xsqr (Xreal (cos hx))) (Xreal 2)) (Xreal 1)).
       { apply I.sub_correct.
-        { apply I.scale2_correct.
+        { apply I.mul2_correct.
           apply I.sqr_correct.
           exact Hc. }
         apply I.fromZ_correct. }
