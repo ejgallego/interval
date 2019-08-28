@@ -97,10 +97,6 @@ Parameter abs_correct :
 Parameter scale_correct :
   forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
 
-Parameter scale2_correct :
-  forall x d, sensible_format = true ->
-  toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
-
 Parameter div2_correct :
   forall x, sensible_format = true ->
   (1 / 256 <= Rabs (toR x))%R ->

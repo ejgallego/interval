@@ -467,8 +467,6 @@ Variable est : I.type -> I.type -> I.type.
 
 Definition diam x := F.sub Basic.rnd_UP prec (I.upper x) (I.lower x).
 
-Definition div2 f := F.scale2 f (F.ZtoS (-1)).
-
 Fixpoint integral_interval_absolute (depth : nat) (ia ib : I.type) (epsilon : F.type) :=
   let int := I.join ia ib in
   let m := I.midpoint' int in
@@ -478,7 +476,7 @@ Fixpoint integral_interval_absolute (depth : nat) (ia ib : I.type) (epsilon : F.
       match depth with
         | O => I.add prec (est ia m) (est m ib)
         | S n => let m := I.midpoint' int in
-                 let halfeps := div2 epsilon in
+                 let halfeps := F.div2 epsilon in
                  let roughEstimate_1 := est ia m in
                  let roughEstimate_2 := est m ib in
                  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
@@ -504,7 +502,7 @@ Fixpoint integral_interval_absolute_infty (depth : nat) (ia: I.type) (epsilon : 
       match depth with
         | O => I.add prec (est ia m) (est_infty m)
         | S n => let m := I.midpoint' int in
-                 let halfeps := div2 epsilon in
+                 let halfeps := F.div2 epsilon in
                  let roughEstimate_1 := est ia m in
                  let roughEstimate_2 := est_infty m in
                  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
@@ -531,7 +529,7 @@ Fixpoint integral_interval_absolute_sing (depth : nat) (ia: I.type) (iSing: I.ty
       match depth with
         | O => I.add prec (est_sing m) (est m ia)
         | S n => let m := I.midpoint' int in
-                 let halfeps := div2 epsilon in
+                 let halfeps := F.div2 epsilon in
                  let roughEstimate_1 := est_sing m in
                  let roughEstimate_2 := est m ia in
                  match F'.le (diam roughEstimate_1) halfeps, F'.le (diam roughEstimate_2) halfeps with
@@ -584,7 +582,7 @@ Definition integral_interval_sing (depth : nat) (ia : I.type) iSing epsilon :=
 Lemma integral_interval_absolute_Sn {n ia ib epsilon} :
   let int := I.join ia ib in
   let m := I.midpoint' int in
-  let halfeps := div2 epsilon in
+  let halfeps := F.div2 epsilon in
   let roughEstimate_1 := est ia m in
   let roughEstimate_2 := est m ib in
   I.bounded m ->
@@ -607,7 +605,7 @@ Qed.
 Lemma integral_interval_absolute_infty_Sn {n ia epsilon} :
   let int := I.upper_extent ia in
   let m := I.midpoint' int in
-  let halfeps := div2 epsilon in
+  let halfeps := F.div2 epsilon in
   let roughEstimate_1 := est ia m in
   let roughEstimate_2 := est_infty m in
   I.bounded m ->
@@ -631,7 +629,7 @@ Qed.
 Lemma integral_interval_absolute_sing_Sn {n ia iSing epsilon} :
   let int := I.join iSing ia in
   let m := I.midpoint' int in
-  let halfeps := div2 epsilon in
+  let halfeps := F.div2 epsilon in
   let roughEstimate_1 := est_sing m in
   let roughEstimate_2 := est m ia in
   I.bounded m ->

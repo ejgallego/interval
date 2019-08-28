@@ -78,7 +78,6 @@ Definition i2 := I.fromZ 2.
 Definition i3 := I.fromZ 3.
 Definition i4 := I.fromZ 4.
 Definition i6 := I.fromZ 6.
-Definition s1 := F.ZtoS 1.
 Definition c1_2 := F.div2 c1.
 Definition c1_8 := iter_pos F.div2 8 c1.  (* TODO: eval *compute in ? *)
 Definition c1_p_c1_8 := F.add rnd_DN (F.PtoP 52) c1 c1_8.  (* TODO: eval *compute in ? *)

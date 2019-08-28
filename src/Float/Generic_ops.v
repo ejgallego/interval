@@ -79,7 +79,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition neg_correct := @Fneg_correct radix.
   Definition abs_correct := @Fabs_correct radix.
   Definition scale_correct := @Fscale_correct radix.
-  Definition scale2_correct := @Fscale2_correct radix.
   Definition add_correct := @Fadd_correct radix.
   Definition sub_correct := @Fsub_correct radix.
   Definition mul_correct := @Fmul_correct radix.
@@ -124,8 +123,8 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
     toX (div2 x) = Xdiv (toX x) (Xreal 2).
   Proof.
   intros x Hf _.
-  unfold div2, Fdiv2.
-  rewrite scale2_correct; [|easy].
+  unfold div2, Fdiv2, toX.
+  rewrite Fscale2_correct; [|easy].
   simpl; unfold Z.pow_pos; simpl.
   rewrite Xdiv_split.
   unfold Xinv, Xinv'.
@@ -143,7 +142,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   intros x y He.
   unfold toR, FtoX, midpoint.
   rewrite !real_correct.
-  rewrite (scale2_correct _ _ He).
+  rewrite (Fscale2_correct _ _ _ He).
   rewrite Fadd_exact_correct.
   unfold toX.
   do 2 (case FtoX; [easy|]).
