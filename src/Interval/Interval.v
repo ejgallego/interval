@@ -510,6 +510,12 @@ intros xi x.
 now apply I.neg_correct.
 Qed.
 
+Lemma abs_correct : extension Rabs I.abs.
+Proof.
+intros xi x.
+now apply I.abs_correct.
+Qed.
+
 Lemma inv_correct : forall prec, extension Rinv (I.inv prec).
 Proof.
 intros prec xi x Hx.
@@ -603,6 +609,13 @@ case is_zero ; try easy.
 now case I.convert.
 Qed.
 
+Lemma nearbyint_correct :
+  forall mode, extension (Rnearbyint mode) (I.nearbyint mode).
+Proof.
+intros mode xi x.
+now apply I.nearbyint_correct.
+Qed.
+
 Lemma power_int_correct :
   forall prec n, extension (fun x => powerRZ x n) (fun xi => I.power_int prec xi n).
 Proof.
@@ -626,6 +639,31 @@ Proof.
 rewrite I.zero_correct.
 intros [H1 H2].
 now apply Rle_antisym.
+Qed.
+
+Lemma join_correct :
+  forall ui vi u v x,
+  contains (I.convert ui) (Xreal u) ->
+  contains (I.convert vi) (Xreal v) ->
+  (u <= x <= v)%R ->
+  contains (I.convert (I.join ui vi)) (Xreal x).
+Proof.
+intros ui vi u v x Iu Iv [H1 H2].
+assert (Hu := I.join_correct ui vi (Xreal u)).
+assert (Hv := I.join_correct ui vi (Xreal v)).
+destruct (I.convert (I.join ui vi)) as [|p q].
+easy.
+split.
+destruct p as [|p].
+easy.
+apply Rle_trans with (2 := H1).
+apply Hu.
+now left.
+destruct q as [|q].
+easy.
+apply Rle_trans with (1 := H2).
+apply Hv.
+now right.
 Qed.
 
 Lemma contains_RInt prec (f3 : R -> R) x1 x2 Y X1 X2 :
