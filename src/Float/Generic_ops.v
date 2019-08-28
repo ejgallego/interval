@@ -66,7 +66,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition scale := @Fscale radix.
   Definition scale2 := @Fscale2 radix.
   Definition div2 := @Fdiv2 radix.
-  Definition add_exact := @Fadd_exact radix.
   Definition add := @Fadd radix.
   Definition sub := @Fsub radix.
   Definition mul := @Fmul radix.
@@ -81,7 +80,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition abs_correct := @Fabs_correct radix.
   Definition scale_correct := @Fscale_correct radix.
   Definition scale2_correct := @Fscale2_correct radix.
-  Definition add_exact_correct := @Fadd_exact_correct radix.
   Definition add_correct := @Fadd_correct radix.
   Definition sub_correct := @Fsub_correct radix.
   Definition mul_correct := @Fmul_correct radix.
@@ -134,7 +132,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   now rewrite is_zero_false.
   Qed.
 
-  Definition midpoint (x y : type) := scale2 (add_exact x y) (ZtoS (-1)).
+  Definition midpoint (x y : type) := scale2 (Fadd_exact x y) (ZtoS (-1)).
 
   Lemma midpoint_correct :
     forall x y,
@@ -146,7 +144,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   unfold toR, FtoX, midpoint.
   rewrite !real_correct.
   rewrite (scale2_correct _ _ He).
-  rewrite add_exact_correct.
+  rewrite Fadd_exact_correct.
   unfold toX.
   do 2 (case FtoX; [easy|]).
   clear x y; simpl; intros x y _ _ Hxy.

@@ -70,13 +70,13 @@ Definition cos prec xi :=
         else
           bnd cm1 (F.max (upper (T.cos_fast prec xl)) (upper (T.cos_fast prec xu)))
       else
-        (* let d := F.sub rnd_UP prec xu xl in *)
-        (* if F'.le' d c3 then *)
-        (*   let m := F.midpoint xl xu in *)
-        (*   let d := F.div2 d in *)
-        (*   let c := T.cos_fast prec m in *)
-        (*   meet (bnd cm1 c1) (add prec c (bnd (F.neg d) d)) *)
-        (* else *) bnd cm1 c1
+        let d := F.sub rnd_UP prec xu xl in
+        if F'.le' d c3 then
+          let m := F.midpoint xl xu in
+          let d := F.max (F.sub rnd_UP prec xu m) (F.sub rnd_UP prec m xl) in
+          let c := T.cos_fast prec m in
+          meet (bnd cm1 c1) (add prec c (bnd (F.neg d) d))
+        else bnd cm1 c1
   | Inan => Inan
   end.
 
@@ -234,76 +234,76 @@ case_eq (F'.le' xu (F.scale2 (lower (T.pi4 prec)) (F.ZtoS 3))).
   { apply Rle_trans with (1 := proj2 Ha) (2 := Hxur). }
   apply Rle_trans with (1 := Hx) (2 := proj2 Ha). }
 intros _.
-
+case_eq (F'.le' (F.sub rnd_UP prec xu xl) (F.fromZ 3)).
+{ intros Hd.
+  apply F'.le'_correct in Hd.
+  revert Hd.
+  rewrite F.sub_correct, F.fromZ_correct.
+  case_eq (F.toX xu) ; [easy|] ; intros xur Hur.
+  case_eq (F.toX xl) ; [easy|] ; intros xlr Hlr.
+  intros _.
+  apply meet_correct.
+  { unfold convert, bnd.
+    rewrite 2!F.fromZ_correct.
+    apply COS_bound. }
+  set (m := F.toR (F.midpoint xl xu)).
+  replace (Xreal (Rtrigo_def.cos (Rabs x)))
+      with (Xadd (Xcos (Xreal m)) (Xreal (Rtrigo_def.cos (Rabs x) - Rtrigo_def.cos m)))
+      by (apply (f_equal Xreal) ; ring).
+  apply add_correct.
+  { generalize (F.midpoint_correct xl xu (eq_refl _)).
+    generalize Ha.
+    unfold convert at 1.
+    unfold F.toR.
+    rewrite !F.real_correct, Hur, Hlr.
+    intros (Hxl, Hxu) H.
+    specialize (H (eq_refl _) (eq_refl _) (Rle_trans _ _ _ Hxl Hxu)).
+    revert H.
+    unfold m, F.toR.
+    case_eq (F.toX (F.midpoint xl xu)); [easy|]; intros mr Hmr _.
+    unfold proj_val.
+    rewrite <-Hmr.
+    apply T.cos_fast_correct. }
+  simpl.
+  generalize (F.midpoint_correct xl xu (eq_refl _)).
+  unfold F.toR.
+  rewrite !F.real_correct.
+  rewrite F.neg_correct, F.max_correct, !F.sub_correct, Hlr, Hur.
+  generalize Ha.
+  unfold convert at 1.
+  unfold F.toR.
+  rewrite Hur, Hlr.
+  intros (Hxl, Hxu) H.
+  specialize (H (eq_refl _) (eq_refl _) (Rle_trans _ _ _ Hxl Hxu)).
+  revert H.
+  revert m; simpl; unfold F.toR.
+  case F.toX; [easy|]; simpl; intros m (_, Hm).
+  apply Raux.Rabs_le_inv.
+  destruct (MVT_abs Rtrigo_def.cos (fun t => Ropp (sin t)) m (Rabs x)) as [v [-> _]].
+  { intros c _.
+    apply derivable_pt_lim_cos. }
+  apply Rle_trans with (1 * Rabs (Rabs x - m))%R.
+  { apply Rmult_le_compat_r.
+    apply Rabs_pos.
+    rewrite Rabs_Ropp.
+    apply Rabs_le, SIN_bound. }
+  rewrite Rmult_1_l.
+  case (Rle_lt_dec (Rabs x) m); intro Hxm.
+  { refine (Rle_trans _ _ _ _ (Rmax_r _ _)).
+    rewrite Rabs_minus_sym, Rabs_pos_eq; [|lra].
+    apply (Rle_trans _ (m - xlr)); [lra|].
+    apply Generic_fmt.round_UP_pt.
+    now apply FLX.FLX_exp_valid. }
+  refine (Rle_trans _ _ _ _ (Rmax_l _ _)).
+  rewrite Rabs_pos_eq; [|lra].
+  apply (Rle_trans _ (xur - m)); [lra|].
+  apply Generic_fmt.round_UP_pt.
+  now apply FLX.FLX_exp_valid. }
+intros _.
 unfold convert, bnd.
 rewrite 2!F.fromZ_correct.
 apply COS_bound.
 Qed.
-
-(* case_eq (F'.le' (F.sub rnd_UP prec xu xl) (F.fromZ 3)). *)
-(* { intros Hd. *)
-(*   apply F'.le'_correct in Hd. *)
-(*   revert Hd. *)
-(*   rewrite F.sub_correct, F.fromZ_correct. *)
-(*   case_eq (F.toX xu) ; [easy|] ; intros xur Hur. *)
-(*   case_eq (F.toX xl) ; [easy|] ; intros xlr Hlr. *)
-(*   intros _. *)
-(*   apply meet_correct. *)
-(*   { unfold convert, bnd. *)
-(*     rewrite 2!F.fromZ_correct. *)
-(*     apply COS_bound. } *)
-(*   (* set (m := ((xlr + xur) / 2)%R). *) *)
-(*   set (m := F.toR (F.midpoint xl xu)). *)
-(*   replace (Xreal (Rtrigo_def.cos (Rabs x))) *)
-(*       with (Xadd (Xcos (Xreal m)) (Xreal (Rtrigo_def.cos (Rabs x) - Rtrigo_def.cos m))) *)
-(*       by (apply (f_equal Xreal) ; ring). *)
-(*   apply add_correct. *)
-(*   { generalize (F.midpoint_correct xl xu (eq_refl _)). *)
-(*     generalize Ha. *)
-(*     unfold convert at 1. *)
-(*     unfold F.toR. *)
-(*     rewrite !F.real_correct, Hur, Hlr. *)
-(*     intros (Hxl, Hxu) H. *)
-(*     specialize (H (eq_refl _) (eq_refl _) (Rle_trans _ _ _ Hxl Hxu)). *)
-(*     revert H. *)
-(*     unfold m, F.toR. *)
-(*     case_eq (F.toX (F.midpoint xl xu)); [easy|]; intros mr Hmr _. *)
-(*     unfold proj_val. *)
-(*     rewrite <-Hmr. *)
-(*     apply T.cos_fast_correct. } *)
-(*     (* replace (Xreal m) with (F.toX (F.midpoint xl xu)). *) *)
-(*     (* { apply T.cos_fast_correct. } *) *)
-(*     (* unfold m, T.toR. *) *)
-(*     (* rewrite F.scale2_correct, F.add_exact_correct by easy. *) *)
-(*     (* now rewrite Hlr, Hur. *) *)
-(*   simpl. *)
-(*   rewrite F.neg_correct, F.scale2_correct by easy. *)
-(*   rewrite F.sub_correct, Hlr, Hur. *)
-(*   simpl. *)
-(*   apply Raux.Rabs_le_inv. *)
-(*   destruct (MVT_abs Rtrigo_def.cos (fun t => Ropp (sin t)) m (Rabs x)) as [v [-> _]]. *)
-(*   intros c _. *)
-(*   apply derivable_pt_lim_cos. *)
-(*   apply Rle_trans with (1 * Rabs (Rabs x - m))%R. *)
-(*   apply Rmult_le_compat_r. *)
-(*   apply Rabs_pos. *)
-(*   rewrite Rabs_Ropp. *)
-(*   apply Rabs_le, SIN_bound. *)
-(*   rewrite Rmult_1_l. *)
-(*   change (Z.pow_pos 2 1) with 2%Z. *)
-(*   apply Rabs_le. *)
-(*   revert Ha. *)
-(*   simpl. *)
-(*   rewrite Hlr, Hur. *)
-(*   unfold m. *)
-(*   generalize (proj1 (proj2 (Generic_fmt.round_UP_pt F.radix (FLX.FLX_exp (Z.pos (F.prec prec))) (xur - xlr)))). *)
-(*   unfold round, rnd_of_mode. *)
-(*   lra. *)
-(* intros _. *)
-(* unfold convert, bnd. *)
-(* rewrite 2!F.fromZ_correct. *)
-(* apply COS_bound. *)
-(* Qed. *)
 
 (* accurate only for |xi| <= 5/2*pi *)
 Definition sin prec xi :=

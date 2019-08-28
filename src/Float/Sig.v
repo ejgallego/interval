@@ -59,7 +59,6 @@ Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
 Parameter scale2 : type -> sfactor -> type.
 Parameter div2 : type -> type.
-Parameter add_exact : type -> type -> type.
 Parameter add : rounding_mode -> precision -> type -> type -> type.
 Parameter sub : rounding_mode -> precision -> type -> type -> type.
 Parameter mul : rounding_mode -> precision -> type -> type -> type.
@@ -106,9 +105,6 @@ Parameter div2_correct :
   forall x, sensible_format = true ->
   (1 / 256 <= Rabs (toR x))%R ->
   toX (div2 x) = Xdiv (toX x) (Xreal 2).
-
-Parameter add_exact_correct :
-  forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).
 
 Parameter add_correct :
   forall mode p x y,

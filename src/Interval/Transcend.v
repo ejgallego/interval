@@ -79,17 +79,61 @@ Definition i3 := I.fromZ 3.
 Definition i4 := I.fromZ 4.
 Definition i6 := I.fromZ 6.
 Definition s1 := F.ZtoS 1.
-Definition sm1 := F.ZtoS (-1).
-Definition sm8 := F.ZtoS (-8).
 Definition c1_2 := F.div2 c1.
+Definition c1_8 := iter_pos F.div2 8 c1.  (* TODO: eval *compute in ? *)
+Definition c1_p_c1_8 := F.add rnd_DN (F.PtoP 52) c1 c1_8.  (* TODO: eval *compute in ? *)
+
+Lemma c1_n_correct :
+  forall x n,
+  (/ 256 * 2^Pos.to_nat n <= Rabs (F.toR x))%R ->
+  F.toX (iter_pos F.div2 n x) = Xmul (F.toX x) (Xreal ((/2)^Pos.to_nat n)).
+Proof.
+intros x n Hx.
+rewrite iter_pos_nat.
+revert x Hx.
+elim (Pos.to_nat n); clear n; [|intros n IHn]; intros x Hx.
+{ now simpl; case F.toX; [|intro r; simpl; rewrite Rmult_1_r]. }
+simpl.
+rewrite IHn.
+{ rewrite F.div2_correct; [|easy|].
+  { rewrite Xdiv_split.
+    case F.toX; [easy|]; intro rx.
+    simpl; unfold Xinv'; rewrite is_zero_false; [|easy].
+    now simpl; rewrite Rmult_assoc. }
+  revert Hx; apply Rle_trans.
+  unfold Rdiv; rewrite Rmult_1_l.
+  rewrite <-(Rmult_1_r (/ 256)) at 1.
+  apply Rmult_le_compat_l; [|apply pow_R1_Rle]; lra. }
+unfold F.toR; rewrite F.div2_correct; [|easy|].
+{ revert Hx; unfold F.toR; case F.toX; [|intro rx].
+  { simpl; change R0 with 0%R; rewrite Rabs_R0.
+    intro H; exfalso; apply (Rlt_irrefl 0); revert H; apply Rlt_le_trans.
+    do 2 (apply Rmult_lt_0_compat; [lra|]).
+    apply pow_lt; lra. }
+  rewrite Xdiv_split; unfold Xinv'.
+  simpl.
+  intro Hx.
+  rewrite is_zero_false; [|easy].
+  simpl.
+  rewrite Rabs_mult, (Rabs_pos_eq (/ 2)); lra. }
+revert Hx; apply Rle_trans.
+unfold Rdiv; rewrite Rmult_1_l.
+rewrite <-(Rmult_1_r (/ 256)) at 1.
+apply Rmult_le_compat_l; [|apply pow_R1_Rle]; lra.
+Qed.
 
 Lemma c1_2_correct : F.toX c1_2 = Xreal (/ 2).
 Proof.
-unfold c1_2; rewrite F.div2_correct; [|easy|].
-{ unfold c1; rewrite F.fromZ_correct, Xdiv_split.
-  now simpl; unfold Xinv'; rewrite is_zero_false; [rewrite Rmult_1_l|]. }
-unfold F.toR, c1; rewrite F.fromZ_correct.
-rewrite Rabs_pos_eq; simpl; lra.
+change c1_2 with (iter_pos F.div2 1 c1); rewrite c1_n_correct.
+{ unfold c1; rewrite F.fromZ_correct; simpl; apply f_equal; lra. }
+unfold F.toR, c1; rewrite F.fromZ_correct; simpl; rewrite Rabs_R1; lra.
+Qed.
+
+Lemma c1_8_correct : F.toX c1_8 = Xreal (/ 256).
+Proof.
+change c1_8 with (iter_pos F.div2 8 c1); rewrite c1_n_correct.
+{ unfold c1; rewrite F.fromZ_correct; simpl; apply f_equal; lra. }
+unfold F.toR, c1; rewrite F.fromZ_correct; simpl; rewrite Rabs_R1; lra.
 Qed.
 
 Ltac bound_tac :=
@@ -333,7 +377,7 @@ Lemma atan_fastP_correct :
   contains (I.convert (atan_fastP prec x)) (Xreal (atan (toR x))).
 Proof.
 intros prec x Rx Bx.
-unfold atan_fastP, c1_2, c1, c2, sm1.
+unfold atan_fastP, c1_2, c1, c2.
 rewrite F'.lt_correct with (2 := Rx).
 2: {
   unfold F.toR.
@@ -467,7 +511,7 @@ Definition ln1p_fast0 prec xi :=
 
 (* 1 <= input *)
 Definition ln_fast1P prec xi :=
-  let th := F.add_exact c1 (F.scale2 c1 sm8) in
+  let th := c1_p_c1_8 in
   match F'.le' (I.upper xi) th with
   | true =>
     ln1p_fast0 prec (I.sub prec xi i1)
@@ -620,7 +664,7 @@ Lemma ln_fast1P_correct :
   contains (I.convert xi) (Xreal x) ->
   contains (I.convert (ln_fast1P prec xi)) (Xreal (ln x)).
 Proof.
-set (thre := F.add_exact c1 (F.scale2 c1 sm8)).
+set (thre := c1_p_c1_8).
 assert (H: forall prec xi x,
     (1 <= x)%R ->
     (F'.le' (I.upper xi) thre = true) ->
@@ -635,10 +679,13 @@ assert (H: forall prec xi x,
   destruct (I.convert xi) as [|l [|u]] ; try easy.
   revert Hxu.
   simpl.
-  unfold thre, c1, sm8.
-  rewrite F.add_exact_correct, F.scale2_correct, F.fromZ_correct by easy.
+  unfold thre, c1_p_c1_8, c1.
+  rewrite F.add_correct, c1_8_correct, F.fromZ_correct.
   simpl.
-  change (Z.pow_pos 2 8) with 256%Z.
+  intro H.
+  assert (H' : (u <= 1 + / 256)%R).
+  { apply (Rle_trans _ _ _ H).
+    now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
   generalize (proj2 Ix).
   lra.
   apply J.sub_correct with (1 := Ix).
@@ -652,7 +699,7 @@ clear Hxu.
 set (m := Zdigits2 (F.StoZ (F.mag (I.upper xi)))).
 clearbody m.
 generalize (F.incr_prec prec 10).
-clear prec. intro prec.
+clear prec; intro prec.
 generalize (8 + Z2nat m).
 intro nb.
 revert xi x Hx Ix.
@@ -1013,7 +1060,7 @@ assert (forall x, F.toX x = Xreal (toR x) -> (0 <= toR x)%R ->
         contains (I.convert (cos_fast0 prec x)) (Xreal (cos (toR x))) /\
         (0 <= sin (toR x))%R).
 { intros x Hxr Hx0 H.
-  unfold c1_2, c1, sm1 in H.
+  unfold c1_2, c1 in H.
   assert (toR x <= /2)%R.
   { rewrite F'.le_correct with (1 := Hxr) in H.
     2: {
@@ -1423,7 +1470,7 @@ case_eq (F'.le' x c1_2) ; intros Hx.
   rewrite Rabs_pos_eq with (1 := Hx0).
   apply F'.le'_correct in Hx.
   revert Hx.
-  unfold toR, sm1, c1.
+  unfold toR, c1.
   now rewrite Hxr, c1_2_correct. }
 generalize (S (Z2nat (F.StoZ (F.mag x)))) (F.incr_prec prec (Z2P (F.StoZ (F.mag x) + 6))).
 intros nb prec'.
@@ -1808,7 +1855,7 @@ Definition expn_fast0 prec x :=
 
 (* 0 <= input *)
 Definition expn_reduce prec x :=
-  let th := F.scale2 c1 sm8 in
+  let th := c1_8 in
   match F'.le' x th with
   | true => expn_fast0 (F.incr_prec prec 1) x
   | false =>
@@ -2002,7 +2049,7 @@ Lemma expn_reduce_correct :
 Proof.
 assert (forall prec x,
   F.toX x = Xreal (toR x) ->
-  (0 < toR x)%R -> F'.le' x (F.scale2 c1 sm8) = true ->
+  (0 < toR x)%R -> F'.le' x c1_8 = true ->
   contains (I.convert (expn_fast0 prec x)) (Xreal (exp (- toR x)))).
 { intros prec x Hx1 Hx2 Hx3.
   apply expn_fast0_correct.
@@ -2012,18 +2059,11 @@ assert (forall prec x,
   apply F'.le'_correct in Hx3.
   revert Hx3.
   rewrite Hx1.
-  unfold c1, sm8.
-  rewrite F.scale2_correct, F.fromZ_correct by easy.
-  simpl.
-  intros Hx3.
-  apply Rle_trans with (1 := Hx3).
-  rewrite Rmult_1_l.
-  apply Rle_Rinv_pos.
-  { now apply IZR_lt. }
-  now apply IZR_le. }
+  rewrite c1_8_correct.
+  lra. }
 intros prec x Hx H0.
 unfold expn_reduce.
-case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
+case_eq (F'.le' x c1_8) ; intros Hx'.
 { (* . no reduction *)
   now apply H. }
 (* . reduction *)
@@ -2035,7 +2075,7 @@ intro nb.
 revert x Hx H0.
 induction nb ; intros ; simpl.
 { (* nb = 0 *)
-  case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
+  case_eq (F'.le' x c1_8) ; intros Hx'.
   { now apply H. }
   simpl.
   unfold c1.
@@ -2050,7 +2090,7 @@ induction nb ; intros ; simpl.
   rewrite <- Ropp_0.
   now apply Ropp_lt_contravar. }
 (* nb > 0 *)
-case_eq (F'.le' x (F.scale2 c1 sm8)) ; intros Hx'.
+case_eq (F'.le' x c1_8) ; intros Hx'.
 { now apply H. }
 assert (1 / 256 <= Rabs (F.toR x))%R.
 { rewrite (Rabs_pos_eq _ (Rlt_le _ _ H0)).
@@ -2058,9 +2098,9 @@ assert (1 / 256 <= Rabs (F.toR x))%R.
   unfold F'.le'.
   rewrite F'.cmp_correct.
   rewrite Hx.
-  change sm8 with (F.ZtoS (-8)).
-  rewrite F.scale2_correct; [|easy].
-  unfold c1; rewrite F.fromZ_correct; simpl; unfold Z.pow_pos; simpl.
+  rewrite c1_8_correct.
+  unfold Rdiv; rewrite Rmult_1_l.
+  simpl.
   now case Rcompare_spec; [easy..|]; intros H' _; apply Rlt_le. }
 assert (toR (F.div2 x) = toR x * /2)%R.
 { unfold toR; rewrite F.div2_correct; [|easy..].
