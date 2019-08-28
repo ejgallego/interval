@@ -78,7 +78,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition max_correct := @Fmax_correct radix.
   Definition neg_correct := @Fneg_correct radix.
   Definition abs_correct := @Fabs_correct radix.
-  Definition scale_correct := @Fscale_correct radix.
   Definition add_correct := @Fadd_correct radix.
   Definition sub_correct := @Fsub_correct radix.
   Definition mul_correct := @Fmul_correct radix.

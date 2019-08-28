@@ -186,8 +186,8 @@ Definition midpoint xi :=
     | Xund, Xgt => F.zero
     | Xeq, Xund => F.fromZ 1%Z
     | Xund, Xeq => F.fromZ (-1)%Z
-    | Xgt, Xund => F.scale xl (F.ZtoS 1%Z)
-    | Xund, Xlt => F.scale xu (F.ZtoS 1%Z)
+    | Xgt, Xund => F.mul rnd_UP (F.PtoP 52) xl (F.fromZ 2)
+    | Xund, Xlt => F.mul rnd_DN (F.PtoP 52) xu (F.fromZ 2)
     | _, _ => F.midpoint xl xu
     end
   end.
@@ -203,8 +203,8 @@ Definition midpoint' xi :=
     | Xund, Xgt => zero
     | Xeq, Xund => fromZ 1%Z
     | Xund, Xeq => fromZ (-1)%Z
-    | Xgt, Xund => let m := F.scale xl (F.ZtoS 1%Z) in Ibnd m m
-    | Xund, Xlt => let m := F.scale xu (F.ZtoS 1%Z) in Ibnd m m
+    | Xgt, Xund => let m := F.mul rnd_UP (F.PtoP 52) xl (F.fromZ 2) in Ibnd m m
+    | Xund, Xlt => let m := F.mul rnd_DN (F.PtoP 52) xu (F.fromZ 2) in Ibnd m m
     | _, _ =>
       if F'.lt xu xl then empty
       else let m := F.midpoint xl xu in Ibnd m m
@@ -264,12 +264,6 @@ Definition abs xi :=
     | Xlt => Ibnd (F.neg xu) (F.neg xl)
     | Xund => Ibnd F.zero (F.max (F.neg xl) xu)
     end
-  | Inan => Inan
-  end.
-
-Definition scale xi d :=
-  match xi with
-  | Ibnd xl xu => Ibnd (F.scale xl d) (F.scale xu d)
   | Inan => Inan
   end.
 
@@ -903,14 +897,16 @@ xreal_tac xl ; xreal_tac xu ; simpl ;
   rewrite F.zero_correct ; simpl; [now repeat split| | |].
 { (* infinite lower *)
   destruct (Rcompare_spec r 0).
-  { rewrite F.scale_correct.
+  { rewrite F.mul_correct, F.fromZ_correct.
     rewrite X0.
     simpl.
     repeat split.
+    apply (Rle_trans _ (r * 2)).
+    { now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
     pattern r at 2 ; rewrite <- Rmult_1_r.
     apply Rmult_le_compat_neg_l.
     { exact (Rlt_le _ _ H). }
-    exact Hr. }
+    lra. }
   { rewrite H.
     rewrite F.fromZ_correct.
     repeat split.
@@ -927,14 +923,16 @@ xreal_tac xl ; xreal_tac xu ; simpl ;
     rewrite F.fromZ_correct.
     repeat split.
     now apply IZR_le. }
-  rewrite F.scale_correct.
+  rewrite F.mul_correct, F.fromZ_correct.
   rewrite X.
   simpl.
   repeat split.
-  pattern r at 1 ; rewrite <- Rmult_1_r.
-  apply Rmult_le_compat_l.
-  { exact (Rlt_le _ _ H). }
-  exact Hr. }
+  apply (Rle_trans _ (r * 2)).
+  { pattern r at 1 ; rewrite <- Rmult_1_r.
+    apply Rmult_le_compat_l.
+    { exact (Rlt_le _ _ H). }
+    lra. }
+  now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid. }
 (* finite bounds *)
 assert (
   match F.toX (F.midpoint xl xu) with
@@ -998,15 +996,17 @@ case_eq (F.toX xl) ; [|intros xlr] ; intros Hl.
   split.
   { case Rcompare_spec ; intros Hu0 ; simpl ;
       (intros [|x] ; [easy|]).
-    { rewrite F.scale_correct, Hu.
+    { rewrite F.mul_correct, F.fromZ_correct, Hu.
       simpl.
       intros [_ H].
       apply (conj I).
       apply Rle_trans with (1 := H).
+      apply (Rle_trans _ (xur * 2)).
+      { now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
       rewrite <- (Rmult_1_r xur) at 2.
       apply Rmult_le_compat_neg_l.
       { now apply Rlt_le. }
-      now apply IZR_le, (Zpower_le _ 0 1). }
+      lra. }
     { rewrite F.fromZ_correct.
       intros [H1 H2].
       apply (conj I).
@@ -1034,15 +1034,17 @@ case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
     refine (conj _ I).
     rewrite (Rle_antisym _ _ H2 H1), Hl0.
     now apply IZR_le. }
-  { rewrite F.scale_correct, Hl.
+  { rewrite F.mul_correct, F.fromZ_correct, Hl.
     simpl.
     intros [H _].
     refine (conj _ I).
     apply Rle_trans with (2 := H).
-    rewrite <- (Rmult_1_r xlr) at 1.
-    apply Rmult_le_compat_l.
-    { now apply Rlt_le. }
-    now apply IZR_le, (Zpower_le _ 0 1). }
+    apply (Rle_trans _ (xlr * 2)).
+    { rewrite <- (Rmult_1_r xlr) at 1.
+      apply Rmult_le_compat_l.
+      { now apply Rlt_le. }
+      lra. }
+    now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid. }
   intros _.
   case Rcompare ; apply He. }
 (* finite bounds *)

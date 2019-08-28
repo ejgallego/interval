@@ -257,20 +257,6 @@ Definition scale (f : type) d :=
   | _ => f
   end.
 
-Lemma scale_correct :
-  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
-Proof.
-intros x d.
-unfold toX.
-rewrite <- Fscale_correct.
-destruct x as [|m e].
-apply refl_equal.
-simpl.
-destruct (mantissa_sign m) as [|s p].
-apply refl_equal.
-now rewrite exponent_add_correct, ZtoE_correct.
-Qed.
-
 (*
  * scale2
  *)

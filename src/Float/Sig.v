@@ -94,9 +94,6 @@ Parameter neg_correct :
 Parameter abs_correct :
   forall x, toX (abs x) = Xabs (toX x).
 
-Parameter scale_correct :
-  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
-
 Parameter div2_correct :
   forall x, sensible_format = true ->
   (1 / 256 <= Rabs (toR x))%R ->

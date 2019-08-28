@@ -208,23 +208,6 @@ apply refl_equal.
 Qed.
 
 (*
- * Fscale
- *)
-
-Theorem Fscale_correct :
-  forall beta (f : float beta) d,
-  FtoX (Fscale f d) = Xmul (FtoX f) (Xreal (bpow beta d)).
-Proof.
-intros beta [| |s m e] d ; simpl.
-apply refl_equal.
-now rewrite Rmult_0_l.
-rewrite 2!FtoR_split.
-unfold F2R. simpl.
-rewrite Rmult_assoc.
-now rewrite bpow_plus.
-Qed.
-
-(*
  * Fscale2
  *)
 
