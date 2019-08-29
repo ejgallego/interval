@@ -254,6 +254,7 @@ Parameter type : Type.
 Parameter convert : type -> interval.
 Parameter zero : type.
 Parameter nai : type.
+Parameter empty : type.
 Parameter bnd : bound_type -> bound_type -> type.
 
 Parameter bnd_correct :
@@ -265,6 +266,9 @@ Parameter zero_correct :
 
 Parameter nai_correct :
   convert nai = Inan.
+
+Parameter empty_correct :
+  forall x, contains (convert empty) x -> False.
 
 Local Notation subset_ := subset.
 

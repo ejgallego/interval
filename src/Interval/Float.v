@@ -75,7 +75,20 @@ Qed.
 
 Lemma zero_correct :
   convert zero = Interval.Ibnd (Xreal 0) (Xreal 0).
-Proof. now simpl; rewrite F.zero_correct. Qed.
+Proof.
+simpl.
+now rewrite F.zero_correct.
+Qed.
+
+Lemma empty_correct :
+  forall x, contains (convert empty) x -> False.
+Proof.
+intros [|x].
+easy.
+simpl.
+rewrite F.fromZ_correct, F.zero_correct.
+lra.
+Qed.
 
 Definition bounded xi :=
   match xi with
