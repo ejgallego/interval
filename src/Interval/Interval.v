@@ -387,6 +387,11 @@ Parameter div_correct : forall prec, extension_2 Xdiv (div prec).
 Parameter power_int_correct : forall prec n, extension (fun x => Xpower_int x n) (fun x => power_int prec x n).
 Parameter nearbyint_correct : forall mode, extension (Xnearbyint mode) (nearbyint mode).
 
+Parameter neg_correct' :
+  forall xi x,
+  contains (convert (neg xi)) (Xneg x) ->
+  contains (convert xi) x.
+
 Parameter bounded : type -> bool.
 Parameter lower_bounded : type -> bool.
 Parameter upper_bounded : type -> bool.

@@ -1290,6 +1290,27 @@ split ; rewrite F.neg_correct ;
   apply Ropp_le_contravar ; assumption.
 Qed.
 
+Theorem neg_correct' :
+  forall xi x,
+  contains (convert (neg xi)) (Xneg x) ->
+  contains (convert xi) x.
+Proof.
+intros [|xl xu] [|x] ; try easy.
+simpl.
+rewrite 2!F.neg_correct.
+destruct (F.toX xl) as [|xl'] ;
+  destruct (F.toX xu) as [|xu'] ; simpl.
+easy.
+intros [H _].
+apply (conj I).
+now apply Ropp_le_cancel.
+intros [_ H].
+refine (conj _ I).
+now apply Ropp_le_cancel.
+intros [H1 H2].
+now split ; apply Ropp_le_cancel.
+Qed.
+
 Theorem abs_correct :
   extension Xabs abs.
 Proof.
