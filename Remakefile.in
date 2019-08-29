@@ -1,6 +1,7 @@
 FILES = \
 	Interval_tactic \
 	Tactic \
+	Eval/Eval \
 	Float/Basic \
 	Float/Generic \
 	Float/Generic_ops \
@@ -12,7 +13,6 @@ FILES = \
 	Float/Sig \
 	Integral/Bertrand \
 	Integral/Integral \
-	Interval/Eval \
 	Interval/Interval \
 	Interval/Interval_compl \
 	Interval/Float \
@@ -100,7 +100,7 @@ deps.dot: $(VFILES)
 	(cd src ; @COQDEP@ -R . Interval $(addsuffix .v,$(FILES))) |
 	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |
 	  while read src dst; do
-	    color=$$(echo "$src" | sed -e 's,Real.*,turquoise,;s,Interval[.].*,plum,;s,Integral.*,lightcoral,;s,Poly.*,yellow,;s,Float.*,cornflowerblue,;s,[A-Z].*,white,')
+	    color=$$(echo "$src" | sed -e 's,Real.*,turquoise,;s,Interval[.].*,plum,;s,Integral.*,lightcoral,;s,Poly.*,yellow,;s,Float.*,cornflowerblue,;s,Eval.*,green,;s,[A-Z].*,white,')
 	    echo "\"$src\" [fillcolor=$color];"
 	    for d in $dst; do
 	      echo "\"$src\" -> \"${d%.vo}\" ;"
