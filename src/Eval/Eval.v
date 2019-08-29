@@ -28,17 +28,10 @@ Require Import Xreal_derive.
 Require Import Basic.
 Require Import Interval.
 Require Import Taylor_model.
-
-Inductive unary_op : Set :=
-  | Neg | Abs | Inv | Sqr | Sqrt
-  | Cos | Sin | Tan | Atan | Exp | Ln
-  | PowerInt (n : Z) | Nearbyint (m : rounding_mode).
+Require Import Tree.
 
 Definition no_floor_op op :=
   match op with Nearbyint _ => false | _ => true end.
-
-Inductive binary_op : Set :=
-  | Add | Sub | Mul | Div.
 
 Inductive term : Set :=
   | Forward : nat -> term

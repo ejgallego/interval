@@ -2,6 +2,7 @@ FILES = \
 	Interval_tactic \
 	Tactic \
 	Eval/Eval \
+	Eval/Tree \
 	Float/Basic \
 	Float/Generic \
 	Float/Generic_ops \

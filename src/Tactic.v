@@ -31,6 +31,7 @@ Require Import Float_full.
 Require Import Integral.
 Require Import Eval.
 Require Import Bertrand.
+Require Import Tree.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -1433,18 +1434,6 @@ Inductive expr :=
   | Econst : nat -> expr
   | Eunary : unary_op -> expr -> expr
   | Ebinary : binary_op -> expr -> expr -> expr.
-
-Ltac list_add a l :=
-  let rec aux a l n :=
-    match l with
-    | nil        => constr:((n, cons a l))
-    | cons a _   => constr:((n, l))
-    | cons ?x ?l =>
-      match aux a l (S n) with
-      | (?n, ?l) => constr:((n, cons x l))
-      end
-    end in
-  aux a l O.
 
 Ltac reify t l :=
   let rec aux t l :=
