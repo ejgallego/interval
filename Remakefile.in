@@ -3,6 +3,7 @@ FILES = \
 	Tactic \
 	Eval/Eval \
 	Eval/Prog \
+	Eval/Reify \
 	Eval/Tree \
 	Float/Basic \
 	Float/Generic \
