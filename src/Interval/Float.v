@@ -595,6 +595,69 @@ simpl.
 now apply Rmin_glb.
 Qed.
 
+Theorem meet_correct' :
+  forall xi yi v,
+  contains (convert (meet xi yi)) v ->
+  contains (convert xi) v /\ contains (convert yi) v.
+Proof.
+intros [|xl xu] [|yl yu] v H ; try easy.
+destruct v as [|v] ; try easy.
+revert H.
+simpl.
+assert (Hmin: forall p q, (v <= Rmin p q)%R -> (v <= p /\ v <= q)%R).
+  intros p q H.
+  unfold Rmin in H.
+  destruct Rle_dec as [H'|H'] ; lra.
+assert (Hmax: forall p q, (Rmax p q <= v)%R -> (p <= v /\ q <= v)%R).
+  intros p q H.
+  unfold Rmax in H.
+  destruct Rle_dec as [H'|H'] ; lra.
+rewrite 4!F.real_correct.
+case_eq (F.toX xl) ; [intros _ | intros xl' Hxl] ;
+  (case_eq (F.toX xu) ; [intros _ | intros xu' Hxu]) ;
+  (case_eq (F.toX yl) ; [intros _ | intros yl' Hyl]) ;
+  (case_eq (F.toX yu) ; [intros _ | intros yu' Hyu]) ;
+  try easy.
+- now rewrite Hxu.
+- intros [_ H].
+  rewrite F.min_correct in H.
+  rewrite Hxu, Hyu in H.
+  now apply Hmin in H.
+- now rewrite Hxu.
+- intros [H1 H2].
+  rewrite F.min_correct in H2.
+  rewrite Hxu, Hyu in H2.
+  now apply Hmin in H2.
+- now rewrite Hxl.
+- now rewrite Hxl.
+- intros [H _].
+  rewrite F.max_correct in H.
+  rewrite Hxl, Hyl in H.
+  now apply Hmax in H.
+- intros [H1 H2].
+  rewrite F.max_correct in H1.
+  rewrite Hxl, Hyl in H1.
+  now apply Hmax in H1.
+- now rewrite Hxl, Hxu.
+- intros [H1 H2].
+  rewrite Hxl in H1.
+  rewrite F.min_correct in H2.
+  rewrite Hxu, Hyu in H2.
+  now apply Hmin in H2.
+- intros [H1 H2].
+  rewrite F.max_correct in H1.
+  rewrite Hxl, Hyl in H1.
+  rewrite Hxu in H2.
+  now apply Hmax in H1.
+- intros [H1 H2].
+  rewrite F.max_correct in H1.
+  rewrite Hxl, Hyl in H1.
+  rewrite F.min_correct in H2.
+  rewrite Hxu, Hyu in H2.
+  apply Hmin in H2.
+  now apply Hmax in H1.
+Qed.
+
 Definition bounded_prop xi :=
   convert xi = Interval.Ibnd (F.toX (lower xi)) (F.toX (upper xi)).
 

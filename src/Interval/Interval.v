@@ -311,6 +311,11 @@ Parameter meet_correct :
   contains (convert xi) v -> contains (convert yi) v ->
   contains (convert (meet xi yi)) v.
 
+Parameter meet_correct' :
+  forall xi yi v,
+  contains (convert (meet xi yi)) v ->
+  contains (convert xi) v /\ contains (convert yi) v.
+
 Parameter midpoint : type -> bound_type.
 
 Parameter midpoint_correct :
