@@ -32,6 +32,7 @@ Require Import Integral.
 Require Import Eval.
 Require Import Bertrand.
 Require Import Tree.
+Require Import Prog.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
