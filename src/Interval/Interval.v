@@ -406,6 +406,21 @@ Parameter whole_correct :
   forall x,
   contains (convert whole) (Xreal x).
 
+Parameter lower_complement : type -> type.
+Parameter upper_complement : type -> type.
+
+Parameter lower_complement_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal x) ->
+  contains (convert (lower_complement xi)) (Xreal y) ->
+  (y <= x)%R.
+
+Parameter upper_complement_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal x) ->
+  contains (convert (upper_complement xi)) (Xreal y) ->
+  (x <= y)%R.
+
 Parameter lower : type -> bound_type.
 Parameter upper : type -> bound_type.
 

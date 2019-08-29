@@ -170,6 +170,18 @@ Definition upper_extent xi :=
   | _ => Inan
   end.
 
+Definition lower_complement xi :=
+  match xi with
+  | Ibnd xl _ => if F.real xl then Ibnd F.nan xl else empty
+  | Inan => empty
+  end.
+
+Definition upper_complement xi :=
+  match xi with
+  | Ibnd _ xu => if F.real xu then Ibnd xu F.nan else empty
+  | Inan => empty
+  end.
+
 Definition whole := Ibnd F.nan F.nan.
 
 Definition lower xi :=
@@ -671,6 +683,46 @@ apply Rle_trans with (2 := Hx).
 exact (proj1 Hy).
 rewrite F.nan_correct.
 exact I.
+Qed.
+
+Theorem lower_complement_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal x) ->
+  contains (convert (lower_complement xi)) (Xreal y) ->
+  (y <= x)%R.
+Proof.
+intros [|xl xu] x y.
+intros _ H.
+now apply empty_correct in H.
+intros [H _].
+simpl.
+rewrite F.real_correct.
+case_eq (F.toX xl).
+intros _ H'.
+now apply empty_correct in H'.
+intros l Hl [_ H'].
+rewrite Hl in H, H'.
+now apply Rle_trans with l.
+Qed.
+
+Theorem upper_complement_correct :
+  forall xi x y,
+  contains (convert xi) (Xreal x) ->
+  contains (convert (upper_complement xi)) (Xreal y) ->
+  (x <= y)%R.
+Proof.
+intros [|xl xu] x y.
+intros _ H.
+now apply empty_correct in H.
+intros [_ H].
+simpl.
+rewrite F.real_correct.
+case_eq (F.toX xu).
+intros _ H'.
+now apply empty_correct in H'.
+intros u Hu [H' _].
+rewrite Hu in H, H'.
+now apply Rle_trans with u.
 Qed.
 
 Theorem whole_correct :
