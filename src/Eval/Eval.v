@@ -414,6 +414,39 @@ apply IHsteps with (1 := Hr).
 now rewrite <- I.bnd_correct.
 Qed.
 
+Theorem bisect_1d_correct' :
+  forall steps inpl inpu f P,
+  (forall y yi, contains (I.convert yi) (Xreal y) -> f yi = true -> P y) ->
+  bisect_1d inpl inpu f steps = true ->
+  forall x,
+  contains (I.convert (I.bnd inpl inpu)) (Xreal x) -> P x.
+Proof.
+intros steps inpl inpu f P Hf.
+revert inpl inpu.
+induction steps.
+intros inpl inpu Hb.
+discriminate Hb.
+intros inpl inpu.
+simpl.
+unfold bisect_1d_step.
+case_eq (f (I.bnd inpl inpu)).
+intros Hb _ x Hx.
+now apply Hf with (2 := Hb).
+intros _.
+set (inpm := I.midpoint (I.bnd inpl inpu)).
+case_eq (bisect_1d inpl inpm f steps) ; try easy.
+intros Hl Hr x Hx.
+change x with (proj_val (Xreal x)).
+apply (bisect' P (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
+unfold domain'.
+rewrite <- I.bnd_correct.
+apply IHsteps with (1 := Hl).
+unfold domain'.
+rewrite <- I.bnd_correct.
+apply IHsteps with (1 := Hr).
+now rewrite <- I.bnd_correct.
+Qed.
+
 Definition lookup_1d_step fi l u output cont :=
   if I.subset (fi (I.bnd l u)) output then output
   else
