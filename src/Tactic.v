@@ -33,6 +33,7 @@ Require Import Eval.
 Require Import Bertrand.
 Require Import Tree.
 Require Import Prog.
+Require Import Reify.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -57,6 +58,8 @@ Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
 Module Int' := IntegralTaylor I.
 Module Bertrand := BertrandInterval F I.
+Module T := Tree.Bnd I.
+Module R := Reify.Bnd I.
 
 Ltac get_float t :=
   let get_float_rational s n d :=
@@ -2245,6 +2248,125 @@ Ltac do_interval_intro_parse t extend params :=
     do_interval_intro t extend params vars prec depth rint_depth rint_prec rint_deg native eval_tac
   end.
 
+Theorem app_merge_hyps_eval_bnd :
+  forall prec vars hyps consts,
+  R.eval_hyps_bnd (R.merge_hyps prec hyps) vars ->
+  exists bp,
+  map A.interval_from_bp bp = R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts /\
+  map A.real_from_bp bp = vars ++ map (fun c => eval c nil) consts.
+Proof.
+intros prec vars hyps consts He.
+assert (exists bp1,
+    map A.interval_from_bp bp1 = R.merge_hyps prec hyps /\
+    map A.real_from_bp bp1 = vars) as [bp1 [<- <-]].
+  revert vars He.
+  induction (R.merge_hyps prec hyps) as [|h t IH].
+    intros [|vars].
+    now exists nil.
+    easy.
+  intros [|v vars].
+  easy.
+  intros [H1 H2].
+  destruct (IH vars H2) as [bp [<- <-]].
+  now exists (cons (A.Bproof v h H1) bp).
+assert (exists bp2,
+    map A.interval_from_bp bp2 = map (T.eval_bnd prec) consts /\
+    map A.real_from_bp bp2 = map (fun c => eval c nil) consts) as [bp2 [<- <-]].
+  clear.
+  induction consts as [|h t IH].
+    now exists nil.
+  simpl.
+  destruct IH as [bp [<- <-]].
+  now exists (cons (A.Bproof _ _ (T.eval_bnd_correct prec h)) bp).
+rewrite <- 2!map_app.
+now exists (bp1 ++ bp2).
+Qed.
+
+Definition eval_bnd prec hyps prog consts g :=
+  R.eval_goal_bnd prec g (nth 0 (A.BndValuator.eval prec prog (R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts)) I.nai).
+
+Theorem eval_bnd_correct :
+  forall prec vars hyps prog consts g,
+  eval_bnd prec hyps prog consts g = true ->
+  eval_hyps hyps vars
+    (eval_goal g (nth 0 (eval_real prog (vars ++ map (fun c => eval c nil) consts)) 0%R)).
+Proof.
+intros prec vars hyps prog consts g H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+apply (R.eval_goal_bnd_correct prec) with (2 := H).
+destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
+apply contains_eval.
+Qed.
+
+
+Ltac do_interval' vars prec depth rint_depth rint_prec rint_deg native nocheck eval_tac :=
+  let prec := eval vm_compute in (prec_of_nat prec) in
+  massage_goal ;
+  reify_full vars ;
+  eval_tac prec depth ;
+  clear ;
+  match nocheck with
+  | true =>
+    match native with
+    | true => native_cast_no_check (refl_equal true)
+    | false => vm_cast_no_check (refl_equal true)
+    end
+  | false =>
+    (abstract
+    match native with
+    | true => native_cast_no_check (refl_equal true)
+    | false => vm_cast_no_check (refl_equal true)
+    end) ||
+    fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters"
+  end.
+
+Ltac do_interval_eval' prec depth :=
+  apply (eval_bnd_correct prec).
+
+Ltac do_interval_bisect' prec depth :=
+  idtac.
+
+Ltac do_interval_bisect_diff' prec depth :=
+  idtac.
+
+Ltac do_interval_bisect_taylor' deg prec depth :=
+  idtac.
+
+Ltac tac_of_itm' itm :=
+  match itm with
+  | itm_eval => do_interval_eval'
+  | itm_bisect => do_interval_bisect'
+  | itm_bisect_diff => do_interval_bisect_diff'
+  | itm_bisect_taylor ?d => do_interval_bisect_taylor' d
+  end.
+
+Ltac do_parse' params depth :=
+  let rec aux vars prec depth rint_depth rint_prec rint_deg native nocheck itm params :=
+    match params with
+    | nil => constr:((vars, prec, depth, rint_depth, rint_prec, rint_deg, native, nocheck, itm))
+    | cons (i_prec ?p) ?t => aux vars p depth rint_depth rint_prec rint_deg native nocheck itm t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck itm_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck itm_bisect_diff t
+    | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck (itm_bisect_taylor d) t
+    | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg native nocheck itm t
+    | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg native nocheck itm t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg native nocheck itm t
+    | cons (i_integral_width ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg native nocheck itm t
+    | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg native nocheck itm t
+    | cons i_native_compute ?t => aux vars prec depth rint_depth rint_prec rint_deg true nocheck itm t
+    | cons i_delay ?t => aux vars prec depth rint_depth rint_prec rint_deg native true itm t
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h
+    end in
+  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (-10)))) 10%nat false false itm_eval params.
+
+Ltac do_interval_parse' params :=
+  match do_parse' params 15%nat with
+  | (?vars, ?prec, ?depth, ?rint_depth, ?rint_prec, ?rint_deg, ?native, ?nocheck, ?itm) =>
+    let eval_tac := tac_of_itm' itm in
+    do_interval' vars prec depth rint_depth rint_prec rint_deg native nocheck eval_tac
+  end.
+
 End Private.
 
 Import Private.
@@ -2254,6 +2376,12 @@ Tactic Notation "interval" :=
 
 Tactic Notation "interval" "with" constr(params) :=
   do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+
+Tactic Notation "interval'" :=
+  do_interval_parse' (@nil interval_tac_parameters).
+
+Tactic Notation "interval'" "with" constr(params) :=
+  do_interval_parse' ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) :=
   do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intro.
