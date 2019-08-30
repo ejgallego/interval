@@ -2279,6 +2279,39 @@ destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
 apply A.BndValuator.eval_correct'.
 Qed.
 
+Theorem eval_bisect_aux :
+  forall prec depth var0 vars hyps prog consts g fi,
+  (forall bp xi x, contains (I.convert xi) (Xreal x) ->
+   contains (I.convert (fi xi (map A.interval_from_bp bp)))
+     (Xreal (nth 0 (eval_real prog (x :: map A.real_from_bp bp)) 0))) ->
+  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let xi := nth 0 bounds I.nai in
+  let bounds := tail bounds in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun b => R.eval_goal_bnd prec g (fi b bounds)) depth = true ->
+  eval_hyps hyps (var0 :: vars)
+    (eval_goal g (nth 0 (eval_real prog ((var0 :: vars) ++ map (fun c => eval c nil) consts)) 0%R)).
+Proof.
+intros prec depth var0 vars hyps prog consts g fi Hfi.
+simpl.
+intros H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+apply A.bisect_1d_correct' with (P := fun x => eval_goal g (nth 0 (eval_real prog ((x :: vars) ++ map (fun c => eval c nil) consts)) 0%R)) (2 := H).
+intros x xi Ix.
+apply (R.eval_goal_bnd_correct prec).
+destruct hyps as [|hx hyps].
+easy.
+destruct H' as [H1 H2].
+simpl.
+destruct (app_merge_hyps_eval_bnd _ _ _ consts H2) as [bp [<- <-]].
+now apply Hfi.
+destruct R.merge_hyps as [|vi t].
+easy.
+simpl in H' |- *.
+rewrite I.lower_correct I.upper_correct.
+now destruct I.convert.
+Qed.
+
 Definition eval_bisect prec depth hyps prog consts g :=
   let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
   let xi := nth 0 bounds I.nai in
@@ -2294,22 +2327,9 @@ Theorem eval_bisect_correct :
     (eval_goal g (nth 0 (eval_real prog ((var0 :: vars) ++ map (fun c => eval c nil) consts)) 0%R)).
 Proof.
 intros prec depth var0 vars hyps prog consts g H.
-apply (R.eval_hyps_bnd_correct prec).
-intros H'.
-apply A.bisect_1d_correct' with (P := fun x => eval_goal g (nth 0 (eval_real prog ((x :: vars) ++ map (fun c => eval c nil) consts)) 0%R)) (2 := H).
-intros y yi Iy.
-apply (R.eval_goal_bnd_correct prec).
-destruct hyps as [|hx hyps].
-easy.
-destruct H' as [H1 H2].
-simpl.
-destruct (app_merge_hyps_eval_bnd _ _ _ consts H2) as [bp [<- <-]].
-apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Iy :: bp)).
-destruct R.merge_hyps as [|vi t].
-easy.
-simpl in H' |- *.
-rewrite I.lower_correct I.upper_correct.
-now destruct I.convert.
+apply (eval_bisect_aux prec depth) with (fi := fun b bounds => nth 0 (A.BndValuator.eval prec prog (b :: bounds)) I.nai) (2 := H).
+intros bp xi x Ix.
+apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Ix :: bp)).
 Qed.
 
 Definition eval_bisect_diff prec depth hyps prog consts g :=
@@ -2327,22 +2347,35 @@ Theorem eval_bisect_diff_correct :
     (eval_goal g (nth 0 (eval_real prog ((var0 :: vars) ++ map (fun c => eval c nil) consts)) 0%R)).
 Proof.
 intros prec depth var0 vars hyps prog consts g H.
-apply (R.eval_hyps_bnd_correct prec).
-intros H'.
-apply A.bisect_1d_correct' with (P := fun x => eval_goal g (nth 0 (eval_real prog ((x :: vars) ++ map (fun c => eval c nil) consts)) 0%R)) (2 := H).
-intros x xi Ix.
-apply (R.eval_goal_bnd_correct prec).
-destruct hyps as [|hx hyps].
-easy.
-destruct H' as [H1 H2].
-simpl.
-destruct (app_merge_hyps_eval_bnd _ _ _ consts H2) as [bp [<- <-]].
+apply (eval_bisect_aux prec depth) with (fi := fun b bounds => A.DiffValuator.eval prec prog bounds 0 b) (2 := H).
+intros bp xi x Ix.
 apply A.DiffValuator.eval_correct with (1 := Ix).
-destruct R.merge_hyps as [|vi t].
-easy.
-simpl in H' |- *.
-rewrite I.lower_correct I.upper_correct.
-now destruct I.convert.
+Qed.
+
+Definition eval_bisect_taylor prec deg depth hyps prog consts g :=
+  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let xi := nth 0 bounds I.nai in
+  let bounds := tail bounds in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
+    R.eval_goal_bnd prec g (A.TaylorValuator.TM.eval (prec, deg)
+      (nth 0 (A.TaylorValuator.eval prec deg b prog (A.TaylorValuator.TM.var ::
+        map A.TaylorValuator.TM.const bounds)) A.TaylorValuator.TM.dummy) b b)
+  ) depth.
+
+Theorem eval_bisect_taylor_correct :
+  forall prec deg depth var0 vars hyps prog consts g,
+  eval_bisect_taylor prec deg depth hyps prog consts g = true ->
+  eval_hyps hyps (var0 :: vars)
+    (eval_goal g (nth 0 (eval_real prog ((var0 :: vars) ++ map (fun c => eval c nil) consts)) 0%R)).
+Proof.
+intros prec deg depth var0 vars hyps prog consts g H.
+apply (eval_bisect_aux prec depth) with (fi := fun b bounds =>
+  A.TaylorValuator.TM.eval (prec, deg)
+    (nth 0 (A.TaylorValuator.eval prec deg b prog (A.TaylorValuator.TM.var ::
+      map A.TaylorValuator.TM.const bounds)) A.TaylorValuator.TM.dummy) b b) (2 := H).
+intros bp xi x Ix.
+rewrite map_map.
+apply A.TaylorValuator.eval_correct with (1 := Ix).
 Qed.
 
 Ltac do_interval' vars prec depth rint_depth rint_prec rint_deg native nocheck eval_tac :=
@@ -2376,7 +2409,7 @@ Ltac do_interval_bisect_diff' prec depth :=
   apply (eval_bisect_diff_correct prec depth).
 
 Ltac do_interval_bisect_taylor' deg prec depth :=
-  idtac.
+  apply (eval_bisect_taylor_correct prec deg depth).
 
 Ltac tac_of_itm' itm :=
   match itm with
