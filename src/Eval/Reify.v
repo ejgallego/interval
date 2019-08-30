@@ -60,7 +60,10 @@ Inductive gol : Set :=
   | Gle (b : bool) (v : expr)
   | Gge (b : bool) (u : expr)
   | Glele (u v : expr)
-  | Gabsle (b : bool) (v : expr).
+  | Gabsle (b : bool) (v : expr)
+  | Glt (v : expr)
+  | Ggt (u : expr)
+  | Gne (b : bool) (u : expr).
 
 Definition eval_goal (g : gol) (x : R) :=
   match g with
@@ -71,6 +74,10 @@ Definition eval_goal (g : gol) (x : R) :=
   | Glele u v => (eval u nil <= x <= eval v nil)%R
   | Gabsle true v => (Rabs x <= eval v nil)%R
   | Gabsle false v => (eval v nil >= Rabs x)%R
+  | Glt v => (x < eval v nil)%R
+  | Ggt u => (eval u nil < x)%R
+  | Gne true u => (x <> eval u nil)
+  | Gne false u => (eval u nil <> x)
   end.
 
 Ltac massage_goal :=
@@ -86,6 +93,12 @@ Ltac massage_goal :=
     match reify u (@nil R) with
     | (?u, @nil R) => aux v x (Glele u)
     end
+  | |- (?u < ?x)%R => aux u x Ggt
+  | |- (?x > ?u)%R => aux u x Ggt
+  | |- (?x < ?v)%R => aux v x Glt
+  | |- (?v > ?x)%R => aux v x Glt
+  | |- (?x <> ?u :>R) => aux u x (Gne true)
+  | |- (?u <> ?x :>R) => aux u x (Gne false)
   end.
 
 Ltac find_hyps_aux x known cont :=
@@ -240,46 +253,64 @@ intros H''.
 now apply H.
 Qed.
 
-Definition eval_goal_bnd (prec : I.precision) (g : gol) :=
+Definition eval_goal_bnd (prec : I.precision) (g : gol) : I.type -> bool :=
   match g with
-  | Gle _ v => I.lower_complement (E.eval_bnd prec v)
-  | Gge _ u => I.upper_complement (E.eval_bnd prec u)
+  | Gle _ v =>
+    let j := I.lower_complement (E.eval_bnd prec v) in
+    fun i => I.subset i j
+  | Gge _ u =>
+    let j := I.upper_complement (E.eval_bnd prec u) in
+    fun i => I.subset i j
   | Glele u v =>
     let u := I.upper_complement (E.eval_bnd prec u) in
     let v := I.lower_complement (E.eval_bnd prec v) in
-    I.meet u v
+    let j := I.meet u v in
+    fun i => I.subset i j
   | Gabsle _ v =>
     let v := I.lower_complement (E.eval_bnd prec v) in
-    I.meet (I.neg v) v
+    let j := I.meet (I.neg v) v in
+    fun i => I.subset i j
+  | Glt v =>
+    let j := E.eval_bnd prec v in
+    fun i => match I.sign_strict (I.sub prec i j) with Xlt => true | _ => false end
+  | Ggt u =>
+    let j := E.eval_bnd prec u in
+    fun i => match I.sign_strict (I.sub prec i j) with Xgt => true | _ => false end
+  | Gne _ v =>
+    let j := E.eval_bnd prec v in
+    fun i => match I.sign_strict (I.sub prec i j) with Xlt => true | Xgt => true | _ => false end
   end.
 
 Theorem eval_goal_bnd_correct :
-  forall prec g x,
-  contains (I.convert (eval_goal_bnd prec g)) (Xreal x) ->
+  forall prec g xi x,
+  contains (I.convert xi) (Xreal x) ->
+  eval_goal_bnd prec g xi = true ->
   eval_goal g x.
 Proof.
-intros prec g x.
-destruct g as [b v|b u|u v|b v] ; simpl.
-- intros H.
-  cut (x <= eval v nil)%R.
+intros prec g xi x Ix.
+destruct g as [b v|b u|u v|b v|v|u|b u] ; simpl ; intros H.
+- cut (x <= eval v nil)%R.
     now destruct b ; [|apply Rle_ge].
-  apply I.lower_complement_correct with (2 := H).
+  apply I.subset_correct, subset_contains in H.
+  apply I.lower_complement_correct with (2 := H _ Ix).
   apply E.eval_bnd_correct.
-- intros H.
-  cut (eval u nil <= x)%R.
+- cut (eval u nil <= x)%R.
     now destruct b ; [|apply Rle_ge].
-  apply I.upper_complement_correct with (2 := H).
+  apply I.subset_correct, subset_contains in H.
+  apply I.upper_complement_correct with (2 := H _ Ix).
   apply E.eval_bnd_correct.
-- intros H.
+- apply I.subset_correct, subset_contains in H.
+  specialize (H _ Ix).
   apply I.meet_correct' in H.
   split.
   apply I.upper_complement_correct with (2 := proj1 H).
   apply E.eval_bnd_correct.
   apply I.lower_complement_correct with (2 := proj2 H).
   apply E.eval_bnd_correct.
-- intros H.
-  cut (Rabs x <= eval v nil)%R.
+- cut (Rabs x <= eval v nil)%R.
     now destruct b ; [|apply Rle_ge].
+  apply I.subset_correct, subset_contains in H.
+  specialize (H _ Ix).
   apply I.meet_correct' in H.
   apply Rabs_le.
   destruct H as [H1 H2].
@@ -290,6 +321,32 @@ destruct g as [b v|b u|u v|b v] ; simpl.
   apply I.lower_complement_correct with (2 := H1).
   apply E.eval_bnd_correct.
   apply I.lower_complement_correct with (2 := H2).
+  apply E.eval_bnd_correct.
+- apply Rminus_lt.
+  generalize (I.sign_strict_correct (I.sub prec xi (E.eval_bnd prec v))).
+  destruct I.sign_strict ; try easy.
+  intros Hd.
+  apply (Hd (Xreal (x - eval v nil))).
+  apply J.sub_correct with (1 := Ix).
+  apply E.eval_bnd_correct.
+- apply Rminus_gt.
+  generalize (I.sign_strict_correct (I.sub prec xi (E.eval_bnd prec u))).
+  destruct I.sign_strict ; try easy.
+  intros Hd.
+  apply (Hd (Xreal (x - eval u nil))).
+  apply J.sub_correct with (1 := Ix).
+  apply E.eval_bnd_correct.
+- cut (x - eval u nil <> 0)%R.
+    destruct b ; lra.
+  generalize (I.sign_strict_correct (I.sub prec xi (E.eval_bnd prec u))).
+  destruct I.sign_strict ; try easy ; intros Hd.
+  apply Rlt_not_eq.
+  apply (Hd (Xreal (x - eval u nil))).
+  apply J.sub_correct with (1 := Ix).
+  apply E.eval_bnd_correct.
+  apply Rgt_not_eq.
+  apply (Hd (Xreal (x - eval u nil))).
+  apply J.sub_correct with (1 := Ix).
   apply E.eval_bnd_correct.
 Qed.
 
