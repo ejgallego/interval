@@ -1623,6 +1623,28 @@ now destruct a.
 exact (proj1 (H xi)).
 Qed.
 
+Theorem eval_correct :
+  forall prec prog bounds n xi x,
+  contains (I.convert xi) (Xreal x) ->
+  contains (I.convert (eval prec prog (map interval_from_bp bounds) n xi))
+    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+Proof.
+intros prec prog bounds n xi x Hx.
+set (yi := eval prec prog (map interval_from_bp bounds) n xi).
+apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
+now destruct (I.convert yi).
+easy.
+simpl.
+replace (map Xreal (map real_from_bp bounds)) with (map xreal_from_bp bounds).
+apply eval_correct_ext with (1 := Hx).
+clear.
+induction bounds.
+easy.
+simpl.
+rewrite IHbounds.
+now case a.
+Qed.
+
 End DiffValuator.
 
 Module TaylorValuator.
