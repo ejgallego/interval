@@ -481,6 +481,17 @@ Definition real_from_bp v := match v with Bproof x _ _ => x end.
 Definition xreal_from_bp v := match v with Bproof x _ _ => Xreal x end.
 Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
 
+Lemma map_Xreal_map_real_from_bp :
+  forall bounds,
+  map Xreal (map real_from_bp bounds) = map xreal_from_bp bounds.
+Proof.
+induction bounds as [|h t IH].
+easy.
+simpl.
+rewrite IH.
+now destruct h.
+Qed.
+
 Lemma iterated_bnd_nth :
   forall bounds n,
   contains (I.convert (nth n (map interval_from_bp bounds) I.nai))
@@ -643,6 +654,21 @@ Proof.
 intros prec prog bounds.
 apply eval_correct_aux.
 apply iterated_bnd_nth.
+Qed.
+
+Theorem eval_correct' :
+  forall prec prog bounds n,
+  contains
+    (I.convert (nth n (eval prec prog (map interval_from_bp bounds)) I.nai))
+    (Xreal (nth n (eval_real prog (map real_from_bp bounds)) 0%R)).
+Proof.
+intros prec prog bounds n.
+set (yi := nth n (eval prec prog (map interval_from_bp bounds)) I.nai).
+apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
+now destruct (I.convert yi).
+easy.
+rewrite map_Xreal_map_real_from_bp.
+apply eval_correct.
 Qed.
 
 Theorem eval_correct_ext :
@@ -1635,14 +1661,8 @@ apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.
 now destruct (I.convert yi).
 easy.
 simpl.
-replace (map Xreal (map real_from_bp bounds)) with (map xreal_from_bp bounds).
+rewrite map_Xreal_map_real_from_bp.
 apply eval_correct_ext with (1 := Hx).
-clear.
-induction bounds.
-easy.
-simpl.
-rewrite IHbounds.
-now case a.
 Qed.
 
 End DiffValuator.
@@ -1763,6 +1783,22 @@ pose (f x := nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan).
 pose (ft := nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy).
 apply (@TM.eval_correct (prec,deg) yi ft f) with (2 := Hx).
 now apply eval_correct_aux.
+Qed.
+
+Theorem eval_correct :
+  forall prec deg prog bounds n yi xi x,
+  contains (I.convert xi) (Xreal x) ->
+  contains (I.convert (TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy) yi xi))
+    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+Proof.
+intros prec deg prog bounds n zi xi x Hx.
+set (yi := TM.eval _ _ _ _).
+apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
+now destruct (I.convert yi).
+easy.
+simpl.
+rewrite map_Xreal_map_real_from_bp.
+apply (eval_correct_ext prec deg prog bounds n zi xi _ Hx).
 Qed.
 
 End TaylorValuator.

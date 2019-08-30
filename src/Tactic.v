@@ -140,33 +140,13 @@ rewrite <- F.toF_correct.
 now rewrite Hf.
 Qed.
 
-Lemma contains_eval :
-  forall prec prog bounds n,
-  contains (I.convert (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (map A.real_from_bp bounds)) 0)).
-Proof.
-intros prec prog bounds n.
-set (xi := nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
-apply (xreal_to_real (fun x => contains (I.convert xi) x) (fun x => contains (I.convert xi) (Xreal x))).
-now case (I.convert xi).
-easy.
-unfold xi.
-replace (map Xreal (map A.real_from_bp bounds)) with (map A.xreal_from_bp bounds).
-apply A.BndValuator.eval_correct.
-clear.
-induction bounds.
-easy.
-simpl.
-rewrite IHbounds.
-now case a.
-Qed.
-
 Lemma contains_eval_arg :
   forall prec prog bounds n xi x,
   contains (I.convert xi) (Xreal x) ->
   contains (I.convert (nth n (A.BndValuator.eval prec prog (xi :: map A.interval_from_bp bounds)) I.nai)) (Xreal (nth n (eval_real prog (x :: map A.real_from_bp bounds)) 0)).
 Proof.
 intros prec prog bounds n xi x Hx.
-apply (contains_eval prec prog (A.Bproof x xi Hx :: bounds)).
+apply (A.BndValuator.eval_correct' prec prog (A.Bproof x xi Hx :: bounds)).
 Qed.
 
 Lemma contains_bound_lr :
@@ -178,9 +158,9 @@ Proof.
 intros x prec proga boundsa na progb boundsb nb [Hx1 Hx2].
 apply I.meet_correct.
 apply I.upper_extent_correct with (2 := Hx1).
-apply contains_eval.
+apply A.BndValuator.eval_correct'.
 apply I.lower_extent_correct with (2 := Hx2).
-apply contains_eval.
+apply A.BndValuator.eval_correct'.
 Qed.
 
 Lemma contains_bound_lr' :
@@ -194,7 +174,7 @@ Lemma contains_bound_lr' :
   Rle x (nth nb (eval_real progb (map A.real_from_bp boundsb)) 0).
 Proof.
 intros x prec proga boundsa na progb boundsb nb.
-generalize (contains_eval prec proga boundsa na) (contains_eval prec progb boundsb nb).
+generalize (A.BndValuator.eval_correct' prec proga boundsa na) (A.BndValuator.eval_correct' prec progb boundsb nb).
 case (nth nb (A.BndValuator.eval prec progb (map A.interval_from_bp boundsb)) I.nai).
 easy.
 case (nth na (A.BndValuator.eval prec proga (map A.interval_from_bp boundsa)) I.nai).
@@ -226,7 +206,7 @@ Lemma contains_bound_l :
   contains (I.convert (I.upper_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
 Proof.
 intros x prec prog bounds n Hx.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 simpl.
@@ -246,7 +226,7 @@ Lemma contains_bound_l' :
   Rle (nth n (eval_real prog (map A.real_from_bp bounds)) 0) x.
 Proof.
 intros x prec prog bounds n.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 intros l u [_ Hu].
@@ -268,7 +248,7 @@ Lemma contains_bound_r :
   contains (I.convert (I.lower_extent (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai))) (Xreal x).
 Proof.
 intros x prec prog bounds n Hx.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 simpl.
@@ -288,7 +268,7 @@ Lemma contains_bound_r' :
   Rle x (nth n (eval_real prog (map A.real_from_bp bounds)) 0).
 Proof.
 intros x prec prog bounds n.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 intros l u [Hl _].
@@ -311,7 +291,7 @@ Lemma contains_bound_ar :
   contains (I.convert (I.meet (I.neg xi) xi)) (Xreal x).
 Proof.
 intros x prec prog bounds n Hx.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 simpl.
@@ -342,7 +322,7 @@ Lemma contains_bound_ar' :
   Rle (Rabs x) (nth n (eval_real prog (map A.real_from_bp bounds)) 0).
 Proof.
 intros x prec prog bounds n.
-generalize (contains_eval prec prog bounds n).
+generalize (A.BndValuator.eval_correct' prec prog bounds n).
 case (nth n (A.BndValuator.eval prec prog (map A.interval_from_bp bounds)) I.nai).
 easy.
 intros l u [Hl _].
@@ -393,8 +373,8 @@ case H: (I.convert i).
   by split.
 rewrite -H.
 case: (Int.integral_interval_correct prec f estimator depth ia ib epsilon base_case a b).
-- exact: contains_eval.
-- exact: contains_eval.
+- exact: A.BndValuator.eval_correct'.
+- exact: A.BndValuator.eval_correct'.
 - by rewrite H.
 intros I [If Cf].
 split.
@@ -444,7 +424,7 @@ move => depth epsilon i Hc Hc_infty.
 case H: (I.convert i) => [| l u]// _ .
 rewrite -H.
 apply: (Int.integral_interval_infty_correct prec g estimator estimator_infty depth ia epsilon Hc Hc_infty).
-- exact: contains_eval.
+- exact: A.BndValuator.eval_correct'.
 - by rewrite H.
 Qed.
 
@@ -502,7 +482,7 @@ rewrite -H.
 apply: (Int.integral_interval_sing_correct prec g estimator estimator_sing depth ia epsilon sing iSing (* Hc Hc_sing *)).
 - exact: Hc_sing.
 - exact: Hc.
-- apply: contains_eval.
+- exact: A.BndValuator.eval_correct'.
 - by rewrite H.
 Qed.
 
@@ -940,7 +920,7 @@ suff: I.convert i <> Inan -> (ex_RInt_gen g (at_point a) (Rbar_locally p_infty))
 case Hlam : (Fext.lt (F.fromZ 0) (I.lower iLam)); last first.
   by rewrite /i Hlam I.nai_correct.
 have Hcontains : contains (I.convert iLam) (Xreal lam).
-  exact: contains_eval.
+  exact: A.BndValuator.eval_correct'.
 have lt0lam : 0 < lam.
   move: Hcontains.
   apply Fext.lt_correct in Hlam; rewrite F.fromZ_correct in Hlam.
@@ -2296,7 +2276,7 @@ apply (R.eval_hyps_bnd_correct prec).
 intros H'.
 apply (R.eval_goal_bnd_correct prec) with (2 := H).
 destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
-apply contains_eval.
+apply A.BndValuator.eval_correct'.
 Qed.
 
 Definition eval_bisect prec depth hyps prog consts g :=
@@ -2324,7 +2304,7 @@ easy.
 destruct H' as [H1 H2].
 simpl.
 destruct (app_merge_hyps_eval_bnd _ _ _ consts H2) as [bp [<- <-]].
-apply (contains_eval _ _ (A.Bproof _ _ Iy :: bp)).
+apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Iy :: bp)).
 destruct R.merge_hyps as [|vi t].
 easy.
 simpl in H' |- *.
