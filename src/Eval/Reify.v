@@ -149,14 +149,44 @@ Ltac find_hyps vars :=
   end.
 
 Ltac reify_full vars0 :=
+  (* version without the noise due to let-ins and manual reduction:
   match goal with
-  | |- eval_goal ?g ?x =>
-    match reify x vars0 with
+  | |- eval_goal ?g ?y =>
+    match reify y vars0 with
     | (?prog, ?vars) =>
       change (eval_goal g (eval prog vars)) ;
       rewrite <- (extract_correct prog vars) ;
       find_hyps vars
     end
+  end *)
+  match goal with
+  | |- eval_goal ?g' ?y =>
+    let g := fresh "__goal" in
+    set (g := g') ;
+    match reify y vars0 with
+    | (?expr', ?vars) =>
+      let expr := fresh "__expr" in
+      set (expr := expr') ;
+      change (eval_goal g (eval expr vars)) ;
+      generalize (extract_correct expr vars) ;
+      let decomp := eval vm_compute in (extract expr (length vars)) in
+      change (extract expr (length vars)) with decomp ;
+      cbv iota ;
+      match decomp with
+      | Eprog ?prog' ?consts' =>
+        let prog := fresh "__prog" in
+        set (prog := prog') ;
+        let consts := fresh "__consts" in
+        set (consts := consts')
+      end ;
+      apply eq_ind ;
+      find_hyps vars
+    end
+  end ;
+  match goal with
+  | |- eval_hyps ?hyps' _ _ =>
+    let hyps := fresh "__hyps" in
+    set (hyps := hyps')
   end.
 
 Module Bnd (I : IntervalOps).
