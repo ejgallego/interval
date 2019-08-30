@@ -57,7 +57,6 @@ Parameter round : rounding_mode -> precision -> type -> type.
 Parameter neg : type -> type.
 Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
-Parameter scale2 : type -> sfactor -> type.
 Parameter div2 : type -> type.
 Parameter add : rounding_mode -> precision -> type -> type -> type.
 Parameter sub : rounding_mode -> precision -> type -> type -> type.

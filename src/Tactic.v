@@ -2158,14 +2158,14 @@ Ltac do_parse params depth :=
     | cons (i_bisect_taylor ?x ?d) ?t => aux (cons x nil) prec depth rint_depth rint_prec rint_deg native nocheck (itm_bisect_taylor d) t
     | cons (i_depth ?d) ?t => aux vars prec d rint_depth rint_prec rint_deg native nocheck itm t
     | cons (i_integral_depth ?d) ?t => aux vars prec depth d rint_prec rint_deg native nocheck itm t
-    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg native nocheck itm t
-    | cons (i_integral_width ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg native nocheck itm t
+    | cons (i_integral_prec ?rint_prec) ?t => aux vars prec depth rint_depth (@inr F.type F.type (F.scale (F.fromZ 1) (F.ZtoS (- Z.of_nat rint_prec)))) rint_deg native nocheck itm t
+    | cons (i_integral_width ?rint_prec) ?t => aux vars prec depth rint_depth (@inl F.type F.type (F.scale (F.fromZ 1) (F.ZtoS rint_prec))) rint_deg native nocheck itm t
     | cons (i_integral_deg ?rint_deg) ?t => aux vars prec depth rint_depth rint_prec rint_deg native nocheck itm t
     | cons i_native_compute ?t => aux vars prec depth rint_depth rint_prec rint_deg true nocheck itm t
     | cons i_delay ?t => aux vars prec depth rint_depth rint_prec rint_deg native true itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale2 (F.fromZ 1) (F.ZtoS (-10)))) 10%nat false false itm_eval params.
+  aux (@nil R) 30%nat depth 3%nat (@inr F.type F.type (F.scale (F.fromZ 1) (F.ZtoS (-10)))) 10%nat false false itm_eval params.
 
 Ltac do_interval_parse params :=
   match do_parse params 15%nat with

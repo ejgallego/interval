@@ -64,7 +64,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition neg := @Fneg radix.
   Definition abs := @Fabs radix.
   Definition scale := @Fscale radix.
-  Definition scale2 := @Fscale2 radix.
   Definition div2 := @Fdiv2 radix.
   Definition add := @Fadd radix.
   Definition sub := @Fsub radix.
@@ -130,7 +129,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   now rewrite is_zero_false.
   Qed.
 
-  Definition midpoint (x y : type) := scale2 (Fadd_exact x y) (ZtoS (-1)).
+  Definition midpoint (x y : type) := Fscale2 (Fadd_exact x y) (ZtoS (-1)).
 
   Lemma midpoint_correct :
     forall x y,
