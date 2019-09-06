@@ -17,6 +17,7 @@ FILES = \
 	Integral/Bertrand \
 	Integral/Integral \
 	Integral/Priority \
+	Integral/Refine \
 	Interval/Interval \
 	Interval/Interval_compl \
 	Interval/Float \
