@@ -64,6 +64,33 @@ apply le_S_n in H.
 now apply IH.
 Qed.
 
+Lemma onth_insert :
+  forall n v p,
+  onth n p = Some v ->
+  exists q r, p = q ++ v :: r.
+Proof.
+intros n v p Hp.
+set (f := fix aux n (q : list T) :=
+  match n, q with
+  | O, _ => nil
+  | S n, nil => nil
+  | S n, h :: t => h :: aux n t
+  end).
+set (g := fix aux n (q : list T) :=
+  match q, n with
+  | nil, _ => nil
+  | h :: t, O => t
+  | h :: t, S n => aux n t
+  end).
+exists (f n p), (g n p).
+revert p Hp.
+induction n as [|n IH] ; simpl ; intros [|h p] Hp ; try easy ; clearbody f g.
+  now injection Hp as ->.
+simpl.
+apply f_equal.
+now apply IH.
+Qed.
+
 Inductive permut (p q : list T) : Prop :=
   | Permut (Hl : length p = length q)
      (f : ordinal (length p) -> ordinal (length p))
@@ -223,44 +250,132 @@ Lemma permut_cons :
   permut p q ->
   permut (h :: p) (h :: q).
 Proof.
+intros h p q.
+apply (permut_app_l (h :: nil)).
+Qed.
+
+Lemma permut_cons_rev :
+  forall h p q,
+  permut (h :: p) (h :: q) ->
+  permut p q.
+Proof.
 intros h p q [Hl f Hf Hpq].
-assert (H1: 1 + length p = length (h :: p)) by easy.
+assert (H2: length (h :: p) = 1 + length p).
+  easy.
 simple refine (Permut _ _ _ _ _ _).
-- simpl.
-  now apply f_equal.
+- now injection Hl.
 - intros k.
-  apply (cast_ord H1).
-  apply unsplit.
-  destruct (split (cast_ord (esym H1) k)) as [k'|k'].
-  now left.
-  right.
-  now apply f.
-- apply injective_split with (f := fun k => match k with inl k' => inl k' | inr k' => inr (f k') end).
-  clear -Hf.
-  intros [k1|k1] [k2|k2] ; try easy ; intros H.
-  apply f_equal.
-  injection H.
-  apply Hf.
-- simpl.
-  intros n.
-  case splitP ; simpl ; change ssrnat.addn with plus ; intros k ->.
-  clear.
-  now destruct k as [[|k] Hk].
-  apply Hpq.
+  destruct (split (cast_ord H2 (f (rshift 1 k)))) as [_|k'].
+    destruct (split (cast_ord H2 (f (@ord0 (length p))))) as [_|k'].
+    apply k.
+    apply k'.
+  apply k'.
+- set (g := fun (k : ordinal (length p)) =>
+    match split (cast_ord H2 (invF Hf (rshift 1 k))) with
+    | inl _ =>
+      match split (cast_ord H2 (invF Hf (@ord0 (length p)))) with
+      | inl _ => k
+      | inr k' => k'
+      end
+    | inr k' => k'
+    end).
+  apply (@can_inj _ _ _ g).
+  intros k.
+  unfold g.
+  clear g.
+  destruct (splitP (cast_ord H2 (f (rshift 1 k)))) as [k1 Hk1|k1 Hk1].
+  + replace (nat_of_ord k1) with O in Hk1 by now destruct k1 as [[|k1] H].
+    destruct (splitP (cast_ord H2 (f (@ord0 (length p))))) as [k2 Hk2|k2 Hk2].
+      replace (nat_of_ord k2) with O in Hk2 by now destruct k2 as [[|k2] H].
+      exfalso.
+      rewrite <- Hk2 in Hk1.
+      apply ord_inj in Hk1.
+      apply cast_ord_inj in Hk1.
+      now apply Hf in Hk1.
+    replace (invF Hf (rshift 1 k2)) with (@ord0 (length p)).
+    destruct (splitP (cast_ord H2 (@ord0 (length p)))) as [k3 Hk3|k3 Hk3].
+    2: easy.
+    replace (invF Hf (@ord0 (length p))) with (rshift 1 k).
+    destruct (splitP (cast_ord H2 (rshift 1 k))) as [k4 Hk4|k4 Hk4].
+      now destruct k4 as [[|k4] H].
+    apply ord_inj.
+    now injection Hk4.
+    apply Hf.
+    rewrite f_invF.
+    now apply ord_inj.
+    apply Hf.
+    rewrite f_invF.
+    now apply ord_inj.
+  + replace (invF Hf (rshift 1 k1)) with (rshift 1 k).
+    destruct (splitP (cast_ord H2 (rshift 1 k))) as [k2 Hk2|k2 Hk2].
+      now destruct k2 as [[|k2] H].
+    apply ord_inj.
+    now injection Hk2.
+    apply Hf.
+    rewrite f_invF.
+    now apply ord_inj.
+- intros k.
+  destruct (splitP (cast_ord H2 (f (rshift 1 k)))) as [k1 Hk1|k1 Hk1].
+  + replace (nat_of_ord k1) with O in Hk1 by now destruct k1 as [[|k1] H].
+    destruct (splitP (cast_ord H2 (f (@ord0 (length p))))) as [k2 Hk2|k2 Hk2].
+      replace (nat_of_ord k2) with O in Hk2 by now destruct k2 as [[|k2] H].
+      exfalso.
+      rewrite <- Hk2 in Hk1.
+      apply ord_inj in Hk1.
+      apply cast_ord_inj in Hk1.
+      now apply Hf in Hk1.
+    destruct (splitP (cast_ord H2 (f (rshift 1 k)))) as [k3 Hk3|k3 Hk3].
+    2: now rewrite Hk1 in Hk3.
+    change (onth (rshift 1 k) (h :: p) = onth (ssrnat.addn 1 k2) (h :: q)).
+    rewrite Hpq.
+    simpl in Hk1, Hk2.
+    simpl (length (h :: p)).
+    rewrite Hk1, <- Hk2.
+    now rewrite <- Hpq.
+  + destruct (splitP (cast_ord H2 (f (rshift 1 k)))) as [k2 Hk2|k2 Hk2].
+      rewrite Hk1 in Hk2.
+      now destruct k2 as [[|k2] H].
+    simpl.
+    change (onth (rshift 1 k) (h :: p) = onth (ssrnat.addn 1 k2) (h :: q)).
+    rewrite <- Hk2.
+    apply Hpq.
 Qed.
 
 Lemma permut_insert :
-  forall p q r v,
-  permut r (p ++ q) ->
-  permut (v :: r) (p ++ v :: q).
+  forall v p q,
+  permut (v :: p ++ q) (p ++ v :: q).
 Proof.
-intros p q r v Hr.
-apply permut_trans with (v :: p ++ q).
-now apply permut_cons.
+intros v p q.
 change (permut (((v :: nil) ++ p) ++ q) (p ++ (v :: nil) ++ q)).
 rewrite app_assoc.
 apply permut_app_r.
 apply permut_app.
+Qed.
+
+Lemma permut_remove :
+  forall v p q,
+  permut (v :: p) q ->
+  exists s, exists t,
+  q = s ++ v :: t /\ permut p (s ++ t).
+Proof.
+intros v p q H.
+destruct (H) as [Hl f Hf H'].
+specialize (H' (@ord0 (length p))).
+revert H'.
+generalize (nat_of_ord (f (@ord0 (length p)))).
+simpl.
+intros n.
+intros H'.
+clear -H H'.
+apply eq_sym in H'.
+destruct onth_insert with (1 := H') as [r [s Hq]].
+exists r, s.
+apply (conj Hq).
+rewrite Hq in H.
+clear -H.
+apply permut_cons_rev with v.
+apply permut_trans with (1 := H).
+apply permut_sym, permut_insert.
 Qed.
 
 End Permut.
@@ -316,7 +431,6 @@ case le ; simpl.
 - apply permut_cons.
   apply (permut_app (v2 :: flat_map _ _)).
 - apply permut_insert with (p := v1 :: flat_map _ _).
-  apply permut_refl.
 Qed.
 
 Definition ptree_insert (p : ptree) (v : T) :=
