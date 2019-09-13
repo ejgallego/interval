@@ -31,6 +31,31 @@ Fixpoint onth n (l : list T) :=
   | _ :: l, S n => onth n l
   end.
 
+Lemma onth_nth :
+  forall n p d,
+  n < length p ->
+  onth n p = Some (nth n p d).
+Proof.
+induction n as [|n IH] ; intros [|h p] d Hl ; try easy.
+simpl.
+apply IH.
+now apply lt_S_n.
+Qed.
+
+Lemma onth_rev :
+  forall n p,
+  n < length p ->
+  onth n (rev p) = onth (length p - S n) p.
+Proof.
+intros n [|h p].
+easy.
+intros H.
+rewrite 2!onth_nth with (d := h).
+now rewrite rev_nth with (1 := H).
+lia.
+now rewrite rev_length.
+Qed.
+
 Lemma onth_app_l :
   forall n p q,
   n < length p ->
@@ -133,6 +158,23 @@ now apply eq_trans with (length q).
 now apply inj_comp.
 intros n.
 now rewrite <- Hqr.
+Qed.
+
+Lemma permut_rev :
+  forall p, permut (rev p) p.
+Proof.
+intros p.
+apply Permut with (f := fun x => rev_ord x).
+apply rev_length.
+apply rev_ord_inj.
+intros n.
+simpl.
+rewrite <- ssrnat.minusE.
+rewrite rev_length at 2.
+apply onth_rev.
+eapply elimT.
+now apply ssrnat.ltP.
+now rewrite <- (rev_length p).
 Qed.
 
 Lemma injective_split :
@@ -376,6 +418,77 @@ clear -H.
 apply permut_cons_rev with v.
 apply permut_trans with (1 := H).
 apply permut_sym, permut_insert.
+Qed.
+
+Lemma Forall_permut :
+  forall P p q,
+  Forall P p ->
+  permut p q ->
+  Forall P q.
+Proof.
+intros P p q.
+revert p.
+induction q as [|v q IH] ; intros p Hp Hpq.
+easy.
+assert (Hpv := Hpq).
+apply permut_sym, permut_remove in Hpv.
+destruct Hpv as [s [t [Hpv Hq]]].
+apply permut_sym in Hq.
+cut (P v /\ Forall P (s ++ t)).
+intros [H1 H2].
+apply Forall_cons with (1 := H1).
+now apply IH with (2 := Hq).
+rewrite Hpv in Hp.
+clear -Hp.
+induction s as [|h p IH].
+simpl in Hp.
+now inversion Hp.
+inversion_clear Hp.
+destruct (IH H0) as [H1 H2].
+apply (conj H1).
+now apply Forall_cons.
+Qed.
+
+Lemma fold_right_permut :
+  forall {A} f (acc : A) p q,
+  (forall u v w, f u (f v w) = f v (f u w)) ->
+  permut p q ->
+  fold_right f acc p = fold_right f acc q.
+Proof.
+intros A f acc p q Hf.
+revert acc q.
+induction p as [|h p IH] ; intros acc.
+  intros [|q].
+  easy.
+  intros [Hl _ _ _].
+  easy.
+intros q Hq.
+apply permut_remove in Hq.
+destruct Hq as [s [t [H1 H2]]].
+simpl.
+rewrite IH with (1 := H2).
+rewrite H1.
+clear -Hf.
+induction s as [|k s IH].
+easy.
+simpl.
+now rewrite <- IH.
+Qed.
+
+Lemma fold_left_permut :
+  forall {A} f (acc : A) p q,
+  (forall u v w, f (f u v) w = f (f u w) v) ->
+  permut p q ->
+  fold_left f p acc = fold_left f q acc.
+Proof.
+intros A f acc p q Hf Hpq.
+rewrite <- 2!fold_left_rev_right.
+apply fold_right_permut.
+now intros u v w.
+apply permut_trans with p.
+apply permut_rev.
+apply permut_trans with (1 := Hpq).
+apply permut_sym, permut_rev.
 Qed.
 
 End Permut.
