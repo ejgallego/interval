@@ -635,15 +635,13 @@ Definition ptree_pop (p : ptree) : T * pheap :=
 Theorem ptree_pop_correct :
   forall p,
   match ptree_pop p with
-  | (v, PHnone) => ptree_to_list p = v :: nil
-  | (v, PHsome q) => permut (ptree_to_list p) (v :: ptree_to_list q)
+  | (v, q) => permut (v :: pheap_to_list q) (ptree_to_list p)
   end.
 Proof.
 intros [v [|l]].
-easy.
+apply permut_refl.
 simpl.
 apply permut_cons.
-apply permut_sym.
 apply ptree_merge_pairs_correct.
 Qed.
 
