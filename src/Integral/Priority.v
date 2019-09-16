@@ -116,6 +116,12 @@ apply f_equal.
 now apply IH.
 Qed.
 
+Fixpoint all P (l : list T) :=
+  match l with
+  | nil => True
+  | h :: t => P h /\ all P t
+  end.
+
 Inductive permut (p q : list T) : Prop :=
   | Permut (Hl : length p = length q)
      (f : ordinal (length p) -> ordinal (length p))
@@ -420,11 +426,11 @@ apply permut_trans with (1 := H).
 apply permut_sym, permut_insert.
 Qed.
 
-Lemma Forall_permut :
+Lemma all_permut :
   forall P p q,
-  Forall P p ->
+  all P p ->
   permut p q ->
-  Forall P q.
+  all P q.
 Proof.
 intros P p q.
 revert p.
@@ -434,19 +440,18 @@ assert (Hpv := Hpq).
 apply permut_sym, permut_remove in Hpv.
 destruct Hpv as [s [t [Hpv Hq]]].
 apply permut_sym in Hq.
-cut (P v /\ Forall P (s ++ t)).
+cut (P v /\ all P (s ++ t)).
 intros [H1 H2].
-apply Forall_cons with (1 := H1).
+apply (conj H1).
 now apply IH with (2 := Hq).
 rewrite Hpv in Hp.
 clear -Hp.
 induction s as [|h p IH].
-simpl in Hp.
-now inversion Hp.
-inversion_clear Hp.
-destruct (IH H0) as [H1 H2].
-apply (conj H1).
-now apply Forall_cons.
+exact Hp.
+destruct Hp as [H1 H2].
+destruct (IH H2) as [H3 H4].
+apply (conj H3).
+easy.
 Qed.
 
 Lemma fold_right_permut :
