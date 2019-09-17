@@ -20,6 +20,7 @@ liability. See the COPYING file for more details.
 From Coq Require Import BinPos Reals List.
 From Coquelicot Require Import Coquelicot.
 
+Require Import Coquelicot.
 Require Import Xreal.
 Require Import Interval.
 Require Import Priority.
@@ -68,55 +69,71 @@ Module IntegralRefiner (I : IntervalOps).
 
 Module J := IntervalExt I.
 
-Inductive piece :=
-  Piece (u v : I.bound_type) (i : I.type).
+Inductive integral_bound := IBu | IBv | IBp (x : I.bound_type).
 
-Fixpoint invariant_aux l (u v : I.bound_type) :=
-  match l with
-  | nil => I.convert_bound u = I.convert_bound v
-  | Piece u' v' i :: t =>
-    I.convert_bound u = I.convert_bound u' /\
-    invariant_aux t v' v
+Section Bounds.
+
+Variable uf vf : (R -> Prop) -> Prop.
+Context (Fuf : ProperFilter' uf) (Fvf : ProperFilter' vf).
+
+Definition convert b :=
+  match b with
+  | IBu => uf
+  | IBv => vf
+  | IBp x => at_point (proj_val (I.convert_bound x))
   end.
 
-Definition invariant (f : R -> R) (p : ptree piece) (u v : I.bound_type) :=
-  all (fun r =>
-    match r with
-    | Piece u' v' i =>
-      let ur := proj_val (I.convert_bound u') in
-      let vr := proj_val (I.convert_bound v') in
-      (I.convert i <> Inan -> ex_RInt f ur vr) /\
-      contains (I.convert i) (Xreal (RInt f ur vr))
-    end) (ptree_to_list p) /\
-  exists q, permut (ptree_to_list p) q /\ invariant_aux q u v.
+Local Instance filter_convert :
+  forall b, ProperFilter' (convert b).
+Proof.
+intros [| |p] ; simpl ; try easy.
+apply Proper_StrongProper.
+apply at_point_filter.
+Qed.
+
+Definition valid f u v i :=
+  (I.convert i <> Inan -> ex_RInt_gen f (convert u) (convert v)) /\
+  contains (I.convert i) (Xreal (RInt_gen f (convert u) (convert v))).
+
+Inductive piece :=
+  Piece (u v : integral_bound) (i : I.type).
+
+Fixpoint invariant_aux h l (u : integral_bound) :=
+  match h with
+  | Piece u' v i => u = u' /\
+    match l with
+    | nil => v = IBv
+    | h :: t =>
+      match v with IBp _ => invariant_aux h t v | _ => False end
+    end
+  end.
+
+Definition invariant (f : R -> R) (p : ptree piece) :=
+  all (fun r => match r with Piece uf vf i => valid f uf vf i end) (ptree_to_list p) /\
+  exists qh, exists qt, permut (ptree_to_list p) (qh :: qt) /\ invariant_aux qh qt IBu.
 
 Definition sum prec (p : ptree piece) :=
   ptree_fold (fun acc v => I.add prec acc match v with Piece _ _ i => i end) p I.zero.
 
 Theorem sum_invariant :
-  forall prec p u v f,
-  let ur := proj_val (I.convert_bound u) in
-  let vr := proj_val (I.convert_bound v) in
-  let s := sum prec p in
-  invariant f p u v ->
-  (I.convert s <> Inan -> ex_RInt f ur vr) /\
-  contains (I.convert s) (Xreal (RInt f ur vr)).
+  forall prec p f,
+  invariant f p ->
+  valid f IBu IBv (sum prec p).
 Proof.
-intros prec p u v f ur vr.
-unfold sum, invariant.
+intros prec p f.
+unfold sum, invariant, valid.
 rewrite ptree_fold_correct.
 generalize (ptree_to_list p).
 clear p. intros p.
 assert (H: (I.convert I.zero <> Inan ->
     all (fun r =>
       match r with
-      | Piece ur vr _ =>
-        ex_RInt f (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))
+      | Piece ur vr _ => ex_RInt_gen f (convert ur) (convert vr)
       end) nil) /\
     contains (I.convert I.zero)
       (Xreal (fold_right (fun r s => Rplus s
         match r with
-        | Piece ur vr _ => RInt f (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))
+        | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)
         end
       ) 0%R nil))).
   simpl.
@@ -124,7 +141,7 @@ assert (H: (I.convert I.zero <> Inan ->
   rewrite I.zero_correct.
   split ; apply Rle_refl.
 change p with (nil ++ p) at 1 2.
-intros [Hp [q [Hq Iq]]].
+intros [Hp [qh [qt [Hq Iq]]]].
 revert Hq Hp H.
 generalize (@nil piece) I.zero.
 induction p as [|h t IH] ; simpl ; intros l s Hq Hl [H1 H2].
@@ -133,11 +150,11 @@ induction p as [|h t IH] ; simpl ; intros l s Hq Hl [H1 H2].
   rewrite fold_right_permut with (2 := Hq) in H2 by (intros ; ring).
   case_eq (I.convert s) ; [intros Hs | intros sl su Hs].
   easy.
-  cut (ex_RInt f ur vr /\
-      RInt f ur vr = fold_right (fun r s => s +
+  cut (ex_RInt_gen f uf vf /\
+      RInt_gen f uf vf = fold_right (fun r s => s +
         match r with
-        | Piece ur vr _ => RInt f (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))
-        end) 0 q).
+        | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)
+        end) 0 (qh :: qt)).
     intros [H3 H4].
     split.
     intros _.
@@ -146,25 +163,28 @@ induction p as [|h t IH] ; simpl ; intros l s Hq Hl [H1 H2].
     now rewrite <- Hs.
   assert (H1': all (fun r =>
       match r with
-      | Piece ur vr _ => ex_RInt f (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))
-      end) q).
+      | Piece ur vr _ => ex_RInt_gen f (convert ur) (convert vr)
+      end) (qh :: qt)).
     apply all_permut with (2 := Hq).
     apply H1.
     now rewrite Hs.
-  clear -Iq H1'.
-  revert u ur Iq H1'.
-  induction q as [|[u' v' i] q IH] ; simpl.
-    intros u -> _.
-    split.
-    apply ex_RInt_point.
-    now rewrite RInt_point.
-  intros u [-> H6] [H1 H2].
-  destruct (IH _ H6 H2) as [H7 H8].
-  assert (H9 := ex_RInt_Chasles _ _ _ _ H1 H7).
-  assert (H5 := RInt_Chasles _ _ _ _ H1 H7).
+  clear -Iq H1' Fuf Fvf.
+  revert qh Iq H1'.
+  change uf with (convert IBu).
+  generalize IBu.
+  induction qt as [|qh qt IH] ; simpl.
+    intros x [u v _] [-> ->] [H _].
+    apply (conj H).
+    apply eq_sym, Rplus_0_l.
+  intros x [u v _] [-> H6] [H1 H2].
+  destruct v as [| |x] ; try easy.
+  destruct (IH _ _ H6 H2) as [H7 H8].
+  assert (H9 := ex_RInt_gen_Chasles _ _ H1 H7).
+  assert (H5 := RInt_gen_Chasles _ _ H1 H7).
   clear IH H1 H2 H6 H7.
   apply (conj H9).
-  rewrite <- H5, H8.
+  simpl in H8.
+  rewrite <- H5, <- H8.
   apply Rplus_comm.
 - eapply permut_trans in Hq.
   2: apply permut_insert.
@@ -194,29 +214,27 @@ Definition le_piece (p q : piece) :=
   | Piece _ _ pi, Piece _ _ qi => I.subset qi pi
   end.
 
-Definition split_piece f p :=
+Definition split_piece midp fi p :=
   match ptree_pop le_piece p with
   | (Piece u v _, h) =>
-    let m := I.midpoint (I.bnd u v) in
-    let p1 := Piece u m (f u m) in
-    let p2 := Piece m v (f m v) in
+    let m := IBp (midp u v) in
+    let p1 := Piece u m (fi u m) in
+    let p2 := Piece m v (fi m v) in
     ptree_insert le_piece (pheap_insert le_piece h p1) p2
   end.
 
 Theorem split_piece_correct :
-  forall f fi p u v,
-  (forall u' v',
-    (I.convert (fi u' v') <> Inan -> ex_RInt f (proj_val (I.convert_bound u')) (proj_val (I.convert_bound v'))) /\
-    contains (I.convert (fi u' v')) (Xreal (RInt f (proj_val (I.convert_bound u')) (proj_val (I.convert_bound v'))))) ->
-  invariant f p u v ->
-  invariant f (split_piece fi p) u v.
+  forall midp f fi p,
+  (forall u v, valid f u v (fi u v)) ->
+  invariant f p ->
+  invariant f (split_piece midp fi p).
 Proof.
-intros f fi p u v Hfi [H1 [q [H2 H3]]].
+intros midp f fi p Hfi [H1 [qh [qt [H2 H3]]]].
 unfold split_piece.
 generalize (ptree_pop_correct le_piece p).
 destruct ptree_pop as [[u' v' i] p1].
 intros H4.
-set (m := I.midpoint (I.bnd u' v')).
+set (m := IBp (midp u' v')).
 generalize (pheap_insert_correct le_piece p1 (Piece u' m (fi u' m))).
 generalize (pheap_insert le_piece p1 (Piece u' m (fi u' m))).
 intros p2 H5.
@@ -240,8 +258,15 @@ split.
   apply H4.
 - assert (H7 := permut_trans _ _ _ H4 H2).
   destruct (permut_remove _ _ _ H7) as [s [t [H8 H9]]].
-  exists ((s ++ Piece u' m (fi u' m) :: nil) ++ Piece m v' (fi m v') :: t).
+  assert (exists sh st, sh :: st = s ++ Piece u' m (fi u' m) :: nil) as [sh [st Ha]].
+    clear.
+    destruct s as [|sh st].
+    now exists (Piece u' m (fi u' m)), nil.
+    now exists sh, (st ++ Piece u' m (fi u' m) :: nil).
+  exists sh, (st ++ Piece m v' (fi m v') :: t).
   split.
+    change (sh :: st ++ _) with ((sh :: st) ++ Piece m v' (fi m v') :: t).
+    rewrite Ha.
     apply permut_trans with (1 := H6).
     eapply permut_trans.
     2: apply permut_insert.
@@ -252,16 +277,30 @@ split.
     eapply permut_trans.
     2: apply permut_insert.
     now apply permut_cons.
-  rewrite <- app_assoc.
-  simpl.
-  revert H3.
-  rewrite H8.
+  revert H3 H8 Ha.
   clear.
-  revert u.
-  induction s as [|[ur vr i'] s IH] ; simpl ; intros u [H1 H2].
-  easy.
+  generalize IBu.
+  revert qh qt sh st.
+  induction s as [|[u v i'] s IH] ; simpl ; intros qh qt sh st x H1 [= -> ->] [= -> ->].
+    simpl.
+    destruct t as [|th tt].
+    now destruct H1.
+    now destruct H1.
+  destruct s as [|sh st].
+    destruct H1 as [H1 H2].
+    simpl.
+    apply (conj H1).
+    destruct v as [| |x'] ; try easy.
+    destruct t as [|th tt].
+    now destruct H2.
+    now destruct H2.
+  destruct H1 as [H1 H2].
+  simpl.
   apply (conj H1).
-  now apply IH.
+  destruct v as [| |x'] ; try easy.
+  now apply IH with (1 := H2).
 Qed.
+
+End Bounds.
 
 End IntegralRefiner.
