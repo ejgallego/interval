@@ -657,3 +657,31 @@ apply: (is_lim_mult (fun x => exp (-(lam * x))) (fun x => / lam) p_infty 0 (/ la
       exists 0 => // .
 exact: is_lim_const.
 Qed.
+
+Lemma ex_RInt_gen_Chasles :
+  forall {V : NormedModule R_AbsRing} {Fa Fc : (R -> Prop) -> Prop},
+  forall {FFa : Filter Fa} {FFc : Filter Fc},
+  forall (f : R -> V) (b : R),
+  ex_RInt_gen f Fa (at_point b) ->
+  ex_RInt_gen f (at_point b) Fc ->
+  ex_RInt_gen f Fa Fc.
+Proof.
+intros V Fa Fc FFa FFc f b [Iab Hab] [Ibc Hbc].
+exists (plus Iab Ibc).
+now apply is_RInt_gen_Chasles with b.
+Qed.
+
+Lemma RInt_gen_Chasles :
+  forall {V : CompleteNormedModule R_AbsRing} {Fa Fc : (R -> Prop) -> Prop},
+  forall {FFa : ProperFilter' Fa} {FFc : ProperFilter' Fc},
+  forall (f : R -> V) (b : R),
+  ex_RInt_gen f Fa (at_point b) ->
+  ex_RInt_gen f (at_point b) Fc ->
+  plus (RInt_gen f Fa (at_point b)) (RInt_gen f (at_point b) Fc) = RInt_gen f Fa Fc.
+Proof.
+intros V Fa Fc FFa FFc f b Hab Hbc.
+apply esym, is_RInt_gen_unique.
+apply: is_RInt_gen_Chasles.
+now apply RInt_gen_correct.
+now apply RInt_gen_correct.
+Qed.
