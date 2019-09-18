@@ -27,39 +27,49 @@ Require Import Priority.
 
 Section IterUntil.
 
-Fixpoint iter_until {T} n (step : T -> T) (done : T -> bool) v :=
+(* iteratively call [step] on [v] until [done] is true or [n] calls have been made;
+   [cache_step] is called every 2^k approximately to precompute some data for [done] *)
+Fixpoint iter_until {T} n (step : T -> T) (cache_step : T -> T) (done : T -> bool) v :=
   match n with
   | xH => step v
   | xO n =>
-    let v := iter_until n step done v in
+    let v := iter_until n step cache_step done v in
     if done v then v else
-    iter_until n step done v
+    let v := cache_step v in
+    iter_until n step (fun x => x) done v
   | xI n =>
     let v := step v in
     if done v then v else
-    let v := iter_until n step done v in
+    let v := iter_until n step cache_step done v in
     if done v then v else
-    iter_until n step done v
+    let v := cache_step v in
+    iter_until n step (fun x => x) done v
   end.
 
 Theorem iter_until_correct :
-  forall {T} (P : T -> Prop) n step done,
+  forall {T} (P : T -> Prop) n step slow_step done,
   (forall v : T, P v -> P (step v)) ->
-  forall v : T, P v -> P (iter_until n step done v).
+  (forall v : T, P v -> P (slow_step v)) ->
+  forall v : T, P v -> P (iter_until n step slow_step done v).
 Proof.
-intros T P n step done H.
-induction n as [n IH|n IH|] ; intros v Hv ; simpl.
+intros T P n step slow_step done H Hs.
+revert slow_step Hs.
+induction n as [n IH|n IH|] ; intros slow_step Hs v Hv ; simpl.
 - case done.
   now apply H.
   apply H in Hv.
-  apply IH in Hv.
+  apply IH with (1 := Hs) in Hv.
   case done.
   exact Hv.
-  now apply IH.
-- apply IH in Hv.
+  apply IH.
+  easy.
+  now apply Hs.
+- apply IH with (1 := Hs) in Hv.
   case done.
   exact Hv.
-  now apply IH.
+  apply IH.
+  easy.
+  now apply Hs.
 - now apply H.
 Qed.
 
@@ -108,6 +118,12 @@ Fixpoint invariant_aux h l (u : integral_bound) :=
     end
   end.
 
+Definition exact_sum (f : R -> R) l :=
+  fold_right (fun r s => Rplus s
+    match r with
+    | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)
+    end) 0%R l.
+
 Definition invariant (f : R -> R) (p : ptree piece) :=
   all (fun r => match r with Piece uf vf i => valid f uf vf i end) (ptree_to_list p) /\
   exists qh, exists qt, permut (ptree_to_list p) (qh :: qt) /\ invariant_aux qh qt IBu.
@@ -130,12 +146,7 @@ assert (H: (I.convert I.zero <> Inan ->
       match r with
       | Piece ur vr _ => ex_RInt_gen f (convert ur) (convert vr)
       end) nil) /\
-    contains (I.convert I.zero)
-      (Xreal (fold_right (fun r s => Rplus s
-        match r with
-        | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)
-        end
-      ) 0%R nil))).
+    contains (I.convert I.zero) (Xreal (exact_sum f nil))).
   simpl.
   apply (conj (fun _ => I)).
   rewrite I.zero_correct.
@@ -147,14 +158,11 @@ generalize (@nil piece) I.zero.
 induction p as [|h t IH] ; simpl ; intros l s Hq Hl [H1 H2].
 - clear Hl.
   rewrite app_nil_r in Hq.
+  unfold exact_sum in H2.
   rewrite fold_right_permut with (2 := Hq) in H2 by (intros ; ring).
   case_eq (I.convert s) ; [intros Hs | intros sl su Hs].
   easy.
-  cut (ex_RInt_gen f uf vf /\
-      RInt_gen f uf vf = fold_right (fun r s => s +
-        match r with
-        | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)
-        end) 0 (qh :: qt)).
+  cut (ex_RInt_gen f uf vf /\ RInt_gen f uf vf = exact_sum f (qh :: qt)).
     intros [H3 H4].
     split.
     intros _.
@@ -209,28 +217,37 @@ induction p as [|h t IH] ; simpl ; intros l s Hq Hl [H1 H2].
   apply H3.
 Qed.
 
-Definition le_piece (p q : piece) :=
+Definition le_piece prec (p q : piece) :=
   match p, q with
-  | Piece _ _ pi, Piece _ _ qi => I.subset qi pi
+  | Piece _ _ pi, Piece _ _ qi => I.wider prec pi qi
   end.
 
-Definition split_piece midp fi p :=
-  match ptree_pop le_piece p with
-  | (Piece u v _, h) =>
-    let m := IBp (midp u v) in
-    let p1 := Piece u m (fi u m) in
-    let p2 := Piece m v (fi m v) in
-    ptree_insert le_piece (pheap_insert le_piece h p1) p2
+Definition split_piece prec midp fi sp :=
+  let le_piece := le_piece prec in
+  match sp with
+  | (s, p) =>
+    match ptree_pop le_piece p with
+    | (Piece u v i, h) =>
+      let m := IBp (midp u v) in
+      let i1 := fi u m in
+      let i2 := fi m v in
+      let p1 := Piece u m i1 in
+      let p2 := Piece m v i2 in
+      let s := I.add prec (I.cancel_add prec s i) (I.add prec i1 i2) in
+      let p := ptree_insert le_piece (pheap_insert le_piece h p1) p2 in
+      (s, p)
+    end
   end.
 
 Theorem split_piece_correct :
-  forall midp f fi p,
+  forall prec midp f fi p,
   (forall u v, valid f u v (fi u v)) ->
-  invariant f p ->
-  invariant f (split_piece midp fi p).
+  invariant f (snd p) ->
+  invariant f (snd (split_piece prec midp fi p)).
 Proof.
-intros midp f fi p Hfi [H1 [qh [qt [H2 H3]]]].
+intros prec midp f fi [sp p] Hfi [H1 [qh [qt [H2 H3]]]].
 unfold split_piece.
+set (le_piece := le_piece prec).
 generalize (ptree_pop_correct le_piece p).
 destruct ptree_pop as [[u' v' i] p1].
 intros H4.
