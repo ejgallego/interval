@@ -125,6 +125,20 @@ Definition subset xi yi :=
   | _, _ => false
   end.
 
+Definition wider prec xi yi :=
+  match yi, xi with
+  | Inan, _ => false
+  | Ibnd yl yu, Inan => true
+  | Ibnd yl yu, Ibnd xl xu =>
+    let yw := F.sub rnd_NE prec yu yl in
+    if F.real yw then
+      match F.cmp (F.sub rnd_NE prec xu xl) yw with
+      | Xlt | Xeq => false
+      | _ => true
+      end
+    else false
+  end.
+
 Definition join xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
@@ -324,6 +338,20 @@ Definition sub prec xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
     Ibnd (F.sub rnd_DN prec xl yu) (F.sub rnd_UP prec xu yl)
+  | _, _ => Inan
+  end.
+
+Definition cancel_add prec xi yi :=
+  match xi, yi with
+  | Ibnd xl xu, Ibnd yl yu =>
+    Ibnd (F.sub rnd_DN prec xl yl) (F.sub rnd_UP prec xu yu)
+  | _, _ => Inan
+  end.
+
+Definition cancel_sub prec xi yi :=
+  match xi, yi with
+  | Ibnd xl xu, Ibnd yl yu =>
+    Ibnd (F.add rnd_DN prec xl yu) (F.add rnd_UP prec xu yl)
   | _, _ => Inan
   end.
 

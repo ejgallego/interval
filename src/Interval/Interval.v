@@ -380,6 +380,8 @@ Parameter mask_correct' :
 
 Parameter precision : Type.
 
+Parameter wider : precision -> type -> type -> bool.
+
 Parameter neg : type -> type.
 Parameter abs : type -> type.
 Parameter pi : precision -> type.
@@ -422,6 +424,9 @@ Parameter neg_correct' :
   forall xi x,
   contains (convert (neg xi)) (Xneg x) ->
   contains (convert xi) x.
+
+Parameter cancel_add : precision -> type -> type -> type.
+Parameter cancel_sub : precision -> type -> type -> type.
 
 Parameter bounded : type -> bool.
 Parameter lower_bounded : type -> bool.
