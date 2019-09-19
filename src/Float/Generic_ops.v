@@ -57,7 +57,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition incr_prec := Pplus.
   Definition zero := @Fzero radix.
   Definition one := @Float radix false 1 0.
-  Definition nan := @Fnan radix.
+  Definition nan := @Basic.Fnan radix.
   Definition mag := @Fmag radix.
   Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
   Definition min := @Fmin radix.
@@ -79,10 +79,18 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition nearbyint := @Fnearbyint_exact radix.
   Definition zero_correct := refl_equal (Xreal R0).
   Definition one_correct := refl_equal (Xreal R1).
-  Definition nan_correct := refl_equal Xnan.
+  Definition nan_correct := refl_equal Fnan.
   Definition nearbyint_correct := @Fnearbyint_exact_correct radix.
 
-  Definition real (f : float radix) := match f with Fnan => false | _ => true end.
+  Definition classify (f : float radix) :=
+    match f with Basic.Fnan => Fnan | _ => Freal end.
+
+  Definition real (f : float radix) :=
+    match f with Basic.Fnan => false | _ => true end.
+
+  Lemma classify_correct :
+    forall f, real f = match classify f with Freal => true | _ => false end.
+  Proof. now intro f; case f. Qed.
 
   Lemma real_correct :
     forall f, real f = match toX f with Xnan => false | _ => true end.
@@ -95,18 +103,12 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition valid_lb (_ : type) := true.
 
   Lemma valid_lb_correct :
-    forall f, real f = true -> valid_lb f = true.
-  Proof. easy. Qed.
+    forall f, valid_lb f = match classify f with Fpinfty => false | _ => true end.
+  Proof. now intro f; case f. Qed.
 
   Lemma valid_ub_correct :
-    forall f, real f = true -> valid_ub f = true.
-  Proof. easy. Qed.
-
-  Lemma valid_lb_nan : valid_lb nan = true.
-  Proof. easy. Qed.
-
-  Lemma valid_ub_nan : valid_ub nan = true.
-  Proof. easy. Qed.
+    forall f, valid_ub f = match classify f with Fminfty => false | _ => true end.
+  Proof. now intro f; case f. Qed.
 
   Lemma min_correct :
     forall x y,

@@ -24,6 +24,8 @@ Require Import Xreal.
 Require Import Basic.
 Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
+Variant fclass := Freal | Fnan | Fminfty | Fpinfty.  (* TODO PR: move? *)
+
 Module Type FloatOps.
 
 Parameter sensible_format : bool.
@@ -53,6 +55,7 @@ Parameter fromZ_DN : precision -> Z -> type.
 Parameter fromZ_UP : precision -> Z -> type.
 
 Parameter fromF : float radix -> type.
+Parameter classify : type -> fclass.
 Parameter real : type -> bool.
 Parameter mag : type -> sfactor.
 Parameter valid_ub : type -> bool.  (* valid upper bound (typically, not -oo) *)
@@ -80,7 +83,7 @@ Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
 Parameter one_correct : toX one = Xreal 1.
-Parameter nan_correct : toX nan = Xnan.
+Parameter nan_correct : classify nan = Fnan.
 
 Parameter fromZ_correct :
   forall n,
@@ -95,19 +98,17 @@ Parameter fromZ_UP_correct :
   forall p n,
   valid_ub (fromZ_UP p n) = true /\ le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
 
+Parameter classify_correct :
+  forall f, real f = match classify f with Freal => true | _ => false end.
+
 Parameter real_correct :
-  forall f,
-  real f = match toX f with Xnan => false | _ => true end.
+  forall f, real f = match toX f with Xnan => false | _ => true end.
 
 Parameter valid_lb_correct :
-  forall f, real f = true -> valid_lb f = true.
+  forall f, valid_lb f = match classify f with Fpinfty => false | _ => true end.
 
 Parameter valid_ub_correct :
-  forall f, real f = true -> valid_ub f = true.
-
-Parameter valid_lb_nan : valid_lb nan = true.
-
-Parameter valid_ub_nan : valid_ub nan = true.
+  forall f, valid_ub f = match classify f with Fminfty => false | _ => true end.
 
 Parameter cmp_correct :
   forall x y,
@@ -253,6 +254,59 @@ Parameter midpoint_correct :
 End FloatOps.
 
 Module FloatExt (F : FloatOps).
+
+Lemma valid_lb_real f : F.real f = true -> F.valid_lb f = true.
+Proof.
+generalize (F.valid_lb_correct f).
+generalize (F.classify_correct f).
+now case F.classify; try easy; intro H; rewrite H.
+Qed.
+
+Lemma valid_ub_real f : F.real f = true -> F.valid_ub f = true.
+Proof.
+generalize (F.valid_ub_correct f).
+generalize (F.classify_correct f).
+now case F.classify; try easy; intro H; rewrite H.
+Qed.
+
+Lemma valid_lb_nan : F.valid_lb F.nan = true.
+Proof.
+generalize F.nan_correct.
+generalize (F.valid_lb_correct F.nan).
+now case F.classify.
+Qed.
+
+Lemma valid_ub_nan : F.valid_ub F.nan = true.
+Proof.
+generalize F.nan_correct.
+generalize (F.valid_ub_correct F.nan).
+now case F.classify.
+Qed.
+
+Lemma valid_lb_zero : F.valid_lb F.zero = true.
+Proof.
+generalize (F.valid_lb_correct F.zero).
+generalize (F.classify_correct F.zero).
+rewrite F.real_correct, F.zero_correct.
+now case F.classify.
+Qed.
+
+Lemma valid_ub_zero : F.valid_ub F.zero = true.
+Proof.
+generalize (F.valid_ub_correct F.zero).
+generalize (F.classify_correct F.zero).
+rewrite F.real_correct, F.zero_correct.
+now case F.classify.
+Qed.
+
+Lemma nan_correct : F.toX F.nan = Xnan.
+Proof.
+generalize (F.classify_correct F.nan).
+generalize F.nan_correct.
+case F.classify; [easy|intros _|easy..].
+generalize (F.real_correct F.nan).
+now case F.toX; [|intros r H; rewrite H].
+Qed.
 
 Definition cmp x y:=
   if F.real x then
