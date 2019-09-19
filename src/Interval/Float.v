@@ -366,9 +366,7 @@ Definition abs xi :=
 Definition mul2 prec xi :=
   match xi with
   | Ibnd xl xu =>
-    let xl' := F.mul_DN prec xl c2 in
-    let xu' := F.mul_UP prec xu c2 in
-    if F.valid_lb xl' && F.valid_ub xu' then Ibnd xl' xu' else Ibnd F.nan F.nan
+    Ibnd (F.mul_DN prec xl c2) (F.mul_UP prec xu c2)
   | Inan => Inan
   end.
 
@@ -1763,20 +1761,41 @@ Theorem mul2_correct :
   contains (convert (mul2 prec xi)) (Xmul x (Xreal 2)).
 Proof.
 intros prec [ | xl xu].
-split.
-(*
-intros [ | x] Hx.
-elim Hx.
-unfold convert in Hx.
-destruct Hx as (Hxl, Hxu).
-unfold convert, mul2, c2.
-rewrite 2!F.mul_correct, F.fromZ_correct by easy.
-split ; xreal_tac2 ; simpl ; apply (Rle_trans _ (r * 2)) ; try lra.
-{ now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
-now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
+easy.
+intros [|x]; unfold convert; [now case (_ && _)|].
+case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
+case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
+intros Vxu Vxl [Hxl Hxu].
+simpl.
+unfold c2.
+elim (F.mul_DN_correct prec xl (F.fromZ 2)); [intros Vl Hl; rewrite Vl|].
+{ elim (F.mul_UP_correct prec xu (F.fromZ 2)); [intros Vu Hu; rewrite Vu|].
+  { split.
+    { xreal_tac2.
+      revert Hl; rewrite F.fromZ_correct by easy.
+      unfold le_lower, le_upper; simpl.
+      now xreal_tac2; simpl; [|lra]. }
+    xreal_tac2.
+    revert Hu; rewrite F.fromZ_correct by easy.
+    unfold le_upper.
+    now xreal_tac2; simpl; [|lra]. }
+  rewrite Vxu.
+  rewrite (F.valid_ub_correct (F.fromZ 2));
+    [|now rewrite F.real_correct, F.fromZ_correct].
+  rewrite F.fromZ_correct; [|easy..].
+  xreal_tac2; [now left; repeat split; lra|].
+  case (Rlt_or_le 0 r); intro Hr.
+  { left; repeat split; lra. }
+  do 2 right; left; lra. }
+rewrite Vxl.
+rewrite (F.valid_ub_correct (F.fromZ 2));
+  [|now rewrite F.real_correct, F.fromZ_correct].
+rewrite F.fromZ_correct by easy.
+xreal_tac2; [now do 3 right; repeat split; lra|].
+case (Rlt_or_le 0 r); intro Hr.
+{ left; repeat split; lra. }
+do 3 right; repeat split; lra.
 Qed.
-*)
-Admitted.
 
 Theorem add_correct :
   forall prec,
