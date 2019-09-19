@@ -57,6 +57,7 @@ Parameter fromZ_UP : precision -> Z -> type.
 Parameter fromF : float radix -> type.
 Parameter classify : type -> fclass.
 Parameter real : type -> bool.
+Parameter is_nan : type -> bool.
 Parameter mag : type -> sfactor.
 Parameter valid_ub : type -> bool.  (* valid upper bound (typically, not -oo) *)
 Parameter valid_lb : type -> bool.  (* valid lower bound (typically, not +oo) *)
@@ -104,6 +105,9 @@ Parameter classify_correct :
 Parameter real_correct :
   forall f, real f = match toX f with Xnan => false | _ => true end.
 
+Parameter is_nan_correct :
+  forall f, is_nan f = match classify f with Fnan => true | _ => false end.
+
 Parameter valid_lb_correct :
   forall f, valid_lb f = match classify f with Fpinfty => false | _ => true end.
 
@@ -118,26 +122,32 @@ Parameter cmp_correct :
 
 Parameter min_correct :
   forall x y,
-    ((valid_lb x = true \/ valid_lb y = true)
-     -> (valid_lb (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_ub x = true -> valid_ub y = true
-       -> (valid_ub (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_lb y = false -> min x y = x)
-    /\ (valid_lb x = false -> min x y = y).
+  match classify x, classify y with
+  | Fnan, _ | _, Fnan => classify (min x y) = Fnan
+  | Fminfty, _ | _, Fminfty => classify (min x y) = Fminfty
+  | Fpinfty, _ => min x y = y
+  | _, Fpinfty => min x y = x
+  | Freal, Freal => toX (min x y) = Xmin (toX x) (toX y)
+  end.
 
 Parameter max_correct :
   forall x y,
-    ((valid_ub x = true \/ valid_ub y = true)
-     -> (valid_ub (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_lb x = true -> valid_lb y = true
-       -> (valid_lb (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_ub y = false -> max x y = x)
-    /\ (valid_ub x = false -> max x y = y).
+  match classify x, classify y with
+  | Fnan, _ | _, Fnan => classify (max x y) = Fnan
+  | Fpinfty, _ | _, Fpinfty => classify (max x y) = Fpinfty
+  | Fminfty, _ => max x y = y
+  | _, Fminfty => max x y = x
+  | Freal, Freal => toX (max x y) = Xmax (toX x) (toX y)
+  end.
 
 Parameter neg_correct :
-  forall x, toX (neg x) = Xneg (toX x)
-    /\ (valid_lb (neg x) = valid_ub x)
-    /\ (valid_ub (neg x) = valid_lb x).
+  forall x,
+  match classify x with
+  | Freal => toX (neg x) = Xneg (toX x)
+  | Fnan => classify (neg x) = Fnan
+  | Fminfty => classify (neg x) = Fpinfty
+  | Fpinfty => classify (neg x) = Fminfty
+  end.
 
 Parameter abs_correct :
   forall x, toX (abs x) = Xabs (toX x) /\ (valid_ub (abs x) = true).
@@ -308,6 +318,41 @@ generalize (F.real_correct F.nan).
 now case F.toX; [|intros r H; rewrite H].
 Qed.
 
+Lemma is_nan_nan : F.is_nan F.nan = true.
+Proof. now rewrite F.is_nan_correct, F.nan_correct. Qed.
+
+Lemma neg_correct x :
+  F.toX (F.neg x) = Xneg (F.toX x)
+  /\ (F.valid_lb (F.neg x) = F.valid_ub x)
+  /\ (F.valid_ub (F.neg x) = F.valid_lb x).
+Proof.
+generalize (F.real_correct x).
+generalize (F.real_correct (F.neg x)).
+generalize (F.neg_correct x).
+rewrite !F.classify_correct,  !F.valid_lb_correct, !F.valid_ub_correct.
+case F.classify; intro Hx; rewrite Hx; [|now case F.toX, F.toX..].
+now case F.toX; [easy|]; intros rx; simpl; case F.classify.
+Qed.
+
+Lemma real_neg x : F.real (F.neg x) = F.real x.
+Proof.
+now rewrite !F.real_correct, (proj1 (neg_correct x)); case F.toX.
+Qed.
+
+Lemma is_nan_neg x : F.is_nan (F.neg x) = F.is_nan x.
+Proof.
+rewrite !F.is_nan_correct.
+generalize (F.neg_correct x).
+case_eq (F.classify x); [|now intros _ H; rewrite H..].
+intro Hx.
+generalize (F.classify_correct x); rewrite Hx, F.real_correct.
+case F.toX; [easy|]; intros rx _.
+generalize (F.classify_correct (F.neg x)).
+rewrite F.real_correct.
+case F.toX; [easy|]; intros rnx.
+now case F.classify.
+Qed.
+
 Definition cmp x y:=
   if F.real x then
     if F.real y then
@@ -438,6 +483,63 @@ rewrite <- H.
 apply toX_Xreal.
 unfold F.toR.
 now rewrite H at 2.
+Qed.
+
+Lemma classify_zero : F.classify F.zero = Freal.
+Proof.
+generalize (F.classify_correct F.zero).
+rewrite F.real_correct, F.zero_correct.
+now case F.classify.
+Qed.
+
+Lemma min_valid_lb x y :
+  F.valid_lb x = true -> F.valid_lb y = true ->
+  (F.valid_lb (F.min x y) = true
+   /\ F.toX (F.min x y) = Xmin (F.toX x) (F.toX y)).
+Proof.
+rewrite !F.valid_lb_correct.
+generalize (F.min_correct x y).
+generalize (F.classify_correct x) ; rewrite F.real_correct ;
+case_eq (F.classify x); intro Cx ; [..|easy] ;
+  [case_eq (F.toX x); [easy|] ; intros rx Hx _
+  |case_eq (F.toX x); [|easy] ; intros Hx _..] ;
+  ( generalize (F.classify_correct y) ; rewrite F.real_correct ;
+    case_eq (F.classify y); intro Cy ; [..|easy] ;
+      [case_eq (F.toX y); [easy|] ; intros ry Hy _
+      |case_eq (F.toX y); [|easy] ; intros Hy _..] ) ;
+  intros Hmin _ _ ;
+  generalize (F.classify_correct (F.min x y)) ; rewrite F.real_correct ;
+  rewrite Hmin ;
+  simpl ;
+  rewrite ?Cx, ?Cy ;
+  rewrite ?Hx, ?Hy ;
+  [case F.classify ; easy|..] ;
+  now case F.toX.
+Qed.
+
+Lemma max_valid_ub x y :
+  F.valid_ub x = true -> F.valid_ub y = true ->
+  (F.valid_ub (F.max x y) = true
+   /\ F.toX (F.max x y) = Xmax (F.toX x) (F.toX y)).
+Proof.
+rewrite !F.valid_ub_correct.
+generalize (F.max_correct x y).
+generalize (F.classify_correct x) ; rewrite F.real_correct ;
+case_eq (F.classify x); intro Cx ; [..|easy|] ;
+  [case_eq (F.toX x); [easy|] ; intros rx Hx _
+  |case_eq (F.toX x); [|easy] ; intros Hx _..] ;
+  ( generalize (F.classify_correct y) ; rewrite F.real_correct ;
+    case_eq (F.classify y); intro Cy ; [..|easy|] ;
+      [case_eq (F.toX y); [easy|] ; intros ry Hy _
+      |case_eq (F.toX y); [|easy] ; intros Hy _..] ) ;
+  intros Hmax _ _ ;
+  generalize (F.classify_correct (F.max x y)) ; rewrite F.real_correct ;
+  rewrite Hmax ;
+  simpl ;
+  rewrite ?Cx, ?Cy ;
+  rewrite ?Hx, ?Hy ;
+  [case F.classify ; easy|..] ;
+  now case F.toX.
 Qed.
 
 End FloatExt.

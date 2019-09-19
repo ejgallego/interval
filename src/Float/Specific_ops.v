@@ -110,6 +110,8 @@ Definition nan_correct := refl_equal Sig.Fnan.
 
 Definition real (f : type) := match f with Fnan => false | _ => true end.
 
+Definition is_nan (f : type) := match f with Fnan => true | _ => false end.
+
 Lemma classify_correct :
   forall f, real f = match classify f with Freal => true | _ => false end.
 Proof. now intro f; case f. Qed.
@@ -125,6 +127,10 @@ unfold toX.
 simpl.
 now case (mantissa_sign m).
 Qed.
+
+Lemma is_nan_correct :
+  forall f, is_nan f = match classify f with Sig.Fnan => true | _ => false end.
+Proof. now intro f; case f. Qed.
 
 Definition valid_ub (_ : type) := true.
 Definition valid_lb (_ : type) := true.
@@ -257,12 +263,17 @@ Definition neg (f : type) :=
   end.
 
 Lemma neg_correct :
-  forall x, toX (neg x) = Xneg (toX x)
-    /\ (valid_lb (neg x) = valid_ub x)
-    /\ (valid_ub (neg x) = valid_lb x).
+  forall x,
+  match classify x with
+  | Freal => toX (neg x) = Xneg (toX x)
+  | Sig.Fnan => classify (neg x) = Sig.Fnan
+  | Fminfty => classify (neg x) = Fpinfty
+  | Fpinfty => classify (neg x) = Fminfty
+  end.
 Proof.
-intros.
-split; [|now split].
+intro x.
+case_eq (classify x); [|now case x..].
+intro Cx.
 destruct x as [| m e].
 apply refl_equal.
 unfold toX.
@@ -532,25 +543,23 @@ Definition min x y :=
 
 Lemma min_correct :
   forall x y,
-    ((valid_lb x = true \/ valid_lb y = true)
-     -> (valid_lb (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_ub x = true -> valid_ub y = true
-       -> (valid_ub (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_lb y = false -> min x y = x)
-    /\ (valid_lb x = false -> min x y = y).
+  match classify x, classify y with
+  | Sig.Fnan, _ | _, Sig.Fnan => classify (min x y) = Sig.Fnan
+  | Fminfty, _ | _, Fminfty => classify (min x y) = Fminfty
+  | Fpinfty, _ => min x y = y
+  | _, Fpinfty => min x y = x
+  | Freal, Freal => toX (min x y) = Xmin (toX x) (toX y)
+  end.
 Proof.
-intros [|mx ex] [|my ey]; try easy.
-{ now destruct (toX (Float mx ex)). }
+intros [|mx ex] [|my ey]; [simpl; easy..|].
+unfold classify.
 rewrite 2!toX_Float.
 unfold min, Xmin.
 rewrite cmp_correct by apply toX_Float.
 case Rcompare_spec; intros H; rewrite toX_Float; unfold valid_lb, valid_ub; simpl.
-{ now split; [|split];
-    [intros; split; [|apply f_equal, sym_eq, Rmin_left, Rlt_le]..|]. }
-{ now split; [|split];
-    [intros; split; [|apply f_equal, sym_eq, Rmin_left, Req_le]..|]. }
-now split; [|split];
-  [intros; split; [|apply f_equal, sym_eq, Rmin_right, Rlt_le]..|].
+{ now apply f_equal; rewrite Rmin_left; [|apply Rlt_le]. }
+{ now apply f_equal; rewrite Rmin_left; [|apply Req_le]. }
+now apply f_equal; rewrite Rmin_right; [|apply Rlt_le].
 Qed.
 
 (*
@@ -571,25 +580,23 @@ Definition max x y :=
 
 Lemma max_correct :
   forall x y,
-    ((valid_ub x = true \/ valid_ub y = true)
-     -> (valid_ub (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_lb x = true -> valid_lb y = true
-       -> (valid_lb (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_ub y = false -> max x y = x)
-    /\ (valid_ub x = false -> max x y = y).
+  match classify x, classify y with
+  | Sig.Fnan, _ | _, Sig.Fnan => classify (max x y) = Sig.Fnan
+  | Fpinfty, _ | _, Fpinfty => classify (max x y) = Fpinfty
+  | Fminfty, _ => max x y = y
+  | _, Fminfty => max x y = x
+  | Freal, Freal => toX (max x y) = Xmax (toX x) (toX y)
+  end.
 Proof.
-intros [|mx ex] [|my ey] ; try easy.
-{ now destruct (toX (Float mx ex)). }
+intros [|mx ex] [|my ey]; [simpl; easy..|].
+unfold classify.
 rewrite 2!toX_Float.
 unfold max, Xmax.
 rewrite cmp_correct by apply toX_Float.
 case Rcompare_spec; intros H; rewrite toX_Float; unfold valid_lb, valid_ub; simpl.
-{ now split; [|split];
-    [intros; split; [|apply f_equal, sym_eq, Rmax_right, Rlt_le]..|]. }
-{ now split; [|split];
-    [intros; split; [|apply f_equal, sym_eq, Rmax_right, Req_le]..|]. }
-now split; [|split];
-  [intros; split; [|apply f_equal, sym_eq, Rmax_left, Rlt_le]..|].
+{ now apply f_equal; rewrite Rmax_right; [|apply Rlt_le]. }
+{ now apply f_equal; rewrite Rmax_right; [|apply Req_le]. }
+now apply f_equal; rewrite Rmax_left; [|apply Rlt_le].
 Qed.
 
 (*
@@ -1249,7 +1256,9 @@ Lemma sub_UP_correct :
 Proof.
 intros p x y _ _; split; [reflexivity|].
 unfold sub_UP.
-rewrite Xsub_split, <-(proj1 (neg_correct _)).
+rewrite Xsub_split.
+assert (H : toX (neg y) = Xneg (toX y)); [|rewrite <-H; clear H].
+{ now generalize (neg_correct y); case y. }
 now apply add_UP_correct.
 Qed.
 
@@ -1262,7 +1271,9 @@ Lemma sub_DN_correct :
 Proof.
 intros p x y _ _; split; [reflexivity|].
 unfold sub_DN.
-rewrite Xsub_split, <-(proj1 (neg_correct _)).
+rewrite Xsub_split.
+assert (H : toX (neg y) = Xneg (toX y)); [|rewrite <-H; clear H].
+{ now generalize (neg_correct y); case y. }
 now apply add_DN_correct.
 Qed.
 

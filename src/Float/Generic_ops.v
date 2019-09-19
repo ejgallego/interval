@@ -88,6 +88,9 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition real (f : float radix) :=
     match f with Basic.Fnan => false | _ => true end.
 
+  Definition is_nan (f : float radix) :=
+    match f with Basic.Fnan => true | _ => false end.
+
   Lemma classify_correct :
     forall f, real f = match classify f with Freal => true | _ => false end.
   Proof. now intro f; case f. Qed.
@@ -98,6 +101,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   intros f.
   now case f.
   Qed.
+
+  Lemma is_nan_correct :
+    forall f, is_nan f = match classify f with Fnan => true | _ => false end.
+  Proof. now intro f; case f. Qed.
 
   Definition valid_ub (_ : type) := true.
   Definition valid_lb (_ : type) := true.
@@ -112,29 +119,50 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma min_correct :
     forall x y,
-    ((valid_lb x = true \/ valid_lb y = true)
-     -> (valid_lb (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_ub x = true -> valid_ub y = true
-       -> (valid_ub (min x y) = true /\ toX (min x y) = Xmin (toX x) (toX y)))
-    /\ (valid_lb y = false -> min x y = x)
-    /\ (valid_lb x = false -> min x y = y).
-  Proof. now intros x y; rewrite (Fmin_correct radix). Qed.
+    match classify x, classify y with
+    | Fnan, _ | _, Fnan => classify (min x y) = Fnan
+    | Fminfty, _ | _, Fminfty => classify (min x y) = Fminfty
+    | Fpinfty, _ => min x y = y
+    | _, Fpinfty => min x y = x
+    | Freal, Freal => toX (min x y) = Xmin (toX x) (toX y)
+    end.
+  Proof.
+  intros x y.
+  case_eq (classify x); [|now case x..].
+  case_eq (classify y);
+    [|now case y; [case x; [..|intros b p z; case b]|..]|now case y..].
+  now rewrite (Fmin_correct radix).
+  Qed.
 
   Lemma max_correct :
     forall x y,
-    ((valid_ub x = true \/ valid_ub y = true)
-     -> (valid_ub (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_lb x = true -> valid_lb y = true
-       -> (valid_lb (max x y) = true /\ toX (max x y) = Xmax (toX x) (toX y)))
-    /\ (valid_ub y = false -> max x y = x)
-    /\ (valid_ub x = false -> max x y = y).
-  Proof. now intros x y; rewrite (Fmax_correct radix). Qed.
+    match classify x, classify y with
+    | Fnan, _ | _, Fnan => classify (max x y) = Fnan
+    | Fpinfty, _ | _, Fpinfty => classify (max x y) = Fpinfty
+    | Fminfty, _ => max x y = y
+    | _, Fminfty => max x y = x
+    | Freal, Freal => toX (max x y) = Xmax (toX x) (toX y)
+    end.
+  Proof.
+  intros x y.
+  case_eq (classify x); [|now case x..].
+  case_eq (classify y);
+    [|now case y; [case x; [..|intros b p z; case b]|..]|now case y..].
+  now rewrite (Fmax_correct radix).
+  Qed.
 
   Lemma neg_correct :
-    forall x, toX (neg x) = Xneg (toX x)
-    /\ (valid_lb (neg x) = valid_ub x)
-    /\ (valid_ub (neg x) = valid_lb x).
-  Proof. now intro x; rewrite (Fneg_correct radix). Qed.
+    forall x,
+    match classify x with
+    | Freal => toX (neg x) = Xneg (toX x)
+    | Fnan => classify (neg x) = Fnan
+    | Fminfty => classify (neg x) = Fpinfty
+    | Fpinfty => classify (neg x) = Fminfty
+    end.
+  Proof.
+  intro x; case_eq (classify x); [|now case x..].
+  now rewrite (Fneg_correct radix).
+  Qed.
 
   Lemma abs_correct :
     forall x, toX (abs x) = Xabs (toX x) /\ (valid_ub (abs x) = true).
