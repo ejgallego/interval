@@ -59,7 +59,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition one := @Float radix false 1 0.
   Definition nan := @Basic.Fnan radix.
   Definition mag := @Fmag radix.
-  Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
+  Definition cmp := @Fcmp radix.
   Definition min := @Fmin radix.
   Definition max := @Fmax radix.
   Definition neg := @Fneg radix.
@@ -421,17 +421,22 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma cmp_correct :
     forall x y,
-    toX x = Xreal (toR x) ->
-    toX y = Xreal (toR y) ->
-    cmp x y = Rcompare (toR x) (toR y).
+    cmp x y =
+    match classify x, classify y with
+    | Fnan, _ | _, Fnan => Xund
+    | Fminfty, Fminfty => Xeq
+    | Fminfty, _ => Xlt
+    | _, Fminfty => Xgt
+    | Fpinfty, Fpinfty => Xeq
+    | _, Fpinfty => Xlt
+    | Fpinfty, _ => Xgt
+    | Freal, Freal => Xcmp (toX x) (toX y)
+    end.
   Proof.
-  intros x y Rx Ry.
-  unfold cmp.
+  intros x y.
+  unfold cmp, classify.
   rewrite Fcmp_correct.
-  unfold toX in Rx, Ry.
-  rewrite Rx, Ry.
-  simpl.
-  now case Rcompare.
+  now case x, y.
   Qed.
 
   Lemma div2_correct :

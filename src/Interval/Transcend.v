@@ -544,16 +544,17 @@ Definition ln_fast1P prec xi :=
   end.
 
 Definition ln_fast prec x :=
-  match F'.cmp x F.zero with
+  match F.cmp x F.zero with
   | Xgt =>
     let xi := I.bnd x x in
     match F.cmp x c1 with
-    | Eq => I.zero
-    | Lt =>
+    | Xeq => I.zero
+    | Xlt =>
       let m := Z.opp (F.StoZ (F.mag (F.sub_UP prec c1 x))) in
       let prec := F.incr_prec prec (Z2P m) in
       I.neg (ln_fast1P prec (I.div prec i1 xi))
-    | Gt => ln_fast1P prec xi
+    | Xgt => ln_fast1P prec xi
+    | Xund => I.nai
     end
   | _ => I.nai
   end.
@@ -770,11 +771,12 @@ Theorem ln_fast_correct :
 Proof.
 intros prec x.
 unfold ln_fast.
-rewrite F'.cmp_correct, F.zero_correct.
+rewrite F.cmp_correct, F.zero_correct.
 case_eq (Xcmp (F.toX x) (Xreal 0)) ; try easy.
 destruct (F'.toX_spec x) as [|Rx].
 easy.
 unfold c1.
+(*
 rewrite F.cmp_correct with (1 := Rx).
 2: unfold F.toR ; now rewrite F.fromZ_correct.
 unfold F.toR at 3.
@@ -818,6 +820,7 @@ now apply Rlt_le.
 rewrite I.bnd_correct, Rx.
 split ; apply Rle_refl.
 admit.
+*)
 Admitted.
 
 (*

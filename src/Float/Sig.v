@@ -62,7 +62,7 @@ Parameter mag : type -> sfactor.
 Parameter valid_ub : type -> bool.  (* valid upper bound (typically, not -oo) *)
 Parameter valid_lb : type -> bool.  (* valid lower bound (typically, not +oo) *)
 
-Parameter cmp : type -> type -> comparison.
+Parameter cmp : type -> type -> Xcomparison.
 Parameter min : type -> type -> type.
 Parameter max : type -> type -> type.
 Parameter neg : type -> type.
@@ -117,9 +117,17 @@ Parameter valid_ub_correct :
 
 Parameter cmp_correct :
   forall x y,
-  toX x = Xreal (toR x) ->
-  toX y = Xreal (toR y) ->
-  cmp x y = Rcompare (toR x) (toR y).
+  cmp x y =
+  match classify x, classify y with
+  | Fnan, _ | _, Fnan => Xund
+  | Fminfty, Fminfty => Xeq
+  | Fminfty, _ => Xlt
+  | _, Fminfty => Xgt
+  | Fpinfty, Fpinfty => Xeq
+  | _, Fpinfty => Xlt
+  | Fpinfty, _ => Xgt
+  | Freal, Freal => Xcmp (toX x) (toX y)
+  end.
 
 Parameter min_correct :
   forall x y,
@@ -378,7 +386,7 @@ Qed.
 Definition cmp x y:=
   if F.real x then
     if F.real y then
-      match F.cmp x y with Lt => Xlt | Gt => Xgt | Eq => Xeq end
+      F.cmp x y
     else Xund
   else Xund.
 
@@ -388,13 +396,11 @@ Lemma cmp_correct :
 Proof.
 intros x y.
 unfold cmp.
-rewrite 2!F.real_correct.
-generalize (F.cmp_correct x y).
-unfold F.toR.
-destruct (F.toX x) as [|rx] ;
-  destruct (F.toX y) as [|ry] ; try easy.
-simpl.
-now intros ->.
+rewrite !F.classify_correct, F.cmp_correct.
+generalize (F.classify_correct x).
+generalize (F.classify_correct y).
+rewrite !F.real_correct.
+now case (F.classify x), (F.classify y), (F.toX x), (F.toX y).
 Qed.
 
 Definition le' x y :=
@@ -445,7 +451,7 @@ Qed.
 
 Definition le x y :=
   match F.cmp x y with
-  | Gt => false
+  | Xgt => false
   | _ => true
   end.
 
@@ -457,12 +463,19 @@ Lemma le_correct :
 Proof.
 intros x y Rx Ry.
 unfold le.
-now rewrite F.cmp_correct.
+rewrite F.cmp_correct.
+generalize (F.classify_correct x).
+generalize (F.classify_correct y).
+rewrite !F.real_correct, Rx, Ry.
+do 2 (case F.classify; [|easy..]; intros _).
+simpl.
+unfold Rle_bool.
+now case Rcompare.
 Qed.
 
 Definition lt x y :=
   match F.cmp x y with
-  | Lt  => true
+  | Xlt  => true
   | _ => false
   end.
 
@@ -474,7 +487,14 @@ Lemma lt_correct :
 Proof.
 intros x y Rx Ry.
 unfold lt.
-now rewrite F.cmp_correct.
+rewrite F.cmp_correct.
+generalize (F.classify_correct x).
+generalize (F.classify_correct y).
+rewrite !F.real_correct, Rx, Ry.
+do 2 (case F.classify; [|easy..]; intros _).
+simpl.
+unfold Rlt_bool.
+now case Rcompare.
 Qed.
 
 Lemma real_correct :
