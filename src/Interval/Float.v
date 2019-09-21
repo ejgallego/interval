@@ -142,20 +142,26 @@ Definition upper_bounded xi :=
 Definition subset xi yi :=
   match xi, yi with
   | Ibnd xl xu, Ibnd yl yu =>
-    if negb (F.valid_lb xl && F.valid_ub xu) then true else
-    if negb (F.valid_lb yl && F.valid_ub yu) then false else
-    match F'.cmp xl yl with
-    | Xund => negb (F.real yl)
+    match F.cmp xl yl with
+    | Xund =>
+      match F.classify yl with
+      | Fnan | Fminfty => true
+      | Freal | Fpinfty => false
+      end
     | Xlt => false
     | _ => true
     end &&
-    match F'.cmp xu yu with
-    | Xund => negb (F.real yu)
+    match F.cmp xu yu with
+    | Xund =>
+      match F.classify yu with
+      | Fnan | Fpinfty => true
+      | Freal | Fminfty => false
+      end
     | Xgt => false
     | _ => true
     end
   | _, Inan => true
-  | _, _ => false
+  | Inan, Ibnd _ _ => false
   end.
 
 Definition wider prec xi yi :=
@@ -633,41 +639,31 @@ intros xi yi.
 case xi ; case yi ; try (simpl ; intros ; try exact I ; discriminate).
 { now intros l u _; simpl; case (_ && _). }
 simpl; intros yl yu xl xu.
-case (_ && _); case (_ && _); [|now simpl|intros _; left; apply Rlt_0_1..].
-intro H.
-destruct (andb_prop _ _ H) as (H1, H2).
-right.
-split.
-(* lower bound *)
-generalize H1. clear.
-rewrite F'.cmp_correct.
-unfold le_lower, le_upper, negb.
-rewrite F.real_correct.
-destruct (F.toX yl) as [|ylr].
-easy.
-destruct (F.toX xl) as [|xlr].
-easy.
-simpl.
-destruct (Rcompare_spec xlr ylr) ; intros ; simpl.
-discriminate H1.
-rewrite H.
-apply Rle_refl.
-apply Ropp_le_contravar.
-now left.
-(* upper bound *)
-generalize H2. clear.
-rewrite F'.cmp_correct.
-unfold le_upper, negb.
-rewrite F.real_correct.
-destruct (F.toX yu) as [|yur].
-easy.
-destruct (F.toX xu) as [|xur].
-easy.
-simpl.
-destruct (Rcompare_spec xur yur) ; intros.
-now left.
-now right.
-easy.
+rewrite !F.cmp_correct, !F.valid_lb_correct, !F.valid_ub_correct.
+rewrite andb_true_iff.
+intros [H H']; revert H H'.
+generalize (F.classify_correct xl); rewrite F.real_correct ;
+case (F.classify xl) ;
+  [xreal_tac xl; [easy|] | xreal_tac xl; [|easy]..] ; intros _ ;
+  ( generalize (F.classify_correct yl); rewrite F.real_correct ;
+    case (F.classify yl) ;
+      [xreal_tac yl; [easy|] | xreal_tac yl; [|easy]..] ; intros _ ) ;
+  ( generalize (F.classify_correct xu); rewrite F.real_correct ;
+    case (F.classify xu) ;
+      [xreal_tac xu; [easy|] | xreal_tac xu; [|easy]..] ; intros _ ) ;
+  ( generalize (F.classify_correct yu); rewrite F.real_correct ;
+    case (F.classify yu) ;
+      [xreal_tac yu; [easy|] | xreal_tac yu; [|easy]..] ; intros _ ) ;
+  simpl ;
+  try easy ;
+  try match goal with
+      | |- _ -> _ -> _ \/ le_lower Xnan _ /\ True => intros _ _; now right
+      | |- _ -> _ -> (0 < 1)%R \/ _ => intros _ _; left; exact Rlt_0_1
+      end ;
+  case Rcompare_spec; intros H1 ; try easy ; intros _ ;
+  try ( case Rcompare_spec; intros H2 ; try easy ) ; intros _ ;
+  unfold le_lower; simpl ;
+  right ; lra.
 Qed.
 
 Lemma join_correct :
