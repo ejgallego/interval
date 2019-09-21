@@ -568,11 +568,7 @@ Definition power_int prec xi n :=
 Definition nearbyint mode xi :=
   match xi with
   | Inan => Inan
-  | Ibnd xl xu =>
-    if F.valid_lb (F.nearbyint mode xl) && F.valid_ub (F.nearbyint mode xu) then
-      Ibnd (F.nearbyint mode xl) (F.nearbyint mode xu)
-    else
-      Inan
+  | Ibnd xl xu => Ibnd (F.nearbyint_DN mode xl) (F.nearbyint_UP mode xu)
   end.
 
 Ltac xreal_tac v :=
@@ -3206,10 +3202,23 @@ case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
 case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
 intros Vu Vl [Hl Hu].
 unfold convert.
-case_eq (F.valid_lb (F.nearbyint mode xl) && F.valid_ub (F.nearbyint mode xu));
-  intro Vlu; [rewrite Vlu|easy].
-rewrite 2!F.nearbyint_correct.
-now split ; xreal_tac2; simpl; apply Rnearbyint_le.
+rewrite (proj1 (F.nearbyint_DN_correct _ _)).
+rewrite (proj1 (F.nearbyint_UP_correct _ _)).
+split.
+{ xreal_tac2.
+  generalize (F.nearbyint_DN_correct mode xl).
+  rewrite X.
+  unfold le_lower, le_upper; simpl.
+  xreal_tac2; [easy|]; simpl.
+  intros [_ H].
+  now apply (Rle_trans _ _ _ (Ropp_le_cancel _ _ H)), Rnearbyint_le. }
+xreal_tac2.
+generalize (F.nearbyint_UP_correct mode xu).
+rewrite X.
+unfold le_upper; simpl.
+xreal_tac2; [easy|]; simpl.
+intros [_ H].
+now revert H; apply Rle_trans, Rnearbyint_le.
 Qed.
 
 End FloatInterval.

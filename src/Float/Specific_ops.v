@@ -1704,6 +1704,10 @@ Definition nearbyint mode (f : type) :=
     end
   end.
 
+Definition nearbyint_UP := nearbyint.
+
+Definition nearbyint_DN := nearbyint.
+
 Lemma nearbyint_correct :
   forall mode x,
   toX (nearbyint mode x) = Xnearbyint mode (toX x).
@@ -1724,6 +1728,30 @@ unfold Fnearbyint_exact.
 eapply f_equal.
 eapply f_equal2; try easy.
 now rewrite exponent_zero_correct.
+Qed.
+
+Lemma nearbyint_UP_correct :
+  forall mode x,
+  valid_ub (nearbyint_UP mode x) = true
+  /\ le_upper (Xnearbyint mode (toX x)) (toX (nearbyint_UP mode x)).
+Proof.
+intros mode x.
+split; [easy|].
+rewrite nearbyint_correct.
+unfold le_upper, toX.
+now case (Xlift _ _); [|intro r; right].
+Qed.
+
+Lemma nearbyint_DN_correct :
+  forall mode x,
+  valid_lb (nearbyint_DN mode x) = true
+  /\ le_lower (toX (nearbyint_DN mode x)) (Xnearbyint mode (toX x)).
+Proof.
+intros mode x.
+split; [easy|].
+rewrite nearbyint_correct.
+unfold le_upper, toX.
+now case (Xlift _ _); [|intro r; right].
 Qed.
 
 (*

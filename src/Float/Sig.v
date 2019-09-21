@@ -79,7 +79,8 @@ Parameter div_UP : precision -> type -> type -> type.
 Parameter div_DN : precision -> type -> type -> type.
 Parameter sqrt_UP : precision -> type -> type.
 Parameter sqrt_DN : precision -> type -> type.
-Parameter nearbyint : rounding_mode -> type -> type.
+Parameter nearbyint_UP : rounding_mode -> type -> type.
+Parameter nearbyint_DN : rounding_mode -> type -> type.
 Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
@@ -251,9 +252,15 @@ Parameter sqrt_DN_correct :
     -> (valid_lb (sqrt_DN p x) = true
         /\ le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x))).
 
-Parameter nearbyint_correct :
+Parameter nearbyint_UP_correct :
   forall mode x,
-  toX (nearbyint mode x) = Xnearbyint mode (toX x).
+  valid_ub (nearbyint_UP mode x) = true
+  /\ le_upper (Xnearbyint mode (toX x)) (toX (nearbyint_UP mode x)).
+
+Parameter nearbyint_DN_correct :
+  forall mode x,
+  valid_lb (nearbyint_DN mode x) = true
+  /\ le_lower (toX (nearbyint_DN mode x)) (Xnearbyint mode (toX x)).
 
 Parameter midpoint_correct :
   forall x y,

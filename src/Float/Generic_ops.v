@@ -76,11 +76,11 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition div_DN := @Fdiv radix rnd_DN.
   Definition sqrt_UP := @Fsqrt radix rnd_UP.
   Definition sqrt_DN := @Fsqrt radix rnd_DN.
-  Definition nearbyint := @Fnearbyint_exact radix.
+  Definition nearbyint_UP := @Fnearbyint_exact radix.
+  Definition nearbyint_DN := @Fnearbyint_exact radix.
   Definition zero_correct := refl_equal (Xreal R0).
   Definition one_correct := refl_equal (Xreal R1).
   Definition nan_correct := refl_equal Fnan.
-  Definition nearbyint_correct := @Fnearbyint_exact_correct radix.
 
   Definition classify (f : float radix) :=
     match f with Basic.Fnan => Fnan | _ => Freal end.
@@ -393,6 +393,30 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   case z; [exact I|intro z'].
   unfold le_lower, Xneg; simpl; apply Ropp_le_contravar.
   now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
+  Qed.
+
+  Lemma nearbyint_UP_correct :
+    forall mode x,
+    valid_ub (nearbyint_UP mode x) = true
+    /\ le_upper (Xnearbyint mode (toX x)) (toX (nearbyint_UP mode x)).
+  Proof.
+  intros mode x.
+  split; [easy|].
+  rewrite (@Fnearbyint_exact_correct radix).
+  unfold le_upper, toX.
+  now case (Xlift _ _); [|intro r; right].
+  Qed.
+
+  Lemma nearbyint_DN_correct :
+    forall mode x,
+    valid_lb (nearbyint_DN mode x) = true
+    /\ le_lower (toX (nearbyint_DN mode x)) (Xnearbyint mode (toX x)).
+  Proof.
+  intros mode x.
+  split; [easy|].
+  rewrite (@Fnearbyint_exact_correct radix).
+  unfold le_upper, toX.
+  now case (Xlift _ _); [|intro r; right].
   Qed.
 
   Lemma cmp_correct :
