@@ -321,23 +321,38 @@ Qed.
 Lemma is_nan_nan : F.is_nan F.nan = true.
 Proof. now rewrite F.is_nan_correct, F.nan_correct. Qed.
 
-Lemma neg_correct x :
-  F.toX (F.neg x) = Xneg (F.toX x)
-  /\ (F.valid_lb (F.neg x) = F.valid_ub x)
-  /\ (F.valid_ub (F.neg x) = F.valid_lb x).
+Lemma neg_correct x : F.toX (F.neg x) = Xneg (F.toX x).
 Proof.
 generalize (F.real_correct x).
 generalize (F.real_correct (F.neg x)).
 generalize (F.neg_correct x).
-rewrite !F.classify_correct,  !F.valid_lb_correct, !F.valid_ub_correct.
+rewrite !F.classify_correct.
+case F.classify; intro Hx; rewrite Hx; [|now case F.toX, F.toX..].
+now case F.toX; [easy|]; intros rx; simpl; case F.classify.
+Qed.
+
+Lemma valid_lb_neg x : F.valid_lb (F.neg x) = F.valid_ub x.
+Proof.
+generalize (F.real_correct x).
+generalize (F.real_correct (F.neg x)).
+generalize (F.neg_correct x).
+rewrite !F.classify_correct, !F.valid_lb_correct, !F.valid_ub_correct.
+case F.classify; intro Hx; rewrite Hx; [|now case F.toX, F.toX..].
+now case F.toX; [easy|]; intros rx; simpl; case F.classify.
+Qed.
+
+Lemma valid_ub_neg x : F.valid_ub (F.neg x) = F.valid_lb x.
+Proof.
+generalize (F.real_correct x).
+generalize (F.real_correct (F.neg x)).
+generalize (F.neg_correct x).
+rewrite !F.classify_correct, !F.valid_lb_correct, !F.valid_ub_correct.
 case F.classify; intro Hx; rewrite Hx; [|now case F.toX, F.toX..].
 now case F.toX; [easy|]; intros rx; simpl; case F.classify.
 Qed.
 
 Lemma real_neg x : F.real (F.neg x) = F.real x.
-Proof.
-now rewrite !F.real_correct, (proj1 (neg_correct x)); case F.toX.
-Qed.
+Proof. now rewrite !F.real_correct, neg_correct; case F.toX. Qed.
 
 Lemma is_nan_neg x : F.is_nan (F.neg x) = F.is_nan x.
 Proof.
