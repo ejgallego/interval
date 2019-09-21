@@ -324,6 +324,20 @@ rewrite F.real_correct, F.zero_correct.
 now case F.classify.
 Qed.
 
+Lemma valid_lb_one : F.valid_lb F.one = true.
+Proof.
+generalize (F.classify_correct F.one).
+rewrite F.valid_lb_correct, F.real_correct, F.one_correct.
+now case F.classify.
+Qed.
+
+Lemma valid_ub_one : F.valid_ub F.one = true.
+Proof.
+generalize (F.classify_correct F.one).
+rewrite F.valid_ub_correct, F.real_correct, F.one_correct.
+now case F.classify.
+Qed.
+
 Lemma nan_correct : F.toX F.nan = Xnan.
 Proof.
 generalize (F.classify_correct F.nan).

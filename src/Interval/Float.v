@@ -281,16 +281,23 @@ Definition midpoint' xi :=
   match xi with
   | Inan => zero
   | Ibnd xl xu =>
-    match F'.cmp xl F.zero, F'.cmp xu F.zero with
-    | Xund, Xund => zero
-    | Xeq, Xeq => zero
-    | Xlt, Xund => zero
-    | Xund, Xgt => zero
-    | Xeq, Xund => Ibnd c1 c1
-    | Xund, Xeq => Ibnd cm1 cm1
-    | Xgt, Xund => let m := F.mul_UP p52 xl c2 in Ibnd m m
-    | Xund, Xlt => let m := F.mul_DN p52 xu c2 in Ibnd m m
-    | _, _ =>
+    match F.real xl, F.real xu with
+    | false, false => if F.valid_lb xl && F.valid_ub xu then zero else empty
+    | true, false =>
+      if negb (F.valid_ub xu) then empty else
+        match F.cmp xl F.zero with
+        | Xund | Xlt => zero
+        | Xeq => Ibnd c1 c1
+        | Xgt => Ibnd xl xl
+        end
+    | false, true =>
+      if negb (F.valid_lb xl) then empty else
+        match F.cmp xu F.zero with
+        | Xund | Xgt => zero
+        | Xeq => Ibnd cm1 cm1
+        | Xlt => Ibnd xu xu
+        end
+    | true, true =>
       if F'.lt xu xl then empty
       else let m := F.midpoint xl xu in Ibnd m m
     end
@@ -1384,153 +1391,64 @@ unfold F.toR.
 now rewrite X, X0.
 Qed.
 
-Lemma midpoint'_valid_bounds :
-  forall xi,
-    match xi with
-    | Inan => True
-    | Ibnd xl xu =>
-      match midpoint' xi with
-      | Inan => False
-      | Ibnd xl' xu' =>
-        (F.valid_lb xl && F.valid_ub xu) = (F.valid_lb xl' && F.valid_ub xu')
-      end
-    end.
-Proof.
-Admitted.
-
 Theorem midpoint'_correct :
   forall xi,
   (forall x, contains (convert (midpoint' xi)) x -> contains (convert xi) x) /\
   (not_empty (convert xi) -> not_empty (convert (midpoint' xi))).
 Proof.
 intros [|xl xu].
-{ split; [easy|].
-  intros _.
-  exists R0.
-  simpl.
-  rewrite F.zero_correct.
-  rewrite F'.valid_lb_zero, F'.valid_ub_zero.
-  split ; apply Rle_refl. }
-unfold midpoint'.
-unfold c1, cm1, c2.
-set (m := F.midpoint xl xu).
-set (mi := if F'.lt xu xl then empty else Ibnd m m).
-rewrite 2!F'.cmp_correct, F.zero_correct.
-unfold not_empty.
-simpl.
-(*
-assert (He: forall b, exists v : R, contains (convert (Ibnd b b)) (Xreal v)).
-{ intros b.
-  exists (proj_val (F.toX b)).
-  simpl.
-  destruct (F.toX b) as [|br] ; split ; try exact I ; apply Rle_refl. }
-case_eq (F.toX xl) ; [|intros xlr] ; intros Hl.
-{ (* infinite lower *)
-  case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
-  { split.
-    { now intros [|x]. }
-    intros _.
-    exists R0.
-    rewrite F.zero_correct.
-    split ; apply Rle_refl. }
-  split.
-  { case Rcompare_spec ; intros Hu0 ; simpl ;
-      (intros [|x] ; [easy|]).
-    { rewrite F.mul_correct, F.fromZ_correct, Hu by easy.
-      simpl.
-      intros [_ H].
-      apply (conj I).
-      apply Rle_trans with (1 := H).
-      apply (Rle_trans _ (xur * 2)).
-      { now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
-      rewrite <- (Rmult_1_r xur) at 2.
-      apply Rmult_le_compat_neg_l.
-      { now apply Rlt_le. }
-      lra. }
-    { rewrite F.fromZ_correct by easy.
-      intros [H1 H2].
-      apply (conj I).
-      rewrite (Rle_antisym _ _ H2 H1), Hu0.
-      now apply IZR_le. }
-    rewrite F.zero_correct.
-    intros [H1 H2].
-    apply (conj I).
-    rewrite (Rle_antisym _ _ H2 H1).
-    now apply Rlt_le. }
-  intros _.
-  case Rcompare ; apply He. }
-case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
-{ (* infinite upper *)
-  split.
-  case Rcompare_spec ; intros Hl0 ; simpl ;
-    (intros [|x] ; [easy|]).
-  { rewrite F.zero_correct.
-    intros [H1 H2].
-    refine (conj _ I).
-    rewrite (Rle_antisym _ _ H2 H1).
-    now apply Rlt_le. }
-  { rewrite F.fromZ_correct by easy.
-    intros [H1 H2].
-    refine (conj _ I).
-    rewrite (Rle_antisym _ _ H2 H1), Hl0.
-    now apply IZR_le. }
-  { rewrite F.mul_correct, F.fromZ_correct, Hl by easy.
-    simpl.
-    intros [H _].
-    refine (conj _ I).
-    apply Rle_trans with (2 := H).
-    apply (Rle_trans _ (xlr * 2)).
-    { rewrite <- (Rmult_1_r xlr) at 1.
-      apply Rmult_le_compat_l.
-      { now apply Rlt_le. }
-      lra. }
-    now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid. }
-  intros _.
-  case Rcompare ; apply He. }
-(* finite bounds *)
-split.
-{ intros x.
-  assert (contains (convert mi) x -> match x with Xnan => False | Xreal x => (xlr <= x <= xur)%R end).
-  { unfold mi, m. clear -Hl Hu.
-    rewrite F'.lt_correct.
-    2: now unfold F.toR ; rewrite Hu.
-    2: now unfold F.toR ; rewrite Hl.
-    unfold F.toR.
-    rewrite Hl, Hu.
-    simpl.
-    case Rlt_bool_spec ; intros Hlu.
-    { intros H.
-      now elim empty_correct with x. }
-    simpl.
-    destruct x as [|x]; [easy|].
-    generalize (F.midpoint_correct xl xu (eq_refl _)).
-    unfold F.toR.
-    rewrite !F.real_correct, Hl, Hu.
-    intro H.
-    specialize (H (eq_refl _) (eq_refl _) Hlu).
-    revert H.
-    case F.toX; [easy|]; intro rm.
-    simpl.
-    lra. }
-  case Rcompare_spec ; intros Hl0 ;
-  case Rcompare_spec ; intros Hu0 ; try exact H.
-  destruct x as [|x]; [easy|].
-  simpl.
-  rewrite F.zero_correct.
-  lra. }
-intros [v Hv].
-revert mi.
-rewrite F'.lt_correct.
-2: now unfold F.toR ; rewrite Hu.
-2: now unfold F.toR ; rewrite Hl.
-unfold F.toR.
-rewrite Hl, Hu.
-rewrite Rlt_bool_false.
-{ case Rcompare ; case Rcompare ; apply He. }
-now apply Rle_trans with v.
+{ simpl; rewrite F'.valid_lb_zero, F'.valid_ub_zero, F.zero_correct; simpl.
+  split; [easy|].
+  intros _; exists 0%R; simpl; lra. }
+unfold midpoint', c1, cm1, convert, F'.lt.
+rewrite (F.classify_correct xl), (F.classify_correct xu).
+rewrite !F.cmp_correct, F'.classify_zero.
+generalize (F.classify_correct xl); rewrite F.real_correct ;
+case_eq (F.classify xl) ; intro Cl ;
+  [xreal_tac xl; [easy|] | xreal_tac xl; [|easy]..] ; intros _ ;
+  ( generalize (F.classify_correct xu); rewrite F.real_correct ;
+    case_eq (F.classify xu) ; intro Cu ;
+      [xreal_tac xu; [easy|] | xreal_tac xu; [|easy]..] ; intros _ ) ;
+  unfold Xcmp ;
+  try unfold zero ;
+  rewrite ?F.zero_correct ;
+  rewrite ?F.valid_lb_correct, ?Cl, ?F.valid_ub_correct, ?Cu ;
+  simpl ;
+  try ( case Rcompare_spec ; intros Hcmp ) ;
+  simpl ; unfold c1, cm1 ;
+  rewrite ?F'.valid_lb_zero, ?F'.valid_ub_zero, ?F.zero_correct ;
+  try (rewrite F'.valid_lb_real by now rewrite F.real_correct, F.fromZ_correct) ;
+  try (rewrite F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct) ;
+  rewrite ?F.fromZ_correct by easy ;
+  simpl ;
+  ( do 2 rewrite ?F.valid_lb_correct, ?Cl, ?F.valid_ub_correct, ?Cu ) ;
+  rewrite ?F'.classify_zero ;
+  simpl ;
+  ( split; [intros [|x]|] ) ;
+  try easy ;
+  [intro H ; exfalso ; lra|..] ;
+  try ( intros [x' Hx']; exfalso; revert Hx'; simpl; lra ) ;
+  rewrite ?X, ?X0 ;
+  try match goal with
+      | |- _ -> not_empty (Interval.Ibnd (Xreal ?x) _) =>
+        intros _; exists x; simpl; lra
+      end ;
+  try lra ;
+  ( elim (F.midpoint_correct xl xu (eq_refl _)) ;
+    [|now rewrite F.real_correct, ?X, ?X0..|
+      unfold F.toR; rewrite ?X, ?X0; simpl; lra] ) ;
+  intros Rm ;
+  generalize (F.classify_correct (F.midpoint xl xu)) ;
+  rewrite Rm ;
+  ( case F.classify ; [|easy..] ; intros _ ; simpl ) ;
+  try easy ;
+  rewrite (F'.real_correct _ Rm) ;
+  unfold F.toR ; rewrite ?X, ?X0 ; simpl ;
+  intros [Hl Hu] ;
+  try lra ;
+  intros _ ;
+  exists (proj_val (F.toX (F.midpoint xl xu))) ; simpl ; lra.
 Qed.
-*)
-Admitted.
 
 Theorem bisect_correct :
   forall xi x,
