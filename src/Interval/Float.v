@@ -56,6 +56,8 @@ Definition type := f_interval F.type.
 Definition bound_type := F.type.
 Definition precision := F.precision.
 
+Definition valid_lb x := F.valid_lb x = true.
+Definition valid_ub x := F.valid_ub x = true.
 Definition convert_bound := F.toX.
 Definition convert (xi : type) :=
   match xi with
@@ -75,22 +77,22 @@ Definition real (xi : type) :=
   | Ibnd _ _ => true
   end.
 
-Lemma bnd_correct :
-  forall l u,
-  not_empty (convert (bnd l u)) ->
-  convert (bnd l u) = Interval.Ibnd (F.toX l) (F.toX u).
+Lemma valid_lb_real :
+  forall b, F.toX b = Xreal (proj_val (F.toX b)) -> F.valid_lb b = true.
 Proof.
-intros l u [x Hx]; revert Hx; unfold convert; simpl; case (_ && _); [easy|].
-simpl; lra.
+now intros b Hb; rewrite F'.valid_lb_real; [|rewrite F.real_correct, Hb].
 Qed.
 
-Lemma bnd_correct_ex :
-  forall l u, exists l' u', convert (bnd l u) = Interval.Ibnd l' u'.
+Lemma valid_ub_real :
+  forall b, F.toX b = Xreal (proj_val (F.toX b)) -> F.valid_ub b = true.
 Proof.
-intros l u.
-unfold bnd, convert.
-now case (_ && _); [exists (F.toX l), (F.toX u)|exists (Xreal 1), (Xreal 0)].
+now intros b Hb; rewrite F'.valid_ub_real; [|rewrite F.real_correct, Hb].
 Qed.
+
+Lemma bnd_correct :
+  forall l u, valid_lb l -> valid_ub u ->
+  convert (bnd l u) = Interval.Ibnd (F.toX l) (F.toX u).
+Proof. now intros l u Vl Vu; unfold convert; simpl; rewrite Vl, Vu. Qed.
 
 Lemma nai_correct :
   convert nai = Interval.Inan.
@@ -635,6 +637,15 @@ simpl; unfold convert; case (_ && _); [easy|].
 intros [x Hx]; revert Hx; simpl; lra.
 Qed.
 
+Lemma valid_lb_lower :
+  forall xi : type,
+  not_empty (convert xi) ->
+  valid_lb (lower xi).
+Proof.
+intros [|l u] [x Hx]; unfold valid_lb; simpl; [now rewrite F'.valid_lb_nan|].
+now revert Hx; unfold convert; case F.valid_lb; [|simpl; lra].
+Qed.
+
 Lemma upper_correct :
   forall xi : type,
   not_empty (convert xi) ->
@@ -645,6 +656,16 @@ simpl.
 now rewrite F'.nan_correct.
 simpl; unfold convert; case (_ && _); [easy|].
 intros [x Hx]; revert Hx; simpl; lra.
+Qed.
+
+Lemma valid_ub_upper :
+  forall xi : type,
+  not_empty (convert xi) ->
+  valid_ub (upper xi).
+Proof.
+intros [|l u] [x Hx]; unfold valid_ub; simpl; [now rewrite F'.valid_ub_nan|].
+revert Hx; unfold convert.
+now case F.valid_ub; rewrite andb_comm; [|simpl; lra].
 Qed.
 
 Theorem subset_correct :

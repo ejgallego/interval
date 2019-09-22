@@ -396,15 +396,13 @@ unfold F.toR at 1.
 fold c1; fold c1_2; rewrite c1_2_correct.
 simpl Rlt_bool.
 assert (Ix: contains (I.convert (I.bnd x x)) (Xreal (toR x))).
-  rewrite I.bnd_correct, Rx.
-2: admit.
+  rewrite I.bnd_correct, Rx by admit.
   split ; apply Rle_refl.
 case Rlt_bool_spec ; intros Bx'.
 2: {
   apply atan_fast0_correct with (2 := Ix).
   now rewrite Rabs_pos_eq. }
 rewrite F'.lt_correct with (2 := Rx).
-(*
 2: unfold F.toR ; now rewrite F.fromZ_correct.
 unfold F.toR at 1.
 rewrite F.fromZ_correct by easy.
@@ -458,8 +456,6 @@ now apply I.fromZ_small_correct.
   simpl.
   apply f_equal.
   rewrite atan_inv; lra.
-Qed.
-*)
 Admitted.
 
 Lemma atan_fast_correct :

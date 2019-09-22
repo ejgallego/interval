@@ -222,6 +222,8 @@ Qed.
 Module Type IntervalBasicOps.
 
 Parameter bound_type : Type.
+Parameter valid_lb : bound_type -> Prop.
+Parameter valid_ub : bound_type -> Prop.
 Parameter convert_bound : bound_type -> ExtendedR.
 Parameter type : Type.
 Parameter convert : type -> interval.
@@ -231,13 +233,15 @@ Parameter empty : type.
 Parameter bnd : bound_type -> bound_type -> type.
 Parameter real : type -> bool.
 
-Parameter bnd_correct :
-  forall l u,
-  not_empty (convert (bnd l u)) ->
-  convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
+Parameter valid_lb_real :
+  forall b, convert_bound b = Xreal (proj_val (convert_bound b)) -> valid_lb b.
 
-Parameter bnd_correct_ex :
-  forall l u, exists l' u', convert (bnd l u) = Ibnd l' u'.
+Parameter valid_ub_real :
+  forall b, convert_bound b = Xreal (proj_val (convert_bound b)) -> valid_ub b.
+
+Parameter bnd_correct :
+  forall l u, valid_lb l -> valid_ub u ->
+  convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
 
 Parameter zero_correct :
   convert zero = Ibnd (Xreal 0) (Xreal 0).
@@ -418,10 +422,20 @@ Parameter lower_correct :
   not_empty (convert xi) ->
   convert_bound (lower xi) = Xlower (convert xi).
 
+Parameter valid_lb_lower :
+  forall xi : type,
+  not_empty (convert xi) ->
+  valid_lb (lower xi).
+
 Parameter upper_correct :
   forall xi : type,
   not_empty (convert xi) ->
   convert_bound (upper xi) = Xupper (convert xi).
+
+Parameter valid_ub_upper :
+  forall xi : type,
+  not_empty (convert xi) ->
+  valid_ub (upper xi).
 
 Definition bounded_prop xi :=
   not_empty (convert xi) ->
