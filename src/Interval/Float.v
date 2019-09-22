@@ -427,12 +427,14 @@ Definition cancel_sub prec xi yi :=
 Definition mul_mixed prec xi y :=
   match xi with
   | Ibnd xl xu =>
-    match F'.cmp y F.zero with
-    | Xlt => Ibnd (F.mul_DN prec xu y) (F.mul_UP prec xl y)
-    | Xeq => Ibnd F.zero F.zero
-    | Xgt => Ibnd (F.mul_DN prec xl y) (F.mul_UP prec xu y)
-    | Xund => Inan
-    end
+    if F.real y then
+      match F.cmp y F.zero with
+      | Xlt => Ibnd (F.mul_DN prec xu y) (F.mul_UP prec xl y)
+      | Xeq => Ibnd F.zero F.zero
+      | Xgt => Ibnd (F.mul_DN prec xl y) (F.mul_UP prec xu y)
+      | Xund => Inan
+      end
+    else Inan
   | Inan => Inan
   end.
 
@@ -1811,9 +1813,11 @@ case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
 intros Vxu Vxl.
 intros (Hxl, Hxu).
 simpl.
-rewrite F'.cmp_correct,  F.zero_correct.
-xreal_tac2.
-simpl.
+generalize (F.classify_correct yf).
+rewrite F.cmp_correct, F.zero_correct, F.real_correct, F'.classify_zero.
+case_eq (F.classify yf); intro Cyf;
+  [xreal_tac2; [easy|]|xreal_tac2; [|easy]..]; intros _; [|easy..].
+unfold Xcmp.
 case Rcompare_spec; intro Hr.
 { elim (F.mul_DN_correct prec xu yf).
   { intros Vl Hl; rewrite Vl.
