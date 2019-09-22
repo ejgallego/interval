@@ -347,7 +347,7 @@ Definition sign_large xi :=
   end.
 
 Definition sign_strict_ xl xu :=
-  match F'.cmp xl F.zero, F'.cmp xu F.zero with
+  match F.cmp xl F.zero, F.cmp xu F.zero with
   | Xeq, Xeq => Xeq
   | _, Xlt => Xlt
   | Xgt, _ => Xgt
@@ -1196,66 +1196,28 @@ assert (H1v0 : forall v, ~(1 <= v <= 0)%R).
 intros xl xu x; simpl.
 case_eq (F.valid_lb xl); intro Vxl; [|now intro H; destruct (H1v0 x)].
 case_eq (F.valid_ub xu); intro Vxu; [|now intro H; destruct (H1v0 x)].
-intros (Hxl, Hxu).
 unfold sign_strict_.
-rewrite 2!F'.cmp_correct.
-rewrite F.zero_correct.
-destruct (F.toX xu) as [|xur].
-simpl.
-destruct (F.toX xl) as [|xlr].
-easy.
-simpl.
-case Rcompare_spec ; intro Hl ; repeat split.
-now apply Rlt_le.
-rewrite Hl.
-apply Rle_refl.
-now apply Rlt_le_trans with (2 := Hxl).
-now eexists ; repeat split.
-simpl.
-case Rcompare_spec.
-intros Hu.
-replace (match Xcmp (F.toX xl) (Xreal 0) with Xeq => Xlt | _ => Xlt end) with Xlt by now case Xcmp.
-destruct (F.toX xl) as [|xlr].
-repeat split.
-now apply Rle_lt_trans with (1 := Hxu).
-now eexists ; repeat split.
-repeat split.
-now apply Rle_lt_trans with (1 := Hxu).
-now apply Rle_lt_trans with (2 := Hu), Rle_trans with x.
-now eexists ; repeat split.
-intros ->.
-destruct (F.toX xl) as [|xlr].
-repeat split.
-apply Rle_refl.
-simpl.
-case Rcompare_spec.
-intros Hl.
-split.
-now apply Rlt_le.
-apply Rle_refl.
-intros ->.
-repeat split.
-now apply Rle_antisym.
-intros Hl.
-elim Rlt_not_le with (1 := Hl).
-now apply Rle_trans with (1 := Hxl).
-intros Hu.
-destruct (F.toX xl) as [|xlr].
-repeat split.
-now apply Rlt_le.
-simpl.
-case Rcompare_spec.
-intros Hl.
-now split ; apply Rlt_le.
-intros ->.
-split.
-apply Rle_refl.
-now apply Rlt_le.
-intros Hl.
-repeat split.
-now apply Rlt_le_trans with (2 := Hxl).
-easy.
-now eexists ; repeat split.
+rewrite 2!F.cmp_correct, F.zero_correct, F'.classify_zero.
+generalize Vxl ; rewrite F.valid_lb_correct ;
+generalize (F.classify_correct xl) ; rewrite F.real_correct ;
+case_eq (F.classify xl); [..|easy]; intro Cxl ;
+  [case_eq (F.toX xl); [easy|]; intros rxl|case_eq (F.toX xl); [|easy]..] ;
+  intros Hrxl  _ _ ;
+  ( generalize Vxu ; rewrite F.valid_ub_correct ;
+    generalize (F.classify_correct xu) ; rewrite F.real_correct ;
+    case_eq (F.classify xu); [..|easy|]; intro Cxu ;
+    [case_eq (F.toX xu); [easy|]; intros rxu|case_eq (F.toX xu); [|easy]..] ;
+    intros Hrxu _ _ ) ;
+  intros [Hxl Hxu] ;
+  unfold Xcmp ;
+  try ( case Rcompare_spec; intros H1 ; try easy ) ;
+  try ( case Rcompare_spec; intros H2 ; try easy ) ;
+  try lra ;
+  ( split ; [try lra|] ) ;
+  ( split ; [try lra|] ) ;
+  rewrite ?H1, ?H2 ; try easy ;
+  try ( now exists rxu ) ;
+  try ( now exists rxl ).
 Qed.
 
 Theorem sign_strict_correct :
