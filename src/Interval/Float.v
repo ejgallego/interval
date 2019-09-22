@@ -542,14 +542,14 @@ Fixpoint Fpower_pos_DN prec x n :=
   | xH => x
   | xO p =>
     let xx := F.mul_DN prec x x in
-    match F'.cmp xx F.zero with
+    match F.cmp xx F.zero with
     | Xgt => Fpower_pos_DN prec xx p
     | Xeq | Xlt => F.zero
     | Xund => F.nan
     end
   | xI p =>
     let xx := F.mul_DN prec x x in
-    match F'.cmp xx F.zero with
+    match F.cmp xx F.zero with
     | Xgt => F.mul_DN prec x (Fpower_pos_DN prec xx p)
     | Xeq | Xlt => F.zero
     | Xund => F.nan
@@ -2519,89 +2519,66 @@ induction n ; intros x rx Hrx Hx ; simpl; last first.
 { split.
   { now rewrite F'.valid_lb_real; [|rewrite F.real_correct, Hrx]. }
   now rewrite Hrx, Rmult_1_r; right. }
-{ rewrite F'.cmp_correct, F.zero_correct.
-  xreal_tac2.
-  { now split; [apply F'.valid_lb_nan|simpl; rewrite F'.nan_correct]. }
-  split.
-  { case_eq (Xcmp (Xreal r) (Xreal 0)); intro Hcmp;
-      [now rewrite F'.valid_lb_real;
-       [|rewrite F.real_correct, F.zero_correct]..|
-      |now apply F'.valid_lb_nan].
-    revert Hcmp; simpl; case Rcompare_spec; [now simpl..|]; intros Hr _.
-    apply (IHn _ _ X (Rlt_le _ _ Hr)). }
-  simpl.
-  case Rcompare_spec; intro Hr; try (rewrite F.zero_correct; unfold Xbind);
-    [now apply pow_le..|].
-  xreal_tac2.
-  rewrite Pos2Nat.inj_xO.
-  rewrite pow_sqr.
-  generalize (IHn _ _ X (Rlt_le _ _ Hr)).
-  rewrite X0.
-  intros (_, H); apply (Rle_trans _ _ _ H); clear H.
+{ rewrite F.cmp_correct, F.zero_correct, F'.classify_zero.
+  elim (F.mul_DN_correct prec x x); [|now rewrite Hrx; left].
+  intros Vmdn Hmdn.
+  generalize Vmdn; rewrite F.valid_lb_correct.
+  case F.classify; [..|easy]; intros _.
+  2: now rewrite F'.valid_lb_nan, F'.nan_correct.
+  2: { rewrite F'.valid_lb_zero, F.zero_correct; split; [easy|].
+       rewrite Pos2Nat.inj_xO, pow_sqr.
+       apply pow_le, Rle_0_sqr. }
+  unfold Xcmp.
+  xreal_tac2; [now rewrite F'.valid_lb_nan, F'.nan_correct|].
+  case Rcompare_spec; intro Hr0;
+    [rewrite F'.valid_lb_zero, F.zero_correct; split; [easy|] ;
+     rewrite Pos2Nat.inj_xO, pow_sqr ;
+     apply pow_le, Rle_0_sqr..|].
+  rewrite Pos2Nat.inj_xO, pow_sqr.
+  generalize (IHn _ _ X (Rlt_le _ _ Hr0)).
+  intros [Vp Hp]; split; [exact Vp|].
+  revert Hp; xreal_tac2; [easy|]; intro Hp.
+  apply (Rle_trans _ _ _ Hp).
   apply pow_incr.
   split; [now left|].
   apply Ropp_le_cancel.
   change (_ <= _)%R with (le_lower (Xreal r) (Xmul (Xreal rx) (Xreal rx))).
-  rewrite <-Hrx, <-X.
-  apply F.mul_DN_correct.
-  now left; rewrite Hrx. }
-rewrite F'.cmp_correct, F.zero_correct.
-xreal_tac2.
-{ now split; [apply F'.valid_lb_nan|simpl; rewrite F'.nan_correct]. }
-  split.
-  { case_eq (Xcmp (Xreal r) (Xreal 0)); intro Hcmp;
-      [now rewrite F'.valid_lb_real;
-       [|rewrite F.real_correct, F.zero_correct]..|
-      |now apply F'.valid_lb_nan].
-    revert Hcmp; simpl; case Rcompare_spec; [now simpl..|]; intros Hr _.
-    apply F.mul_DN_correct.
-    rewrite Hrx.
-    rewrite (proj1 (IHn _ _ X (Rlt_le _ _ Hr))).
-    xreal_tac2.
-    { now do 2 right; left; split; [rewrite F'.valid_ub_real;
-                                    [|rewrite F.real_correct, Hrx]|]. }
-    case (Rlt_le_dec r0 0); intro Hr0.
-    { right; right; left.
-      rewrite F'.valid_ub_real; [|now rewrite F.real_correct, Hrx].
-      now apply Rlt_le in Hr0. }
-    now left. }
-  simpl.
-  case Rcompare_spec; intro Hr; try (rewrite F.zero_correct; unfold Xbind);
-    [now apply Rmult_le_pos; [|apply pow_le]..|].
-  xreal_tac2.
-  rewrite Pmult_nat_mult, Nat.mul_comm.
-  rewrite pow_sqr.
-  elim (F.mul_DN_correct prec x (Fpower_pos_DN prec (F.mul_DN prec x x) n)).
-  { intro Vp.
-    rewrite Hrx, X0.
-    xreal_tac2; [now simpl|].
-    intro H.
-    apply Ropp_le_cancel.
-    change (_ <= _)%R
-      with (le_lower (Xreal r0) (Xreal (rx * (rx * rx) ^ Pos.to_nat n))).
-    apply (le_lower_trans _ _ _ H); clear H.
-    apply Ropp_le_contravar.
-    apply (Rmult_le_compat_l _ _ _ Hx).
-    generalize (IHn _ _ X (Rlt_le _ _ Hr)).
-    rewrite X1.
-    intros (_, H); apply (Rle_trans _ _ _ H); clear H.
-    apply pow_incr.
-    split; [now left|].
-    apply Ropp_le_cancel.
-    change (_ <= _)%R with (le_lower (Xreal r) (Xmul (Xreal rx) (Xreal rx))).
-    rewrite <-Hrx, <-X.
-    apply F.mul_DN_correct.
-    now left; rewrite Hrx. }
-rewrite (proj1 (IHn _ _ X (Rlt_le _ _ Hr))).
-rewrite Hrx.
-xreal_tac2.
-{ now do 2 right; left; split; [rewrite F'.valid_ub_real;
-                                [|rewrite F.real_correct, Hrx]|]. }
-case (Rlt_le_dec r1 0); intro Hr1.
-{ right; right; left.
-  rewrite F'.valid_ub_real; [|now rewrite F.real_correct, Hrx].
-  now apply Rlt_le in Hr1. }
-now left.
+  now rewrite <-Hrx. }
+rewrite F.cmp_correct, F.zero_correct, F'.classify_zero.
+elim (F.mul_DN_correct prec x x); [|now rewrite Hrx; left].
+intros Vmdn Hmdn.
+generalize Vmdn; rewrite F.valid_lb_correct.
+case F.classify; [..|easy]; intros _.
+2: now rewrite F'.valid_lb_nan, F'.nan_correct.
+2: { rewrite F'.valid_lb_zero, F.zero_correct; split; [easy|].
+     apply (Rmult_le_pos _ _ Hx).
+     rewrite Pmult_nat_mult, Nat.mul_comm, pow_sqr.
+     apply pow_le, Rle_0_sqr. }
+unfold Xcmp.
+xreal_tac2; [now rewrite F'.valid_lb_nan, F'.nan_correct|].
+case Rcompare_spec; intro Hr0;
+  [rewrite F'.valid_lb_zero, F.zero_correct; split; [easy|];
+   apply (Rmult_le_pos _ _ Hx);
+   rewrite Pmult_nat_mult, Nat.mul_comm, pow_sqr;
+   apply pow_le, Rle_0_sqr..|].
+elim (IHn _ _ X (Rlt_le _ _ Hr0)).
+intros Vp Hp.
+elim (F.mul_DN_correct prec x (Fpower_pos_DN prec (F.mul_DN prec x x) n)).
+2:{ rewrite Hrx, F'.valid_ub_real, Vp; [|now rewrite F.real_correct, Hrx].
+    xreal_tac2; [now right; right; left|].
+    now case (Rle_or_lt 0 r0); intro H0r0;
+      [left|right; right; left; repeat split; lra]. }
+intros Vxp Hxp; split; [easy|].
+revert Hxp; rewrite Hrx.
+do 2 (xreal_tac2; [easy|]).
+unfold le_lower; intro H; apply Ropp_le_cancel in H.
+apply (Rle_trans _ _ _ H); clear H.
+apply (Rmult_le_compat_l _ _ _ Hx).
+apply (Rle_trans _ _ _ Hp).
+rewrite Pmult_nat_mult, Nat.mul_comm, pow_sqr.
+apply pow_incr; split; [now apply Rlt_le|].
+rewrite Hrx in Hmdn.
+now apply Ropp_le_cancel in Hmdn.
 Qed.
 
 Theorem power_pos_correct :
