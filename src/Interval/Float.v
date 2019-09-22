@@ -388,7 +388,7 @@ Definition mul2 prec xi :=
 Definition sqrt prec xi :=
   match xi with
   | Ibnd xl xu =>
-    match F'.cmp xl F.zero with
+    match F.cmp xl F.zero with
     | Xeq => Ibnd F.zero (F.sqrt_UP prec xu)
     | Xgt => Ibnd (F.sqrt_DN prec xl) (F.sqrt_UP prec xu)
     | _ => Inan
@@ -1720,10 +1720,13 @@ case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
 case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
 intros Vxu Vxl.
 intros [Hxl Hxu].
-unfold sqrt; rewrite F'.cmp_correct, F.zero_correct.
+unfold sqrt; rewrite F.cmp_correct, F.zero_correct, F'.classify_zero.
+generalize Vxl; rewrite F.valid_lb_correct.
+generalize (F.classify_correct xl) ; rewrite F.real_correct.
+case_eq (F.classify xl); [|easy..]; intros Cxl.
 revert Hxl.
-case_eq (F.toX xl) ; [ split | idtac ].
-intros rl Hrl Hxl.
+case_eq (F.toX xl) ; [easy|].
+intros rl Hrl Hxl _ _.
 unfold Xsqrt'.
 simpl.
 destruct (is_negative_spec x).
@@ -1731,9 +1734,9 @@ destruct (is_negative_spec x).
 elim (F.sqrt_UP_correct prec _ Vxu);
   [|now revert Hxu; case (F.toX xu); [|intro r; apply Rle_trans]].
 intros Vsuxu Hsuxu.
-case Rcompare_spec; intro Hrl'; [exact I| |].
+unfold Xcmp; case Rcompare_spec; intro Hrl0; [easy|..].
 { (* xl zero *)
-  rewrite F'.valid_lb_real; [|now rewrite F.real_correct, F.zero_correct].
+  rewrite F'.valid_lb_zero.
   rewrite Vsuxu.
   apply le_contains.
   { now rewrite F.zero_correct; apply Ropp_le_contravar, sqrt_positivity. }
