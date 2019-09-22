@@ -157,7 +157,7 @@ Notation toR := F.toR (only parsing).
 Fixpoint atan_fast0_aux prec thre powi sqri divi (nb : nat) { struct nb } :=
   let npwi := I.mul prec powi sqri in
   let vali := I.div prec npwi divi in
-  match F'.cmp (I.upper vali) thre, nb with
+  match F.cmp (I.upper vali) thre, nb with
   | Xlt, _
   | _, O => I.bnd F.zero (I.upper vali)
   | _, S n =>
@@ -225,30 +225,36 @@ assert (Hexit : forall k powi divi,
     contains (I.convert divi) (Xreal (INR (2 * (k + 1) + 1))) ->
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi (I.sqr prec xi)) divi))))
       (Xreal ((-1) ^ (k + 1) * (atanc x - Ai x k)))).
-  intros k powi divi Hpow Hdiv.
-  rewrite I.bnd_correct.
-  rewrite F.zero_correct, I.upper_correct.
+{ intros k powi divi Hpow Hdiv.
   assert (A: (0 <= (-1) ^ (k + 1) * (atanc x - Ai x k) <= x ^ (2 * (k + 1)) / INR (2 * (k + 1) + 1))%R).
-    replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * x ^ (2 * n))%R) k).
-    unfold Rdiv.
-    rewrite (Rmult_comm (x ^ _)).
-    replace (k + 1) with (S k) by ring.
-    apply alternated_series_ineq'.
-    apply Un_decreasing_atanc.
-    lra.
-    apply Un_cv_atanc.
-    lra.
-    unfold atanc.
-    case Ratan.in_int ; intros Hx.
-    case atanc_exists ; simpl projT1 ; intros l C.
-    exact C.
-    elim Hx.
-    apply Rabs_le_inv.
-    lra.
+  { replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (2 * n + 1) * x ^ (2 * n))%R) k).
+    { unfold Rdiv.
+      rewrite (Rmult_comm (x ^ _)).
+      replace (k + 1) with (S k) by ring.
+      apply alternated_series_ineq'.
+      { apply Un_decreasing_atanc.
+        lra. }
+      { apply Un_cv_atanc.
+        lra. }
+      unfold atanc.
+      case Ratan.in_int ; intros Hx.
+      { case atanc_exists ; simpl projT1 ; intros l C.
+        exact C. }
+      elim Hx.
+      apply Rabs_le_inv.
+      lra. }
     apply sum_eq.
     intros n _.
     unfold tg_alt.
-    apply sym_eq, Rmult_assoc.
+    apply sym_eq, Rmult_assoc. }
+  assert (Hne : not_empty
+    (I.convert (I.div prec (I.mul prec powi (I.sqr prec xi)) divi))).
+  { exists ((x ^ (2 * k) * (x * x)) / INR (2 * (k + 1) + 1))%R.
+    now apply J.div_correct; [apply J.mul_correct; [|apply J.sqr_correct]|]. }
+  rewrite I.bnd_correct.
+  2: { now apply I.valid_lb_real; rewrite F.zero_correct. }
+  2: { now apply I.valid_ub_upper. }
+  rewrite F.zero_correct, (I.upper_correct _ Hne).
   apply (conj (proj1 A)).
   assert (Hx2 := J.sqr_correct prec _ _ Ix).
   assert (H1 := J.mul_correct prec _ _ _ _ Hpow Hx2).
@@ -260,14 +266,13 @@ assert (Hexit : forall k powi divi,
   apply Req_le.
   apply Rmult_eq_compat_r.
   replace (2 * (k + 1)) with (2 * k + 2) by ring.
-  now rewrite pow_add, <- Rsqr_pow2.
+  now rewrite pow_add, <- Rsqr_pow2. }
 generalize (F.scale c1 (F.ZtoS (Z.neg (F.prec prec)))) (Pos.to_nat (F.prec prec)).
 intros thre n.
 replace 1%R with (Ai x 0) by (unfold Ai ; simpl ; field).
 refine (_ (I.fromZ_small_correct 1 _) (I.fromZ_small_correct 3 _)) ; [|easy..].
 fold i1 i3.
 generalize i1 i3.
-(*
 intros powi divi.
 change 1%R with (pow x (2 * 0)).
 change 3%Z with (Z.of_nat (2 * (0 + 1) + 1)).
@@ -282,7 +287,7 @@ revert powi divi.
 induction m as [|m IHm] ; intros powi divi Hm Hpow Hdiv.
   simpl atan_fast0_aux.
   specialize (Hexit (n - 0) _ _ Hpow Hdiv).
-  now case F'.cmp.
+  now case F.cmp.
 simpl atan_fast0_aux.
 set (powi' := I.mul prec powi (I.sqr prec xi)).
 set (divi' := I.add prec divi i2).
@@ -294,7 +299,7 @@ assert (H: forall p, n - S m + S p = n - m + p).
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi)
         (atan_fast0_aux prec thre powi' (I.sqr prec xi) divi' m)))
       (Xreal ((-1) ^ (n - S m + 1) * (atanc x - Ai x (n - S m))))).
-  now case F'.cmp.
+  now case F.cmp.
 replace ((-1) ^ (n - S m + 1) * (atanc x - Ai x (n - S m)%nat))%R
   with ((-1) ^ (n - S m + 1) * (-1) ^ S (n - S m) * x ^ (2 * S (n - S m)) * / INR (2 * S (n - S m) + 1) - (((-1) * (-1) ^ (n - S m + 1)) * (atanc x - (Ai x (n - S m)%nat + ((-1) ^ S (n - S m) * / INR (2 * S (n - S m) + 1) * x ^ (2 * S (n - S m)))))))%R by ring.
 assert (Hpow': contains (I.convert powi') (Xreal (x ^ (2 * (n - S m + 1))))).
@@ -326,8 +331,6 @@ change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
 rewrite <- plus_Sn_m.
 now rewrite -> minus_Sn_m.
 Qed.
-*)
-Admitted.
 
 Lemma pi4_correct :
   forall prec, contains (I.convert (pi4 prec)) (Xreal (PI/4)).
