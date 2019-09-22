@@ -58,6 +58,7 @@ Definition precision := F.precision.
 
 Definition valid_lb x := F.valid_lb x = true.
 Definition valid_ub x := F.valid_ub x = true.
+Definition nan := F.nan.
 Definition convert_bound := F.toX.
 Definition convert (xi : type) :=
   match xi with
@@ -88,6 +89,12 @@ Lemma valid_ub_real :
 Proof.
 now intros b Hb; rewrite F'.valid_ub_real; [|rewrite F.real_correct, Hb].
 Qed.
+
+Lemma valid_lb_nan : F.valid_lb F.nan = true.
+Proof. apply F'.valid_lb_nan. Qed.
+
+Lemma valid_ub_nan : F.valid_ub F.nan = true.
+Proof. apply F'.valid_ub_nan. Qed.
 
 Lemma bnd_correct :
   forall l u, valid_lb l -> valid_ub u ->

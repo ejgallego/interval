@@ -1380,14 +1380,14 @@ Lemma taylor_integral_correct :
 Proof.
 rewrite /taylor_integral.
 apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.convert_bound (I.midpoint X)))) => //.
-(*
-rewrite /X0 I.bnd_correct (proj1 (I.midpoint_correct X _)).
-split ; apply Rle_refl.
-eexists.
-exact: Hcontxa.
+assert (Hex : exists x : ExtendedR, contains (I.convert X) x).
+{ eexists.
+  exact: Hcontxa. }
+rewrite /X0 I.bnd_correct.
+{ now rewrite (proj1 (I.midpoint_correct X _)); [split ; apply Rle_refl|]. }
+{ now apply I.valid_lb_real, I.midpoint_correct. }
+now apply I.valid_ub_real, I.midpoint_correct.
 Qed.
-*)
-Admitted.
 
 Lemma taylor_integral_naive_intersection_correct :
   contains

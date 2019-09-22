@@ -282,54 +282,54 @@ Lemma not_empty_Imid (X : I.type) :
   not_empty (I.convert X) -> not_empty (I.convert (Imid X)).
 Proof.
 case=>[v Hv].
-rewrite /Imid I.bnd_correct.
+rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
+  [|now apply I.midpoint_correct; exists (Xreal v)..].
 apply: not_emptyE.
 exists (I.convert_bound (I.midpoint X)).
 red.
 have e : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> _] := I.midpoint_correct X e.
 by auto with real.
-Admitted.
-(* Qed. *)
+Qed.
 
 Lemma Imid_subset (X : I.type) :
   not_empty (I.convert X) ->
   subset' (I.convert (Imid X)) (I.convert X).
 Proof.
 case=>[v Hv].
-rewrite /Imid I.bnd_correct.
+rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
+  [|now apply I.midpoint_correct; exists (Xreal v)..].
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [->] := I.midpoint_correct X HX.
 case: I.convert =>[//|l u].
 move => H [//|x].
 intros [H1 H2].
 by rewrite (Rle_antisym _ _ H2 H1).
-Admitted.
-(* Qed. *)
+Qed.
 
 Lemma Imid_contains (X : I.type) :
   not_empty (I.convert X) ->
   contains (I.convert (Imid X)) (I.convert_bound (I.midpoint X)).
 Proof.
 move=>[v Hv].
-rewrite /Imid I.bnd_correct.
+rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
+  [|now apply I.midpoint_correct; exists (Xreal v)..].
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> Hreal] := I.midpoint_correct X HX.
 split ; apply Rle_refl.
-Admitted.
-(* Qed. *)
+Qed.
 
 Lemma Xreal_Imid_contains (X : I.type) :
   not_empty (I.convert X) ->
   contains (I.convert (Imid X)) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
 Proof.
 move=>[v Hv].
-rewrite /Imid I.bnd_correct.
+rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
+  [|now apply I.midpoint_correct; exists (Xreal v)..].
 have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
 have [-> Hreal] := I.midpoint_correct X HX.
 split ; apply Rle_refl.
-Admitted.
-(* Qed. *)
+Qed.
 
 (******************************************************************************)
 (** Correctness predicates dealing with reals only, weaker than [I.extension] *)

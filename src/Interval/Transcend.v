@@ -399,14 +399,15 @@ unfold F.toR at 1.
 fold c1; fold c1_2; rewrite c1_2_correct.
 simpl Rlt_bool.
 assert (Ix: contains (I.convert (I.bnd x x)) (Xreal (toR x))).
-  rewrite I.bnd_correct, Rx by admit.
-  split ; apply Rle_refl.
+{ rewrite I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
+    rewrite Rx; [|easy..].
+  split ; apply Rle_refl. }
 case Rlt_bool_spec ; intros Bx'.
 2: {
   apply atan_fast0_correct with (2 := Ix).
   now rewrite Rabs_pos_eq. }
-rewrite F'.lt_correct with (2 := Rx).
-2: unfold F.toR ; now rewrite F.fromZ_correct.
+rewrite F'.lt_correct with (2 := Rx);
+  [|now unfold F.toR; rewrite F.fromZ_correct; [..|lia]].
 unfold F.toR at 1.
 rewrite F.fromZ_correct by easy.
 simpl Rlt_bool.
@@ -459,7 +460,7 @@ now apply I.fromZ_small_correct.
   simpl.
   apply f_equal.
   rewrite atan_inv; lra.
-Admitted.
+Qed.
 
 Lemma atan_fast_correct :
   forall prec x,
@@ -479,18 +480,18 @@ rewrite atan_opp.
 apply (I.neg_correct _ (Xreal _)).
 apply atan_fastP_correct.
 unfold toR.
-(*
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 simpl.
 rewrite <- Ropp_0.
 now apply Ropp_le_contravar, Rlt_le.
 unfold toR.
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 (* zero *)
 rewrite H, atan_0.
-rewrite I.zero_correct.
+simpl.
+rewrite F.zero_correct, F'.valid_lb_zero, F'.valid_ub_zero.
 split ; apply Rle_refl.
 (* pos *)
 replace r with (toR x).
@@ -503,8 +504,6 @@ now apply Rlt_le.
 unfold toR.
 now rewrite Hr.
 Qed.
-*)
-Admitted.
 
 (* 0 <= inputs *)
 Fixpoint ln1p_fast0_aux prec thre powi xi divi (nb : nat) { struct nb } :=
@@ -552,7 +551,7 @@ Definition ln_fast prec x :=
       let m := Z.opp (F.StoZ (F.mag (F.sub_UP prec c1 x))) in
       let prec := F.incr_prec prec (Z2P m) in
       I.neg (ln_fast1P prec (I.div prec i1 xi))
-    | Xgt => ln_fast1P prec xi
+    | Xgt => if F.real x then ln_fast1P prec xi else I.nai
     | Xund => I.nai
     end
   | _ => I.nai
@@ -580,7 +579,13 @@ assert (Hexit : forall k powi divi,
       (Xreal ((-1) ^ (k + 1) * (ln1pc x - Ai x k)))).
   intros k powi divi Hpow Hdiv.
   rewrite I.bnd_correct.
+  2: { now apply I.valid_lb_real; rewrite F.zero_correct. }
+  2: { apply I.valid_ub_upper.
+    exists (x ^ k * x / INR (k + 1 + 1))%R.
+    now apply J.div_correct; [apply J.mul_correct|]. }
   rewrite F.zero_correct, I.upper_correct.
+  2: { exists (x ^ k * x / INR (k + 1 + 1))%R.
+    now apply J.div_correct; [apply J.mul_correct|]. }
   assert (A: (0 <= (-1) ^ (k + 1) * (ln1pc x - Ai x k) <= x ^ (k + 1) / INR ((k + 1) + 1))%R).
     replace (Ai x k) with (sum_f_R0 (tg_alt (fun n => / INR (n + 1) * x ^ n)%R) k).
     unfold Rdiv.
@@ -617,7 +622,6 @@ replace 1%R with (Ai x 0) by (unfold Ai ; simpl ; field).
 refine (_ (I.fromZ_small_correct 1 _) (I.fromZ_small_correct 2 _)) ; [|easy..].
 fold i1 i2.
 generalize i1 i2.
-(*
 intros powi divi.
 change 1%R with (pow x 0).
 change 2%Z with (Z_of_nat ((0 + 1) + 1)).
@@ -674,8 +678,6 @@ change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
 rewrite <- plus_Sn_m.
 now rewrite -> minus_Sn_m.
 Qed.
-*)
-Admitted.
 
 Lemma ln_fast1P_correct :
   forall prec xi x,
@@ -694,17 +696,19 @@ assert (H: forall prec xi x,
   apply ln1p_fast0_correct.
   split. lra.
   apply F'.le'_correct in Hxu.
-  rewrite I.upper_correct in Hxu.
+  rewrite I.upper_correct in Hxu; [|now exists x].
   destruct (I.convert xi) as [|l [|u]] ; try easy.
   revert Hxu.
   simpl.
   unfold thre, c1_p_c1_8, c1.
-  generalize (F.add_DN_correct (F.PtoP 52) (F.fromZ 1) c1_8).
-  case (F.toX _); [easy|intro r].
+  elim (F.add_DN_correct (F.PtoP 52) (F.fromZ 1) c1_8).
+  2: apply F'.valid_lb_real ; now rewrite F.real_correct, F.fromZ_correct.
+  2: apply F'.valid_lb_real ; now rewrite F.real_correct, c1_8_correct.
+  intros Va.
+  case (F.toX _) ; [easy|intro r].
   rewrite c1_8_correct, F.fromZ_correct by easy.
   simpl.
   intro Hr.
-(*
   apply Ropp_le_cancel in Hr.
   intro H.
   assert (H' : (u <= 1 + / 256)%R).
@@ -732,7 +736,8 @@ simpl.
 case_eq (F'.le' (I.upper xi) thre) ; intros Hxu.
 now apply H.
 simpl.
-rewrite F.zero_correct, F.nan_correct.
+rewrite F.zero_correct, F'.nan_correct.
+rewrite F'.valid_lb_zero, F'.valid_ub_nan.
 refine (conj _ I).
 destruct (Rlt_dec 1 x) as [Hx'|Hx'].
 rewrite <- ln_1.
@@ -761,8 +766,6 @@ assert (0 < sqrt x)%R.
 rewrite ln_mult by easy.
 ring.
 Qed.
-*)
-Admitted.
 
 Theorem ln_fast_correct :
   forall prec x,
@@ -770,57 +773,64 @@ Theorem ln_fast_correct :
 Proof.
 intros prec x.
 unfold ln_fast.
-rewrite F.cmp_correct, F.zero_correct.
-case_eq (Xcmp (F.toX x) (Xreal 0)) ; try easy.
-destruct (F'.toX_spec x) as [|Rx].
-easy.
+rewrite F.cmp_correct, F.zero_correct, F'.classify_zero.
+generalize (F.classify_correct x); rewrite F.real_correct.
+case_eq (F.classify x); intro Cx; [|easy..|];
+  [case_eq (F.toX x); [easy|]; intros rx Hrx _
+  |case_eq (F.toX x); [|easy]; intros Hx _].
+{ (* x real *)
+  unfold Xcmp, c1.
+  case Rcompare_spec; intro Hrx0; [easy..|].
+  rewrite F.cmp_correct, Cx, Hrx.
+  generalize (F.classify_correct (F.fromZ 1)).
+  rewrite F.real_correct, F.fromZ_correct by easy.
+  case F.classify; [|easy..]; intros _.
+  unfold Xcmp.
+  case Rcompare_spec.
+  { (* x < 1 *)
+    intros Hx'.
+    generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub_UP prec (F.fromZ 1) x)))))).
+    intros prec'.
+    rewrite <- (Rinv_involutive rx); [|lra].
+    unfold Xln, Xln'.
+    rewrite ln_Rinv; [|now apply Rinv_0_lt_compat].
+    rewrite is_positive_true; [|now do 2 apply Rinv_0_lt_compat].
+    apply J.neg_correct.
+    apply ln_fast1P_correct.
+    { rewrite <- Rinv_1.
+      apply Rinv_le.
+      { exact Hrx0. }
+      now apply Rlt_le. }
+    rewrite <- (Rmult_1_l (/ _)).
+    apply J.div_correct.
+    { now apply I.fromZ_small_correct. }
+    rewrite I.bnd_correct, Hrx.
+    { split ; apply Rle_refl. }
+    { now apply I.valid_lb_real; rewrite Hrx. }
+    now apply I.valid_ub_real; rewrite Hrx. }
+  { (* x = 1 *)
+    intros ->.
+    unfold Xln, Xln'.
+    rewrite is_positive_true; [|lra].
+    rewrite I.zero_correct, ln_1.
+    split ; apply Rle_refl. }
+  (* x > 1 *)
+  intros Hx'.
+  unfold Xln, Xln'.
+  rewrite is_positive_true; [|lra].
+  apply ln_fast1P_correct.
+  { now apply Rlt_le. }
+  rewrite I.bnd_correct, Hrx.
+  { split ; apply Rle_refl. }
+  { now apply I.valid_lb_real; rewrite Hrx. }
+  now apply I.valid_ub_real; rewrite Hrx. }
+(* x = +oo *)
+rewrite F.cmp_correct, Cx.
 unfold c1.
-(*
-rewrite F.cmp_correct with (1 := Rx).
-2: unfold F.toR ; now rewrite F.fromZ_correct.
-unfold F.toR at 3.
-rewrite F.fromZ_correct by easy.
-unfold Xcmp, proj_val.
-case Rcompare_spec ; try easy.
-intros Hx _.
-unfold Xln'.
-simpl Xbind.
-rewrite is_positive_true by easy.
-case Rcompare_spec.
-(* x < 1 *)
-intros Hx'.
-generalize (F.incr_prec prec (Z2P (Z.opp (F.StoZ (F.mag (F.sub_UP prec (F.fromZ 1) x)))))).
-clear prec.
-intros prec.
-rewrite <- (Rinv_involutive (F.toR x)).
-rewrite ln_Rinv.
-apply J.neg_correct.
-apply ln_fast1P_correct.
-rewrite <- Rinv_1.
-apply Rinv_le.
-exact Hx.
-now apply Rlt_le.
-rewrite <- (Rmult_1_l (/ _)).
-apply J.div_correct.
-now apply I.fromZ_small_correct.
-rewrite I.bnd_correct, Rx.
-split ; apply Rle_refl.
-admit.
-now apply Rinv_0_lt_compat.
-now apply Rgt_not_eq.
-(* x = 1 *)
-intros ->.
-rewrite I.zero_correct, ln_1.
-split ; apply Rle_refl.
-(* x > 1 *)
-intros Hx'.
-apply ln_fast1P_correct.
-now apply Rlt_le.
-rewrite I.bnd_correct, Rx.
-split ; apply Rle_refl.
-admit.
-*)
-Admitted.
+generalize (F.classify_correct (F.fromZ 1)).
+rewrite F.real_correct, F.fromZ_correct by easy.
+now case F.classify.
+Qed.
 
 (*
 (* 0 <= inputs *)
@@ -942,6 +952,8 @@ set (xi := I.bnd x x).
 assert (Ix: contains (I.convert xi) (Xreal (toR x))).
   unfold xi.
   rewrite I.bnd_correct, Rx.
+  2: now apply I.valid_lb_real; rewrite Rx.
+  2: now apply I.valid_ub_real; rewrite Rx.
   split ; apply Rle_refl.
 set (x2i := I.sqr prec xi).
 assert (Hexit: forall k powi divi,
@@ -950,8 +962,13 @@ assert (Hexit: forall k powi divi,
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
       (Xreal ((-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k)))).
   intros k powi facti Hpow Hdiv.
+  assert (Hne : not_empty (I.convert (I.div prec (I.mul prec powi x2i) facti))).
+  { exists ((F.toR x ^ (2 * k) * (F.toR x * F.toR x)) / INR (fact (2 * (k + 1))))%R.
+    now apply J.div_correct; [apply J.mul_correct; [|apply J.sqr_correct]|]. }
   rewrite I.bnd_correct.
-  rewrite F.zero_correct, I.upper_correct.
+  2: now apply I.valid_lb_real; rewrite F.zero_correct.
+  2: now apply I.valid_ub_upper.
+  rewrite F.zero_correct, I.upper_correct; [|easy].
   assert (A: (0 <= (-1) ^ (k + 1) * (cos (toR x) - A1 (toR x) k) <= toR x ^ (2 * (k + 1)) / INR (fact (2 * (k + 1))))%R).
     replace (A1 (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
@@ -978,7 +995,6 @@ assert (Hexit: forall k powi divi,
     intros i _.
     apply sym_eq, Rmult_assoc.
   apply (conj (proj1 A)).
-(*
   assert (Hx2 := J.sqr_correct prec _ _ Ix).
   assert (H1 := J.mul_correct prec _ _ _ _ Hpow Hx2).
   assert (H2 := J.div_correct prec _ _ _ _ H1 Hdiv).
@@ -1068,8 +1084,6 @@ change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
 rewrite <- plus_Sn_m.
 now rewrite -> minus_Sn_m.
 Qed.
-*)
-Admitted.
 
 Lemma sin_cos_reduce_correct :
   forall prec nb x,
@@ -1125,9 +1139,9 @@ induction nb ; intros x Hxr Hx.
   intros _.
   simpl.
   unfold cm1, c1.
+  rewrite F'.valid_lb_real, F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct.
   rewrite 2!F.fromZ_correct by easy.
   refine (conj _ I).
-(*
   apply COS_bound. }
 (* nb > 0 *)
 simpl.
@@ -1202,8 +1216,6 @@ unfold toR; rewrite F.div2_correct; [|easy|].
 rewrite (Rabs_pos_eq _ Hx).
 revert Hxhalf; case Rle_bool_spec; [easy|]; fold (F.toR x); lra.
 Qed.
-*)
-Admitted.
 
 (* 0 <= input *)
 Definition cos_fastP prec x :=
@@ -1263,19 +1275,22 @@ replace r with (- toR (F.neg x))%R.
 rewrite cos_neg.
 apply cos_fastP_correct.
 unfold toR.
-(*
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 apply Ropp_involutive.
 (* zero *)
 rewrite H, cos_0.
-now apply I.fromZ_small_correct.
+unfold c1.
+simpl.
+rewrite F'.valid_lb_real, F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct.
+rewrite F.fromZ_correct by easy.
+split ; apply Rle_refl.
 (* pos *)
 replace r with (toR x).
 apply cos_fastP_correct.
@@ -1287,8 +1302,6 @@ now apply Rlt_le.
 unfold toR.
 now rewrite Hr.
 Qed.
-*)
-Admitted.
 
 (* -1/2 <= input <= 1/2 *)
 Definition sin_fast0 prec x :=
@@ -1315,7 +1328,8 @@ assert (Ix: contains (I.convert xi) (Xreal (toR x))).
   unfold xi.
   rewrite I.bnd_correct, Rx.
   split ; apply Rle_refl.
-(*
+  apply F'.valid_lb_real ; now rewrite F.real_correct, Rx.
+  apply F'.valid_ub_real ; now rewrite F.real_correct, Rx.
 apply J.mul_correct with (2 := Ix).
 apply J.sub_correct.
 now apply I.fromZ_small_correct.
@@ -1327,8 +1341,13 @@ assert (Hexit : forall k powi divi,
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi x2i) divi))))
       (Xreal ((-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k)))).
   intros k powi divi Hpow Hdiv.
+  assert (Hne : not_empty (I.convert (I.div prec (I.mul prec powi x2i) divi))).
+  { exists ((F.toR x ^ (2 * k) * (F.toR x * F.toR x)) / INR (fact (2 * (k + 1) + 1)))%R.
+    now apply J.div_correct; [apply J.mul_correct; [|apply J.sqr_correct]|]. }
   rewrite I.bnd_correct.
-  rewrite F.zero_correct, I.upper_correct.
+  2: now apply I.valid_lb_real; rewrite F.zero_correct.
+  2: now apply I.valid_ub_upper.
+  rewrite F.zero_correct, I.upper_correct by easy.
   assert (A: (0 <= (-1) ^ (k + 1) * (sinc (toR x) - Si (toR x) k) <= toR x ^ (2 * (k + 1)) / INR (fact (2 * (k + 1) + 1)))%R).
     replace (Si (toR x) k) with (sum_f_R0 (tg_alt (fun n => / INR (fact (2 * n + 1)) * toR x ^ (2 * n))%R) k).
     unfold Rdiv.
@@ -1469,8 +1488,6 @@ change (-1 * (-1) ^ (n - S m + 1))%R with ((-1) ^ (S (n - S m + 1)))%R.
 rewrite <- plus_Sn_m.
 now rewrite -> minus_Sn_m.
 Qed.
-*)
-Admitted.
 
 (* 0 <= input *)
 Definition sin_fastP prec x :=
@@ -1514,8 +1531,8 @@ destruct sin_cos_reduce as [ss ci].
 intros [Hc Hs].
 destruct ss.
 { simpl.
+  rewrite F'.valid_lb_real, F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct.
   rewrite 2!F.fromZ_correct by easy.
-(*
   apply SIN_bound. }
 { rewrite <- (Ropp_involutive (sin (toR x))).
   change (Xreal (- - sin (toR x))) with (Xneg (Xreal (- sin (toR x)))).
@@ -1551,8 +1568,6 @@ destruct (is_negative_spec (sin (toR x))²).
   apply Rle_0_sqr. }
 apply refl_equal.
 Qed.
-*)
-Admitted.
 
 Definition sin_fast prec x :=
   match F'.cmp x F.zero with
@@ -1582,18 +1597,18 @@ rewrite <- sin_neg.
 replace (Ropp r) with (toR (F.neg x)).
 apply sin_fastP_correct.
 unfold toR.
-(*
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 rewrite <- Ropp_0.
 apply Ropp_le_contravar.
 now apply Rlt_le.
 unfold toR.
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 (* zero *)
 rewrite H, sin_0.
-rewrite I.zero_correct.
+simpl.
+rewrite F.zero_correct, F'.valid_lb_zero, F'.valid_ub_zero.
 split ; apply Rle_refl.
 (* pos *)
 replace r with (toR x).
@@ -1606,8 +1621,6 @@ now apply Rlt_le.
 unfold toR.
 now rewrite Hr.
 Qed.
-*)
-Admitted.
 
 (* 0 <= input *)
 Definition tan_fastP prec x :=
@@ -1809,8 +1822,7 @@ rewrite <- (Xneg_involutive (Xtan _)).
 apply I.neg_correct.
 generalize (tan_fastP_correct prec (F.neg x)).
 unfold toR.
-(*
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 simpl.
 intros H'.
 assert (H1 : (0 <= -r)%R).
@@ -1833,9 +1845,11 @@ unfold Xtan'.
 simpl.
 case is_zero_spec.
 rewrite cos_0.
-apply R1_neq_R0.
+intros H'.
+now elim R1_neq_R0.
 intros _.
 rewrite tan_0.
+rewrite F'.valid_lb_zero, F'.valid_ub_zero.
 split ; apply Rle_refl.
 (* pos *)
 replace r with (toR x).
@@ -1848,8 +1862,6 @@ now apply Rlt_le.
 unfold toR.
 now rewrite Hr.
 Qed.
-*)
-Admitted.
 
 Definition semi_extension f fi :=
   forall x, contains (I.convert (fi x)) (f (F.toX x)).
@@ -1925,8 +1937,9 @@ set (xi := I.bnd x x).
 assert (Ix: contains (I.convert xi) (Xreal (toR x))).
   unfold xi.
   rewrite I.bnd_correct, Rx.
+  2: now apply I.valid_lb_real; rewrite Rx.
+  2: now apply I.valid_ub_real; rewrite Rx.
   split ; apply Rle_refl.
-(*
 apply J.sub_correct with (1 := Ix).
 assert (Hexit : forall k powi divi,
     contains (I.convert powi) (Xreal (toR x ^ (k + 1))) ->
@@ -1934,8 +1947,13 @@ assert (Hexit : forall k powi divi,
     contains (I.convert (I.bnd F.zero (I.upper (I.div prec (I.mul prec powi xi) divi))))
       (Xreal ((-1) ^ k * (exp (- toR x) + - E1 (- toR x) (k + 1))))).
   intros k powi divi Hpow Hdiv.
+  assert (Hne : not_empty (I.convert (I.div prec (I.mul prec powi xi) divi))).
+  { exists ((F.toR x ^ (k + 1) * F.toR x)/ INR (fact (k + 2)))%R.
+    now apply J.div_correct; [apply J.mul_correct|]. }
   rewrite I.bnd_correct.
-  rewrite F.zero_correct, I.upper_correct.
+  2: now apply I.valid_lb_real; rewrite F.zero_correct.
+  2: now apply I.valid_ub_upper.
+  rewrite F.zero_correct, I.upper_correct by easy.
   assert (A: (0 <= (-1) ^ k * (exp (- toR x) + - E1 (- toR x) (k + 1)) <= toR x ^ (k + 2) / INR (fact (k + 2)))%R).
     replace ((-1) ^ k)%R with ((-1) * ((-1) * (-1) ^ k))%R by ring.
     change ((-1) * ((-1) * (-1) ^ k))%R with ((-1) ^ (S (S k)))%R.
@@ -2068,8 +2086,6 @@ rewrite <- plus_n_Sm, <- plus_n_O.
 rewrite <- Rpow_mult_distr.
 now replace (- toR x * -1)%R with (toR x) by ring.
 Qed.
-*)
-Admitted.
 
 Lemma expn_reduce_correct :
   forall prec x,
@@ -2109,8 +2125,9 @@ induction nb ; intros ; simpl.
   { now apply H. }
   simpl.
   unfold c1.
+  rewrite F'.valid_lb_zero.
+  rewrite F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct.
   rewrite F.zero_correct, F.fromZ_correct by easy.
-(*
   split.
   { apply Rlt_le.
     apply exp_pos. }
@@ -2151,8 +2168,6 @@ replace (toR x) with (toR (F.div2 x) + toR (F.div2 x))%R.
 rewrite H2.
 apply sym_eq, double_var.
 Qed.
-*)
-Admitted.
 
 Theorem exp_fast_correct :
   forall prec x,
@@ -2170,14 +2185,13 @@ case Rcompare_spec ; intros H.
 replace r with (Ropp (toR (F.neg x))).
 apply expn_reduce_correct.
 unfold toR.
-(*
-now rewrite F.neg_correct, Hr.
+now rewrite F'.neg_correct, Hr.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 rewrite <- Ropp_0.
 now apply Ropp_lt_contravar.
 unfold toR.
-rewrite F.neg_correct, Hr.
+rewrite F'.neg_correct, Hr.
 apply Ropp_involutive.
 (* zero *)
 rewrite H, exp_0.
@@ -2187,12 +2201,17 @@ generalize (F.incr_prec prec 1).
 clear prec. intro prec.
 case_eq (I.inv prec (expn_reduce prec x)) ; intros.
 (* pos too big *)
-split ; unfold c1.
+unfold c1.
+rewrite I.bnd_correct.
+2: apply I.valid_lb_real ; now rewrite F.fromZ_correct.
+2: now apply I.valid_ub_nan.
+split.
 rewrite F.fromZ_correct by easy.
+simpl.
 rewrite <- exp_0.
 apply Rlt_le.
 now apply exp_increasing.
-now rewrite F.nan_correct.
+now rewrite F'.nan_correct.
 (* pos fine *)
 rewrite <- H0.
 rewrite <- (Ropp_involutive r).
@@ -2213,8 +2232,6 @@ elim Rgt_not_eq with (2 := H1).
 apply exp_pos.
 apply refl_equal.
 Qed.
-*)
-Admitted.
 
 End TranscendentalFloatFast.
 

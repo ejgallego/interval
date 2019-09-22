@@ -224,6 +224,7 @@ Module Type IntervalBasicOps.
 Parameter bound_type : Type.
 Parameter valid_lb : bound_type -> Prop.
 Parameter valid_ub : bound_type -> Prop.
+Parameter nan : bound_type.
 Parameter convert_bound : bound_type -> ExtendedR.
 Parameter type : Type.
 Parameter convert : type -> interval.
@@ -238,6 +239,10 @@ Parameter valid_lb_real :
 
 Parameter valid_ub_real :
   forall b, convert_bound b = Xreal (proj_val (convert_bound b)) -> valid_ub b.
+
+Parameter valid_lb_nan : valid_lb nan.
+
+Parameter valid_ub_nan : valid_ub nan.
 
 Parameter bnd_correct :
   forall l u, valid_lb l -> valid_ub u ->
