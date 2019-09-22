@@ -441,11 +441,13 @@ Definition mul_mixed prec xi y :=
 Definition div_mixed_r prec xi y :=
   match xi with
   | Ibnd xl xu =>
-    match F'.cmp y F.zero with
-    | Xlt => Ibnd (F.div_DN prec xu y) (F.div_UP prec xl y)
-    | Xgt => Ibnd (F.div_DN prec xl y) (F.div_UP prec xu y)
-    | _ => Inan
-    end
+    if F.real y then
+      match F.cmp y F.zero with
+      | Xlt => Ibnd (F.div_DN prec xu y) (F.div_UP prec xl y)
+      | Xgt => Ibnd (F.div_DN prec xl y) (F.div_UP prec xu y)
+      | _ => Inan
+      end
+    else Inan
   | Inan => Inan
   end.
 
@@ -2048,8 +2050,11 @@ case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
 intros Vxu Vxl.
 intros [Hxl Hxu].
 simpl.
-rewrite F'.cmp_correct, F.zero_correct.
-xreal_tac2.
+generalize (F.classify_correct yf).
+rewrite F.cmp_correct, F.zero_correct, F.real_correct, F'.classify_zero.
+case_eq (F.classify yf); intro Cyf;
+  [xreal_tac2; [easy|]|xreal_tac2; [|easy]..]; intros _; [|easy..].
+unfold Xcmp.
 unfold Xdiv'.
 simpl.
 case Rcompare_spec ; intros Hy ; try exact I ;
