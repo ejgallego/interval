@@ -73,31 +73,71 @@ Fixpoint eval (e : expr) (l : list R) :=
   end.
 
 Ltac list_add a l :=
-  let rec aux a l n :=
+  let rec aux l :=
     match l with
-    | nil        => constr:((n, cons a l))
-    | cons a _   => constr:((n, l))
-    | cons ?x ?l =>
-      match aux a l (S n) with
-      | (?n, ?l) => constr:((n, cons x l))
-      end
+    | nil        => constr:(cons a l)
+    | cons a _   => l
+    | cons ?x ?l => let l := aux l in constr:(cons x l)
     end in
-  aux a l O.
+  aux l.
+
+Ltac list_find a l :=
+  let rec aux l n :=
+    match l with
+    | nil       => false
+    | cons a _  => n
+    | cons _ ?l => aux l (S n)
+    end in
+  aux l O.
+
+Ltac get_vars t l :=
+  let rec aux t l :=
+    let aux_u a := aux a l in
+    let aux_b a b :=
+      let l := aux a l in
+      aux b l in
+    lazymatch t with
+    | Ropp ?a => aux_u a
+    | Rabs ?a => aux_u a
+    | Rinv ?a => aux_u a
+    | Rsqr ?a => aux_u a
+    | Rmult ?a ?a => aux_u a
+    | sqrt ?a => aux_u a
+    | cos ?a => aux_u a
+    | sin ?a => aux_u a
+    | tan ?a => aux_u a
+    | atan ?a => aux_u a
+    | exp ?a => aux_u a
+    | ln ?a => aux_u a
+    | powerRZ ?a ?b => aux_u a
+    | pow ?a ?b => aux_u a
+    | Rplus ?a ?b => aux_b a b
+    | Rminus ?a ?b => aux_b a b
+    | Rplus ?a (Ropp ?b) => aux_b a b
+    | Rmult ?a ?b => aux_b a b
+    | Rdiv ?a ?b => aux_b a b
+    | Rmult ?a (Rinv ?b) => aux_b a b
+    | Rnearbyint ?a ?b => aux_u b
+    | IZR (Raux.Ztrunc ?a) => aux_u a
+    | IZR (Raux.Zfloor ?a) => aux_u a
+    | IZR (Raux.Zceil ?a) => aux_u a
+    | IZR (Round_NE.ZnearestE ?a) => aux_u a
+    | PI => l
+    | IZR ?n => l
+    | _ => list_add t l
+    end in
+  aux t l.
 
 Ltac reify t l :=
-  let rec aux t l :=
+  let rec aux t :=
     let aux_u o a :=
-      match aux a l with
-      | (?u, ?l) => constr:((Eunary o u, l))
-      end in
+      let u := aux a in
+      constr:(Eunary o u) in
     let aux_b o a b :=
-      match aux b l with
-      | (?v, ?l) =>
-        match aux a l with
-        | (?u, ?l) => constr:((Ebinary o u v, l))
-        end
-      end in
-    match t with
+      let u := aux a in
+      let v := aux b in
+      constr:(Ebinary o u v) in
+    lazymatch t with
     | Ropp ?a => aux_u Neg a
     | Rabs ?a => aux_u Abs a
     | Rinv ?a => aux_u Inv a
@@ -123,14 +163,13 @@ Ltac reify t l :=
     | IZR (Raux.Zfloor ?a) => aux_u (Nearbyint rnd_DN) a
     | IZR (Raux.Zceil ?a) => aux_u (Nearbyint rnd_UP) a
     | IZR (Round_NE.ZnearestE ?a) => aux_u (Nearbyint rnd_NE) a
-    | PI => constr:((Econst_pi, l))
-    | IZR ?n => constr:((Eint n, l))
+    | PI => constr:(Econst_pi)
+    | IZR ?n => constr:(Eint n)
     | _ =>
-      match list_add t l with
-      | (?n, ?l) => constr:((Evar n, l))
-      end
+      let n := list_find t l in
+      constr:(Evar n)
     end in
-  aux t l.
+  aux t.
 
 Module Bnd (I : IntervalOps).
 

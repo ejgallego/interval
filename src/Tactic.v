@@ -1419,6 +1419,18 @@ Inductive expr :=
   | Eunary : unary_op -> expr -> expr
   | Ebinary : binary_op -> expr -> expr -> expr.
 
+Ltac list_add a l :=
+  let rec aux a l n :=
+    match l with
+    | nil        => constr:((n, cons a l))
+    | cons a _   => constr:((n, l))
+    | cons ?x ?l =>
+      match aux a l (S n) with
+      | (?n, ?l) => constr:((n, cons x l))
+      end
+    end in
+  aux a l O.
+
 Ltac reify t l :=
   let rec aux t l :=
     match get_float t with
@@ -1473,21 +1485,12 @@ Ltac reify t l :=
     end in
   aux t l.
 
-Ltac list_find1 a l :=
-  let rec aux l n :=
-    match l with
-    | nil       => false
-    | cons a _  => n
-    | cons _ ?l => aux l (S n)
-    end in
-  aux l O.
-
 Ltac get_non_constants t :=
   let rec aux t l :=
     match t with
     | Econst _ => l
     | _ =>
-      match list_find1 t l with
+      match list_find t l with
       | false =>
         let m :=
           match t with

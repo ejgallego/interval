@@ -82,17 +82,15 @@ Definition eval_goal (g : gol) (x : R) :=
 
 Ltac massage_goal :=
   let aux a x t :=
-    match reify a (@nil R) with
-    | (?a, @nil R) => change (eval_goal (t a) x)
-    end in
+    let a := reify a (@nil R) in
+    (change (eval_goal (t a) x)) in
   match goal with
   | |- (Rabs ?x <= ?v)%R => aux v x (Gabsle true)
   | |- (?u <= ?x)%R => aux u x (Gge true)
   | |- (?x <= ?v)%R => aux v x (Gle true)
   | |- (?u <= ?x <= ?v)%R =>
-    match reify u (@nil R) with
-    | (?u, @nil R) => aux v x (Glele u)
-    end
+    let u := reify u (@nil R) in
+    aux v x (Glele u)
   | |- (?u < ?x)%R => aux u x Ggt
   | |- (?x > ?u)%R => aux u x Ggt
   | |- (?x < ?v)%R => aux v x Glt
@@ -103,17 +101,14 @@ Ltac massage_goal :=
 
 Ltac find_hyps_aux x known cont :=
   let aux H u t :=
-    match reify u (@nil R) with
-    | (?u, @nil R) =>
-      let k := constr:(cons (t u) known) in
-      revert H ;
-      find_hyps_aux x k cont
-    end in
+    let u := reify u (@nil R) in
+    let k := constr:(cons (t u) known) in
+    revert H ;
+    find_hyps_aux x k cont in
   match goal with
   | H : (?u <= x <= ?v)%R |- _ =>
-    match reify u (@nil R) with
-    | (?u', @nil R) => aux H v (Hlele u')
-    end
+    let u := reify u (@nil R) in
+    aux H v (Hlele u)
   | H : (?u <= x)%R |- _ => aux H u (Hge true)
   | H : (x >= ?u)%R |- _ => aux H u (Hge false)
   | H : (x <= ?v)%R |- _ => aux H v (Hle true)
@@ -146,47 +141,39 @@ Ltac find_hyps vars :=
       change (eval_hyps k vars g) ;
       clear in
     find_hyps_aux2 vars cont
-  end.
-
-Ltac reify_full vars0 :=
-  (* version without the noise due to let-ins and manual reduction:
-  match goal with
-  | |- eval_goal ?g ?y =>
-    match reify y vars0 with
-    | (?prog, ?vars) =>
-      change (eval_goal g (eval prog vars)) ;
-      rewrite <- (extract_correct prog vars) ;
-      find_hyps vars
-    end
-  end *)
-  match goal with
-  | |- eval_goal ?g' ?y =>
-    let g := fresh "__goal" in
-    set (g := g') ;
-    match reify y vars0 with
-    | (?expr', ?vars) =>
-      let expr := fresh "__expr" in
-      set (expr := expr') ;
-      change (eval_goal g (eval expr vars)) ;
-      generalize (extract_correct expr vars) ;
-      let decomp := eval vm_compute in (extract expr (length vars)) in
-      change (extract expr (length vars)) with decomp ;
-      cbv iota ;
-      match decomp with
-      | Eprog ?prog' ?consts' =>
-        let prog := fresh "__prog" in
-        set (prog := prog') ;
-        let consts := fresh "__consts" in
-        set (consts := consts')
-      end ;
-      apply eq_ind ;
-      find_hyps vars
-    end
   end ;
   match goal with
   | |- eval_hyps ?hyps' _ _ =>
     let hyps := fresh "__hyps" in
     set (hyps := hyps')
+  end.
+
+Ltac reify_partial y vars :=
+  let expr' := reify y vars in
+  let expr := fresh "__expr" in
+  set (expr := expr') ;
+  change y with (eval expr vars) ;
+  generalize (extract_correct expr vars) ;
+  let decomp := eval lazy in (extract expr (length vars)) in
+  change (extract expr (length vars)) with decomp ;
+  cbv iota beta ;
+  match decomp with
+  | Eprog ?prog' ?consts' =>
+    let prog := fresh "__prog" in
+    set (prog := prog') ;
+    let consts := fresh "__consts" in
+    set (consts := consts')
+  end.
+
+Ltac reify_full vars0 :=
+  match goal with
+  | |- eval_goal ?g' ?y =>
+    let vars := get_vars y vars0 in
+    let g := fresh "__goal" in
+    set (g := g') ;
+    reify_partial y vars ;
+    apply eq_ind ;
+    find_hyps vars
   end.
 
 Module Bnd (I : IntervalOps).
