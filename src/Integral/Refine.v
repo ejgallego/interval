@@ -318,6 +318,39 @@ split.
   now apply IH with (1 := H2).
 Qed.
 
+Definition bisect prec n midp fi (check : I.type -> bool) :=
+  let i := fi IBu IBv in
+  if check i then i
+  else
+    let p := iter_until n
+      (split_piece prec midp fi)
+      (fun '(_, p) => (sum prec p, p))
+      (fun '(p, _) => check p)
+      (i, PTsome (Piece IBu IBv i) nil) in
+    sum prec (snd p).
+
+Theorem bisect_correct :
+  forall prec n midp f fi check,
+  (forall u v, valid f u v (fi u v)) ->
+  valid f IBu IBv (bisect prec n midp fi check).
+Proof.
+intros prec n midp f fi check Hfi.
+unfold bisect.
+destruct check.
+apply Hfi.
+apply sum_invariant.
+apply iter_until_correct.
+intros [v p].
+now apply split_piece_correct.
+now intros [v p].
+split ; simpl.
+now split.
+exists (Piece IBu IBv (fi IBu IBv)), nil.
+split.
+apply permut_refl.
+easy.
+Qed.
+
 End Bounds.
 
 End IntegralRefiner.
