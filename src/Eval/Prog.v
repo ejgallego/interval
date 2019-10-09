@@ -398,24 +398,32 @@ Definition extract (e : expr) (vars : nat) :=
   match split_expr e nil nil with
   | Sconst => Eprog (cons (Forward vars) nil) (cons e nil)
   | Scomposed lp lc =>
-    match decompose vars nil (e :: lp) lc with
+    let lp' :=
+      match lp with
+      | cons h t => if expr_beq e h then lp else e :: lp
+      | nil => e :: lp
+      end in
+    match decompose vars nil lp' lc with
     | Some p => if max_arity e vars then Eprog p lc else Eabort
     | None => Eabort
     end
   end.
 
+Definition eval_real' prog vars consts :=
+  nth 0 (eval_real prog (vars ++ map (fun c => eval c nil) consts)) 0%R.
+
 Theorem extract_correct :
   forall e vars,
   match extract e (length vars) with
   | Eabort => True
-  | Eprog lp lc =>
-    nth 0 (eval_real lp (vars ++ map (fun c => eval c nil) lc)) 0%R = eval e vars
+  | Eprog lp lc => eval_real' lp vars lc = eval e vars
   end.
 Proof.
 intros e vars.
 unfold extract.
 generalize (fun v => split_expr_correct v e nil nil).
 destruct split_expr as [|lp lc].
+  unfold eval_real'.
   simpl.
   intros H.
   rewrite app_nth2 by apply le_refl.
@@ -423,10 +431,26 @@ destruct split_expr as [|lp lc].
   apply sym_eq, H.
   now intros [|n].
 intros H.
+assert (exists lp',
+    match lp with
+    | cons h t => if expr_beq e h then lp else e :: lp
+    | nil => e :: lp
+    end = e :: lp') as [lp' ->].
+  destruct lp as [|h t].
+  now exists nil.
+  generalize (internal_expr_dec_bl e h).
+  destruct expr_beq.
+  intros ->.
+  now exists t.
+  apply eq_refl.
+  intros _.
+  now exists (h :: t).
 simpl in H.
-generalize (decompose_correct vars nil (e :: lp) lc).
+generalize (decompose_correct vars nil (e :: lp') lc).
 destruct decompose as [p|] ; try easy.
 case_eq (max_arity e (length vars)).
+2: easy.
+unfold eval_real'.
 intros H' ->.
 simpl.
 clear -H'.
@@ -443,5 +467,4 @@ now apply IHe2.
 intros v.
 apply H.
 now intros [|n].
-easy.
 Qed.
