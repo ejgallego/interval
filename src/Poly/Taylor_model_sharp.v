@@ -2704,41 +2704,34 @@ exists (PolR.map (Rmult y) q).
   exact: J.mul_correct.
 Qed.
 
-Lemma TM_mul_mixed_nai (a : I.type) M f (X0 X : interval) :
-  contains (I.convert a) Xnan ->
+Lemma TM_mul_mixed_nai M (X0 X : interval) a f g :
+  I.convert a = Inan ->
   i_validTM X0 X M f ->
-  I.convert (error (TM_mul_mixed a M)) = IInan.
+  i_validTM X0 X (TM_mul_mixed a M) g.
 Proof.
-move/contains_Xnan => Ha /=.
-case=> [Hnan Hsubst Hmain].
-by rewrite I.mul_propagate_l.
+intros Ha [Hdef Hnai Hzero Hsubs Hmain].
+rewrite /i_validTM /= I.mul_propagate_l //.
+split=> //.
+intros x0 Hx0.
+destruct (Hmain x0 Hx0) as [Q H1 H2].
+exists (PolR.map (Rmult 0) Q) => //.
+apply: Pol.map_correct =>//.
+apply Rmult_0_l.
+intros xi x Hx.
+apply J.mul_correct.
+now rewrite Ha.
+exact Hx.
 Qed.
 
-Corollary TM_mul_mixed_correct_strong (a : I.type) M (X0 X : interval) f g :
-  not_empty X0 ->
+Lemma TM_mul_mixed_correct_strong (a : I.type) M (X0 X : interval) f g :
   is_const f X (I.convert a) ->
   i_validTM X0 X M g ->
   i_validTM X0 X (TM_mul_mixed a M)
     (fun x => Xmul (f x) (g x)).
 Proof.
-move=> tHt [[|y] Hy1 Hy2] Hg; move: (Hg) => [Hdef Hnai Hnan Hsubset Hmain].
-split=>//.
-- move=> x Hx Dx.
-  rewrite I.mul_propagate_l; exact/contains_Xnan.
-- by rewrite (TM_mul_mixed_nai Hy1 Hg).
-- by rewrite (TM_mul_mixed_nai Hy1 Hg).
-- move=> /= x0 Hx0.
-  move/(_ x0 Hx0) in Hmain.
-  have [q H1 H2] := Hmain.
-  exists (PolR.map (Rmult (* dummy *) R0) q).
-    apply: Pol.map_correct =>//.
-      by rewrite Rmult_0_r.
-    move=> *; apply: J.mul_correct =>//.
-    by move/contains_Xnan: Hy1 =>->.
-  move=> x Hx /=.
-  move/(_ x Hx) in H2.
-  rewrite I.mul_propagate_l //.
-  exact/contains_Xnan.
+move=> [[|y] Hy1 Hy2] Hg.
+- apply TM_mul_mixed_nai with (2 := Hg).
+  now apply contains_Xnan.
 - apply: TM_fun_eq; last exact: TM_mul_mixed_correct Hy1 Hg.
   move=> x Hx /=.
   by rewrite Hy2.
@@ -2802,43 +2795,37 @@ exists (PolR.map (Rdiv ^~ y) q).
   exact: J.div_correct.
 Qed.
 
-Lemma TM_div_mixed_r_nai M (b : I.type) f (X0 X : interval) :
-  contains (I.convert b) Xnan ->
+Lemma TM_div_mixed_r_nai M (X0 X : interval) a f g :
+  I.convert a = Inan ->
   i_validTM X0 X M f ->
-  I.convert (error (TM_div_mixed_r M b)) = IInan.
+  i_validTM X0 X (TM_div_mixed_r M a) g.
 Proof.
-move/contains_Xnan => Ha /=.
-case=>[Hdef Hnai Hnan Hsubst Hmain].
-exact: I.div_propagate_r.
+intros Ha [Hdef Hnai Hzero Hsubs Hmain].
+rewrite /i_validTM /= I.div_propagate_r //.
+split=> //.
+intros x0 Hx0.
+destruct (Hmain x0 Hx0) as [Q H1 H2].
+exists (PolR.map (fun x => Rdiv x 0) Q) => //.
+apply: Pol.map_correct =>//.
+apply Rmult_0_l.
+intros xi x Hx.
+apply J.div_correct.
+exact Hx.
+now rewrite Ha.
 Qed.
 
-Corollary TM_div_mixed_r_correct_strong M (b : I.type) (X0 X : interval) f g :
-  not_empty X0 ->
+Lemma TM_div_mixed_r_correct_strong M (b : I.type) (X0 X : interval) f g :
   i_validTM X0 X M f ->
   is_const g X (I.convert b) ->
   i_validTM X0 X (TM_div_mixed_r M b)
     (fun x => Xdiv (f x) (g x)).
 Proof.
-move=> tHt Hf [[|y] Hy1 Hy2]; move: (Hf) => [Hdef Hnai Hzero Hsubs Hmain].
-split=>//=.
-- move=> x Hx Dx.
-  rewrite I.div_propagate_r //; exact/contains_Xnan.
-- by rewrite (TM_div_mixed_r_nai Hy1 Hf).
-- by rewrite (TM_div_mixed_r_nai Hy1 Hf).
-- move=> /= x0 Hx0.
-  have [q H1 H2] := Hmain x0 Hx0.
-  exists (PolR.map (Rdiv ^~ R0) q).
-    apply: Pol.map_correct =>//.
-    by rewrite /Rdiv Rmult_0_l.
-    move=> *; apply: J.div_correct =>//.
-    by move/contains_Xnan: Hy1 =>->.
-  move=> x Hx /=.
-  move/(_ x Hx) in H2.
-  rewrite I.div_propagate_r //.
-  exact/contains_Xnan.
-apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR).
-- by move=> x Hx /=; rewrite Hy2.
-- exact: TM_div_mixed_r_correct.
+move=> Hf [[|y] Hy1 Hy2].
+- apply TM_div_mixed_r_nai with (2 := Hf).
+  now apply contains_Xnan.
+- apply: (@TM_fun_eq (fun x => f x / Xreal y)%XR).
+  by move=> x Hx /=; rewrite Hy2.
+  exact: TM_div_mixed_r_correct.
 Qed.
 
 Definition mul_error prec n (f g : rpa) (X0 X : I.type) :=
