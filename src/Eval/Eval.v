@@ -678,11 +678,22 @@ Theorem eval_correct_ext :
     (fun b => nth n (eval prec prog (b :: map interval_from_bp bounds)) I.nai).
 Proof.
 intros prec prog bounds n xi x Hx.
-generalize n. clear n.
+revert n.
 apply eval_correct_aux.
 intros [|n].
 exact Hx.
 apply iterated_bnd_nth.
+Qed.
+
+Theorem eval_correct_ext' :
+  forall prec prog bounds n xi x,
+  contains (I.convert xi) (Xreal x) ->
+  contains
+    (I.convert (nth n (eval prec prog (xi :: map interval_from_bp bounds)) I.nai))
+    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+Proof.
+intros prec prog bounds n xi x Hx.
+apply (eval_correct' prec prog (Bproof _ _ Hx :: bounds)).
 Qed.
 
 Lemma continuous_eval :
@@ -1770,6 +1781,56 @@ induction (rev prog) as [|t l].
     apply TM.sub_correct.
     apply TM.mul_correct.
     apply TM.div_correct.
+Qed.
+
+Theorem eval_correct_aux' :
+  forall prec deg prog bounds n xi,
+  TM.approximates xi
+    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)
+    (fun x => Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0)).
+Proof.
+intros prec deg prog bounds n xi.
+generalize (eval_correct_aux prec deg prog bounds n xi).
+set (t := nth n _ _).
+destruct (nth n _ _) as [c| |].
+- destruct (I.convert c) as [|cl cu] eqn: Hc.
+  now left.
+  intros [Hf|[y H1 H2]].
+  now left.
+  destruct y as [|y].
+  now rewrite Hc in H1.
+  right.
+  exists (Xreal y).
+  exact H1.
+  intros x Hx.
+  apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
+  simpl.
+  rewrite map_Xreal_map_real_from_bp.
+  now apply H2.
+- intros H y Hy.
+  apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
+  simpl.
+  rewrite map_Xreal_map_real_from_bp.
+  now apply H.
+- intros H Hn.
+  destruct (H Hn) as [H1 H2 H3 H4 H5].
+  split ; try easy.
+  intros x0 Hx0.
+  destruct (H5 x0 Hx0) as [Q H6 H7].
+  exists Q.
+  exact H6.
+  intros x Hx.
+  simpl.
+  apply (xreal_to_real (fun v => (v = Xnan -> I.convert (Taylor_model_sharp.error r) = Inan) /\ contains (I.convert (Taylor_model_sharp.error r)) (Xreal (proj_val v - Datatypes.PolR.horner tt Q (x - x0)))) (fun v => contains (I.convert (Taylor_model_sharp.error r)) (Xreal (v - Datatypes.PolR.horner tt Q (x - x0))))).
+  + intros [Ha _].
+    now rewrite Ha.
+  + intros a Ha.
+    apply Ha.
+  + simpl.
+    rewrite map_Xreal_map_real_from_bp.
+    split.
+    now apply H1.
+    now apply H7.
 Qed.
 
 Theorem eval_correct_ext :
