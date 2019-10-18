@@ -49,16 +49,21 @@ Definition bound_type := F.type.
 Definition precision := F.precision.
 
 Definition convert_bound := F.toX.
-Definition convert xi :=
+Definition convert (xi : type) :=
   match xi with
   | Inan => Interval.Inan
   | Ibnd l u => Interval.Ibnd (F.toX l) (F.toX u)
   end.
 
-Definition nai := @Inan F.type.
-Definition bnd := @Ibnd F.type.
-Definition zero := Ibnd F.zero F.zero.
-Definition empty := Ibnd (F.fromZ 1) F.zero.
+Definition nai : type := @Inan F.type.
+Definition bnd l u : type := Ibnd l u.
+Definition zero : type := Ibnd F.zero F.zero.
+Definition empty : type := Ibnd (F.fromZ 1) F.zero.
+Definition real (xi : type) :=
+  match xi with
+  | Inan => false
+  | Ibnd _ _ => true
+  end.
 
 Lemma bnd_correct :
   forall l u,
@@ -88,6 +93,12 @@ easy.
 simpl.
 rewrite F.fromZ_correct, F.zero_correct.
 lra.
+Qed.
+
+Lemma real_correct :
+  forall xi, real xi = match convert xi with Interval.Inan => false | _ => true end.
+Proof.
+now intros [|xl xu].
 Qed.
 
 Definition bounded xi :=

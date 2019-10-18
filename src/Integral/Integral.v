@@ -1413,8 +1413,7 @@ Definition taylor_integral :=
 (* now we take the intersection of a naive and intelligent way of computing the integral *)
 Definition taylor_integral_naive_intersection :=
   let temp := I.mul prec (I.sub prec ib ia) (iF (I.join ia ib)) in
-  if I.subset I.nai temp then I.nai
-  else I.meet temp taylor_integral.
+  if I.real temp then I.meet temp taylor_integral else temp.
 
 Lemma taylor_integral_correct :
   contains
@@ -1436,8 +1435,9 @@ Lemma taylor_integral_naive_intersection_correct :
 Proof.
 rewrite /taylor_integral_naive_intersection.
 set tmp := I.mul prec (I.sub prec ib ia) (iF (I.join ia ib)).
-case I.subset.
-by rewrite I.nai_correct.
+generalize (I.real_correct tmp).
+case I.real ; intros Hr.
+2: now destruct (I.convert tmp).
 apply I.meet_correct.
 apply J.contains_RInt => //.
 intros x Hx.

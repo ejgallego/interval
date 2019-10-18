@@ -77,6 +77,12 @@ intros xi.
 now case xi ; split.
 Qed.
 
+Lemma contains_Inan :
+  forall xi x, xi = Inan -> contains xi x.
+Proof.
+now intros xi x ->.
+Qed.
+
 Definition le_upper x y :=
   match y with
   | Xnan => True
@@ -287,6 +293,7 @@ Parameter zero : type.
 Parameter nai : type.
 Parameter empty : type.
 Parameter bnd : bound_type -> bound_type -> type.
+Parameter real : type -> bool.
 
 Parameter bnd_correct :
   forall l u,
@@ -300,6 +307,9 @@ Parameter nai_correct :
 
 Parameter empty_correct :
   forall x, contains (convert empty) x -> False.
+
+Parameter real_correct :
+  forall xi, real xi = match convert xi with Inan => false | _ => true end.
 
 Local Notation subset_ := subset.
 
