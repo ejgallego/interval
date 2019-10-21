@@ -119,10 +119,10 @@ Qed.
 Definition fromZ n := Float (ZtoM n) exponent_zero.
 
 Lemma fromZ_correct :
-  forall n, FtoX (toF (fromZ n)) = Xreal (IZR n).
+  forall n, toX (fromZ n) = Xreal (IZR n).
 Proof.
 intros.
-simpl.
+unfold toX. simpl.
 generalize (mantissa_sign_correct (ZtoM n)).
 case_eq (mantissa_sign (ZtoM n)) ; intros ; rewrite ZtoM_correct in *.
 rewrite H0.
