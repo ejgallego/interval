@@ -685,3 +685,34 @@ apply: is_RInt_gen_Chasles.
 now apply RInt_gen_correct.
 now apply RInt_gen_correct.
 Qed.
+
+Lemma RInt_gen_ext :
+  forall {V : CompleteNormedModule R_AbsRing} {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f g : R -> V),
+  filter_prod Fa Fb (fun ab =>
+    forall x, Rmin (fst ab) (snd ab) < x < Rmax (fst ab) (snd ab) -> f x = g x) ->
+  RInt_gen f Fa Fb = RInt_gen g Fa Fb.
+Proof.
+intros V Fa Fb FFa FFb f g Heq.
+apply eq_close.
+apply @close_iota.
+split.
+now apply is_RInt_gen_ext.
+apply is_RInt_gen_ext.
+revert Heq.
+apply filter_imp.
+intros [u v] H t Ht.
+now rewrite <- H.
+Qed.
+
+Lemma RInt_gen_ext_eq :
+  forall {V : CompleteNormedModule R_AbsRing} {Fa Fb : (R -> Prop) -> Prop}
+  {FFa : ProperFilter Fa} {FFb : ProperFilter Fb} (f g : R -> V),
+  (forall x, f x = g x) ->
+  RInt_gen f Fa Fb = RInt_gen g Fa Fb.
+Proof.
+intros V Fa Fb FFa FFb f g Heq.
+apply (RInt_gen_ext f g).
+apply filter_forall.
+now intros uv x _.
+Qed.
