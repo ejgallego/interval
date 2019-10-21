@@ -516,14 +516,14 @@ Section BertrandLogNeg.
 Definition f_neg (a : R) (beta : nat) :=
   - / ((INR beta) * (ln a)^beta).
 
-Lemma f_neg_continuous x beta (H0x : 0 < x) (Hx1 : x <> 1):
-  continuous (fun x0 : R => / (x0 * ln x0 ^ beta.+1)) x.
+Lemma continuous_f_neg x beta (H0x : 0 < x) (Hx1 : x <> 1):
+  continuous (fun x0 : R => / (x0 * ln x0 ^ beta)) x.
 Proof.
 have Hlnn0 x1 beta1 :  0 < x1 -> 1 <> x1 -> ln x1 ^ beta1 <> 0.
   by move => H0x1 Hx10; apply: pow_nonzero; case: (Rlt_dec 1 x1) => H; move: (ln_increasing 1 x1); move: (ln_increasing x1 1); rewrite ln_1; lra.
 apply: continuous_comp.
   apply: continuous_mult; first exact: continuous_id.
-  apply: (continuous_comp ln (fun x => pow x beta.+1)).
+  apply: (continuous_comp ln (fun x => pow x beta)).
     by apply: continuous_ln; lra.
   by apply: ex_derive_continuous; apply: ex_derive_pow; exact: ex_derive_id.
 apply: continuous_Rinv.
@@ -531,27 +531,48 @@ apply: Rmult_integral_contrapositive; split; try lra.
 apply: Hlnn0; lra.
 Qed.
 
-Lemma f_neg_correct_RInt_0_1 a b beta (Hab1 : 0 < a <= b) (Hb1 : b < 1) (Hbeta : (0 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
+Lemma is_derive_f_neg :
+  forall beta x,
+  beta <> 0%N ->
+  0 < x -> x <> 1 ->
+  is_derive (fun x : R => f_neg x beta) x (/ (x * (ln x)^beta.+1)).
+Proof.
+intros beta x Hbeta Hx1 Hx2.
+rewrite /f_neg -[/(_ * _)]Ropp_involutive.
+apply: is_derive_opp.
+assert (H: (ln x <> 0)%R).
+  rewrite <- ln_1.
+  contradict Hx2.
+  exact (ln_inv x 1 Hx1 Rlt_0_1 Hx2).
+auto_derive.
+- refine (conj Hx1 (conj _ I)).
+  apply Rmult_integral_contrapositive.
+  split.
+    now apply not_0_INR.
+  now apply pow_nonzero.
+- destruct beta as [|beta].
+    easy.
+  simpl Nat.pred.
+  simpl pow.
+  field.
+  repeat split.
+  now apply pow_nonzero.
+  exact H.
+  now apply Rgt_not_eq.
+  now apply not_0_INR.
+Qed.
+
+Lemma f_neg_correct_RInt_0_1 a b beta (Hab1 : 0 < a <= b) (Hb1 : b < 1) (Hbeta : beta <> 0%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
 Proof.
 have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
 have Hlnn0 x beta1 : 0 < x < 1 -> ln x ^ beta1 <> 0.
   by move => Hx0; apply: pow_nonzero; move: (ln_increasing x 1); rewrite ln_1;lra.
 have Hder : forall x, 0 < x < 1 -> is_derive (fun x => f_neg x beta) x (/ (x * (ln x)^beta.+1)).
   move => x Hax.
-  rewrite /f_neg.
-  rewrite -[/(_ * _)]Ropp_involutive.
-  apply: is_derive_opp.
-  auto_derive.
-    repeat (split; try lra).
-    apply: Rmult_integral_contrapositive; split => // .
-    exact: Hlnn0.
-  case: beta Hbeta Hbetn0 Hlnn0 => [|beta] // Hbeta Hbetn0 Hlnn0.
-  rewrite -pred_Sn.
-  rewrite -!tech_pow_Rmult.
-  field; repeat (split; try easy).
-    exact: Hlnn0.
-    by rewrite -[ln _]pow_1; exact: Hlnn0.
-    by lra.
+  apply is_derive_f_neg.
+  now destruct beta.
+  apply Hax.
+  now apply Rlt_not_eq.
 apply: (is_RInt_derive (fun x => f_neg x beta) _).
   by move => x Hx; apply: Hder; rewrite Rmin_left ?Rmax_right in Hx; try lra.
 move => x. (rewrite Rmin_left ?Rmax_right; try (by lra)).
@@ -566,28 +587,19 @@ apply: Rmult_integral_contrapositive; split; try lra.
 by apply: Hlnn0; lra.
 Qed.
 
-
-Lemma f_neg_correct_RInt_a_infty a b beta (Ha : 1 < a <= b) (Hbeta : (1 < beta)%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
+Lemma f_neg_correct_RInt_a_infty a b beta (Ha : 1 < a <= b) (Hbeta : beta <> 0%N) : is_RInt (fun x => / (x * (ln x)^beta.+1)) a b (f_neg b beta - f_neg a beta).
 Proof.
 have Hbetn0 : INR beta <> 0 by apply: not_0_INR; case: beta Hbeta.
 have Hlnn0 x beta1 : a <= x -> ln x ^ beta1 <> 0.
     by move => Hx0; apply: pow_nonzero; move: (ln_increasing 1 x); rewrite ln_1; lra.
 have Hder : forall x, a <= x -> is_derive (fun x => f_neg x beta) x (/ (x * (ln x)^beta.+1)).
   move => x Hax.
-  rewrite /f_neg.
-  rewrite -[/(_ * _)]Ropp_involutive.
-  apply: is_derive_opp.
-  auto_derive.
-    repeat (split; try lra).
-    apply: Rmult_integral_contrapositive; split => // .
-    exact: Hlnn0.
-  case: beta Hbeta Hbetn0 Hlnn0 => [|beta] // Hbeta Hbetn0 Hlnn0.
-  rewrite -pred_Sn.
-  rewrite -!tech_pow_Rmult.
-  field; repeat (split; try easy).
-    exact: Hlnn0.
-    by rewrite -[ln _]pow_1; exact: Hlnn0.
-    by lra.
+  apply is_derive_f_neg.
+  now destruct beta.
+  apply Rlt_trans with (1 := Rlt_0_1).
+  now apply Rlt_le_trans with a.
+  apply Rgt_not_eq.
+  now apply Rlt_le_trans with a.
 apply: (is_RInt_derive (fun x => f_neg x beta) _).
   by move => x Hx; apply: Hder; rewrite Rmin_left in Hx; try lra.
 move => x. (rewrite Rmin_left; last by lra); move => Hx.
@@ -704,7 +716,7 @@ by rewrite Heven in Hodd.
 Qed.
 *)
 
-Lemma f_neg_correct_RInt_gen_0_a a beta (Ha : 0 < a < 1) (Hbeta : (0 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_right 0) (at_point a) (f_neg a beta).
+Lemma f_neg_correct_RInt_gen_0_a a beta (Ha : 0 < a < 1) (Hbeta : beta <> 0%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_right 0) (at_point a) (f_neg a beta).
 Proof.
 apply prodi_to_single_r.
 have apos : 0 < a by lra.
@@ -749,7 +761,7 @@ case HEvenOdd: (odd beta); last first.
   by apply: is_lim_RInv_m_infty.
 Qed.
 
-Lemma f_neg_correct_RInt_gen_a_infty a beta (Ha : 1 < a) (Hbeta : (1 < beta)%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
+Lemma f_neg_correct_RInt_gen_a_infty a beta (Ha : 1 < a) (Hbeta : beta <> 0%N) : is_RInt_gen (fun x => / (x * (ln x)^beta.+1)) (at_point a) (Rbar_locally p_infty) (- f_neg a beta).
 Proof.
 apply prodi_to_single_l.
 apply: (filterlimi_lim_ext_loc).
@@ -1002,11 +1014,11 @@ Hypothesis Hcontainsa : contains iA (Xreal a).
 
 Section BertrandLogNegInt.
 
-Definition f_neg_int beta := I.neg (I.inv prec (I.mul prec (I.fromZ (Z.of_nat beta)) (I.power_int prec (I.ln prec A) (Z.of_nat beta)))).
+Definition f_neg_int beta := I.inv prec (I.mul prec (I.fromZ (Z.of_nat beta)) (I.power_int prec (I.ln prec A) (Z.of_nat beta))).
 
-Lemma f_neg_int_correct beta : contains (I.convert (f_neg_int beta)) (Xreal (f_neg a beta)).
+Lemma f_neg_int_correct beta : contains (I.convert (f_neg_int beta)) (Xreal (- f_neg a beta)).
 Proof.
-apply: J.neg_correct.
+rewrite /f_neg Ropp_involutive.
 apply: J.inv_correct.
 apply: J.mul_correct.
   rewrite INR_IZR_INZ.

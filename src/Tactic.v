@@ -53,6 +53,7 @@ Inductive interval_tac_parameters :=
 Module Private.
 
 Module I := FloatIntervalFull F.
+Module J := IntervalExt I.
 Module Fext := FloatExt F.
 Module A := IntervalAlgos I.
 Module Int := IntegralTactic F I.
@@ -946,7 +947,7 @@ Qed.
 Lemma remainder_correct_bertrand_log_neg_at_infty prec prog bounds ia beta:
   no_floor_prog prog = true ->
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
-  let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
+  let iKernelInt ia := Bertrand.f_neg_int prec ia beta in
   let f := fun x => nth 0 (eval_real prog (x::map A.real_from_bp bounds)) 0 in
   let fi := fun xi => nth 0 (A.BndValuator.eval prec prog (xi::map A.interval_from_bp bounds)) I.nai in
   let estimator := fun ia =>
@@ -960,10 +961,10 @@ Lemma remainder_correct_bertrand_log_neg_at_infty prec prog bounds ia beta:
 Proof.
 move => Hf test iKernelInt f fi estimator Hbeta.
 apply (remainder_correct_generic_fun_at_infty (fun x => / (x * (ln x)^(S beta))) (fun a => - f_neg a beta) _ (fun _ x => 1 < x ) (fun x => 1 < x)).
-- by move => a x Hx H1a Hax; apply: f_neg_continuous; try lra.
+- by move => a x Hx H1a Hax; apply: continuous_f_neg; try lra.
 - move => a _ Ha; apply: f_neg_correct_RInt_gen_a_infty => // .
-- (* ugly *)by rewrite SSR_leq.
-- move => a ia0 H; rewrite /iKernelInt; apply: J.neg_correct.
+- now destruct beta.
+- move => a ia0 H; rewrite /iKernelInt.
   by apply: f_neg_int_correct => // .
 - move => a _ x Ha Hx; lra.
 - move => x Hx. apply: Rlt_le; apply: Rinv_0_lt_compat; apply: Rmult_lt_0_compat.
@@ -984,7 +985,7 @@ boundsa prog_f prog_g bounds_f bounds_g epsilon beta:
   no_floor_prog prog_f = true ->
   no_floor_prog prog_g = true ->
   let test iF ia := Fext.lt (F.fromZ 1) (I.lower ia) && I.lower_bounded ia in
-  let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia beta) in
+  let iKernelInt ia := Bertrand.f_neg_int prec ia beta in
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
   let iG'' := fun xi =>
@@ -1304,7 +1305,7 @@ Lemma remainder_correct_bertrandEq_0_tactic :
   no_floor_prog prog_f = true ->
   no_floor_prog prog_g = true ->
   let test iF ia := Fext.lt (F.fromZ 0) (I.lower ia) && Fext.lt (I.upper ia) (F.fromZ 1) in
-  let iKernelInt ia := (Bertrand.f_neg_int prec ia (S beta)) in
+  let iKernelInt ia := I.neg (Bertrand.f_neg_int prec ia (S beta)) in
 
   let f := fun x => nth 0 (eval_real prog_f (x::map A.real_from_bp bounds_f)) 0 in
   let g := fun x => nth 0 (eval_real prog_g (x::map A.real_from_bp bounds_g)) 0 in
@@ -1356,9 +1357,9 @@ apply: integral_epsilon_sing_correct_RInt_gen => // .
     apply: (remainder_correct_generic_fun_at_right_singularity _ _ _ _ _ _ (fun f a => 0 < a < 1) _ (fun x => 0 < x < 1)).
     + apply: I.fromZ_correct.
     + by move => _ a0 [] // .
-    + by move => a0 x f0 Hpre_cond Ha0x; apply: f_neg_continuous; lra.
+    + by move => a0 x f0 Hpre_cond Ha0x; apply: continuous_f_neg; lra.
     + by move => a0 _ Ha0; apply: f_neg_correct_RInt_gen_0_a => // .
-    + by move => a0 ia1 H1; rewrite /iKernelInt; exact: Bertrand.f_neg_int_correct.
+    + move => a0 ia1 H1; rewrite /iKernelInt -[f_neg _ _]Ropp_involutive; apply J.neg_correct; exact: Bertrand.f_neg_int_correct.
     + move => a0 _ x Ha0 Hx; lra.
     + apply: constant_sign_inv.
         move => x Hx; apply: Rmult_integral_contrapositive; split; first by lra.
