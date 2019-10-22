@@ -88,6 +88,8 @@ Ltac massage_goal :=
   | |- (Rabs ?x <= ?v)%R => aux v x (Gabsle true)
   | |- (?u <= ?x)%R => aux u x (Gge true)
   | |- (?x <= ?v)%R => aux v x (Gle true)
+  | |- (?x >= ?u)%R => aux u x (Gge false)
+  | |- (?v >= ?x)%R => aux v x (Gle false)
   | |- (?u <= ?x <= ?v)%R =>
     let u := reify u (@nil R) in
     aux v x (Glele u)
