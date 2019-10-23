@@ -23,6 +23,9 @@ Require Import Xreal.
 Require Import Basic.
 Require Import Interval.
 
+Inductive nullary_op : Set :=
+  | Int (n : Z) | Bpow (r n : Z) | Pi.
+
 Inductive unary_op : Set :=
   | Neg | Abs | Inv | Sqr | Sqrt
   | Cos | Sin | Tan | Atan | Exp | Ln
@@ -33,10 +36,23 @@ Inductive binary_op : Set :=
 
 Inductive expr : Set :=
   | Evar : nat -> expr
-  | Eint : Z -> expr
-  | Econst_pi : expr
+  | Econst : nullary_op -> expr
   | Eunary : unary_op -> expr -> expr
   | Ebinary : binary_op -> expr -> expr -> expr.
+
+Definition bpow' (r e : Z) :=
+  match e with
+  | 0%Z => 1%R
+  | Z.pos p => IZR (Z.pow_pos r p)
+  | Z.neg p => (/ IZR (Z.pow_pos r p))%R
+  end.
+
+Definition nullary_real (o : nullary_op) : R :=
+  match o with
+  | Int n => IZR n
+  | Bpow r n => bpow' r n
+  | Pi => PI
+  end.
 
 Definition unary_real (o : unary_op) : R -> R :=
   match o with
@@ -66,8 +82,7 @@ Definition binary_real (o : binary_op) : R -> R -> R :=
 Fixpoint eval (e : expr) (l : list R) :=
   match e with
   | Evar n => nth n l 0%R
-  | Eint n => IZR n
-  | Econst_pi => PI
+  | Econst o => nullary_real o
   | Eunary o e1 => unary_real o (eval e1 l)
   | Ebinary o e1 e2 => binary_real o (eval e1 l) (eval e2 l)
   end.
@@ -123,6 +138,7 @@ Ltac get_vars t l :=
     | IZR (Raux.Zceil ?a) => aux_u a
     | IZR (Round_NE.ZnearestE ?a) => aux_u a
     | PI => l
+    | Raux.bpow _ _ => l
     | IZR ?n => l
     | _ => list_add t l
     end in
@@ -163,8 +179,9 @@ Ltac reify t l :=
     | IZR (Raux.Zfloor ?a) => aux_u (Nearbyint rnd_DN) a
     | IZR (Raux.Zceil ?a) => aux_u (Nearbyint rnd_UP) a
     | IZR (Round_NE.ZnearestE ?a) => aux_u (Nearbyint rnd_NE) a
-    | PI => constr:(Econst_pi)
-    | IZR ?n => constr:(Eint n)
+    | PI => constr:(Econst Pi)
+    | Raux.bpow ?r ?n => constr:(Econst (Bpow (Zaux.radix_val r) n))
+    | IZR ?n => constr:(Econst (Int n))
     | _ =>
       let n := list_find t l in
       constr:(Evar n)
@@ -174,6 +191,27 @@ Ltac reify t l :=
 Module Bnd (I : IntervalOps).
 
 Module J := IntervalExt I.
+
+Definition nullary_bnd prec (o : nullary_op) : I.type :=
+  match o with
+  | Int n => I.fromZ n
+  | Bpow r n => I.power_int prec (I.fromZ r) n
+  | Pi => I.pi prec
+  end.
+
+Lemma nullary_bnd_correct :
+  forall prec o,
+  contains (I.convert (nullary_bnd prec o)) (Xreal (nullary_real o)).
+Proof.
+intros prec [n|r n|].
+- apply I.fromZ_correct.
+- simpl.
+  replace (bpow' r n) with (powerRZ (IZR r) n).
+  apply J.power_int_correct.
+  apply I.fromZ_correct.
+  destruct n as [|n|n] ; simpl ; try rewrite Zpower_pos_powerRZ ; easy.
+- apply I.pi_correct.
+Qed.
 
 Definition unary_bnd prec (o : unary_op) : I.type -> I.type :=
   match o with
@@ -239,8 +277,7 @@ Qed.
 Fixpoint eval_bnd (prec : I.precision) (e : expr) :=
   match e with
   | Evar _ => I.nai
-  | Eint n => I.fromZ n
-  | Econst_pi => I.pi prec
+  | Econst o => nullary_bnd prec o
   | Eunary o e1 => unary_bnd prec o (eval_bnd prec e1)
   | Ebinary o e1 e2 => binary_bnd prec o (eval_bnd prec e1) (eval_bnd prec e2)
   end.
@@ -250,13 +287,11 @@ Theorem eval_bnd_correct :
   contains (I.convert (eval_bnd prec e)) (Xreal (eval e nil)).
 Proof.
 intros prec.
-induction e as [n|n| |o e1 IHe1|o e1 IHe1 e2 IHe2].
-simpl.
-now rewrite I.nai_correct.
-apply I.fromZ_correct.
-apply I.pi_correct.
-now apply unary_bnd_correct.
-now apply binary_bnd_correct.
+induction e as [n|o|o e1 IHe1|o e1 IHe1 e2 IHe2].
+- apply contains_Inan, I.nai_correct.
+- apply nullary_bnd_correct.
+- now apply unary_bnd_correct.
+- now apply binary_bnd_correct.
 Qed.
 
 End Bnd.

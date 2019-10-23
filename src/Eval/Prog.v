@@ -114,8 +114,7 @@ Definition cons_unique (e : expr) (l : list expr) :=
 Fixpoint split_expr (e : expr) (lp lc : list expr) :=
   match e with
   | Evar n => Scomposed lp lc
-  | Eint n => Sconst
-  | Econst_pi => Sconst
+  | Econst o => Sconst
   | Eunary o e1 =>
     match split_expr e1 lp lc with
     | Sconst => Sconst
@@ -138,15 +137,15 @@ Fixpoint split_expr (e : expr) (lp lc : list expr) :=
 
 Theorem split_expr_correct :
   forall vars e lp lc,
-  (forall n, eval (nth n lc (Eint 0)) vars = eval (nth n lc (Eint 0)) nil) ->
+  (forall n, eval (nth n lc (Econst (Int 0))) vars = eval (nth n lc (Econst (Int 0))) nil) ->
   match split_expr e lp lc with
   | Sconst => eval e vars = eval e nil
   | Scomposed lp' lc' =>
-    forall n, eval (nth n lc' (Eint 0)) vars = eval (nth n lc' (Eint 0)) nil
+    forall n, eval (nth n lc' (Econst (Int 0))) vars = eval (nth n lc' (Econst (Int 0))) nil
   end.
 Proof.
 intros vars.
-induction e as [n|n| |o e1 IHe1|o e1 IHe1 e2 IHe2] ; intros lp lc Hc ; simpl ; try easy.
+induction e as [n|o|o e1 IHe1|o e1 IHe1 e2 IHe2] ; intros lp lc Hc ; simpl ; try easy.
   specialize (IHe1 lp lc Hc).
   destruct split_expr as [|lp' lc'].
   now apply f_equal.
@@ -154,9 +153,9 @@ induction e as [n|n| |o e1 IHe1|o e1 IHe1 e2 IHe2] ; intros lp lc Hc ; simpl ; t
 specialize (IHe2 lp lc Hc).
 assert (H: forall e l,
     eval e vars = eval e nil ->
-    (forall n, eval (nth n l (Eint 0)) vars = eval (nth n l (Eint 0)) nil) ->
+    (forall n, eval (nth n l (Econst (Int 0))) vars = eval (nth n l (Econst (Int 0))) nil) ->
     forall n,
-    eval (nth n (rcons_unique e l) (Eint 0)) vars = eval (nth n (rcons_unique e l) (Eint 0)) nil).
+    eval (nth n (rcons_unique e l) (Econst (Int 0))) vars = eval (nth n (rcons_unique e l) (Econst (Int 0))) nil).
   intros e l He Hl.
   induction l as [|h t IH] ; simpl.
     now intros [|[|n]].
@@ -202,14 +201,14 @@ Definition find_expr (e : expr) (vars : nat) (lp lc : list expr) :=
 Theorem find_expr_correct :
   forall e vars lp lc,
   match find_expr e vars lp lc with
-  | Some n => nth n (lp ++ map Evar (seq 0 vars) ++ lc) (Eint 0) = e
+  | Some n => nth n (lp ++ map Evar (seq 0 vars) ++ lc) (Econst (Int 0)) = e
   | None => True
   end.
 Proof.
 intros e vars lp lc.
 assert (H1: forall l n,
     match find_expr_aux e n l with
-    | Some k => (n <= k < n + length l)%nat /\ nth (k - n) l (Eint 0) = e
+    | Some k => (n <= k < n + length l)%nat /\ nth (k - n) l (Econst (Int 0)) = e
     | None => True
     end).
   induction l as [|h t IH].
@@ -242,7 +241,7 @@ set (foo :=
   end).
 assert (H2:
     match foo with
-    | Some n => nth n (lp ++ map Evar (seq 0 vars) ++ lc) (Eint 0) = e
+    | Some n => nth n (lp ++ map Evar (seq 0 vars) ++ lc) (Econst (Int 0)) = e
     | None => True
     end).
   unfold foo.
@@ -261,7 +260,7 @@ assert (H2:
   rewrite app_nth2 ; rewrite map_length, seq_length.
   now rewrite <- Nat.sub_add_distr.
   lia.
-destruct e as [| | |o n1|o n1 n2] ; simpl ; try easy.
+destruct e as [n|o|o n1|o n1 n2] ; simpl ; try easy.
 destruct (Nat.ltb_spec n vars) as [H|H] ; try easy.
 rewrite app_nth2 by apply le_plus_l.
 rewrite minus_plus.
@@ -278,8 +277,7 @@ Fixpoint decompose (vars : nat) (p : list term) (lp lc : list expr) :=
   | cons h t =>
     match h with
     | Evar n => decompose vars (cons (Forward (length t + n)) p) t lc
-    | Eint _ => None
-    | Econst_pi => None
+    | Econst _ => None
     | Eunary o e1 =>
       match find_expr e1 vars t lc with
       | Some n => decompose vars (cons (Unary o n) p) t lc
@@ -299,7 +297,7 @@ Fixpoint decompose (vars : nat) (p : list term) (lp lc : list expr) :=
 
 Theorem decompose_correct :
   forall vars p lp lc,
-  (forall vars n, eval (nth n lc (Eint 0)) vars = eval (nth n lc (Eint 0)) nil) ->
+  (forall vars n, eval (nth n lc (Econst (Int 0))) vars = eval (nth n lc (Econst (Int 0))) nil) ->
   let lc' := map (fun c => eval c nil) lc in
   match decompose (length vars) p lp lc with
   | None => True
@@ -315,14 +313,14 @@ easy.
 intros p.
 simpl.
 assert (H: forall n e,
-    nth n (t ++ map Evar (seq 0 (length vars)) ++ lc) (Eint 0) = e ->
+    nth n (t ++ map Evar (seq 0 (length vars)) ++ lc) (Econst (Int 0)) = e ->
     nth n (map (fun c : expr => eval c (vars ++ lc')) t ++ vars ++ lc') 0%R = eval e (vars ++ lc')).
   intros n e.
   destruct (Nat.lt_ge_cases n (length t)) as [H1|H1].
   rewrite app_nth1 by apply H1.
   intros H.
   rewrite app_nth1 by now rewrite map_length.
-  change 0%R with ((fun c => eval c (vars ++ lc')) (Eint 0)).
+  change 0%R with ((fun c => eval c (vars ++ lc')) (Econst (Int 0))).
   rewrite map_nth.
   now rewrite H.
   rewrite app_nth2 by apply H1.
@@ -341,11 +339,11 @@ assert (H: forall n e,
   rewrite app_nth2 by apply H2.
   intros H.
   unfold lc'.
-  change 0%R with ((fun c => eval c nil) (Eint 0)).
+  change 0%R with ((fun c => eval c nil) (Econst (Int 0))).
   rewrite map_nth, H.
   rewrite <- H at 2.
   now rewrite Hc, H.
-destruct h as [| | |o e1|o e1 e2] ; try easy.
+destruct h as [n|o|o e1|o e1 e2] ; try easy.
 - specialize (IH (Forward (length t + n) :: p)).
   destruct decompose ; try easy.
   rewrite IH.
@@ -384,8 +382,7 @@ Qed.
 Fixpoint max_arity (e : expr) (n : nat) :=
   match e with
   | Evar k => Nat.ltb k n
-  | Eint _ => true
-  | Econst_pi => true
+  | Econst _ => true
   | Eunary o e1 => max_arity e1 n
   | Ebinary o e1 e2 => if max_arity e1 n then max_arity e2 n else false
   end.
@@ -454,7 +451,7 @@ unfold eval_real'.
 intros H' ->.
 simpl.
 clear -H'.
-induction e as [n| | |o e1|o e1 IHe1 e2 IHe2] ; simpl ; try easy.
+induction e as [n|o|o e1|o e1 IHe1 e2 IHe2] ; simpl ; try easy.
 apply app_nth1.
 simpl in H'.
 now apply Nat.ltb_lt.
