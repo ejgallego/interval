@@ -54,6 +54,7 @@ Goal
   x < 1 + powerRZ x 3.
 Proof.
   intros.
+  apply Rminus_lt.
   interval with (i_bisect_diff x).
 Qed.
 
