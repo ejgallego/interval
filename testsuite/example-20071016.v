@@ -46,7 +46,7 @@ Goal
     <= 5/65536.
 Proof.
   intros.
-  interval with (i_bisect_taylor x 3).
+  interval with (i_bisect_taylor x, i_degree 3).
 Qed.
 
 Goal
@@ -64,7 +64,7 @@ Goal
   Rabs (RInt (fun x => atan (sqrt (x*x + 2)) / (sqrt (x*x + 2) * (x*x + 1))) 0 1
         - 5/96*PI*PI) <= 1/1000.
 Proof.
-  interval with (i_integral_prec 9, i_integral_depth 1, i_integral_deg 5).
+  interval with (i_fuel 2, i_degree 5).
 Qed.
 
 Goal

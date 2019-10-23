@@ -19,7 +19,7 @@ intros x H.
 (*
 Time interval with (i_bisect_diff x, i_prec 50, i_depth 16). (* 31 s *)
 *)
-Time interval with (i_bisect_taylor x 3, i_prec 50). (* 0.48 s *)
+Time interval with (i_bisect_taylor x, i_degree 3, i_prec 50). (* 0.48 s *)
 Qed.
 
 (* The timings above were obtained using Coq 8.4pl6 *)

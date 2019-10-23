@@ -28,5 +28,5 @@ intros phi Hphi.
 (*
 Time interval with (i_bisect_diff phi). (* 38 s *)
 *)
-Time interval with (i_bisect_taylor phi 5). (* 4.4 s *)
+Time interval with (i_bisect_taylor phi, i_degree 5). (* 4.4 s *)
 Qed.
