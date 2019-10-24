@@ -68,18 +68,6 @@ Fail interval.
 interval || idtac.
 Abort.
 
-Lemma fail_do_interval : (PI > 314159265358979323846/100000000000000000000)%R.
-Fail interval with (i_prec 40).
-(* The command has indeed failed with message: *)
-(* => Error: Tactic failure: *)
-(*    Numerical evaluation failed to conclude. You may want to adjust some parameters. *)
-Fail interval.
-(* The command has indeed failed with message: *)
-(* => Error: Tactic failure: *)
-(*    Numerical evaluation failed to conclude. You may want to adjust some parameters. *)
-interval || idtac.
-Abort.
-
 Lemma fail_do_interval_generalize_1 (x : R) : True.
 Fail interval_intro (tan x) with (i_prec 40).
 (* Warning: Silently use the whole real line for the following term: *)

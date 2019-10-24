@@ -99,6 +99,7 @@ Ltac massage_goal :=
   | |- (?v > ?x)%R => aux v x Glt
   | |- (?x <> ?u :>R) => aux u x (Gne true)
   | |- (?u <> ?x :>R) => aux u x (Gne false)
+  | _ => fail "Goal is not an inequality with constant bounds"
   end.
 
 Ltac find_hyps_aux x known cont :=

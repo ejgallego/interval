@@ -371,8 +371,9 @@ Definition eval_bisect_taylor_plain prec deg depth extend hyps prog consts :=
 Ltac tuple_to_list params l :=
   match params with
   | pair ?a ?b => tuple_to_list a (b :: l)
+  | pair _ ?b => fail 100 "Unknown tactic parameter" b
   | ?b => constr:(b :: l)
-  | ?z => fail 100 "Unknown tactic parameter" z
+  | ?b => fail 100 "Unknown tactic parameter" b
   end.
 
 Inductive interval_tac_method : Set :=
@@ -386,21 +387,21 @@ Ltac do_interval_generalize :=
   | |- contains (I.convert ?b) (Xreal ?t) -> _ =>
     let H := fresh "H" in
     intro H ;
-    match eval cbv -[IZR Rdiv] in (I.convert b) with
-    | Inan => fail 5 "Inan: Nothing known about" t
+    lazymatch eval cbv -[IZR Rdiv] in (I.convert b) with
     | Ibnd ?l ?u =>
-      match l with
-      | Xnan =>
-        match u with
-        | Xnan => fail 7 "Xnan: Nothing known about" t
-        | Xreal ?u => change (True /\ t <= u)%R in H ; destruct H as [_ H]
-        end
+      lazymatch l with
       | Xreal ?l =>
-        match u with
+        lazymatch u with
         | Xnan => change (l <= t /\ True)%R in H ; destruct H as [H _]
         | Xreal ?u => change (l <= t <= u)%R in H
         end
+      | Xnan =>
+        lazymatch u with
+        | Xreal ?u => change (True /\ t <= u)%R in H ; destruct H as [_ H]
+        | Xnan => fail "Xnan: Nothing known about" t
+        end
       end
+    | Inan => fail "Inan: Nothing known about" t
     end ;
     revert H
   end.
@@ -419,7 +420,7 @@ Ltac do_reduction nocheck native :=
     | true => native_cast_no_check (eq_refl true)
     | false => vm_cast_no_check (eq_refl true)
     end) ||
-    fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters"
+    fail "Numerical evaluation failed to conclude. You may want to adjust some parameters"
   end.
 
 Ltac do_interval vars prec degree depth fuel native nocheck eval_tac :=
@@ -470,7 +471,7 @@ Ltac do_interval_intro y extend vars prec degree depth fuel native nocheck eval_
 
 Ltac do_parse params depth :=
   let rec aux vars prec degree depth fuel native nocheck itm params :=
-    match params with
+    lazymatch params with
     | nil => constr:((vars, prec, degree, depth, fuel, native, nocheck, itm))
     | cons (i_prec ?p) ?t => aux vars p degree depth fuel native nocheck itm t
     | cons (i_degree ?d) ?t => aux vars prec d depth fuel native nocheck itm t
