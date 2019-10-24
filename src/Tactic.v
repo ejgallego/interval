@@ -458,7 +458,11 @@ Ltac do_interval_intro y extend vars prec degree depth fuel native nocheck eval_
         | itm_bisect_diff => constr:(eval_bisect_diff_plain prec depth extend hyps prog consts)
         | itm_bisect_taylor => constr:(eval_bisect_taylor_plain prec degree depth extend hyps prog consts)
         end in
-      let yi := eval vm_compute in (extend yi) in
+      let yi :=
+        match native with
+        | true => eval native_compute in (extend yi)
+        | false => eval vm_compute in (extend yi)
+        end in
       instantiate (i := yi)
     end ;
     do_reduction nocheck native
