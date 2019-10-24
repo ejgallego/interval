@@ -19,7 +19,6 @@ liability. See the COPYING file for more details.
 
 From Coq Require Import Reals List ZArith Psatz.
 From Coquelicot Require Import Coquelicot.
-From mathcomp.ssreflect Require Import ssreflect ssrbool.
 
 Require Import Stdlib.
 Require Import Coquelicot.
@@ -34,6 +33,7 @@ Require Import Bertrand.
 Require Import Tree.
 Require Import Prog.
 Require Import Reify.
+Require Import Refine.
 
 Module IntervalTactic (F : FloatOps with Definition even_radix := true).
 
@@ -52,13 +52,83 @@ Module Private.
 
 Module I := FloatIntervalFull F.
 Module J := IntervalExt I.
-Module Fext := FloatExt F.
+Module F' := FloatExt F.
 Module A := IntervalAlgos I.
-Module Int := IntegralTactic F I.
-Module Int' := IntegralTaylor I.
-Module Bertrand := BertrandInterval F I.
 Module T := Tree.Bnd I.
 Module R := Reify.Bnd I.
+Module BI := BertrandInterval F I.
+Module IR := IntegralRefiner I.
+Module IT := IntegralTaylor I.
+Module IU := IntegralTactic F I.
+
+Definition reify_var : R.
+Proof. exact 0%R. Qed.
+
+Ltac get_RInt_vars y i f :=
+  let fapp := eval cbv beta in (f reify_var) in
+  let vars := constr:(reify_var :: @nil R) in
+  let vars := get_vars fapp vars in
+  let vars := match get_vars fapp vars with reify_var :: ?vars => vars end in
+  let vars := constr:(i :: vars) in
+  let vars := match get_vars y vars with i :: ?vars => vars end in
+  vars.
+
+Ltac reify_RInt :=
+  match goal with
+  | |- eval_goal ?g' ?y =>
+    let g := fresh "__goal" in
+    set (g := g') ;
+    match y with
+    | context [RInt ?f ?u ?v] =>
+      let i := constr:(RInt f u v) in
+      let vars := get_RInt_vars y i f in
+      let vars := get_vars u vars in
+      let vars := get_vars v vars in
+      reify_partial y (i :: vars) ;
+      apply eq_ind ;
+      erewrite <- RInt_ext by (
+        let t := fresh "t" in
+        intros t _ ;
+        let fapp := eval cbv beta in (f t) in
+        reify_partial fapp (t :: vars) ;
+        exact (fun H => H)) ;
+      reify_partial u vars ;
+      intros <- ;
+      reify_partial v vars ;
+      intros <- ;
+      find_hyps vars
+    end
+  end.
+
+Ltac reify_RInt_gen_infty :=
+  match goal with
+  | |- eval_goal ?g' ?y =>
+    let g := fresh "__goal" in
+    set (g := g') ;
+    match y with
+    | context [RInt_gen ?fm (at_point ?u) (Rbar_locally p_infty)] =>
+      let i := constr:(RInt_gen fm (at_point u) (Rbar_locally p_infty)) in
+      let f :=
+        match fm with
+        | (fun x => @?f x * _)%R => f
+        | (fun x => @?f x / _)%R => f
+        end in
+      let vars := get_RInt_vars y i f in
+      let vars := get_vars u vars in
+      reify_partial y (i :: vars) ;
+      apply eq_ind ;
+      erewrite <- RInt_gen_ext_eq by (
+        let t := fresh "t" in
+        intros t ;
+        apply (f_equal (fun v => Rmult v _)) ;
+        let fapp := eval cbv beta in (f t) in
+        reify_partial fapp (t :: vars) ;
+        exact (fun H => H)) ;
+      reify_partial u vars ;
+      intros <- ;
+      find_hyps vars
+    end
+  end.
 
 Definition compute_inputs prec hyps consts :=
   R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts.
@@ -171,7 +241,7 @@ unfold compute_inputs.
 destruct R.merge_hyps as [|vi t].
 easy.
 simpl in H' |- *.
-rewrite I.lower_correct I.upper_correct.
+rewrite I.lower_correct, I.upper_correct.
 now destruct I.convert.
 Qed.
 
@@ -209,7 +279,7 @@ unfold compute_inputs.
 destruct R.merge_hyps as [|vi t].
 easy.
 simpl in H' |- *.
-rewrite I.lower_correct I.upper_correct.
+rewrite I.lower_correct, I.upper_correct.
 now destruct I.convert.
 Qed.
 
@@ -367,6 +437,475 @@ Definition eval_bisect_taylor_plain prec deg depth extend hyps prog consts :=
     A.TaylorValuator.TM.eval (prec, deg)
       (nth 0 (A.TaylorValuator.eval prec deg xi prog bounds) A.TaylorValuator.TM.dummy) xi xi
   ) (I.lower xi) (I.upper xi) extend depth.
+
+Definition eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g :=
+  let hyps := R.merge_hyps prec hyps in
+  let fi :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cf in
+    fun b => nth 0 (A.BndValuator.eval prec pf (b :: bounds)) I.nai in
+  let ui :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cu in
+    nth 0 (A.BndValuator.eval prec pu bounds) I.nai in
+  let vi :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cv in
+    nth 0 (A.BndValuator.eval prec pv bounds) I.nai in
+  let cb := fun x =>
+    match x with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end in
+  let mid := fun u v =>
+    let u := cb u in
+    let v := cb v in
+    I.midpoint (I.join u v) in
+  let Fi :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cf in
+    let bounds := map A.TaylorValuator.TM.const bounds in
+    fun u v =>
+      let u := cb u in
+      let v := cb v in
+      let xi := I.join u v in
+      let gi :=
+        A.TaylorValuator.TM.get_tm (prec, deg) xi
+          (nth 0 (A.TaylorValuator.eval prec deg xi pf (A.TaylorValuator.TM.var :: bounds))
+            A.TaylorValuator.TM.dummy) in
+      IT.taylor_integral_naive_intersection prec fi gi xi u v in
+  let check :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cg in
+    fun b =>
+      let yi := nth 0 (A.BndValuator.eval prec pg (b :: bounds)) I.nai in
+      R.eval_goal_bnd prec g yi in
+  check (IR.bisect prec limit mid Fi check).
+
+Theorem eval_RInt_correct :
+  forall prec deg limit vars hyps pg pf pu pv cg cf cu cv g,
+  no_floor_prog pf = true ->
+  eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g = true ->
+  eval_hyps hyps vars (
+    eval_goal g (Prog.eval_real' pg (
+      (RInt (fun t => Prog.eval_real' pf (t :: vars) cf)
+        (Prog.eval_real' pu vars cu) (Prog.eval_real' pv vars cv)) :: vars) cg)).
+Proof.
+intros prec deg limit vars hyps pg pf pu pv cg cf cu cv g Hp H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+apply (R.eval_goal_bnd_correct prec) with (2 := H).
+unfold Prog.eval_real'.
+simpl.
+fold (compute_inputs prec hyps cg).
+fold (compute_inputs prec hyps cu).
+fold (compute_inputs prec hyps cv).
+destruct (app_merge_hyps_eval_bnd prec _ _ cg H') as [bpg [<- <-]].
+apply A.BndValuator.eval_correct_ext'.
+destruct (app_merge_hyps_eval_bnd prec _ _ cu H') as [bpu [<- <-]].
+destruct (app_merge_hyps_eval_bnd prec _ _ cv H') as [bpv [<- <-]].
+generalize (A.BndValuator.eval_correct' prec pu bpu 0) (A.BndValuator.eval_correct' prec pv bpv 0).
+generalize (nth 0 (A.BndValuator.eval prec pv (map A.interval_from_bp bpv)) I.nai).
+generalize (nth 0 (A.BndValuator.eval prec pu (map A.interval_from_bp bpu)) I.nai).
+generalize (nth 0 (Prog.eval_real pv (map A.real_from_bp bpv)) 0%R).
+generalize (nth 0 (Prog.eval_real pu (map A.real_from_bp bpu)) 0%R).
+clear -H' Hp.
+intros u v ui vi Hu Hv.
+apply IR.contains_RInt_valid.
+apply IR.bisect_correct ; [ typeclasses eauto .. | idtac ].
+intros u' v'.
+set (cbu := match u' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end).
+set (cbv := match v' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end).
+fold (compute_inputs prec hyps cf).
+destruct (app_merge_hyps_eval_bnd prec _ _ cf H') as [bpf [<- <-]].
+match goal with
+| |- IR.valid _ _ _ _ _ ?fi =>
+  let fi' := eval pattern cbu, cbv in fi in
+  change fi with fi'
+end.
+apply IR.valid_at_point ; try easy.
+clear -Hp.
+intros ui vi u v Hu Hv.
+set (i := IT.taylor_integral_naive_intersection _ _ _ _ _ _).
+apply RInt_helper.
+intros Hi.
+assert (ex_RInt (fun t => nth 0 (Prog.eval_real pf (t :: map A.real_from_bp bpf)) 0%R) u v) as [I HI].
+  apply (A.BndValuator.ex_RInt_eval prec) with (i := I.join ui vi) (1 := Hp).
+    apply contains_connected.
+    apply Rmin_case ; apply I.join_correct.
+    now left.
+    now right.
+    apply Rmax_case ; apply I.join_correct.
+    now left.
+    now right.
+  contradict Hi.
+  unfold i, IT.taylor_integral_naive_intersection. clear i.
+  rewrite I.real_correct.
+  destruct (I.convert (I.mul _ _ _)) as [|il iu] eqn:Hm.
+    easy.
+  exfalso.
+  now rewrite I.mul_propagate_r in Hm.
+exists I.
+apply (conj HI).
+rewrite <- is_RInt_unique with (1 := HI).
+apply IT.taylor_integral_naive_intersection_correct ; cycle 2.
+  now exists I.
+  exact Hu.
+  exact Hv.
+  apply I.join_correct.
+  now left.
+  apply I.join_correct.
+  now right.
+  apply A.BndValuator.eval_correct_ext'.
+apply A.TaylorValuator.TM.get_tm_correct ; cycle 1.
+  exists u.
+  apply I.join_correct.
+  now left.
+rewrite map_map.
+apply A.TaylorValuator.eval_correct_aux'.
+Qed.
+
+Definition bertrand_prog alpha beta p :=
+  let x := length p in
+  app p (Prog.Unary (PowerInt alpha) x :: Prog.Unary Ln (S x) :: Prog.Unary (PowerInt (Z_of_nat beta)) 0 :: Prog.Binary Mul 2 0 :: Prog.Binary Mul 4 0 :: nil).
+
+Lemma bertrand_prog_correct :
+  forall alpha beta p c x,
+  nth 0 (Prog.eval_real (bertrand_prog alpha beta p) (x :: c)) 0 =
+  (nth 0 (Prog.eval_real p (x :: c)) 0 * (powerRZ x alpha * pow (ln x) beta)).
+Proof.
+intros alpha beta p c x.
+unfold Prog.eval_real, bertrand_prog.
+rewrite 2!Prog.rev_formula.
+rewrite rev_app_distr.
+simpl.
+replace (nth (length p) _ _) with x.
+now rewrite <- pow_powerRZ.
+rewrite <- rev_length.
+now induction (rev p) as [|h t].
+Qed.
+
+Definition bertrand_interval alpha beta prec ui :=
+  if F'.le (F.fromZ 1) (I.lower ui) then
+    BI.f_int_fast prec ui alpha beta
+  else I.nai.
+
+Definition invxln_prog beta p :=
+  let x := length p in
+  app p (Prog.Unary Ln x :: Prog.Unary (PowerInt (Z_of_nat (S (S beta)))) 0 :: Prog.Binary Mul (S (S x)) 0 :: Prog.Binary Div 3 0 :: nil).
+
+Lemma invxln_prog_correct :
+  forall beta p c x,
+  nth 0 (Prog.eval_real (invxln_prog beta p) (x :: c)) 0 =
+  (nth 0 (Prog.eval_real p (x :: c)) 0 / (x * pow (ln x) (S (S beta)))).
+Proof.
+intros beta p c x.
+unfold Prog.eval_real, invxln_prog.
+rewrite 2!Prog.rev_formula.
+rewrite rev_app_distr.
+simpl.
+replace (nth (length p) _ _) with x.
+now rewrite Pos2Nat.inj_succ, SuccNat2Pos.id_succ.
+rewrite <- rev_length.
+now induction (rev p) as [|h t].
+Qed.
+
+Definition invxln_interval beta prec ui :=
+  if F'.lt (F.fromZ 1) (I.lower ui) then
+    BI.f_neg_int prec ui (S beta)
+  else I.nai.
+
+(*Eval cbv -[ln exp powerRZ IZR] in Prog.eval_real (invxln_prog 2 (Prog.Unary Exp 0 :: nil)) (42%R :: nil).*)
+
+Definition eval_RInt_gen_infty prec deg limit hyps mi pg pf pfm pu cg cf cfm cu g :=
+  let hyps := R.merge_hyps prec hyps in
+  let fi :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cf in
+    fun b => nth 0 (A.BndValuator.eval prec pf (b :: bounds)) I.nai in
+  let fmi :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cfm in
+    fun b => nth 0 (A.BndValuator.eval prec pfm (b :: bounds)) I.nai in
+  let ui :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cu in
+    nth 0 (A.BndValuator.eval prec pu bounds) I.nai in
+  let cb := fun x =>
+    match x with IR.IBu => ui | IR.IBv => I.nai | IR.IBp x => I.bnd x x end in
+  let mid u v :=
+    match u, v with
+    | IR.IBu, IR.IBv => I.midpoint (I.upper_extent ui)
+    | IR.IBu, IR.IBp v => I.midpoint (I.join ui (I.bnd v v))
+    | IR.IBp u, IR.IBv => I.midpoint (I.upper_extent (I.bnd u u))
+    | IR.IBp u, IR.IBp v => I.midpoint (I.join (I.bnd u u) (I.bnd v v))
+    | _, _ => F.zero
+    end in
+  let Fi1 :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cfm in
+    let bounds := map A.TaylorValuator.TM.const bounds in
+    fun ui vi =>
+      let xi := I.join ui vi in
+      let gi :=
+        A.TaylorValuator.TM.get_tm (prec, deg) xi
+          (nth 0 (A.TaylorValuator.eval prec deg xi pfm (A.TaylorValuator.TM.var :: bounds))
+            A.TaylorValuator.TM.dummy) in
+      IT.taylor_integral_naive_intersection prec fmi gi xi ui vi in
+  let Fi2 :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cf in
+    let bounds := map A.TaylorValuator.TM.const bounds in
+    fun ui =>
+      let yi := fi (I.upper_extent ui) in
+      if I.bounded yi then I.mul prec yi (mi prec ui) else I.nai in
+  let Fi u v :=
+    match u, v with
+    | IR.IBu, IR.IBv => Fi2 ui
+    | IR.IBu, IR.IBp v => Fi1 ui (I.bnd v v)
+    | IR.IBp u, IR.IBv => Fi2 (I.bnd u u)
+    | IR.IBp u, IR.IBp v => Fi1 (I.bnd u u) (I.bnd v v)
+    | _, _ => I.nai
+    end in
+  let check :=
+    let bounds := hyps ++ map (T.eval_bnd prec) cg in
+    fun b =>
+      let yi := nth 0 (A.BndValuator.eval prec pg (b :: bounds)) I.nai in
+      R.eval_goal_bnd prec g yi in
+  check (IR.bisect prec limit mid Fi check).
+
+Theorem eval_RInt_gen_infty_correct :
+  forall prec deg limit vars hyps mi mp mr pg pf pu cg cf cu g,
+  (forall fi ui f u, contains (I.convert ui) (Xreal u) ->
+    (forall t, (u <= t)%R -> continuous f t) ->
+    (forall t, (u <= t)%R -> contains (I.convert (fi (I.upper_extent ui))) (Xreal (f t))) ->
+    I.bounded (fi (I.upper_extent ui)) = true ->
+    I.convert (mi prec ui) <> Inan ->
+    exists I : R,
+    is_RInt_gen (fun t : R => f t * mr t) (at_point u) (Rbar_locally p_infty) I /\
+    contains (I.convert (I.mul prec (fi (I.upper_extent ui)) (mi prec ui))) (Xreal I)) ->
+  (forall c t, nth 0 (Prog.eval_real mp (t :: c)) 0 = nth 0 (Prog.eval_real pf (t :: c)) 0 * mr t)%R ->
+  no_floor_prog mp = true ->
+  no_floor_prog pf = true ->
+  eval_RInt_gen_infty prec deg limit hyps mi pg pf mp pu cg cf cf cu g = true ->
+  eval_hyps hyps vars (
+    eval_goal g (Prog.eval_real' pg (
+      (RInt_gen (fun t => Prog.eval_real' pf (t :: vars) cf * mr t)
+        (at_point (Prog.eval_real' pu vars cu)) (Rbar_locally p_infty)) :: vars) cg)).
+Proof.
+intros prec deg limit vars hyps mi mp mr pg pf pu cg cf cu g Hf Hm1 Hm2 Hp H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+apply (R.eval_goal_bnd_correct prec) with (2 := H).
+unfold Prog.eval_real'.
+simpl.
+fold (compute_inputs prec hyps cg).
+destruct (app_merge_hyps_eval_bnd prec _ _ cg H') as [bpg [<- <-]].
+apply A.BndValuator.eval_correct_ext'.
+fold (compute_inputs prec hyps cu).
+destruct (app_merge_hyps_eval_bnd prec _ _ cu H') as [bpu [<- <-]].
+generalize (A.BndValuator.eval_correct' prec pu bpu 0).
+generalize (nth 0 (A.BndValuator.eval prec pu (map A.interval_from_bp bpu)) I.nai).
+generalize (nth 0 (Prog.eval_real pu (map A.real_from_bp bpu)) 0%R).
+clear -H' Hf Hm1 Hm2 Hp.
+intros u ui Hu.
+apply IR.bisect_correct with (uf := at_point u) (vf := Rbar_locally p_infty) ;
+  [ typeclasses eauto .. | idtac ].
+intros u' v'.
+fold (compute_inputs prec hyps cf).
+destruct (app_merge_hyps_eval_bnd prec _ _ cf H') as [bpf [<- <-]].
+set (fi :=
+  let bounds := map A.interval_from_bp bpf in
+  fun b => nth 0 (A.BndValuator.eval prec pf (b :: bounds)) I.nai).
+set (fmi :=
+  let bounds := map A.interval_from_bp bpf in
+  fun b => nth 0 (A.BndValuator.eval prec mp (b :: bounds)) I.nai).
+set (Fi1 :=
+  let bounds := map A.TaylorValuator.TM.const (map A.interval_from_bp bpf) in
+  fun ui vi =>
+    let xi := I.join ui vi in
+    let gi :=
+      A.TaylorValuator.TM.get_tm (prec, deg) xi
+        (nth 0 (A.TaylorValuator.eval prec deg xi mp (A.TaylorValuator.TM.var :: bounds))
+          A.TaylorValuator.TM.dummy) in
+    IT.taylor_integral_naive_intersection prec fmi gi xi ui vi).
+set (Fi2 :=
+  let bounds := map A.interval_from_bp bpf in
+  let bounds := map A.TaylorValuator.TM.const bounds in
+  fun ui =>
+    let yi := fi (I.upper_extent ui) in
+    if I.bounded yi then I.mul prec yi (mi prec ui) else I.nai).
+apply IR.valid_at_mixed with (u := u) (v := Rbar_locally p_infty)
+    (fi1 := Fi1) (fi2 := Fi2) (ui := ui) (u' := u') (v' := v').
+- typeclasses eauto.
+- exact Hu.
+- clear -Hf Hm1 Hm2 Hp.
+  intros ui vi u v Hu Hv.
+  apply RInt_helper.
+  intros Hi.
+  assert (ex_RInt (fun t => nth 0 (Prog.eval_real pf (t :: map A.real_from_bp bpf)) 0%R * mr t) u v) as [I HI].
+    eapply ex_RInt_ext.
+      intros x _.
+      apply Hm1.
+    apply (A.BndValuator.ex_RInt_eval prec) with (i := I.join ui vi).
+      apply Hm2.
+      apply contains_connected.
+      apply Rmin_case ; apply I.join_correct.
+      now left.
+      now right.
+      apply Rmax_case ; apply I.join_correct.
+      now left.
+      now right.
+    contradict Hi.
+    unfold Fi1, IT.taylor_integral_naive_intersection, fmi. clear -Hi.
+    rewrite I.real_correct.
+    destruct (I.convert (I.mul _ _ _)) as [|il iu] eqn:Hm.
+      easy.
+    exfalso.
+    eapply I.mul_propagate_r in Hi.
+    now rewrite Hm in Hi.
+  exists I.
+  apply (conj HI).
+  rewrite <- is_RInt_unique with (1 := HI).
+  apply IT.taylor_integral_naive_intersection_correct ; cycle 2.
+    now exists I.
+    exact Hu.
+    exact Hv.
+    apply I.join_correct.
+    now left.
+    apply I.join_correct.
+    now right.
+    intros xi x Hx.
+    rewrite <- Hm1.
+    now apply A.BndValuator.eval_correct_ext'.
+  apply A.TaylorValuator.TM.get_tm_correct ; cycle 1.
+    exists u.
+    apply I.join_correct.
+    now left.
+  rewrite map_map.
+  eapply A.TaylorValuator.TM.approximates_ext.
+  intros x.
+  rewrite <- Hm1.
+  easy.
+  apply A.TaylorValuator.eval_correct_aux'.
+- clear -Hp Hf.
+  intros ui u Hu.
+  apply RInt_gen_helper ; [typeclasses eauto .. | idtac].
+  unfold Fi2.
+  destruct I.bounded eqn:Hb ; cycle 1.
+    now rewrite I.nai_correct.
+  intros Hi.
+  apply Hf with (1 := Hu) (4 := Hb).
+  + intros t Ht.
+    apply A.BndValuator.continuous_eval with (prec := prec) (i := I.upper_extent ui) (1 := Hp).
+    now apply I.upper_extent_correct with (1 := Hu).
+    change (I.convert (fi (I.upper_extent ui)) <> Inan).
+    clear -Hb.
+    now destruct fi.
+  + intros t Ht.
+    apply A.BndValuator.eval_correct_ext'.
+    now apply I.upper_extent_correct with (1 := Hu).
+  + contradict Hi.
+    now apply I.mul_propagate_r.
+Qed.
+
+Theorem eval_RInt_gen_infty_bertrand :
+  forall prec deg limit vars hyps alpha beta pg pf pu cg cf cu g,
+  (alpha < -1)%Z ->
+  no_floor_prog pf = true ->
+  eval_RInt_gen_infty prec deg limit hyps (bertrand_interval alpha beta) pg pf (bertrand_prog alpha beta pf) pu cg cf cf cu g = true ->
+  eval_hyps hyps vars (
+    eval_goal g (Prog.eval_real' pg (
+      (RInt_gen (fun t => Prog.eval_real' pf (t :: vars) cf * (powerRZ t alpha * pow (ln t) beta))
+        (at_point (Prog.eval_real' pu vars cu)) (Rbar_locally p_infty)) :: vars) cg)).
+Proof.
+intros prec deg limit vars hyps alpha beta pg pf pu cg cf cu g Halpha Hp.
+apply eval_RInt_gen_infty_correct ; cycle 1.
+- apply bertrand_prog_correct.
+- unfold bertrand_prog, no_floor_prog in Hp |- *.
+  rewrite <- fold_left_rev_right.
+  rewrite rev_app_distr.
+  simpl.
+  rewrite fold_left_rev_right.
+  now rewrite Hp.
+- exact Hp.
+- intros fi ui f u Hu Hc Hf Hb.
+  unfold bertrand_interval.
+  destruct F'.le eqn:Hul ; cycle 1.
+    now rewrite I.nai_correct.
+  intros _.
+  assert (Hu': (1 <= u)%R).
+    apply F'.le_correct in Hul.
+    rewrite F.fromZ_correct in Hul.
+    rewrite I.lower_correct in Hul.
+    destruct (I.convert ui) as [|[|ul] ur] ; try easy.
+    now apply Rle_trans with (2 := proj1 Hu).
+  eapply IU.integral_interval_mul_infty with (1 := Hu) (2 := Hf) (3 := Hb) (4 := Hc).
+  + intros x Hx.
+    assert (Hx': (0 < x)%R).
+      apply Rlt_le_trans with (1 := Rlt_0_1).
+      now apply Rle_trans with u.
+    apply @continuous_mult.
+    apply @ex_derive_continuous.
+    apply ex_derive_powerRZ.
+    right.
+    now apply Rgt_not_eq.
+    apply @ex_derive_continuous.
+    apply ex_derive_pow.
+    eexists.
+    now apply is_derive_ln.
+  + intros x Hx.
+    apply Stdlib.Rmult_le_pos_pos.
+    apply powerRZ_le.
+    lra.
+    apply pow_le.
+    rewrite <- ln_1.
+    apply ln_le.
+    apply Rlt_0_1.
+    now apply Rle_trans with u.
+  + apply f_lim_correct with (2 := Halpha).
+    now apply Rlt_le_trans with (1 := Rlt_0_1).
+  + apply BI.f_int_fast_correct.
+    exact Hu.
+    now apply Rlt_le_trans with (1 := Rlt_0_1).
+    now apply Zlt_not_eq.
+Qed.
+
+Theorem eval_RInt_gen_infty_invxln :
+  forall prec deg limit vars hyps beta pg pf pu cg cf cu g,
+  no_floor_prog pf = true ->
+  eval_RInt_gen_infty prec deg limit hyps (invxln_interval beta) pg pf (invxln_prog beta pf) pu cg cf cf cu g = true ->
+  eval_hyps hyps vars (
+    eval_goal g (Prog.eval_real' pg (
+      (RInt_gen (fun t => Prog.eval_real' pf (t :: vars) cf / (t * pow (ln t) (S (S beta))))
+        (at_point (Prog.eval_real' pu vars cu)) (Rbar_locally p_infty)) :: vars) cg)).
+Proof.
+intros prec deg limit vars hyps beta pg pf pu cg cf cu g Hp.
+apply eval_RInt_gen_infty_correct ; cycle 1.
+- apply invxln_prog_correct.
+- unfold invxln_prog, no_floor_prog in Hp |- *.
+  rewrite <- fold_left_rev_right.
+  rewrite rev_app_distr.
+  simpl.
+  rewrite fold_left_rev_right.
+  now rewrite Hp.
+- exact Hp.
+- intros fi ui f u Hu Hc Hf Hb.
+  unfold invxln_interval.
+  destruct F'.lt eqn:Hul ; cycle 1.
+    now rewrite I.nai_correct.
+  intros _.
+  assert (Hu': (1 < u)%R).
+    apply F'.lt_correct in Hul.
+    rewrite F.fromZ_correct in Hul.
+    rewrite I.lower_correct in Hul.
+    destruct (I.convert ui) as [|[|ul] ur] ; try easy.
+    now apply Rlt_le_trans with (2 := proj1 Hu).
+  eapply IU.integral_interval_mul_infty with (1 := Hu) (2 := Hf) (3 := Hb) (4 := Hc).
+  + intros x Hx.
+    assert (Hx': (1 < x)%R).
+      now apply Rlt_le_trans with u.
+    apply (continuous_f_neg x (S (S beta))).
+    now apply Rlt_trans with (1 := Rlt_0_1).
+    now apply Rgt_not_eq.
+  + intros x Hx.
+    apply Rlt_le, Rinv_0_lt_compat, Rmult_lt_0_compat.
+    lra.
+    apply (pow_lt (ln x) (S (S beta))).
+    rewrite <- ln_1.
+    apply ln_increasing.
+    apply Rlt_0_1.
+    now apply Rlt_le_trans with u.
+  + now apply (f_neg_correct_RInt_gen_a_infty u (S beta)).
+  + now apply BI.f_neg_int_correct.
+Qed.
 
 Ltac tuple_to_list params l :=
   match params with

@@ -75,6 +75,17 @@ Qed.
 
 End IterUntil.
 
+Definition valid (f : R -> R) (uf vf : (R -> Prop) -> Prop) yi :=
+  (yi <> Inan -> ex_RInt_gen f uf vf) /\
+  contains yi (Xreal (RInt_gen f uf vf)).
+
+Lemma valid_Inan :
+  forall f uf vf, valid f uf vf Inan.
+Proof.
+intros f uf vf.
+now split.
+Qed.
+
 Module IntegralRefiner (I : IntervalOps).
 
 Module J := IntervalExt I.
@@ -102,8 +113,7 @@ apply at_point_filter.
 Qed.
 
 Definition valid f u v i :=
-  (I.convert i <> Inan -> ex_RInt_gen f (convert u) (convert v)) /\
-  contains (I.convert i) (Xreal (RInt_gen f (convert u) (convert v))).
+  valid f (convert u) (convert v) (I.convert i).
 
 Inductive piece :=
   Piece (u v : integral_bound) (i : I.type).
@@ -318,6 +328,19 @@ split.
   now apply IH with (1 := H2).
 Qed.
 
+(*
+Definition bisect prec n midp fi (check : I.type -> bool) :=
+  let i := fi IBu IBv in
+  if check i then (i, i, 0%Z, 0%Z)
+  else
+    let '(s, p, n1, n2) := iter_until n
+      (fun '(p, n1, n2) => (split_piece prec midp fi p, Z.succ n1, n2))
+      (fun '(_, p, n1, n2) => (sum prec p, p, n1, Z.succ n2))
+      (fun '(p, _, _, _) => check p)
+      (i, PTsome (Piece IBu IBv i) nil, 0%Z, 0%Z) in
+    (s, sum prec p, n1, n2).
+*)
+
 Definition bisect prec n midp fi (check : I.type -> bool) :=
   let i := fi IBu IBv in
   if check i then i
@@ -353,4 +376,162 @@ Qed.
 
 End Bounds.
 
+Theorem contains_RInt_valid :
+  forall f u v i,
+  valid (at_point u) (at_point v) f IBu IBv i ->
+  contains (I.convert i) (Xreal (RInt f u v)).
+Proof.
+intros f u v i [H1 H2].
+destruct (I.convert i) as [|il iu].
+easy.
+rewrite <- RInt_gen_at_point.
+exact H2.
+apply ex_RInt_gen_at_point.
+now apply H1.
+Qed.
+
+Theorem valid_at_point :
+  forall f u v fi ui vi,
+  contains (I.convert ui) (Xreal u) ->
+  contains (I.convert vi) (Xreal v) ->
+  (forall ui' vi' u' v',
+    contains (I.convert ui') (Xreal u') ->
+    contains (I.convert vi') (Xreal v') ->
+    (I.convert (fi ui' vi') <> Inan -> ex_RInt f u' v') /\
+    contains (I.convert (fi ui' vi')) (Xreal (RInt f u' v'))) ->
+  forall u' v',
+  let cb := fun x =>
+    match x with IBu => ui | IBv => vi | IBp x => I.bnd x x end in
+  valid (at_point u) (at_point v) f u' v' (fi (cb u') (cb v')).
+Proof.
+intros f u v fi ui vi Hu Hv Hf u' v' cb.
+unfold valid.
+set (cb' p := match p with IBu => u | IBv => v | IBp x => proj_val (I.convert_bound x) end).
+assert (H1: forall p, at_point (cb' p) = convert (at_point u) (at_point v) p).
+  now intros [| |p].
+assert (H2: forall p, contains (I.convert (cb p)) (Xreal (cb' p))).
+  intros [| |p].
+  exact Hu.
+  exact Hv.
+  simpl.
+  rewrite I.bnd_correct.
+  destruct (I.convert_bound p) as [|pr].
+  easy.
+  split ; apply Rle_refl.
+rewrite <- 2!H1.
+destruct (Hf (cb u') (cb v') (cb' u') (cb' v') (H2 u') (H2 v')) as [H3 H4].
+destruct (I.convert (fi (cb u') (cb v'))) as [|il iu] eqn:E.
+easy.
+split.
+intros _.
+apply <- (ex_RInt_gen_at_point f).
+now apply H3.
+rewrite RInt_gen_at_point.
+exact H4.
+now apply H3.
+Qed.
+
+Theorem valid_at_mixed :
+  forall f u v (Fv: ProperFilter v) fi1 fi2 ui,
+  contains (I.convert ui) (Xreal u) ->
+  (forall ui' vi' u' v',
+    contains (I.convert ui') (Xreal u') ->
+    contains (I.convert vi') (Xreal v') ->
+    (I.convert (fi1 ui' vi') <> Inan -> ex_RInt f u' v') /\
+    contains (I.convert (fi1 ui' vi')) (Xreal (RInt f u' v'))) ->
+  (forall ui' u',
+    contains (I.convert ui') (Xreal u') ->
+    (I.convert (fi2 ui') <> Inan -> ex_RInt_gen f (at_point u') v) /\
+    contains (I.convert (fi2 ui')) (Xreal (RInt_gen f (at_point u') v))) ->
+  forall u' v',
+  valid (at_point u) v f u' v'
+    (match u', v' with
+    | IBu, IBp x => fi1 ui (I.bnd x x)
+    | IBp xl, IBp xu => fi1 (I.bnd xl xl) (I.bnd xu xu)
+    | IBu, IBv => fi2 ui
+    | IBp xl, IBv => fi2 (I.bnd xl xl)
+    | _, _ => I.nai
+    end).
+Proof.
+intros f u v Fv fi1 fi2 ui Hu Hf1 Hf2 u' v'.
+unfold valid.
+assert (H1: forall p, contains (I.convert (I.bnd p p)) (Xreal (proj_val (I.convert_bound p)))).
+  intros p.
+  rewrite I.bnd_correct.
+  destruct (I.convert_bound p) as [|pr].
+  easy.
+  split ; apply Rle_refl.
+destruct u' as [| |ur] ;
+  destruct v' as [| |vr] ;
+    try (rewrite I.nai_correct ; apply valid_Inan).
+- now apply Hf2.
+- destruct (Hf1 ui (I.bnd vr vr) u (proj_val (I.convert_bound vr)) Hu) as [H2 H3].
+  apply H1.
+  destruct (I.convert (fi1 ui (I.bnd vr vr))) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  apply <- (ex_RInt_gen_at_point f).
+  now apply H2.
+  simpl convert.
+  rewrite RInt_gen_at_point.
+  apply H3.
+  now apply H2.
+- destruct (Hf2 (I.bnd ur ur) (proj_val (I.convert_bound ur))) as [H2 H3].
+  apply H1.
+  destruct (I.convert (fi2 (I.bnd ur ur))) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  now apply H2.
+  apply H3.
+- destruct (Hf1 (I.bnd ur ur) (I.bnd vr vr) (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))) as [H2 H3].
+  apply H1.
+  apply H1.
+  destruct (I.convert (fi1 (I.bnd ur ur) (I.bnd vr vr))) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  apply <- (ex_RInt_gen_at_point f).
+  now apply H2.
+  simpl convert.
+  rewrite RInt_gen_at_point.
+  apply H3.
+  now apply H2.
+Qed.
+
 End IntegralRefiner.
+
+Lemma RInt_helper :
+  forall f u v i,
+  (i <> Inan -> exists I : R, is_RInt f u v I /\ contains i (Xreal I)) ->
+  (i <> Inan -> ex_RInt f u v) /\ contains i (Xreal (RInt f u v)).
+Proof.
+intros f u v [|il iu].
+easy.
+intros [I [H1 H2]].
+easy.
+split.
+intros _.
+now exists I.
+apply eq_ind with (1 := H2).
+apply f_equal, eq_sym.
+now apply is_RInt_unique.
+Qed.
+
+Lemma RInt_gen_helper :
+  forall f u v {Fu : ProperFilter' u} {Fv : ProperFilter' v} i,
+  (i <> Inan -> exists I : R, is_RInt_gen f u v I /\ contains i (Xreal I)) ->
+  (i <> Inan -> ex_RInt_gen f u v) /\ contains i (Xreal (RInt_gen f u v)).
+Proof.
+intros f u v Fu Fv [|il iu].
+easy.
+intros [I [H1 H2]].
+easy.
+split.
+intros _.
+now exists I.
+apply eq_ind with (1 := H2).
+apply f_equal, eq_sym.
+now apply is_RInt_gen_unique.
+Qed.
