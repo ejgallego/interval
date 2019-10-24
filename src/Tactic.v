@@ -60,14 +60,18 @@ Module Bertrand := BertrandInterval F I.
 Module T := Tree.Bnd I.
 Module R := Reify.Bnd I.
 
+Definition compute_inputs prec hyps consts :=
+  R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts.
+
 Theorem app_merge_hyps_eval_bnd :
   forall prec vars hyps consts,
   R.eval_hyps_bnd (R.merge_hyps prec hyps) vars ->
   exists bp,
-  map A.interval_from_bp bp = R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts /\
+  map A.interval_from_bp bp = compute_inputs prec hyps consts /\
   map A.real_from_bp bp = vars ++ map (fun c => eval c nil) consts.
 Proof.
 intros prec vars hyps consts He.
+unfold compute_inputs.
 assert (exists bp1,
     map A.interval_from_bp bp1 = R.merge_hyps prec hyps /\
     map A.real_from_bp bp1 = vars) as [bp1 [<- <-]].
@@ -95,7 +99,8 @@ now exists (bp1 ++ bp2).
 Qed.
 
 Definition eval_bnd prec hyps prog consts g :=
-  R.eval_goal_bnd prec g (nth 0 (A.BndValuator.eval prec prog (R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts)) I.nai).
+  let bounds := compute_inputs prec hyps consts in
+  R.eval_goal_bnd prec g (nth 0 (A.BndValuator.eval prec prog bounds) I.nai).
 
 Theorem eval_bnd_correct :
   forall prec vars hyps prog consts g,
@@ -111,12 +116,35 @@ destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
 apply A.BndValuator.eval_correct'.
 Qed.
 
+Definition eval_bnd_contains prec hyps prog consts b :=
+  let bounds := compute_inputs prec hyps consts in
+  I.subset (nth 0 (A.BndValuator.eval prec prog bounds) I.nai) b.
+
+Theorem eval_bnd_contains_correct :
+  forall prec vars hyps prog consts b,
+  eval_bnd_contains prec hyps prog consts b = true ->
+  eval_hyps hyps vars
+    (contains (I.convert b) (Xreal (nth 0 (eval_real prog (vars ++ map (fun c => eval c nil) consts)) 0%R))).
+Proof.
+intros prec vars hyps prog consts b H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+eapply subset_contains.
+apply I.subset_correct, H.
+destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
+apply A.BndValuator.eval_correct'.
+Qed.
+
+Definition eval_bnd_plain prec hyps prog consts :=
+  let bounds := compute_inputs prec hyps consts in
+  nth 0 (A.BndValuator.eval prec prog bounds) I.nai.
+
 Theorem eval_bisect_aux :
   forall prec depth var0 vars hyps prog consts g fi,
   (forall bp xi x, contains (I.convert xi) (Xreal x) ->
    contains (I.convert (fi xi (map A.interval_from_bp bp)))
      (Xreal (nth 0 (eval_real prog (x :: map A.real_from_bp bp)) 0))) ->
-  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := tail bounds in
   A.bisect_1d (I.lower xi) (I.upper xi) (fun b => R.eval_goal_bnd prec g (fi b bounds)) depth = true ->
@@ -135,9 +163,11 @@ destruct hyps as [|hx hyps].
 easy.
 destruct H' as [H1 H2].
 unfold eval_real'.
+change (tl _) with (compute_inputs prec hyps consts).
 simpl.
 destruct (app_merge_hyps_eval_bnd _ _ _ consts H2) as [bp [<- <-]].
 now apply Hfi.
+unfold compute_inputs.
 destruct R.merge_hyps as [|vi t].
 easy.
 simpl in H' |- *.
@@ -146,7 +176,7 @@ now destruct I.convert.
 Qed.
 
 Definition eval_bisect prec depth hyps prog consts g :=
-  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := tail bounds in
   A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
@@ -166,7 +196,7 @@ apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Ix :: bp)).
 Qed.
 
 Definition eval_bisect_diff prec depth hyps prog consts g :=
-  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := tail bounds in
   A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
@@ -186,7 +216,7 @@ apply A.DiffValuator.eval_correct with (1 := Ix).
 Qed.
 
 Definition eval_bisect_taylor prec deg depth hyps prog consts g :=
-  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts in
+  let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const (tail bounds) in
   A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
@@ -223,6 +253,47 @@ Inductive interval_tac_method : Set :=
   | itm_bisect_diff
   | itm_bisect_taylor.
 
+Ltac do_interval_generalize :=
+  match goal with
+  | |- contains (I.convert ?b) (Xreal ?t) -> _ =>
+    let H := fresh "H" in
+    intro H ;
+    match eval cbv -[IZR Rdiv] in (I.convert b) with
+    | Inan => fail 5 "Inan: Nothing known about" t
+    | Ibnd ?l ?u =>
+      match l with
+      | Xnan =>
+        match u with
+        | Xnan => fail 7 "Xnan: Nothing known about" t
+        | Xreal ?u => change (True /\ t <= u)%R in H ; destruct H as [_ H]
+        end
+      | Xreal ?l =>
+        match u with
+        | Xnan => change (l <= t /\ True)%R in H ; destruct H as [H _]
+        | Xreal ?u => change (l <= t <= u)%R in H
+        end
+      end
+    end ;
+    revert H
+  end.
+
+Ltac do_reduction nocheck native :=
+  clear ;
+  match nocheck with
+  | true =>
+    match native with
+    | true => native_cast_no_check (eq_refl true)
+    | false => vm_cast_no_check (eq_refl true)
+    end
+  | false =>
+    (abstract
+    match native with
+    | true => native_cast_no_check (eq_refl true)
+    | false => vm_cast_no_check (eq_refl true)
+    end) ||
+    fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters"
+  end.
+
 Ltac do_interval vars prec degree depth fuel native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
   massage_goal ;
@@ -233,21 +304,31 @@ Ltac do_interval vars prec degree depth fuel native nocheck eval_tac :=
   | itm_bisect_diff => apply (eval_bisect_diff_correct prec depth)
   | itm_bisect_taylor => apply (eval_bisect_taylor_correct prec degree depth)
   end ;
-  clear ;
-  match nocheck with
-  | true =>
-    match native with
-    | true => native_cast_no_check (refl_equal true)
-    | false => vm_cast_no_check (refl_equal true)
-    end
-  | false =>
-    (abstract
-    match native with
-    | true => native_cast_no_check (refl_equal true)
-    | false => vm_cast_no_check (refl_equal true)
-    end) ||
-    fail 1 "Numerical evaluation failed to conclude. You may want to adjust some parameters"
-  end.
+  do_reduction nocheck native.
+
+Ltac do_interval_intro y extend vars prec degree depth fuel native nocheck eval_tac :=
+  let prec := eval vm_compute in (F.PtoP prec) in
+  let i := fresh "__i" in
+  evar (i : I.type) ;
+  cut (contains (I.convert i) (Xreal y))%R ; cycle 1 ; [
+    let vars := get_vars y vars in
+    reify_partial y vars ;
+    apply (eq_ind _ (fun z => contains (I.convert i) (Xreal z))) ;
+    find_hyps vars ;
+    match eval_tac with
+    | itm_eval => apply (eval_bnd_contains_correct prec)
+    end ;
+    match goal with
+    | |- _ ?hyps ?prog ?consts _ = true =>
+      let yi :=
+        match eval_tac with
+        | itm_eval => constr:(eval_bnd_plain prec hyps prog consts)
+        end in
+      let yi := eval vm_compute in (extend yi) in
+      instantiate (i := yi)
+    end ;
+    do_reduction nocheck native
+  | do_interval_generalize ; clear i ].
 
 Ltac do_parse params depth :=
   let rec aux vars prec degree depth fuel native nocheck itm params :=
@@ -272,6 +353,12 @@ Ltac do_interval_parse params :=
     do_interval vars prec degree depth fuel native nocheck itm
   end.
 
+Ltac do_interval_intro_parse t extend params :=
+  match do_parse params 5%nat with
+  | (?vars, ?prec, ?degree, ?depth, ?fuel, ?native, ?nocheck, ?itm) =>
+    do_interval_intro t extend vars prec degree depth fuel native nocheck itm
+  end.
+
 End Private.
 
 Import Private.
@@ -282,7 +369,6 @@ Tactic Notation "interval" :=
 Tactic Notation "interval" "with" constr(params) :=
   do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
-(*
 Tactic Notation "interval_intro" constr(t) :=
   do_interval_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intro.
 
@@ -318,7 +404,6 @@ Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) "as" si
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
   do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
-*)
 
 End IntervalTactic.
 
@@ -328,6 +413,8 @@ Require Import Specific_ops.
 Module SFBI2 := SpecificFloat BigIntRadix2.
 Module ITSFBI2 := IntervalTactic SFBI2.
 Export ITSFBI2.
+
+Import Private.
 
 (*
 
