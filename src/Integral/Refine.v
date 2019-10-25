@@ -446,7 +446,7 @@ Theorem valid_at_mixed :
   forall u' v',
   valid (at_point u) v f u' v'
     (match u', v' with
-    | IBu, IBp x => fi1 ui (I.bnd x x)
+    | IBu, IBp xu => fi1 ui (I.bnd xu xu)
     | IBp xl, IBp xu => fi1 (I.bnd xl xl) (I.bnd xu xu)
     | IBu, IBv => fi2 ui
     | IBp xl, IBv => fi2 (I.bnd xl xl)
@@ -485,6 +485,76 @@ destruct u' as [| |ur] ;
   intros _.
   now apply H2.
   apply H3.
+- destruct (Hf1 (I.bnd ur ur) (I.bnd vr vr) (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))) as [H2 H3].
+  apply H1.
+  apply H1.
+  destruct (I.convert (fi1 (I.bnd ur ur) (I.bnd vr vr))) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  apply <- (ex_RInt_gen_at_point f).
+  now apply H2.
+  simpl convert.
+  rewrite RInt_gen_at_point.
+  apply H3.
+  now apply H2.
+Qed.
+
+Theorem valid_at_mixed' :
+  forall f u v (Fu: ProperFilter u) fi1 fi2 vi,
+  contains (I.convert vi) (Xreal v) ->
+  (forall ui' vi' u' v',
+    contains (I.convert ui') (Xreal u') ->
+    contains (I.convert vi') (Xreal v') ->
+    (I.convert (fi1 ui' vi') <> Inan -> ex_RInt f u' v') /\
+    contains (I.convert (fi1 ui' vi')) (Xreal (RInt f u' v'))) ->
+  (forall vi' v',
+    contains (I.convert vi') (Xreal v') ->
+    (I.convert (fi2 vi') <> Inan -> ex_RInt_gen f u (at_point v')) /\
+    contains (I.convert (fi2 vi')) (Xreal (RInt_gen f u (at_point v')))) ->
+  forall u' v',
+  valid u (at_point v) f u' v'
+    (match u', v' with
+    | IBu, IBp xu => fi2 (I.bnd xu xu)
+    | IBp xl, IBp xu => fi1 (I.bnd xl xl) (I.bnd xu xu)
+    | IBu, IBv => fi2 vi
+    | IBp xl, IBv => fi1 (I.bnd xl xl) vi
+    | _, _ => I.nai
+    end).
+Proof.
+intros f u v Fu fi1 fi2 vi Hv Hf1 Hf2 u' v'.
+unfold valid.
+assert (H1: forall p, contains (I.convert (I.bnd p p)) (Xreal (proj_val (I.convert_bound p)))).
+  intros p.
+  rewrite I.bnd_correct.
+  destruct (I.convert_bound p) as [|pr].
+  easy.
+  split ; apply Rle_refl.
+destruct u' as [| |ur] ;
+  destruct v' as [| |vr] ;
+    try (rewrite I.nai_correct ; apply valid_Inan).
+- now apply Hf2.
+- destruct (Hf2 (I.bnd vr vr) (proj_val (I.convert_bound vr))) as [H2 H3].
+  apply H1.
+  destruct (I.convert (fi2 (I.bnd vr vr))) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  now apply H2.
+  apply H3.
+- destruct (Hf1 (I.bnd ur ur) vi (proj_val (I.convert_bound ur)) v) as [H2 H3].
+  apply H1.
+  apply Hv.
+  destruct (I.convert (fi1 (I.bnd ur ur) vi)) as [|il iu] eqn:E.
+  easy.
+  split.
+  intros _.
+  apply <- (ex_RInt_gen_at_point f).
+  now apply H2.
+  simpl convert.
+  rewrite RInt_gen_at_point.
+  apply H3.
+  now apply H2.
 - destruct (Hf1 (I.bnd ur ur) (I.bnd vr vr) (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))) as [H2 H3].
   apply H1.
   apply H1.
