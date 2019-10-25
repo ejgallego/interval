@@ -109,9 +109,11 @@ Ltac reify_RInt_gen_infty :=
     | context [RInt_gen ?fm (at_point ?u) (Rbar_locally p_infty)] =>
       let i := constr:(RInt_gen fm (at_point u) (Rbar_locally p_infty)) in
       let f :=
-        match fm with
+        lazymatch fm with
         | (fun x => @?f x * _)%R => f
         | (fun x => @?f x / _)%R => f
+        | (fun x => @?f x * / _)%R => f
+        | _ => fail "Unsupported integrand"
         end in
       let vars := get_RInt_vars y i f in
       let vars := get_vars u vars in
@@ -962,7 +964,7 @@ Ltac do_reduction nocheck native :=
     fail "Numerical evaluation failed to conclude. You may want to adjust some parameters"
   end.
 
-Ltac do_interval vars prec degree depth fuel native nocheck eval_tac :=
+Ltac do_interval vars prec degree depth native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
   massage_goal ;
   reify_full vars ;
@@ -974,7 +976,7 @@ Ltac do_interval vars prec degree depth fuel native nocheck eval_tac :=
   end ;
   do_reduction nocheck native.
 
-Ltac do_interval_intro y extend vars prec degree depth fuel native nocheck eval_tac :=
+Ltac do_interval_intro y extend vars prec degree depth native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
   let i := fresh "__i" in
   evar (i : I.type) ;
@@ -1009,32 +1011,71 @@ Ltac do_interval_intro y extend vars prec degree depth fuel native nocheck eval_
   | do_interval_generalize ; clear i ].
 
 Ltac do_parse params depth :=
-  let rec aux vars prec degree depth fuel native nocheck itm params :=
+  let rec aux vars prec degree depth native nocheck itm params :=
     lazymatch params with
-    | nil => constr:((vars, prec, degree, depth, fuel, native, nocheck, itm))
-    | cons (i_prec ?p) ?t => aux vars p degree depth fuel native nocheck itm t
-    | cons (i_degree ?d) ?t => aux vars prec d depth fuel native nocheck itm t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec degree depth fuel native nocheck itm_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec degree depth fuel native nocheck itm_bisect_diff t
-    | cons (i_bisect_taylor ?x) ?t => aux (cons x nil) prec degree depth fuel native nocheck itm_bisect_taylor t
-    | cons (i_depth ?d) ?t => aux vars prec degree d fuel native nocheck itm t
-    | cons (i_fuel ?f) ?t => aux vars prec degree depth f native nocheck itm t
-    | cons i_native_compute ?t => aux vars prec degree depth fuel true nocheck itm t
-    | cons i_delay ?t => aux vars prec degree depth fuel native true itm t
+    | nil => constr:((vars, prec, degree, depth, native, nocheck, itm))
+    | cons (i_prec ?p) ?t => aux vars p degree depth native nocheck itm t
+    | cons (i_degree ?d) ?t => aux vars prec d depth native nocheck itm t
+    | cons (i_bisect ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect t
+    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect_diff t
+    | cons (i_bisect_taylor ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect_taylor t
+    | cons (i_depth ?d) ?t => aux vars prec degree d native nocheck itm t
+    | cons i_native_compute ?t => aux vars prec degree depth true nocheck itm t
+    | cons i_delay ?t => aux vars prec degree depth native true itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%positive 10%nat depth 100%positive false false itm_eval params.
+  aux (@nil R) 30%positive 10%nat depth false false itm_eval params.
 
 Ltac do_interval_parse params :=
   match do_parse params 15%nat with
-  | (?vars, ?prec, ?degree, ?depth, ?fuel, ?native, ?nocheck, ?itm) =>
-    do_interval vars prec degree depth fuel native nocheck itm
+  | (?vars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
+    do_interval vars prec degree depth native nocheck itm
   end.
 
 Ltac do_interval_intro_parse t extend params :=
   match do_parse params 5%nat with
-  | (?vars, ?prec, ?degree, ?depth, ?fuel, ?native, ?nocheck, ?itm) =>
-    do_interval_intro t extend vars prec degree depth fuel native nocheck itm
+  | (?vars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
+    do_interval_intro t extend vars prec degree depth native nocheck itm
+  end.
+
+Ltac do_integral prec degree fuel native nocheck :=
+  let prec := eval vm_compute in (F.PtoP prec) in
+  massage_goal ;
+  lazymatch goal with
+  | |- context [RInt _ _ _] =>
+    reify_RInt ;
+    apply (eval_RInt_correct prec degree fuel) with (1 := eq_refl true)
+  | |- context [RInt_gen _ (at_point _) (Rbar_locally p_infty)] =>
+    reify_RInt_gen_infty ;
+    lazymatch goal with
+    | |- context [RInt_gen (fun t => _ / (t * ln t ^ _))%R _ _] =>
+      apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
+    | |- context [RInt_gen (fun t => _ * / (t * ln t ^ _))%R _ _] =>
+      apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
+    | |- context [RInt_gen (fun t => _ * (powerRZ t _ * ln t ^ _))%R _ _] =>
+      apply (eval_RInt_gen_infty_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+    end
+  | _ => fail "No integral recognized"
+  end ;
+  do_reduction nocheck native.
+
+Ltac do_parse' params :=
+  let rec aux prec degree fuel native nocheck params :=
+    lazymatch params with
+    | nil => constr:((prec, degree, fuel, native, nocheck))
+    | cons (i_prec ?p) ?t => aux p degree fuel native nocheck t
+    | cons (i_degree ?d) ?t => aux prec d fuel native nocheck t
+    | cons (i_fuel ?f) ?t => aux prec degree f native nocheck t
+    | cons i_native_compute ?t => aux prec degree fuel true nocheck t
+    | cons i_delay ?t => aux prec degree fuel native true t
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h
+    end in
+  aux 30%positive 10%nat 100%positive false false params.
+
+Ltac do_integral_parse params :=
+  match do_parse' params with
+  | (?prec, ?degree, ?fuel, ?native, ?nocheck) =>
+    do_integral prec degree fuel native nocheck
   end.
 
 End Private.
@@ -1083,6 +1124,12 @@ Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) "as" si
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
   do_interval_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
+Tactic Notation "integral" :=
+  do_integral_parse (@nil interval_tac_parameters).
+
+Tactic Notation "integral" "with" constr(params) :=
+  do_integral_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+
 End IntervalTactic.
 
 (*Require Import Specific_stdz.*)
@@ -1130,7 +1177,7 @@ done.
 Lemma blo0 :
    1 <= RInt (fun x => exp x) 0 1 <= 2.
 Proof.
-interval.
+integral.
 Qed.
 
 Lemma blo1 :
@@ -1176,23 +1223,23 @@ split; try interval with (i_bisect_taylor x, i_degree 2).
 interval with (i_bisect_diff x).
 Qed.
 
-Lemma blo6 : 51/1000 <= RInt_gen (fun x => sin x * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point R1) (Rbar_locally p_infty) <= 52/1000.
+Lemma blo6 : 51/1000 <= RInt_gen (fun x => sin x * (powerRZ x (-5)%Z * pow (ln x) 1%nat)) (at_point 1) (Rbar_locally p_infty) <= 52/1000.
 Proof.
-interval.
+integral.
 Qed.
 
 Lemma blo7 :  -962587772 * / 8589934592 <=
       RInt_gen (fun x : R => x * (powerRZ x 1 * ln x ^ 1))
         (at_right 0) (at_point 1) <= -940939775 * / 8589934592.
 Proof.
-interval.
+integral.
 Qed.
 
 Lemma blo8 : 876496966 * / 4398046511104 <=
       RInt_gen (fun x : R => 1 / x ^ 2 * exp (- x))
         (at_point 5) (Rbar_locally p_infty) <= 876509397 * / 4398046511104.
 Proof.
-interval.
+integral.
 Qed.
 
 Lemma pi10 : (31415926535/10000000000 < PI < 31415926536/10000000000)%R.

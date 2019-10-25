@@ -64,7 +64,7 @@ Goal
   Rabs (RInt (fun x => atan (sqrt (x*x + 2)) / (sqrt (x*x + 2) * (x*x + 1))) 0 1
         - 5/96*PI*PI) <= 1/1000.
 Proof.
-  interval with (i_fuel 2, i_degree 5).
+  integral with (i_fuel 2, i_degree 5).
 Qed.
 
 Goal
