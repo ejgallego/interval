@@ -72,7 +72,7 @@ Goal
            (at_right 0) (at_point 1) = 1/32.
 Proof.
   refine ((fun H => Rle_antisym _ _ (proj2 H) (proj1 H)) _).
-  interval.
+  integral.
 Qed.
 
 Goal
