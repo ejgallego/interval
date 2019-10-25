@@ -890,10 +890,9 @@ Proof.
   by apply: pow_nonzero; lra.
 Qed.
 
-Lemma f0eps_correct alpha beta epsilon (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
+Lemma f0eps_correct alpha beta epsilon (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : (-1 < alpha)%Z) :
   is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_point (/ B)) (at_point epsilon) (f0eps alpha beta epsilon B).
 Proof.
-  have Halpha1 : (-1 < alpha)%Z by apply: lt_IZR.
   have Hint : ex_RInt (fun x : R => powerRZ x alpha * ln x ^ beta) (/ B) epsilon.
     eexists.
     apply: f_correct => // .
@@ -907,7 +906,7 @@ Proof.
     by move ->; apply: RInt_correct.
   rewrite -RInt_gen_at_point; last first.
   + eexists. apply: f_correct; try lra; try lia.
-  + rewrite subst_lemma; try lra.
+  + rewrite subst_lemma ; try lra. 2: now apply IZR_lt.
     symmetry.
     rewrite /f0eps. rewrite f_correct_RInt; try lra; try lia.
     rewrite (RInt_ext _ (fun x : R => scal (- (-1) ^ beta) (powerRZ x (-2 - alpha) * ln x ^ beta))); last first.
@@ -918,7 +917,7 @@ Proof.
     by eexists; apply: f_correct;  first (split; field_simplify; lra); lia.
 Qed.
 
-Lemma f0eps_correct_sing alpha beta epsilon sing (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : -1 < IZR alpha) :
+Lemma f0eps_correct_sing alpha beta epsilon sing (B : R) (Heps : 0 < / B <= epsilon) (HB : 0 < B) (Halpha : (-1 < alpha)%Z) :
   is_RInt_gen ((fun x => powerRZ (x - sing) alpha * (pow (ln (x - sing)) beta))) (at_point (sing + / B)) (at_point (sing + epsilon)) (f0eps alpha beta epsilon B).
 Proof.
   apply is_RInt_gen_at_point.
@@ -928,7 +927,7 @@ Proof.
   rewrite !H; apply f0eps_correct => // .
 Qed.
 
-Lemma f0eps_lim_is_lim alpha beta epsilon (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
+Lemma f0eps_lim_is_lim alpha beta epsilon (Halpha : (-1 < alpha)%Z) (Heps : 0 < epsilon) :
   filterlim (fun x : R => f0eps alpha beta epsilon (/ x))
             (at_right 0) (locally (f0eps_lim alpha beta epsilon)).
 Proof.
@@ -944,11 +943,10 @@ apply: filterlim_ext.
   apply: is_lim_mult => // .
   + exact: is_lim_const.
   + apply: f_lim_is_lim; first exact: Rinv_0_lt_compat.
-    have Halpha1 : (-1 < alpha)%Z by apply: lt_IZR.
     by lia.
 Qed.
 
-Lemma f0eps_lim_is_lim_sing alpha beta epsilon sing (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon) :
+Lemma f0eps_lim_is_lim_sing alpha beta epsilon sing (Halpha : (-1 < alpha)%Z) (Heps : 0 < epsilon) :
   filterlim (fun x : R => f0eps alpha beta epsilon (/ (x - sing)))
             (at_right sing) (locally (f0eps_lim alpha beta epsilon)).
 Proof.
@@ -963,7 +961,7 @@ Proof.
   exact: f0eps_lim_is_lim.
 Qed.
 
-Lemma f0eps_lim_correct alpha beta epsilon (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
+Lemma f0eps_lim_correct alpha beta epsilon (Halpha : (-1 < alpha)%Z) (Heps : 0 < epsilon)  :
   is_RInt_gen ((fun x => powerRZ x alpha * (pow (ln x) beta))) (at_right 0) (at_point epsilon) (f0eps_lim alpha beta epsilon).
 Proof.
 set eps := mkposreal epsilon Heps.
@@ -975,10 +973,11 @@ apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ x))).
   rewrite -is_RInt_gen_at_point.
   apply (f0eps_correct); rewrite ?Rinv_involutive; try lra.
   exact: Rinv_0_lt_compat.
+  exact Halpha.
 exact: f0eps_lim_is_lim.
 Qed.
 
-Lemma f0eps_lim_correct_sing alpha beta epsilon sing (Halpha : -1 < IZR alpha) (Heps : 0 < epsilon)  :
+Lemma f0eps_lim_correct_sing alpha beta epsilon sing (Halpha : (-1 < alpha)%Z) (Heps : 0 < epsilon)  :
   is_RInt_gen ((fun x => powerRZ (x - sing) alpha * (pow (ln (x - sing)) beta))) (at_right sing) (at_point (sing + epsilon)) (f0eps_lim alpha beta epsilon).
 Proof.
 set eps := mkposreal epsilon Heps.
@@ -990,6 +989,7 @@ apply: (filterlimi_lim_ext_loc (fun x => f0eps alpha beta epsilon (/ (x - sing))
   rewrite -is_RInt_gen_at_point.
   apply f0eps_correct_sing; rewrite ?Rinv_involutive; try lra.
   apply: Rinv_0_lt_compat; lra.
+  exact Halpha.
 exact: f0eps_lim_is_lim_sing.
 Qed.
 
