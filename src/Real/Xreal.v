@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import Reals Bool.
+From Flocq Require Import Raux.
 From mathcomp.ssreflect Require Import ssreflect.
 
 Require Import Stdlib.

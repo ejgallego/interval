@@ -18,7 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import Reals Psatz.
-From Flocq Require Export Raux.
+From Flocq Require Import Raux.
 
 Ltac evar_last :=
   match goal with

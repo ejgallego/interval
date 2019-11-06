@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import Reals List ZArith Psatz.
+From Flocq Require Import Zaux.
 From Coquelicot Require Import Coquelicot.
 
 Require Import Stdlib.

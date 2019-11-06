@@ -18,6 +18,7 @@ liability. See the COPYING file for more details.
 *)
 
 From Coq Require Import Bool Reals Psatz.
+From Flocq Require Import Raux.
 
 Require Import Stdlib.
 Require Import Xreal.

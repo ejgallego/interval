@@ -17,8 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import Reals List Psatz.
+From Coq Require Import Reals Psatz.
 From Flocq Require Import Raux.
+From Coq Require Import List.
 
 Require Import Xreal.
 Require Import Interval.

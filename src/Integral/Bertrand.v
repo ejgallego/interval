@@ -1,4 +1,5 @@
 From Coq Require Import Reals ZArith Psatz Fourier_util.
+From Flocq Require Import Raux.
 From Coquelicot Require Import Coquelicot AutoDerive.
 From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 

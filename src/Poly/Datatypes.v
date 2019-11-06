@@ -256,7 +256,7 @@ Definition opp := map C.opp.
 Section PrecIsPropagated.
 Variable u : U.
 
-Definition add := map2 (C.add u) id.
+Definition add := map2 (C.add u) (fun x => x).
 
 Definition sub := map2 (C.sub u) C.opp.
 
@@ -312,7 +312,7 @@ Qed.
 
 Definition deriv_loop := foldri (fun a i s => C.mul u a (C.from_nat i) :: s) [::].
 
-Definition deriv (p : T) := deriv_loop (behead p) 1%N.
+Definition deriv (p : T) := deriv_loop (behead p) 1.
 
 Definition grec1 (A : Type) := @grec1up A C.T.
 

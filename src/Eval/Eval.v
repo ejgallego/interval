@@ -17,7 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import Bool Reals List.
+From Coq Require Import Bool Reals.
+From Flocq Require Import Zaux Raux.
+From Coq Require Import List.
 From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect.
 
