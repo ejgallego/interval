@@ -445,10 +445,9 @@ intros f f' x Hf.
 xtotal.
 intro v.
 assert (Hx: (0 < r1)%R).
-destruct Y.
-exact H.
-elim Y0.
-now rewrite <- H, sqrt_0, Rplus_0_l.
+{ apply Rnot_le_lt; intro Hr1.
+  apply Y.
+  now rewrite sqrt_neg; [rewrite Rplus_0_r|]. }
 apply derivable_pt_lim_eq_locally with (comp sqrt (proj_fun v f)).
 apply locally_true_imp with (2 := derivable_imp_defined_gt _ _ _ _ R0 X Hx Hf).
 intros x (w, (Hw1, Hw2)).

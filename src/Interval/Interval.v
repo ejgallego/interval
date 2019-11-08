@@ -598,7 +598,6 @@ intros prec xi x Hx.
 generalize (I.sqrt_correct prec xi _ Hx).
 unfold Xsqrt', Xbind.
 case is_negative ; try easy.
-now case I.convert.
 Qed.
 
 Lemma add_correct : forall prec, extension_2 Rplus (I.add prec).

@@ -1813,7 +1813,7 @@ constructor.
     rewrite (Derive_n_ext_loc _ sqrt); last first.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
-      by move=> y Hy; rewrite /Xsqrt' is_negative_false //; apply: Rlt_le.
+      by move=> y Hy; rewrite /Xsqrt' //; apply: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -1852,29 +1852,19 @@ constructor.
                    ].
     exact: J.sqrt_correct.
   }
-- move=> I r Ir /= {E1 Hex Hsubset X X0 n}.
-  unfold Xsqrt'.
-  case: ifP=> // neg_r _ m k leqmk.
-  apply: Pol.rec1_propagate; last by rewrite Pol.size_rec1.
-  * move=> qi n Hq. rewrite /sqrt_rec.
-    rewrite I.div_propagate_l // I.mul_propagate_r //; exact:eqNaiP.
-  * apply/contains_Xnan.
-    suff <- : Xsqrt (Xreal r) = Xnan by apply: I.sqrt_correct.
-    by rewrite /Xsqrt' /= neg_r.
+- move=> I r Ir /= {E1 Hex Hsubset X X0 n} //.
 - { clear - E1.
     move=> n x Hx.
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc sqrt).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt' is_negative_false //.
-      exact: Rlt_le.
+      simpl=> y Hy; rewrite /Xsqrt' //.
     exact: ex_derive_n_is_derive_n (is_derive_n_sqrt n x E1).
   }
 
 simpl.
 split =>//.
 by move=> *; rewrite I.nai_correct.
-by move=> Hx; rewrite /= I.nai_correct.
 by rewrite I.nai_correct.
 exact: Hsubset.
 exists (TR.T_sqrt tt x0 n).
@@ -1930,9 +1920,8 @@ constructor.
       apply: (locally_open (fun t => 0 < t)%R);
         [exact: open_gt| |exact: gt0_correct E1].
       move=> y Hy.
-      rewrite /Xinv' /Xsqrt' /= is_negative_false /= ?is_zero_false //.
+      rewrite /Xinv' /Xsqrt' /= ?is_zero_false //.
       now apply Rgt_not_eq, sqrt_lt_R0.
-      exact: Rlt_le.
       rewrite /PolR.nth; elim: k Hkn => [|k IHk] Hkn.
         by rewrite rec1up_co0 /= Rdiv_1.
       rewrite nth_rec1up ifF; last by apply: negbTE; rewrite ltnNge Hkn.
@@ -1987,9 +1976,8 @@ by move=> *;
     move/(gt0_correct Hx) in E1.
     apply: (ex_derive_n_ext_loc (fun t => / sqrt t)).
       apply: locally_open E1; first exact: open_gt.
-      simpl=> y Hy; rewrite /Xsqrt' /Xinv' /Xbind is_negative_false ?is_zero_false //.
+      simpl=> y Hy; rewrite /Xsqrt' /Xinv' /Xbind ?is_zero_false //.
       apply: Rgt_not_eq; exact: sqrt_lt_R0.
-      exact: Rlt_le.
     exact: ex_derive_n_is_derive_n (is_derive_n_invsqrt n x E1).
   }
 

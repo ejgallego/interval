@@ -246,8 +246,6 @@ intros b H.
 rewrite H.
 destruct o ; try easy ; simpl ; unfold Xinv'.
 now case (is_zero b).
-unfold Xsqrt'.
-now case (is_negative b).
 unfold Xtan'.
 now case (is_zero (cos b)).
 unfold Xln'.
@@ -286,11 +284,9 @@ case: Hb => // Hb Hcontax.
 move: HbnotXnan.
 rewrite Hbnan Hb => {Hbnan Hb b1} HnotXnan.
 split.
-(case: unop NF HnotXnan; try discriminate) => //= [_|_|_|_|].
+(case: unop NF HnotXnan; try discriminate) => //= [_|_|_|].
 - rewrite /Xinv'.
   by case is_zero.
-- rewrite /Xsqrt'.
-  by case is_negative.
 - rewrite /Xtan'.
   by case is_zero.
 - rewrite /Xln'.

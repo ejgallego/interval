@@ -364,17 +364,16 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Lemma sqrt_UP_correct :
     forall p x,
-    valid_ub x = true
-    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-    -> (valid_ub (sqrt_UP p x) = true
-        /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x))).
+    valid_ub (sqrt_UP p x) = true
+    /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
   Proof.
-  intros p x _ _; split; [easy|].
+  intros p x; split; [easy|].
   unfold sqrt_UP.
   rewrite (@Fsqrt_correct radix).
-  set (z := Xsqrt _).
-  unfold Xround, Xlift.
-  case z; [exact I|intro z'; simpl].
+  unfold toX.
+  case FtoX; [easy|intro rx].
+  unfold Xsqrt, Xsqrt_nan, Xsqrt', Xsqrt_nan'.
+  case is_negative_spec; [easy|intros _].
   now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
   Qed.
 
@@ -388,9 +387,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   intros p x _ _; split; [easy|].
   unfold sqrt_DN.
   rewrite (@Fsqrt_correct radix).
-  set (z := Xsqrt _).
-  unfold Xround, Xlift.
-  case z; [exact I|intro z'].
+  unfold toX.
+  case FtoX; [easy|intro rx].
+  unfold Xsqrt, Xsqrt_nan, Xsqrt', Xsqrt_nan'.
+  case is_negative_spec; [easy|intros _].
   unfold le_lower, Xneg; simpl; apply Ropp_le_contravar.
   now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
   Qed.

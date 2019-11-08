@@ -248,10 +248,8 @@ Parameter div_DN_correct :
 
 Parameter sqrt_UP_correct :
   forall p x,
-    valid_ub x = true
-    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-    -> (valid_ub (sqrt_UP p x) = true
-        /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x))).
+  valid_ub (sqrt_UP p x) = true
+  /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
 
 Parameter sqrt_DN_correct :
   forall p x,

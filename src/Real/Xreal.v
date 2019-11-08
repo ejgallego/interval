@@ -168,11 +168,13 @@ apply (f_equal Xreal), Ropp_involutive.
 Qed.
 
 Definition Xinv' x := if is_zero x then Xnan else Xreal (/ x).
-Definition Xsqrt' x := if is_negative x then Xnan else Xreal (sqrt x).
+Definition Xsqrt' x := Xreal (sqrt x).
+Definition Xsqrt_nan' x := if is_negative x then Xnan else Xreal (sqrt x).
 Definition Xdiv' x y := if is_zero y then Xnan else Xreal (x / y).
 
 Notation Xinv := (Xbind Xinv').
 Notation Xsqrt := (Xbind Xsqrt').
+Notation Xsqrt_nan := (Xbind Xsqrt_nan').
 Notation Xabs := (Xlift Rabs).
 Notation Xadd := (Xlift2 Rplus).
 Notation Xsub := (Xlift2 Rminus).

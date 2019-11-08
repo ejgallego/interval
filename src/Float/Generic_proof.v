@@ -1362,9 +1362,9 @@ Qed.
 
 Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),
-  FtoX (Fsqrt mode prec x) = Xround beta mode prec (Xsqrt (FtoX x)).
+  FtoX (Fsqrt mode prec x) = Xround beta mode prec (Xsqrt_nan (FtoX x)).
 Proof with auto with typeclass_instances.
-intros beta mode prec [ | | sx mx ex] ; simpl ; unfold Xsqrt' ; try easy.
+intros beta mode prec [ | | sx mx ex] ; simpl ; unfold Xsqrt_nan' ; try easy.
 (* *)
 case is_negative_spec.
 intros H.

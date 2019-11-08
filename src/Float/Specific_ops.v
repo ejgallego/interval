@@ -1561,7 +1561,7 @@ Definition sqrt mode prec (f : type) :=
 
 Lemma sqrt_correct :
   forall mode p x,
-  toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt (toX x)).
+  toX (sqrt mode p x) = Xround radix mode (prec p) (Xsqrt_nan (toX x)).
 Proof.
 intros mode p x.
 unfold toX.
@@ -1690,17 +1690,16 @@ Definition sqrt_UP := sqrt rnd_UP.
 
 Lemma sqrt_UP_correct :
   forall p x,
-    valid_ub x = true
-    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
-    -> (valid_ub (sqrt_UP p x) = true
-        /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x))).
+  valid_ub (sqrt_UP p x) = true
+  /\ le_upper (Xsqrt (toX x)) (toX (sqrt_UP p x)).
 Proof.
-intros p x _ _; split; [reflexivity|].
+intros p x; split; [reflexivity|].
 unfold sqrt_UP.
 rewrite sqrt_correct.
 unfold Xround, Xlift.
-fold (Xsqrt (toX x)).
-set (z := Xsqrt (toX x)); case z; [exact I|]; intro zr.
+case toX; [easy|intro rx].
+unfold Xsqrt', Xsqrt_nan'.
+case is_negative_spec; [easy|intros _].
 now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
 Qed.
 
@@ -1717,8 +1716,9 @@ intros p x _ _; split; [reflexivity|].
 unfold sqrt_DN.
 rewrite sqrt_correct.
 unfold Xround, Xlift.
-fold (Xsqrt (toX x)).
-set (z := Xsqrt _); case z; [exact I|]; intro zr.
+case toX; [easy|intro rx].
+unfold Xsqrt', Xsqrt_nan'.
+case is_negative_spec; [easy|intros _].
 now apply Ropp_le_contravar, Generic_fmt.round_DN_pt, FLX.FLX_exp_valid.
 Qed.
 

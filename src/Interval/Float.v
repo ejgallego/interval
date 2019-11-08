@@ -398,9 +398,8 @@ Definition sqrt prec xi :=
   match xi with
   | Ibnd xl xu =>
     match F.cmp xl F.zero with
-    | Xeq => Ibnd F.zero (F.sqrt_UP prec xu)
     | Xgt => Ibnd (F.sqrt_DN prec xl) (F.sqrt_UP prec xu)
-    | _ => Inan
+    | _ => Ibnd F.zero (F.sqrt_UP prec xu)
     end
   | Inan => Inan
   end.
@@ -1714,33 +1713,32 @@ case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
 case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
 intros Vxu Vxl.
 intros [Hxl Hxu].
+elim (F.sqrt_UP_correct prec xu); intros Vsuxu Hsuxu.
 unfold sqrt; rewrite F.cmp_correct, F.zero_correct, F'.classify_zero.
 generalize Vxl; rewrite F.valid_lb_correct.
-generalize (F.classify_correct xl) ; rewrite F.real_correct.
-case_eq (F.classify xl); [|easy..]; intros Cxl.
+generalize (F.classify_correct xl); rewrite F.real_correct.
+case_eq (F.toX xl); [|intro rl]; intro Hrl.
+{ now case F.classify; [easy|..|easy]; intros _ _;
+    (rewrite F'.valid_lb_zero, Vsuxu; split;
+     [rewrite F.zero_correct; apply sqrt_pos|
+      revert Hxu Hsuxu;
+      case (F.toX (F.sqrt_UP _ _)); [easy|intro rsxu];
+      case F.toX; [easy|intro rxu];
+      intro Hx; apply Rle_trans, sqrt_le_1_alt]). }
+(* xl real *)
 revert Hxl.
-case_eq (F.toX xl) ; [easy|].
-intros rl Hrl Hxl _ _.
+rewrite Hrl.
+intros Hxl.
+case F.classify; [|easy..]; intros _ _.
 unfold Xsqrt'.
-simpl.
-destruct (is_negative_spec x).
-{ now rewrite Rcompare_Lt; [|apply (Rle_lt_trans _ x)]. }
-elim (F.sqrt_UP_correct prec _ Vxu);
-  [|now revert Hxu; case (F.toX xu); [|intro r; apply Rle_trans]].
-intros Vsuxu Hsuxu.
-unfold Xcmp; case Rcompare_spec; intro Hrl0; [easy|..].
-{ (* xl zero *)
-  rewrite F'.valid_lb_zero.
-  rewrite Vsuxu.
-  apply le_contains.
-  { now rewrite F.zero_correct; apply Ropp_le_contravar, sqrt_positivity. }
-  revert Hsuxu.
-  apply le_upper_trans.
-  revert Hxu; xreal_tac2; intro Hxu; [exact I|].
-  simpl; unfold Xsqrt'.
-  now case is_negative_spec; intro Hr; [|apply sqrt_le_1_alt]. }
+unfold Xcmp; case Rcompare_spec; intro Hrl0; rewrite Vsuxu;
+  [rewrite F'.valid_lb_zero..|rewrite Bool.andb_comm]; simpl;
+    [now split; [rewrite F.zero_correct; apply sqrt_pos|];
+     revert Hxu Hsuxu;
+     case (F.toX (F.sqrt_UP _ _)); [easy|intro rsuxu];
+     case F.toX; [easy|intros rxu Hrxu];
+     apply Rle_trans, sqrt_le_1_alt..|].
 (* xl positive *)
-rewrite Vsuxu.
 elim (F.sqrt_DN_correct prec _ Vxl); [|now rewrite Hrl; apply Rlt_le].
 intros Vslxl Hslxl.
 rewrite Vslxl.
@@ -1748,12 +1746,12 @@ apply le_contains.
 { apply (le_lower_trans _ _ _ Hslxl).
   rewrite Hrl.
   simpl; unfold Xsqrt'.
-  now case is_negative_spec; intro Hr; [|apply Ropp_le_contravar, sqrt_le_1_alt]. }
+  now apply Ropp_le_contravar, sqrt_le_1_alt. }
 revert Hsuxu.
 apply le_upper_trans.
 revert Hxu; xreal_tac2; intro Hxu; [exact I|].
 simpl; unfold Xsqrt'.
-now case is_negative_spec; intro Hr; [|apply sqrt_le_1_alt].
+now apply sqrt_le_1_alt.
 Qed.
 
 Ltac clear_complex_aux :=

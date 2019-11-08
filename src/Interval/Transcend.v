@@ -1679,12 +1679,13 @@ case_eq (F'.le' x c1_2) ; intros Hx.
   now rewrite Rabs_pos_eq.
   unfold Xsqrt'.
   simpl.
-  case is_negative_spec.
-  intros H.
-  elim Rlt_not_le with (1 := H).
-  apply Rle_0_minus.
-  rewrite <- (Rmult_1_r 1).
-  apply neg_pos_Rsqr_le ; apply SIN_bound.
+  set (e := (1 - _)%R).
+  case (Rlt_or_le e 0); unfold e.
+  { intro H.
+    elim Rlt_not_le with (1 := H).
+    apply Rle_0_minus.
+    rewrite <- (Rmult_1_r 1).
+    apply neg_pos_Rsqr_le ; apply SIN_bound. }
   change (sin (toR x) * sin (toR x))%R with (Rsqr (sin (toR x))).
   rewrite <- cos2.
   intros H'.
@@ -1739,10 +1740,11 @@ case_eq (F'.le' x c1_2) ; intros Hx.
     unfold Xsqrt'.
     simpl.
     replace (1 / (Rsqr (cos (toR x))) - 1)%R with (Rsqr (sin (toR x) / cos (toR x))).
-    case is_negative_spec ; intros H.
-    elim Rlt_not_le with (1 := H).
-    apply Rle_0_sqr.
-    apply f_equal, sqrt_Rsqr_abs.
+    { set (e := (_²)%R).
+      case (Rlt_or_le e 0); unfold e; intro H.
+      { elim Rlt_not_le with (1 := H).
+        apply Rle_0_sqr. }
+      apply f_equal, sqrt_Rsqr_abs. }
     rewrite Rsqr_div with (1 := Zc').
     rewrite sin2.
     unfold Rsqr.
