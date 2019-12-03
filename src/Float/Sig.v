@@ -25,12 +25,14 @@ Require Import Basic.
 
 Module Type FloatOps.
 
+Parameter sensible_format : bool.
+
 Parameter radix : radix.
-Parameter even_radix : bool.
-Parameter even_radix_correct : match radix_val radix with Zpos (xO _) => true | _ => false end = even_radix.
 Parameter type : Type.
 Parameter toF : type -> float radix.
-Parameter toX : type -> ExtendedR.
+
+Definition toX x := FtoX (toF x).
+Definition toR x := proj_val (toX x).
 
 Parameter precision : Type.
 Parameter sfactor : Type.
@@ -48,26 +50,21 @@ Parameter fromF : float radix -> type.
 Parameter real : type -> bool.
 Parameter mag : type -> sfactor.
 
-Parameter cmp : type -> type -> Xcomparison.
+Parameter cmp : type -> type -> comparison.
 Parameter min : type -> type -> type.
 Parameter max : type -> type -> type.
 Parameter round : rounding_mode -> precision -> type -> type.
 Parameter neg : type -> type.
 Parameter abs : type -> type.
 Parameter scale : type -> sfactor -> type.
-Parameter scale2 : type -> sfactor -> type.
-Parameter add_exact : type -> type -> type.
-Parameter sub_exact : type -> type -> type.
-Parameter mul_exact : type -> type -> type.
+Parameter div2 : type -> type.
 Parameter add : rounding_mode -> precision -> type -> type -> type.
 Parameter sub : rounding_mode -> precision -> type -> type -> type.
 Parameter mul : rounding_mode -> precision -> type -> type -> type.
 Parameter div : rounding_mode -> precision -> type -> type -> type.
 Parameter sqrt : rounding_mode -> precision -> type -> type.
 Parameter nearbyint : rounding_mode -> type -> type.
-
-Parameter toF_correct :
-  forall x, FtoX (toF x) = toX x.
+Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
 Parameter nan_correct : toX nan = Xnan.
@@ -79,7 +76,10 @@ Parameter real_correct :
   real f = match toX f with Xnan => false | _ => true end.
 
 Parameter cmp_correct :
-  forall x y, cmp x y = Xcmp (toX x) (toX y).
+  forall x y,
+  toX x = Xreal (toR x) ->
+  toX y = Xreal (toR y) ->
+  cmp x y = Rcompare (toR x) (toR y).
 
 Parameter min_correct :
   forall x y, toX (min x y) = Xmin (toX x) (toX y).
@@ -93,21 +93,10 @@ Parameter neg_correct :
 Parameter abs_correct :
   forall x, toX (abs x) = Xabs (toX x).
 
-Parameter scale_correct :
-  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
-
-Parameter scale2_correct :
-  forall x d, even_radix = true ->
-  toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
-
-Parameter add_exact_correct :
-  forall x y, toX (add_exact x y) = Xadd (toX x) (toX y).
-
-Parameter sub_exact_correct :
-  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
-
-Parameter mul_exact_correct :
-  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
+Parameter div2_correct :
+  forall x, sensible_format = true ->
+  (1 / 256 <= Rabs (toR x))%R ->
+  toX (div2 x) = Xdiv (toX x) (Xreal 2).
 
 Parameter add_correct :
   forall mode p x y,
@@ -133,54 +122,146 @@ Parameter nearbyint_correct :
   forall mode x,
   toX (nearbyint mode x) = Xnearbyint mode (toX x).
 
+Parameter midpoint_correct :
+  forall x y,
+  sensible_format = true ->
+  real x = true -> real y = true -> (toR x <= toR y)%R
+  -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
+
 End FloatOps.
 
 Module FloatExt (F : FloatOps).
 
-Definition le x y :=
-  match F.cmp x y with
+Definition cmp x y:=
+  if F.real x then
+    if F.real y then
+      match F.cmp x y with Lt => Xlt | Gt => Xgt | Eq => Xeq end
+    else Xund
+  else Xund.
+
+Lemma cmp_correct :
+  forall x y,
+  cmp x y = Xcmp (F.toX x) (F.toX y).
+Proof.
+intros x y.
+unfold cmp.
+rewrite 2!F.real_correct.
+generalize (F.cmp_correct x y).
+unfold F.toR.
+destruct (F.toX x) as [|rx] ;
+  destruct (F.toX y) as [|ry] ; try easy.
+simpl.
+now intros ->.
+Qed.
+
+Definition le' x y :=
+  match cmp x y with
   | Xlt | Xeq => true
   | Xgt | Xund => false
   end.
 
-Lemma le_correct :
+Lemma le'_correct :
   forall x y,
-  le x y = true ->
+  le' x y = true ->
   match F.toX x, F.toX y with
   | Xreal xr, Xreal yr => (xr <= yr)%R
   | _, _ => False
   end.
 Proof.
 intros x y.
-unfold le.
-rewrite F.cmp_correct.
+unfold le'.
+rewrite cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.
 now case Raux.Rcompare_spec ; auto with real.
 Qed.
 
-Definition lt x y :=
-  match F.cmp x y with
+Definition lt' x y :=
+  match cmp x y with
   | Xlt  => true
   | _ => false
   end.
 
-Lemma lt_correct :
+Lemma lt'_correct :
   forall x y,
-  lt x y = true ->
+  lt' x y = true ->
   match F.toX x, F.toX y with
   | Xreal xr, Xreal yr => (xr < yr)%R
   | _, _ => False
   end.
 Proof.
 intros x y.
-unfold lt.
-rewrite F.cmp_correct.
+unfold lt'.
+rewrite cmp_correct.
 destruct F.toX as [|xr]. easy.
 destruct F.toX as [|yr]. easy.
 simpl.
 now case Raux.Rcompare_spec.
+Qed.
+
+Definition le x y :=
+  match F.cmp x y with
+  | Gt => false
+  | _ => true
+  end.
+
+Lemma le_correct :
+  forall x y,
+  F.toX x = Xreal (F.toR x) ->
+  F.toX y = Xreal (F.toR y) ->
+  le x y = Rle_bool (F.toR x) (F.toR y).
+Proof.
+intros x y Rx Ry.
+unfold le.
+now rewrite F.cmp_correct.
+Qed.
+
+Definition lt x y :=
+  match F.cmp x y with
+  | Lt  => true
+  | _ => false
+  end.
+
+Lemma lt_correct :
+  forall x y,
+  F.toX x = Xreal (F.toR x) ->
+  F.toX y = Xreal (F.toR y) ->
+  lt x y = Rlt_bool (F.toR x) (F.toR y).
+Proof.
+intros x y Rx Ry.
+unfold lt.
+now rewrite F.cmp_correct.
+Qed.
+
+Lemma real_correct :
+  forall x,
+  F.real x = true ->
+  F.toX x = Xreal (F.toR x).
+Proof.
+intros x Rx.
+rewrite F.real_correct in Rx.
+unfold F.toR.
+now destruct F.toX as [|rx].
+Qed.
+
+Inductive toX_prop (x : F.type) : ExtendedR -> Prop :=
+  | toX_Xnan : toX_prop x Xnan
+  | toX_Xreal : F.toX x = Xreal (F.toR x) -> toX_prop x (Xreal (F.toR x)).
+
+Lemma toX_spec :
+  forall x, toX_prop x (F.toX x).
+Proof.
+intros x.
+case_eq (F.toX x).
+intros _.
+apply toX_Xnan.
+intros r H.
+change r with (proj_val (Xreal r)).
+rewrite <- H.
+apply toX_Xreal.
+unfold F.toR.
+now rewrite H at 2.
 Qed.
 
 End FloatExt.

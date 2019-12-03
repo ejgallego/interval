@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Lia Bool.
+From Coq Require Import ZArith Lia Bool Psatz.
 From Flocq Require Import Raux Digits Bracket.
 
 Require Import Xreal.
@@ -40,9 +40,9 @@ Module SpecificFloat (Carrier : FloatCarrier) <: FloatOps.
 
 Import Carrier.
 
+Definition sensible_format := match radix_val radix with Zpos (xO _) => true | _ => false end.
+
 Definition radix := radix.
-Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
-Definition even_radix_correct := refl_equal even_radix.
 
 Definition type := s_float smantissa_type exponent_type.
 
@@ -57,8 +57,7 @@ Definition toF (x : type) : float radix :=
   end.
 
 Definition toX (x : type) := FtoX (toF x).
-
-Definition toF_correct := fun x => refl_equal (toX x).
+Definition toR (x : type) := proj_val (toX x).
 
 Definition fromF (f : Basic.float radix) :=
   match f with
@@ -174,6 +173,14 @@ now inversion H1.
 exact H.
 Qed.
 
+Lemma toX_Float :
+  forall m e, toX (Float m e) = Xreal (toR (Float m e)).
+Proof.
+intros m e.
+unfold toR, toX, toF.
+now destruct mantissa_sign.
+Qed.
+
 (*
  * neg
  *)
@@ -250,20 +257,6 @@ Definition scale (f : type) d :=
   | _ => f
   end.
 
-Lemma scale_correct :
-  forall x d, toX (scale x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix d)).
-Proof.
-intros x d.
-unfold toX.
-rewrite <- Fscale_correct.
-destruct x as [|m e].
-apply refl_equal.
-simpl.
-destruct (mantissa_sign m) as [|s p].
-apply refl_equal.
-now rewrite exponent_add_correct, ZtoE_correct.
-Qed.
-
 (*
  * scale2
  *)
@@ -282,7 +275,7 @@ Definition scale2 (f : type) d :=
   end.
 
 Lemma scale2_correct :
-  forall x d, even_radix = true ->
+  forall x d, sensible_format = true ->
   toX (scale2 x (ZtoS d)) = Xmul (toX x) (Xreal (bpow radix2 d)).
 Proof.
 intros [|m e] d H.
@@ -315,38 +308,51 @@ now rewrite <- Ep.
 Qed.
 
 (*
+ * div2
+ *)
+
+Definition div2 (f : type) := scale2 f (ZtoS (-1)).
+
+Lemma div2_correct :
+  forall x, sensible_format = true ->
+  (1 / 256 <= Rabs (toR x))%R ->
+  toX (div2 x) = Xdiv (toX x) (Xreal 2).
+Proof.
+intros x Hf _.
+unfold div2.
+rewrite scale2_correct; [|easy].
+simpl; unfold Z.pow_pos; simpl.
+rewrite Xdiv_split.
+unfold Xinv, Xinv'.
+now rewrite is_zero_false.
+Qed.
+
+(*
  * cmp
  *)
 
-Definition cmp_aux1 m1 m2 :=
-  match mantissa_cmp m1 m2 with
-  | Eq => Xeq
-  | Lt => Xlt
-  | Gt => Xgt
-  end.
-
-Definition cmp_aux2 m1 e1 m2 e2 :=
+Definition cmp_aux m1 e1 m2 e2 :=
   let d1 := mantissa_digits m1 in
   let d2 := mantissa_digits m2 in
   match exponent_cmp (exponent_add e1 d1) (exponent_add e2 d2) with
-  | Lt => Xlt
-  | Gt => Xgt
+  | Lt => Lt
+  | Gt => Gt
   | Eq =>
     let nb := exponent_sub e1 e2 in
     match exponent_cmp nb exponent_zero with
-    | Gt => cmp_aux1 (mantissa_shl m1 nb) m2
-    | Lt => cmp_aux1 m1 (mantissa_shl m2 (exponent_neg nb))
-    | Eq => cmp_aux1 m1 m2
+    | Gt => mantissa_cmp (mantissa_shl m1 nb) m2
+    | Lt => mantissa_cmp m1 (mantissa_shl m2 (exponent_neg nb))
+    | Eq => mantissa_cmp m1 m2
     end
   end.
 
-Lemma cmp_aux2_correct :
+Lemma cmp_aux_correct :
   forall m1 e1 m2 e2,
   valid_mantissa m1 -> valid_mantissa m2 ->
-  cmp_aux2 m1 e1 m2 e2 = Fcmp_aux2 radix (MtoP m1) (EtoZ e1) (MtoP m2) (EtoZ e2).
+  cmp_aux m1 e1 m2 e2 = Fcmp_aux2 radix (MtoP m1) (EtoZ e1) (MtoP m2) (EtoZ e2).
 Proof.
 intros m1 e1 m2 e2 H1 H2.
-unfold cmp_aux2, Fcmp_aux2.
+unfold cmp_aux, Fcmp_aux2.
 rewrite exponent_cmp_correct.
 do 2 rewrite exponent_add_correct.
 do 2 (rewrite mantissa_digits_correct ; [idtac | assumption]).
@@ -358,7 +364,7 @@ rewrite exponent_cmp_correct.
 rewrite exponent_zero_correct.
 rewrite exponent_sub_correct.
 case_eq (EtoZ e1 - EtoZ e2)%Z ; intros ; simpl ;
-  unfold cmp_aux1, Fcmp_aux1.
+  unfold Fcmp_aux1.
 now rewrite mantissa_cmp_correct.
 generalize (mantissa_shl_correct p m1 (exponent_sub e1 e2) H1).
 rewrite exponent_sub_correct.
@@ -386,45 +392,61 @@ Qed.
 
 Definition cmp (f1 f2 : type) :=
   match f1, f2 with
-  | Fnan, _ => Xund
-  | _, Fnan => Xund
+  | Fnan, _ => Eq
+  | _, Fnan => Eq
   | Float m1 e1, Float m2 e2 =>
     match mantissa_sign m1, mantissa_sign m2 with
-    | Mzero, Mzero => Xeq
-    | Mzero, Mnumber true _ => Xgt
-    | Mzero, Mnumber false _ => Xlt
-    | Mnumber true _, Mzero => Xlt
-    | Mnumber false _, Mzero => Xgt
-    | Mnumber true _, Mnumber false _ => Xlt
-    | Mnumber false _, Mnumber true _ => Xgt
-    | Mnumber true p1, Mnumber true p2 => cmp_aux2 p2 e2 p1 e1
-    | Mnumber false p1, Mnumber false p2 => cmp_aux2 p1 e1 p2 e2
+    | Mzero, Mzero => Eq
+    | Mzero, Mnumber true _ => Gt
+    | Mzero, Mnumber false _ => Lt
+    | Mnumber true _, Mzero => Lt
+    | Mnumber false _, Mzero => Gt
+    | Mnumber true _, Mnumber false _ => Lt
+    | Mnumber false _, Mnumber true _ => Gt
+    | Mnumber true p1, Mnumber true p2 => cmp_aux p2 e2 p1 e1
+    | Mnumber false p1, Mnumber false p2 => cmp_aux p1 e1 p2 e2
     end
   end.
 
 Lemma cmp_correct :
-  forall x y, cmp x y = Xcmp (toX x) (toX y).
+  forall x y,
+  toX x = Xreal (toR x) ->
+  toX y = Xreal (toR y) ->
+  cmp x y = Rcompare (toR x) (toR y).
 Proof.
-intros.
-unfold toX.
-rewrite <- Fcmp_correct.
-destruct x as [| mx ex].
-apply refl_equal.
-destruct y as [| my ey].
+intros x y Rx Ry.
+destruct x as [|mx ex]. easy.
+destruct y as [|my ey]. easy.
 simpl.
-case (mantissa_sign mx) ; intros ; try case s ; apply refl_equal.
-simpl.
+unfold toR, toX, toF.
 generalize (mantissa_sign_correct mx) (mantissa_sign_correct my).
-case (mantissa_sign mx) ; case (mantissa_sign my).
-trivial.
-intros sy py.
-now case sy.
-intros sx px.
-now case sx.
-intros sy py sx px.
-intros (Hx1, Hx2) (Hy1, Hy2).
-do 2 (rewrite cmp_aux2_correct ; try assumption).
-apply refl_equal.
+destruct (mantissa_sign mx) as [|[|] mx'] ;
+  destruct (mantissa_sign my) as [|[|] my'] ; intros Hx Hy.
+- now rewrite Rcompare_Eq.
+- rewrite Rcompare_Gt. easy.
+  apply FtoR_Rneg.
+- rewrite Rcompare_Lt. easy.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Lt. easy.
+  apply FtoR_Rneg.
+- rewrite cmp_aux_correct by easy.
+  rewrite Fcmp_aux2_correct.
+  simpl.
+  change true with (negb false).
+  rewrite <- 2!FtoR_neg.
+  now rewrite Rcompare_opp.
+- rewrite Rcompare_Lt. easy.
+  apply Rlt_trans with 0%R.
+  apply FtoR_Rneg.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Gt. easy.
+  apply FtoR_Rpos.
+- rewrite Rcompare_Gt. easy.
+  apply Rlt_trans with 0%R.
+  apply FtoR_Rneg.
+  apply FtoR_Rpos.
+- rewrite cmp_aux_correct by easy.
+  now rewrite Fcmp_aux2_correct.
 Qed.
 
 (*
@@ -432,24 +454,30 @@ Qed.
  *)
 
 Definition min x y :=
-  match cmp x y with
-  | Xlt => x
-  | Xeq => x
-  | Xgt => y
-  | Xund => nan
+  match x, y with
+  | Fnan, _ => x
+  | _, Fnan => y
+  | _, _ =>
+    match cmp x y with
+    | Lt => x
+    | Eq => x
+    | Gt => y
+    end
   end.
 
 Lemma min_correct :
   forall x y,
   toX (min x y) = Xmin (toX x) (toX y).
 Proof.
-intros.
-unfold min.
-rewrite cmp_correct.
-unfold toX.
-rewrite <- Fcmp_correct, <- Fmin_correct.
-unfold Fmin.
-now case Fcmp.
+intros [|mx ex] [|my ey] ; try easy.
+now destruct (toX (Float mx ex)).
+rewrite 2!toX_Float.
+unfold min, Xmin.
+rewrite cmp_correct by apply toX_Float.
+case Rcompare_spec ; intros H ; rewrite toX_Float ; apply f_equal, sym_eq.
+now apply Rmin_left, Rlt_le.
+now apply Rmin_left, Req_le.
+now apply Rmin_right, Rlt_le.
 Qed.
 
 (*
@@ -457,24 +485,30 @@ Qed.
  *)
 
 Definition max x y :=
-  match cmp x y with
-  | Xlt => y
-  | Xeq => y
-  | Xgt => x
-  | Xund => nan
+  match x, y with
+  | Fnan, _ => x
+  | _, Fnan => y
+  | _, _ =>
+    match cmp x y with
+    | Lt => y
+    | Eq => y
+    | Gt => x
+    end
   end.
 
 Lemma max_correct :
   forall x y,
   toX (max x y) = Xmax (toX x) (toX y).
 Proof.
-intros.
-unfold max.
-rewrite cmp_correct.
-unfold toX.
-rewrite <- Fcmp_correct, <- Fmax_correct.
-unfold Fmax.
-now case Fcmp.
+intros [|mx ex] [|my ey] ; try easy.
+now destruct (toX (Float mx ex)).
+rewrite 2!toX_Float.
+unfold max, Xmax.
+rewrite cmp_correct by apply toX_Float.
+case Rcompare_spec ; intros H ; rewrite toX_Float ; apply f_equal, sym_eq.
+now apply Rmax_right, Rlt_le.
+now apply Rmax_right, Req_le.
+now apply Rmax_left, Rlt_le.
 Qed.
 
 (*
@@ -512,7 +546,7 @@ Definition round_aux mode prec sign m1 e1 pos :=
     float_aux sign (adjust_mantissa mode m2 pos2 sign) e2
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
-    if need_change_radix even_radix mode (mantissa_even m1) pos sign then
+    if need_change_radix sensible_format mode (mantissa_even m1) pos sign then
       let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
       float_aux sign m2 e2
     else float_aux sign m1 e1
@@ -572,7 +606,7 @@ clear ; zify ; omega.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
-unfold need_change_radix2, even_radix, radix, Z.even.
+unfold need_change_radix2, sensible_format, radix, Z.even.
 case need_change_radix.
 2: now apply toF_float.
 generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub (mantissa_digits m1) p)) Hm1).
@@ -612,7 +646,7 @@ Definition round_at_exp_aux mode e2 sign m1 e1 pos :=
     end
   | Eq => float_aux sign (adjust_mantissa mode m1 pos sign) e1
   | Lt =>
-      if need_change_radix even_radix mode (mantissa_even m1) pos sign then
+      if need_change_radix sensible_format mode (mantissa_even m1) pos sign then
         let m2 := mantissa_add (mantissa_shl m1 (exponent_neg nb)) mantissa_one in
         float_aux sign m2 e2
       else float_aux sign m1 e1
@@ -686,7 +720,7 @@ case Pos.compare_spec.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
-unfold need_change_radix2, even_radix, radix, Z.even.
+unfold need_change_radix2, sensible_format, radix, Z.even.
 case need_change_radix.
 2: now apply toF_float.
 generalize (mantissa_shl_correct dp m1 (exponent_neg (exponent_sub p' e1)) Hm1).
@@ -712,81 +746,6 @@ Definition round mode prec (f : type) :=
     end
   | _ => f
   end.
-
-(*
- * mul_exact
- *)
-
-Definition mul_exact (x y : type) :=
-  match x, y with
-  | Fnan, _ => x
-  | _, Fnan => y
-  | Float mx ex, Float my ey =>
-    match mantissa_sign mx, mantissa_sign my with
-    | Mzero, _ => x
-    | _, Mzero => y
-    | Mnumber sx px, Mnumber sy py =>
-      float_aux (xorb sx sy) (mantissa_mul px py) (exponent_add ex ey)
-    end
-  end.
-
-Lemma mul_exact_correct :
-  forall x y, toX (mul_exact x y) = Xmul (toX x) (toX y).
-Proof.
-intros x y.
-unfold toX.
-rewrite <- Fmul_exact_correct.
-destruct x as [| mx ex].
-apply refl_equal.
-simpl.
-destruct y as [| my ey].
-now case (mantissa_sign mx).
-generalize (mantissa_sign_correct mx) (mantissa_sign_correct my).
-case_eq (mantissa_sign mx) ; simpl ; case_eq (mantissa_sign my) ; simpl.
-intros _ Hx _ _.
-rewrite Hx.
-apply refl_equal.
-intros sy py _ Hx _ _.
-rewrite Hx.
-apply refl_equal.
-intros Hy sx px _ _ _.
-rewrite Hy.
-apply refl_equal.
-intros sy py _ sx px _ (_, Hx2) (_, Hy2).
-generalize (mantissa_mul_correct px py).
-intro H.
-destruct (H Hx2 Hy2).
-clear H.
-generalize (mantissa_sign_correct ((if xorb sx sy then mantissa_neg else mantissa_pos)
-  (mantissa_mul px py))).
-case (mantissa_sign ((if xorb sx sy then mantissa_neg else mantissa_pos)
-  (mantissa_mul px py))).
-case (xorb sx sy).
-rewrite mantissa_neg_correct.
-intro H. discriminate H.
-exact (proj2 (mantissa_mul_correct _ _ Hx2 Hy2)).
-rewrite mantissa_pos_correct.
-intro H. discriminate H.
-exact (proj2 (mantissa_mul_correct _ _ Hx2 Hy2)).
-intros sz pz (Hz1, Hz2).
-simpl.
-rewrite exponent_add_correct.
-rewrite <- H0.
-assert (forall A B, forall b : bool, forall f1 f2 : A -> B, forall x, (if b then f1 else f2) x = if b then f1 x else f2 x).
-intros.
-now case b.
-do 2 rewrite H in Hz1.
-clear H.
-assert (forall A B, forall f : A -> B, forall b : bool, forall x1 x2, f (if b then x1 else x2) = if b then f x1 else f x2).
-intros.
-now case b.
-rewrite (H _ _ MtoZ) in Hz1.
-clear H.
-rewrite mantissa_neg_correct in Hz1 ; [idtac | exact H1].
-rewrite mantissa_pos_correct in Hz1 ; [idtac | exact H1].
-generalize Hz1. clear Hz1.
-case (xorb sx sy) ; case sz ; intro H ; try discriminate H ; inversion H ; apply refl_equal.
-Qed.
 
 (*
  * mul
@@ -1133,22 +1092,6 @@ Lemma add_correct :
   toX (add mode p x y) = Xround radix mode (prec p) (Xadd (toX x) (toX y)).
 Proof.
 exact add_slow_correct.
-Qed.
-
-(*
- * sub_exact
- *)
-
-Definition sub_exact (x y : type) := add_exact x (neg y).
-
-Lemma sub_exact_correct :
-  forall x y, toX (sub_exact x y) = Xsub (toX x) (toX y).
-Proof.
-intros x y.
-unfold sub_exact.
-rewrite add_exact_correct.
-rewrite neg_correct.
-now rewrite Xsub_split.
 Qed.
 
 (*
@@ -1529,6 +1472,28 @@ unfold Fnearbyint_exact.
 eapply f_equal.
 eapply f_equal2; try easy.
 now rewrite exponent_zero_correct.
+Qed.
+
+(*
+ * midpoint
+ *)
+
+Definition midpoint (x y : type) := scale2 (add_exact x y) (ZtoS (-1)).
+
+Lemma midpoint_correct :
+  forall x y,
+  sensible_format = true ->
+  real x = true -> real y = true -> (toR x <= toR y)%R
+  -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
+Proof.
+intros x y He.
+unfold toR, midpoint.
+rewrite !real_correct.
+rewrite (scale2_correct _ _ He).
+rewrite add_exact_correct.
+do 2 (case toX; [easy|]).
+clear x y; simpl; intros x y _ _ Hxy.
+now split; [|lra].
 Qed.
 
 End SpecificFloat.

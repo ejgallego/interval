@@ -85,6 +85,12 @@ Definition Fscale2 {beta} (f : float beta) d :=
   end.
 
 (*
+ * Fdiv2
+ *)
+
+Definition Fdiv2 {beta} (f : float beta) := Fscale2 f (-1).
+
+(*
  * Fcmp
  *
  * 1. Compare signs.
@@ -97,18 +103,14 @@ Definition shift beta m nb :=
   iter_pos (Pmult r) nb m.
 
 Definition Fcmp_aux1 m1 m2 :=
-  match Z.compare (Zpos m1) (Zpos m2) with
-  | Eq => Xeq
-  | Lt => Xlt
-  | Gt => Xgt
-  end.
+  Z.compare (Zpos m1) (Zpos m2).
 
 Definition Fcmp_aux2 beta m1 e1 m2 e2 :=
   let d1 := count_digits beta m1 in
   let d2 := count_digits beta m2 in
   match Z.compare (e1 + Zpos d1)%Z (e2 + Zpos d2)%Z with
-  | Lt => Xlt
-  | Gt => Xgt
+  | Lt => Lt
+  | Gt => Gt
   | Eq =>
     match Zminus e1 e2 with
     | Zpos nb => Fcmp_aux1 (shift beta m1 nb) m2
@@ -116,6 +118,9 @@ Definition Fcmp_aux2 beta m1 e1 m2 e2 :=
     | Z0 => Fcmp_aux1 m1 m2
     end
   end.
+
+Definition Fcmp_aux3 beta m1 e1 m2 e2  :=
+  match Fcmp_aux2 beta m1 e1 m2 e2 with Eq => Xeq | Lt => Xlt | Gt => Xgt end.
 
 Definition Fcmp {beta} (f1 f2 : float beta) :=
   match f1, f2 with
@@ -128,8 +133,8 @@ Definition Fcmp {beta} (f1 f2 : float beta) :=
   | Float true _ _, Fzero => Xlt
   | Float false _ _, Float true _ _ => Xgt
   | Float true _ _, Float false _ _ => Xlt
-  | Float false m1 e1, Float false m2 e2 => Fcmp_aux2 beta m1 e1 m2 e2
-  | Float true m1 e1, Float true m2 e2 => Fcmp_aux2 beta m2 e2 m1 e1
+  | Float false m1 e1, Float false m2 e2 => Fcmp_aux3 beta m1 e1 m2 e2
+  | Float true m1 e1, Float true m2 e2 => Fcmp_aux3 beta m2 e2 m1 e1
   end.
 
 (*
@@ -354,7 +359,7 @@ Definition Fnearbyint {beta} mode prec x :=
   end.
 
 (*
- * Fmul, Fmul_exact
+ * Fmul
  *)
 
 Definition Fmul_aux {beta} (x y : float beta) : ufloat beta :=
@@ -369,9 +374,6 @@ Definition Fmul_aux {beta} (x y : float beta) : ufloat beta :=
 
 Definition Fmul {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fmul_aux x y).
-
-Definition Fmul_exact {beta} (x y : float beta) :=
-  Fround_none (Fmul_aux x y).
 
 (*
  * Fadd_slow, Fadd_exact
@@ -590,7 +592,7 @@ Definition Fadd_fast {beta} mode prec (x y : float beta) :=
 Definition Fadd {beta} := @Fadd_slow beta.
 
 (*
- * Fsub, Fsub_exact
+ * Fsub
  *)
 
 Definition Fsub_slow_aux {beta} (x y : float beta) :=
@@ -608,9 +610,6 @@ Definition Fsub_slow {beta} mode prec (x y : float beta) :=
   Fround_at_prec mode prec (Fsub_slow_aux x y).
 
 Definition Fsub {beta} := @Fsub_slow beta.
-
-Definition Fsub_exact {beta} (x y : float beta) :=
-  Fround_none (Fsub_slow_aux x y).
 
 (*
  * Fdiv

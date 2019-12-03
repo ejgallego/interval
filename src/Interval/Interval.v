@@ -283,7 +283,7 @@ apply Rle_trans with (1 := proj1 H) (2 := proj2 H).
 apply Rle_refl.
 Qed.
 
-Module Type IntervalOps.
+Module Type IntervalBasicOps.
 
 Parameter bound_type : Type.
 Parameter convert_bound : bound_type -> ExtendedR.
@@ -394,16 +394,9 @@ Parameter wider : precision -> type -> type -> bool.
 
 Parameter neg : type -> type.
 Parameter abs : type -> type.
-Parameter pi : precision -> type.
 Parameter inv : precision -> type -> type.
 Parameter sqr : precision -> type -> type.
 Parameter sqrt : precision -> type -> type.
-Parameter cos : precision -> type -> type.
-Parameter sin : precision -> type -> type.
-Parameter tan : precision -> type -> type.
-Parameter atan : precision -> type -> type.
-Parameter exp : precision -> type -> type.
-Parameter ln : precision -> type -> type.
 Parameter add : precision -> type -> type -> type.
 Parameter sub : precision -> type -> type -> type.
 Parameter mul : precision -> type -> type -> type.
@@ -412,17 +405,10 @@ Parameter power_int : precision -> type -> Z -> type.
 Parameter nearbyint : rounding_mode -> type -> type.
 
 Parameter neg_correct : extension Xneg neg.
-Parameter pi_correct : forall prec, contains (convert (pi prec)) (Xreal PI).
+Parameter abs_correct : extension Xabs abs.
 Parameter inv_correct : forall prec, extension Xinv (inv prec).
 Parameter sqr_correct : forall prec, extension Xsqr (sqr prec).
-Parameter abs_correct : extension Xabs abs.
 Parameter sqrt_correct : forall prec, extension Xsqrt (sqrt prec).
-Parameter cos_correct : forall prec, extension Xcos (cos prec).
-Parameter sin_correct : forall prec, extension Xsin (sin prec).
-Parameter tan_correct : forall prec, extension Xtan (tan prec).
-Parameter atan_correct : forall prec, extension Xatan (atan prec).
-Parameter exp_correct : forall prec, extension Xexp (exp prec).
-Parameter ln_correct : forall prec, extension Xln (ln prec).
 Parameter add_correct : forall prec, extension_2 Xadd (add prec).
 Parameter sub_correct : forall prec, extension_2 Xsub (sub prec).
 Parameter mul_correct : forall prec, extension_2 Xmul (mul prec).
@@ -527,9 +513,31 @@ Parameter sub_propagate_r : forall prec, propagate_r (sub prec).
 Parameter mul_propagate_r : forall prec, propagate_r (mul prec).
 Parameter div_propagate_r : forall prec, propagate_r (div prec).
 
+End IntervalBasicOps.
+
+Module Type IntervalOps.
+
+Include IntervalBasicOps.
+
+Parameter pi : precision -> type.
+Parameter cos : precision -> type -> type.
+Parameter sin : precision -> type -> type.
+Parameter tan : precision -> type -> type.
+Parameter atan : precision -> type -> type.
+Parameter exp : precision -> type -> type.
+Parameter ln : precision -> type -> type.
+
+Parameter pi_correct : forall prec, contains (convert (pi prec)) (Xreal PI).
+Parameter cos_correct : forall prec, extension Xcos (cos prec).
+Parameter sin_correct : forall prec, extension Xsin (sin prec).
+Parameter tan_correct : forall prec, extension Xtan (tan prec).
+Parameter atan_correct : forall prec, extension Xatan (atan prec).
+Parameter exp_correct : forall prec, extension Xexp (exp prec).
+Parameter ln_correct : forall prec, extension Xln (ln prec).
+
 End IntervalOps.
 
-Module IntervalExt (I : IntervalOps).
+Module IntervalBasicExt (I : IntervalBasicOps).
 
 Definition propagate fi :=
   forall xi, I.convert xi = Inan -> I.convert (fi xi) = Inan.
@@ -612,48 +620,6 @@ intros prec xi x Hx.
 generalize (I.sqrt_correct prec xi _ Hx).
 unfold Xsqrt', Xbind.
 case is_negative ; try easy.
-now case I.convert.
-Qed.
-
-Lemma cos_correct : forall prec, extension cos (I.cos prec).
-Proof.
-intros prec xi x.
-now apply I.cos_correct.
-Qed.
-
-Lemma sin_correct : forall prec, extension sin (I.sin prec).
-Proof.
-intros prec xi x.
-now apply I.sin_correct.
-Qed.
-
-Lemma tan_correct : forall prec, extension tan (I.tan prec).
-Proof.
-intros prec xi x Hx.
-generalize (I.tan_correct prec xi _ Hx).
-unfold Xtan', Xbind.
-case is_zero ; try easy.
-now case I.convert.
-Qed.
-
-Lemma atan_correct : forall prec, extension atan (I.atan prec).
-Proof.
-intros prec xi x.
-now apply I.atan_correct.
-Qed.
-
-Lemma exp_correct : forall prec, extension exp (I.exp prec).
-Proof.
-intros prec xi x.
-now apply I.exp_correct.
-Qed.
-
-Lemma ln_correct : forall prec, extension ln (I.ln prec).
-Proof.
-intros prec xi x Hx.
-generalize (I.ln_correct prec xi _ Hx).
-unfold Xln', Xbind.
-case is_positive ; try easy.
 now case I.convert.
 Qed.
 
@@ -783,6 +749,54 @@ apply: le_contains.
   apply: RInt_le_r => // x Hx.
   apply Hext.
   now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
+Qed.
+
+End IntervalBasicExt.
+
+Module IntervalExt (I : IntervalOps).
+
+Include (IntervalBasicExt I).
+
+Lemma cos_correct : forall prec, extension cos (I.cos prec).
+Proof.
+intros prec xi x.
+now apply I.cos_correct.
+Qed.
+
+Lemma sin_correct : forall prec, extension sin (I.sin prec).
+Proof.
+intros prec xi x.
+now apply I.sin_correct.
+Qed.
+
+Lemma tan_correct : forall prec, extension tan (I.tan prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.tan_correct prec xi _ Hx).
+unfold Xtan', Xbind.
+case is_zero ; try easy.
+now case I.convert.
+Qed.
+
+Lemma atan_correct : forall prec, extension atan (I.atan prec).
+Proof.
+intros prec xi x.
+now apply I.atan_correct.
+Qed.
+
+Lemma exp_correct : forall prec, extension exp (I.exp prec).
+Proof.
+intros prec xi x.
+now apply I.exp_correct.
+Qed.
+
+Lemma ln_correct : forall prec, extension ln (I.ln prec).
+Proof.
+intros prec xi x Hx.
+generalize (I.ln_correct prec xi _ Hx).
+unfold Xln', Xbind.
+case is_positive ; try easy.
+now case I.convert.
 Qed.
 
 End IntervalExt.

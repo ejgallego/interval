@@ -208,23 +208,6 @@ apply refl_equal.
 Qed.
 
 (*
- * Fscale
- *)
-
-Theorem Fscale_correct :
-  forall beta (f : float beta) d,
-  FtoX (Fscale f d) = Xmul (FtoX f) (Xreal (bpow beta d)).
-Proof.
-intros beta [| |s m e] d ; simpl.
-apply refl_equal.
-now rewrite Rmult_0_l.
-rewrite 2!FtoR_split.
-unfold F2R. simpl.
-rewrite Rmult_assoc.
-now rewrite bpow_plus.
-Qed.
-
-(*
  * Fscale2
  *)
 
@@ -330,12 +313,12 @@ Qed.
 Lemma Fcmp_aux2_correct :
   forall beta m1 m2 e1 e2,
   Fcmp_aux2 beta m1 e1 m2 e2 =
-  Xcmp (Xreal (FtoR beta false m1 e1)) (Xreal (FtoR beta false m2 e2)).
+  Rcompare (FtoR beta false m1 e1) (FtoR beta false m2 e2).
 Proof.
 intros beta m1 m2 e1 e2.
 rewrite 2!FtoR_split.
 simpl cond_Zopp.
-unfold  Fcmp_aux2, Xcmp.
+unfold Fcmp_aux2.
 rewrite <- 2!digits_conversion.
 rewrite (Zplus_comm e1), (Zplus_comm e2).
 rewrite <- 2!mag_F2R_Zdigits ; [|easy..].
@@ -398,33 +381,30 @@ Theorem Fcmp_correct :
   Fcmp x y = Xcmp (FtoX x) (FtoX y).
 Proof.
 intros.
-case x ; intros ; simpl ; try apply refl_equal ;
-  case y ; intros ; simpl ; try apply refl_equal ; clear.
+destruct x as [| |sx mx ex] ; simpl ; try apply refl_equal ;
+  destruct y as [| |sy my ey] ; simpl ; try apply refl_equal ; clear.
 now rewrite Rcompare_Eq.
-case b.
+case sy.
 rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rneg.
 rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rpos.
-case b ; apply refl_equal.
-case b.
+now case sx.
+case sx.
 rewrite Rcompare_Lt.
 apply refl_equal.
 apply FtoR_Rneg.
 rewrite Rcompare_Gt.
 apply refl_equal.
 apply FtoR_Rpos.
-case b ; case b0.
+unfold Fcmp_aux3.
+case sx ; case sy.
 rewrite Fcmp_aux2_correct.
-simpl.
 change true with (negb false).
 repeat rewrite <- FtoR_neg.
-generalize (FtoR beta false p0 z0).
-generalize (FtoR beta false p z).
-intros.
-destruct (Rcompare_spec r0 r).
+case Rcompare_spec ; intros H.
 rewrite Rcompare_Lt.
 apply refl_equal.
 now apply Ropp_lt_contravar.
@@ -1249,29 +1229,6 @@ apply Fadd_correct.
 Qed.
 
 (*
- * Fsub_exact
- *)
-
-Lemma Fsub_exact_split :
-  forall beta (x y : float beta),
-  FtoX (Fsub_exact x y) = FtoX (Fadd_exact x (Fneg y)).
-Proof.
-intros beta x y.
-now case y.
-Qed.
-
-Theorem Fsub_exact_correct :
-  forall beta (x y : float beta),
-  FtoX (Fsub_exact x y) = Xsub (FtoX x) (FtoX y).
-Proof.
-intros beta x y.
-rewrite Fsub_exact_split.
-rewrite Fadd_exact_correct.
-rewrite Fneg_correct.
-apply sym_eq, Xsub_split.
-Qed.
-
-(*
  * Fmul
  *)
 
@@ -1311,20 +1268,8 @@ now case y.
 Qed.
 
 (*
- * Fmul_exact
+ * Fdiv
  *)
-
-Theorem Fmul_exact_correct :
-  forall beta (x y : float beta),
-  FtoX (Fmul_exact x y) = Xmul (FtoX x) (FtoX y).
-Proof.
-intros beta x y.
-unfold Fmul_exact.
-rewrite <- (Fmul_aux_correct _ x y).
-case (Fmul_aux x y) ; try easy.
-intros s m e l.
-now case l.
-Qed.
 
 Theorem Fdiv_correct :
   forall beta mode prec (x y : float beta),
@@ -1407,6 +1352,10 @@ now apply F2R_gt_0.
 apply Rinv_0_lt_compat.
 now apply F2R_gt_0.
 Qed.
+
+(*
+ * Fsqrt
+ *)
 
 Lemma Fsqrt_correct :
   forall beta mode prec (x : float beta),

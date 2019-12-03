@@ -36,7 +36,7 @@ Require Import Prog.
 Require Import Reify.
 Require Import Refine.
 
-Module IntervalTactic (F : FloatOps with Definition even_radix := true).
+Module IntervalTactic (F : FloatOps with Definition sensible_format := true).
 
 Inductive interval_tac_parameters : Set :=
   | i_prec (p : positive)
@@ -613,12 +613,12 @@ now induction (rev p) as [|h t].
 Qed.
 
 Definition bertrand_infty_interval alpha beta prec ui :=
-  if F'.le (F.fromZ 1) (I.lower ui) then
+  if F'.le' (F.fromZ 1) (I.lower ui) then
     BI.f_int_fast prec ui alpha beta
   else I.nai.
 
 Definition bertrand_zero_interval alpha beta prec vi :=
-  if andb (F'.lt F.zero (I.lower vi)) (F'.le (I.upper vi) (F.fromZ 1)) then
+  if andb (F'.lt' F.zero (I.lower vi)) (F'.le' (I.upper vi) (F.fromZ 1)) then
     BI.f0eps_int prec vi alpha beta
   else I.nai.
 
@@ -643,7 +643,7 @@ now induction (rev p) as [|h t].
 Qed.
 
 Definition invxln_interval beta prec ui :=
-  if F'.lt (F.fromZ 1) (I.lower ui) then
+  if F'.lt' (F.fromZ 1) (I.lower ui) then
     BI.f_neg_int prec ui (S beta)
   else I.nai.
 
@@ -856,11 +856,11 @@ apply eval_RInt_gen_infty_correct ; cycle 1.
 - exact Hp.
 - intros fi ui f u Hu Hc Hf Hb.
   unfold bertrand_infty_interval.
-  destruct F'.le eqn:Hul ; cycle 1.
+  destruct F'.le' eqn:Hul ; cycle 1.
     now rewrite I.nai_correct.
   intros _.
   assert (Hu': (1 <= u)%R).
-    apply F'.le_correct in Hul.
+    apply F'.le'_correct in Hul.
     rewrite F.fromZ_correct in Hul.
     rewrite I.lower_correct in Hul.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
@@ -917,11 +917,11 @@ apply eval_RInt_gen_infty_correct ; cycle 1.
 - exact Hp.
 - intros fi ui f u Hu Hc Hf Hb.
   unfold invxln_interval.
-  destruct F'.lt eqn:Hul ; cycle 1.
+  destruct F'.lt' eqn:Hul ; cycle 1.
     now rewrite I.nai_correct.
   intros _.
   assert (Hu': (1 < u)%R).
-    apply F'.lt_correct in Hul.
+    apply F'.lt'_correct in Hul.
     rewrite F.fromZ_correct in Hul.
     rewrite I.lower_correct in Hul.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
@@ -1160,15 +1160,15 @@ apply eval_RInt_gen_zero_correct ; cycle 1.
 - exact Hp.
 - intros fi vi f v Hv Hc Hf Hb.
   unfold bertrand_zero_interval.
-  destruct F'.lt eqn:Hvl ; cycle 1.
+  destruct F'.lt' eqn:Hvl ; cycle 1.
     cbv [andb].
     now rewrite I.nai_correct.
-  destruct F'.le eqn:Hvu ; cycle 1.
+  destruct F'.le' eqn:Hvu ; cycle 1.
     cbv [andb].
     now rewrite I.nai_correct.
   intros _.
   assert (Hv': (0 < v)%R).
-    apply F'.lt_correct in Hvl.
+    apply F'.lt'_correct in Hvl.
     rewrite F.zero_correct in Hvl.
     rewrite I.lower_correct in Hvl.
     destruct (I.convert vi) as [|[|vl] vr] ; try easy.
@@ -1197,7 +1197,7 @@ apply eval_RInt_gen_zero_correct ; cycle 1.
     apply ln_le.
     apply Hx.
     apply Rle_trans with (1 := proj2 Hx).
-    apply F'.le_correct in Hvu.
+    apply F'.le'_correct in Hvu.
     rewrite F.fromZ_correct in Hvu.
     rewrite I.upper_correct in Hvu.
     destruct (I.convert vi) as [|vr [|vu]] ; try easy.

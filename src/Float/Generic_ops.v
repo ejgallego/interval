@@ -17,7 +17,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Reals.
+From Coq Require Import ZArith Reals Psatz.
 From Flocq Require Import Raux.
 
 Require Import Xreal.
@@ -41,12 +41,12 @@ End Radix10.
 Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Definition radix := Rad.val.
-  Definition even_radix := match radix_val radix with Zpos (xO _) => true | _ => false end.
-  Definition even_radix_correct := refl_equal even_radix.
+  Definition sensible_format := match radix_val radix with Zpos (xO _) => true | _ => false end.
   Definition type := float radix.
-  Definition toF := fun x : float radix => x.
-  Definition toX := fun x : float radix => FtoX x.
-  Definition fromF := fun x : float radix => x.
+  Definition toF (x : type) := x.
+  Definition toX (x : type) := FtoX x.
+  Definition toR x := proj_val (toX x).
+  Definition fromF (x : type) := x.
   Definition precision := positive.
   Definition sfactor := Z.
   Definition prec := fun x : positive => x.
@@ -57,36 +57,26 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition zero := @Fzero radix.
   Definition nan := @Fnan radix.
   Definition mag := @Fmag radix.
-  Definition cmp := @Fcmp radix.
+  Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
   Definition min := @Fmin radix.
   Definition max := @Fmax radix.
   Definition round := @Fround radix.
   Definition neg := @Fneg radix.
   Definition abs := @Fabs radix.
   Definition scale := @Fscale radix.
-  Definition scale2 := @Fscale2 radix.
-  Definition add_exact := @Fadd_exact radix.
-  Definition sub_exact := @Fsub_exact radix.
-  Definition mul_exact := @Fmul_exact radix.
+  Definition div2 := @Fdiv2 radix.
   Definition add := @Fadd radix.
   Definition sub := @Fsub radix.
   Definition mul := @Fmul radix.
   Definition div := @Fdiv radix.
   Definition sqrt := @Fsqrt radix.
   Definition nearbyint := @Fnearbyint_exact radix.
-  Definition toF_correct := fun x => refl_equal (@FtoX radix x).
   Definition zero_correct := refl_equal (Xreal R0).
   Definition nan_correct := refl_equal Xnan.
-  Definition cmp_correct := @Fcmp_correct radix.
   Definition min_correct := @Fmin_correct radix.
   Definition max_correct := @Fmax_correct radix.
   Definition neg_correct := @Fneg_correct radix.
   Definition abs_correct := @Fabs_correct radix.
-  Definition scale_correct := @Fscale_correct radix.
-  Definition scale2_correct := @Fscale2_correct radix.
-  Definition add_exact_correct := @Fadd_exact_correct radix.
-  Definition sub_exact_correct := @Fsub_exact_correct radix.
-  Definition mul_exact_correct := @Fmul_exact_correct radix.
   Definition add_correct := @Fadd_correct radix.
   Definition sub_correct := @Fsub_correct radix.
   Definition mul_correct := @Fmul_correct radix.
@@ -108,6 +98,54 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Proof.
   intros f.
   now case f.
+  Qed.
+
+  Lemma cmp_correct :
+    forall x y,
+    toX x = Xreal (toR x) ->
+    toX y = Xreal (toR y) ->
+    cmp x y = Rcompare (toR x) (toR y).
+  Proof.
+  intros x y Rx Ry.
+  unfold cmp.
+  rewrite Fcmp_correct.
+  unfold toX in Rx, Ry.
+  rewrite Rx, Ry.
+  simpl.
+  now case Rcompare.
+  Qed.
+
+  Lemma div2_correct :
+    forall x, sensible_format = true ->
+    (1 / 256 <= Rabs (toR x))%R ->
+    toX (div2 x) = Xdiv (toX x) (Xreal 2).
+  Proof.
+  intros x Hf _.
+  unfold div2, Fdiv2, toX.
+  rewrite Fscale2_correct; [|easy].
+  simpl; unfold Z.pow_pos; simpl.
+  rewrite Xdiv_split.
+  unfold Xinv, Xinv'.
+  now rewrite is_zero_false.
+  Qed.
+
+  Definition midpoint (x y : type) := Fscale2 (Fadd_exact x y) (ZtoS (-1)).
+
+  Lemma midpoint_correct :
+    forall x y,
+    sensible_format = true ->
+    real x = true -> real y = true -> (toR x <= toR y)%R
+    -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
+  Proof.
+  intros x y He.
+  unfold toR, FtoX, midpoint.
+  rewrite !real_correct.
+  rewrite (Fscale2_correct _ _ _ He).
+  rewrite Fadd_exact_correct.
+  unfold toX.
+  do 2 (case FtoX; [easy|]).
+  clear x y; simpl; intros x y _ _ Hxy.
+  now split; [|lra].
   Qed.
 
 End GenericFloat.
