@@ -75,6 +75,7 @@ Proof.
   integral.
 Qed.
 
+(*
 Goal
   Rabs (RInt_gen (fun t => 1/sqrt t * exp (-(1*t)))
                  (at_point 1) (Rbar_locally p_infty)
@@ -82,3 +83,4 @@ Goal
 Proof.
   interval.
 Qed.
+*)
