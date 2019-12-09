@@ -60,7 +60,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition cmp (x y : type) := match Fcmp x y with Xlt => Lt | Xgt => Gt | _ => Eq end.
   Definition min := @Fmin radix.
   Definition max := @Fmax radix.
-  Definition round := @Fround radix.
   Definition neg := @Fneg radix.
   Definition abs := @Fabs radix.
   Definition scale := @Fscale radix.

@@ -770,16 +770,6 @@ rewrite (proj1 (mantissa_one_correct)).
 now rewrite Pplus_one_succ_r.
 Qed.
 
-Definition round mode prec (f : type) :=
-  match f with
-  | Float m e =>
-    match mantissa_sign m with
-    | Mzero => zero
-    | Mnumber s p => round_aux mode prec s p e pos_Eq
-    end
-  | _ => f
-  end.
-
 (*
  * mul
  *)
