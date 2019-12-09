@@ -202,3 +202,45 @@ intros H.
 apply eq_0_F2R in H.
 now destruct s.
 Qed.
+
+Definition le_upper x y :=
+  match y with
+  | Xnan => True
+  | Xreal yr =>
+    match x with
+    | Xnan => False
+    | Xreal xr => Rle xr yr
+    end
+  end.
+
+Definition le_lower x y :=
+  le_upper (Xneg y) (Xneg x).
+
+Lemma le_upper_trans :
+  forall x y z,
+  le_upper x y -> le_upper y z -> le_upper x z.
+Proof.
+intros x y z.
+case z.
+split.
+intro zr.
+case y.
+intros _ H.
+elim H.
+intros yr.
+case x.
+intros H _.
+elim H.
+intros xr.
+simpl.
+apply Rle_trans.
+Qed.
+
+Lemma le_lower_trans :
+  forall x y z,
+  le_lower x y -> le_lower y z -> le_lower x z.
+Proof.
+unfold le_lower.
+intros.
+eapply le_upper_trans ; eassumption.
+Qed.
