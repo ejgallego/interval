@@ -1859,46 +1859,6 @@ apply Rlt_le.
 now apply Rnot_le_lt.
 Qed.
 
-Theorem sqr_ge_0 :
-  forall prec xi, convert xi <> Interval.Inan ->
-  le_lower' (Xreal 0) (F.toX (lower (sqr prec xi))).
-Proof.
-intros prec [|xl xu].
-intros H.
-now elim H.
-intros _.
-simpl.
-unfold sign_large_.
-rewrite 2!F'.cmp_correct, F.zero_correct.
-assert (Hd: forall x xr, F.toX x = Xreal xr ->
-    match F.toX (F.mul rnd_DN prec x x) with
-    | Xnan => False
-    | Xreal yr => (0 <= yr)%R
-    end).
-  intros x xr Hx.
-  rewrite F.mul_correct, Hx.
-  simpl.
-  apply Generic_fmt.round_ge_generic ; auto with typeclass_instances.
-  apply Generic_fmt.generic_format_0.
-  apply Rle_0_sqr.
-assert (Hz: match F.toX F.zero with
-    | Xnan => False
-    | Xreal yr => (0 <= yr)%R
-    end).
-  rewrite F.zero_correct.
-  apply Rle_refl.
-case_eq (F.toX xl) ; case_eq (F.toX xu) ; simpl.
-now intros _ _.
-intros ru Hu _.
-case Rcompare_spec ; simpl ; intros H ; try apply Hz ; apply Hd with (1 := Hu).
-intros _ rl Hl.
-case Rcompare_spec ; simpl ; intros H ; try apply Hz ; apply Hd with (1 := Hl).
-intros ru Hu rl Hl.
-case Rcompare_spec ; simpl ; intros H1 ;
-  case Rcompare_spec ; simpl ; intros H2 ;
-    try apply Hz ; eapply Hd ; eassumption.
-Qed.
-
 Lemma Fpower_pos_up_correct :
   forall prec x n,
   le_upper (Xreal 0) (F.toX x) ->
