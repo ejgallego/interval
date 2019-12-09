@@ -450,10 +450,17 @@ Parameter bounded_correct :
   bounded xi = true ->
   lower_bounded xi = true /\ upper_bounded xi = true.
 
-Parameter fromZ : Z -> type.
+Parameter fromZ_small : Z -> type.
+
+Parameter fromZ_small_correct :
+  forall v,
+  (Z.abs v <= 256)%Z ->
+  contains (convert (fromZ_small v)) (Xreal (IZR v)).
+
+Parameter fromZ : precision -> Z -> type.
 
 Parameter fromZ_correct :
-  forall v, contains (convert (fromZ v)) (Xreal (IZR v)).
+  forall prec v, contains (convert (fromZ prec v)) (Xreal (IZR v)).
 
 Definition propagate_l fi :=
   forall xi yi : type, convert xi = Inan -> convert (fi xi yi) = Inan.

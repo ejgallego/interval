@@ -117,7 +117,7 @@ Qed.
 
 Definition fromZ n := Float (ZtoM n) exponent_zero.
 
-Lemma fromZ_correct :
+Lemma fromZ_correct' :
   forall n, toX (fromZ n) = Xreal (IZR n).
 Proof.
 intros.
@@ -129,6 +129,37 @@ apply refl_equal.
 rewrite exponent_zero_correct.
 rewrite (proj1 H0).
 now case s.
+Qed.
+
+Lemma fromZ_correct :
+  forall n,
+  (Z.abs n <= 256)%Z ->
+  toX (fromZ n) = Xreal (IZR n).
+Proof.
+intros n _.
+apply fromZ_correct'.
+Qed.
+
+Definition fromZ_DN (p : precision) := fromZ.
+
+Lemma fromZ_DN_correct :
+  forall p n,
+  le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
+Proof.
+intros p n.
+rewrite fromZ_correct'.
+apply Rle_refl.
+Qed.
+
+Definition fromZ_UP (p : precision) := fromZ.
+
+Lemma fromZ_UP_correct :
+  forall p n,
+  le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
+Proof.
+intros p n.
+rewrite fromZ_correct'.
+apply Rle_refl.
 Qed.
 
 Lemma match_helper_1 :

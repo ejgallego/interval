@@ -86,9 +86,40 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
 
   Definition fromZ n : float radix := match n with Zpos p => Float false p Z0 | Zneg p => Float true p Z0 | Z0 => Fzero end.
 
-  Lemma fromZ_correct : forall n, FtoX (toF (fromZ n)) = Xreal (IZR n).
+  Lemma fromZ_correct' : forall n, toX (fromZ n) = Xreal (IZR n).
   Proof.
     intros. case n ; split.
+  Qed.
+
+  Lemma fromZ_correct :
+    forall n,
+    (Z.abs n <= 256)%Z ->
+    toX (fromZ n) = Xreal (IZR n).
+  Proof.
+  intros n _.
+  apply fromZ_correct'.
+  Qed.
+
+  Definition fromZ_DN (p : precision) := fromZ.
+
+  Lemma fromZ_DN_correct :
+    forall p n,
+    le_lower (toX (fromZ_DN p n)) (Xreal (IZR n)).
+  Proof.
+  intros p n.
+  rewrite fromZ_correct'.
+  apply Rle_refl.
+  Qed.
+
+  Definition fromZ_UP (p : precision) := fromZ.
+
+  Lemma fromZ_UP_correct :
+    forall p n,
+    le_upper (Xreal (IZR n)) (toX (fromZ_UP p n)).
+  Proof.
+  intros p n.
+  rewrite fromZ_correct'.
+  apply Rle_refl.
   Qed.
 
   Definition real (f : float radix) := match f with Fnan => false | _ => true end.

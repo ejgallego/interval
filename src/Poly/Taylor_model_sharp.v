@@ -1579,6 +1579,7 @@ constructor.
                        apply: J.add_correct|
                        apply: J.sqr_correct|
                        apply: I.fromZ_correct|
+                       exact: I.fromZ_small_correct|
                        apply: Pol.one_correct].
     + exact: Pol.one_correct.
     + move=> [/=|k]; last by rewrite /PolR.nth !nth_default //; apply: J.zero_correct.
@@ -1828,6 +1829,7 @@ constructor.
       have->: ((/ 2 - INR k) = (INR 1 - INR 2 * INR k.+1.-1) / INR 2)%R
         by simpl; field.
       move/(gt0_correct Hx)/Rgt_not_eq in E1.
+      simpl (INR 1). simpl (INR 2).
       change eq with (@eq R); field.
       repeat first [exact E1 | split | exact: INR_fact_neq_0 | exact: not_0_INR ].
   }
@@ -1842,6 +1844,7 @@ constructor.
                    |apply: I.fromZ_correct
                    |apply: J.mul_correct
                    |apply: I.fromZ_correct
+                   |exact: I.fromZ_small_correct
                    |apply: R_from_nat_correct
                    ].
     exact: J.sqrt_correct.
@@ -1880,6 +1883,7 @@ by move=> *;
                |apply: I.fromZ_correct
                |apply: J.mul_correct
                |apply: I.fromZ_correct
+               |exact: I.fromZ_small_correct
                |apply: R_from_nat_correct
                ].
 exact: J.sqrt_correct.
@@ -1944,6 +1948,7 @@ constructor.
       have->: (-/ 2 - INR k = - (INR 1 + INR 2 * INR k.+1.-1) / INR 2)%R
         by simpl; field.
       move/(gt0_correct Hx)/Rgt_not_eq in E1.
+      simpl (INR 1). simpl (INR 2).
       change eq with (@eq R); field.
       repeat first [exact E1 | split | exact: INR_fact_neq_0 | exact: not_0_INR ].
   }
@@ -1958,6 +1963,7 @@ by move=> *;
                |apply: I.fromZ_correct
                |apply: J.mul_correct
                |apply: I.fromZ_correct
+               |exact: I.fromZ_small_correct
                |apply/eqNaiPy: R_from_nat_correct
                |apply: J.add_correct
                |apply: J.neg_correct
@@ -1998,6 +2004,7 @@ by move=> *;
                |apply: I.fromZ_correct
                |apply: J.mul_correct
                |apply: I.fromZ_correct
+               |exact: I.fromZ_small_correct
                |apply/eqNaiPy: R_from_nat_correct
                |apply: J.add_correct
                |apply: J.neg_correct

@@ -194,8 +194,8 @@ Module J := IntervalExt I.
 
 Definition nullary_bnd prec (o : nullary_op) : I.type :=
   match o with
-  | Int n => I.fromZ n
-  | Bpow r n => I.power_int prec (I.fromZ r) n
+  | Int n => I.fromZ prec n
+  | Bpow r n => I.power_int prec (I.fromZ prec r) n
   | Pi => I.pi prec
   end.
 

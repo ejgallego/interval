@@ -66,8 +66,8 @@ Include BaseOps.
 (** [mask c x] is the constant fonction [c], except if [T = I.type]
 and [x] contains [Xnan], implying that [mask c x] contains [Xnan]. *)
 Parameter Inline mask : T -> T -> T.
-Parameter Inline from_nat : nat -> T.
-Parameter Inline fromZ : Z -> T.
+Parameter Inline from_nat : U -> nat -> T.
+Parameter Inline fromZ : U -> Z -> T.
 Parameter Inline power_int : U -> T -> Z -> T.
 Parameter Inline sqr : U -> T -> T.
 Parameter Inline inv : U -> T -> T.
@@ -90,7 +90,7 @@ Module FullInt (I : IntervalOps) <: FullOps.
 Definition U := I.precision.
 Definition T := I.type.
 Definition zero := I.zero.
-Definition one := I.fromZ 1.
+Definition one := I.fromZ_small 1.
 Definition opp := I.neg.
 Definition add := I.add.
 Definition sub := I.sub.
@@ -99,7 +99,7 @@ Definition div := I.div.
 Definition power_int := I.power_int.
 Definition exp := I.exp.
 Definition ln := I.ln.
-Definition from_nat := fun n => I.fromZ (Z_of_nat n).
+Definition from_nat := fun u n => I.fromZ u (Z_of_nat n).
 Definition fromZ := I.fromZ.
 Definition inv := I.inv.
 Definition cos := I.cos.
@@ -228,8 +228,8 @@ Definition div := --> Rdiv.
 Definition power_int := --> powerRZ.
 Definition exp := --> exp.
 Definition ln := --> ln.
-Definition from_nat := INR.
-Definition fromZ := IZR.
+Definition from_nat (_:U) := INR.
+Definition fromZ (_:U) := IZR.
 Definition inv := --> Rinv.
 Definition cos := --> cos.
 Definition sin := --> sin.
@@ -310,7 +310,7 @@ Proof.
 by move=> f h1 hrec; elim =>//= a e; apply:hrec.
 Qed.
 
-Definition deriv_loop := foldri (fun a i s => C.mul u a (C.from_nat i) :: s) [::].
+Definition deriv_loop := foldri (fun a i s => C.mul u a (C.from_nat u i) :: s) [::].
 
 Definition deriv (p : T) := deriv_loop (behead p) 1.
 
@@ -377,7 +377,7 @@ Proof. by rewrite /size /mul size_mkseq. Qed.
 Fixpoint dotmuldiv (u : U) (a b : seq Z) (p : T) : T :=
 match a, b, p with
 | a0 :: a1, b0 :: b1, p0 :: p1 =>
-  C.mul u (C.div u (C.fromZ a0) (C.fromZ b0)) p0 ::
+  C.mul u (C.div u (C.fromZ u a0) (C.fromZ u b0)) p0 ::
   dotmuldiv u a1 b1 p1
 | _, _, _ => [::] (* e.g. *)
 end.
@@ -456,12 +456,11 @@ Variable u : U.
 Definition int_coeff (p : T) (c : C.T) (n : nat) :=
 match n with
 | 0 => c
-| S m => C.div u (nth p m) (C.from_nat n)
+| S m => C.div u (nth p m) (C.from_nat u n)
 end.
 
-Definition int_coeff_shift (p : T) (k : nat) := C.div u
-(seq.nth C.zero p k)
-(C.from_nat k.+1).
+Definition int_coeff_shift (p : T) (k : nat) :=
+  C.div u (seq.nth C.zero p k) (C.from_nat u k.+1).
 
 Definition primitive (c : C.T) (p : T) :=
  (c::(mkseq (int_coeff_shift p) (size p))) : T.
@@ -504,7 +503,7 @@ Proof. by rewrite /nth /mul_tail [in LHS]nth_mkseq_dflt. Qed.
 Lemma nth_dotmuldiv u a b p k :
   nth (dotmuldiv u a b p) k =
   if [|| size p <= k, seq.size a <= k | seq.size b <= k] then C.zero
-  else C.mul u (C.div u (C.fromZ (seq.nth 0%Z a k)) (C.fromZ (seq.nth 0%Z b k))) (nth p k).
+  else C.mul u (C.div u (C.fromZ u (seq.nth 0%Z a k)) (C.fromZ u (seq.nth 0%Z b k))) (nth p k).
 Proof.
 elim: p a b k => [|c p IHp] a b k; case: a; case: b =>//=; rewrite /nth ?nth_nil //.
 by rewrite orbT.
@@ -849,7 +848,7 @@ Definition seq_contains_pointwise si s : Prop :=
 Notation seq_eq_size si s := (seq.size si = seq.size s).
 
 Module Import Notations.
-Delimit Scope ipoly_scope with IP.
+Declare Scope ipoly_scope.
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
 Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
 Notation eq_size pi p := (size pi = PolR.size p).
@@ -1005,7 +1004,11 @@ Lemma zero_correct : zero >:: PolR.zero.
 Proof. by case=> [|k]; exact: J.zero_correct. Qed.
 
 Lemma one_correct : one >:: PolR.one.
-Proof. by case=> [|k] /=; [apply: I.fromZ_correct|exact: zero_correct]. Qed.
+Proof.
+case=> [|k] /=.
+exact: I.fromZ_small_correct.
+exact: zero_correct.
+Qed.
 
 Lemma opp_correct pi p : pi >:: p -> opp pi >:: PolR.opp p.
 Proof.
@@ -1289,7 +1292,8 @@ Qed.
 Lemma polyX_correct : polyX >:: PolR.polyX.
 Proof.
 case=> [|k] /=; first exact: J.zero_correct.
-case: k => [|k] /=; first by change R1 with (INR 1); apply: I.fromZ_correct.
+case: k => [|k] /=.
+exact: I.fromZ_small_correct.
 rewrite /nth /PolR.nth !nth_nil.
 exact: J.zero_correct.
 Qed.

@@ -567,7 +567,7 @@ Qed.
 Module BndValuator.
 
 Definition operations prec :=
-  Build_operations I.fromZ
+  Build_operations (I.fromZ prec)
    (fun o =>
     match o with
     | Neg => I.neg
@@ -904,11 +904,11 @@ destruct o ; simpl ;
   | refine (I.mul_correct _ _ _ (Xreal (IZR _)) _ _ _) ] ;
   try now first [ apply Hf | apply Hf' ].
 (* abs *)
-generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+generalize (I.inv_correct prec (I.fromZ prec 0) (Xreal 0) (I.fromZ_correct _ _)).
 rewrite /= /Xinv' is_zero_0.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
-case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ prec 0))) ; try easy.
 intros H _.
 specialize (H _ Hf).
 rewrite (proj1 H).
@@ -925,11 +925,11 @@ rewrite Rcompare_Gt.
 now apply Hf'.
 apply H.
 (* ln *)
-generalize (I.inv_correct prec (I.fromZ 0) (Xreal 0) (I.fromZ_correct _)).
+generalize (I.inv_correct prec (I.fromZ prec 0) (Xreal 0) (I.fromZ_correct _ _)).
 rewrite /= /Xinv' is_zero_0.
 specialize (Hf _ Hx).
 generalize (I.sign_strict_correct yi).
-case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ 0))) ; try easy.
+case I.sign_strict ; case (I.convert (I.inv prec (I.fromZ prec 0))) ; try easy.
 intros H _.
 specialize (H _ Hf).
 rewrite {1}(proj1 H).
@@ -969,7 +969,7 @@ Lemma eval_diff_bnd_correct :
   forall prec prog bounds n,
   let ff' x := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan) in
   let ffi' xi := nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
-    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
+    ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
   forall xi,
   nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai = fst (ffi' xi) /\
  (forall x, contains (I.convert xi) x -> contains (I.convert (snd (ffi' xi))) (snd (ff' x))).
@@ -1052,7 +1052,7 @@ intros [|n] x Hx ; simpl.
 split.
 exact Hx.
 apply I.mask_correct.
-apply I.fromZ_correct.
+now apply I.fromZ_small_correct.
 exact Hx.
 split.
 rewrite <- (map_nth (@fst I.type I.type)).
@@ -1064,7 +1064,7 @@ rewrite <- (map_nth (@snd I.type I.type)).
 rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
 do 4 rewrite map_map.
 simpl.
-assert (H1 := map_length (fun _ => I.mask (I.fromZ 0) xi) bounds).
+assert (H1 := map_length (fun _ => I.mask I.zero xi) bounds).
 assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) bounds).
 destruct (le_or_lt (length bounds) n).
 generalize H. intro H0.
@@ -1073,10 +1073,11 @@ rewrite <- H2 in H0.
 rewrite -> nth_overflow with (1 := H).
 rewrite -> nth_overflow with (1 := H0).
 now rewrite I.nai_correct.
-replace (nth n (map (fun _ => I.mask (I.fromZ 0) xi) bounds) I.nai) with (I.mask (I.fromZ 0) xi).
+replace (nth n (map (fun _ => I.mask I.zero xi) bounds) I.nai) with (I.mask I.zero xi).
 replace (nth n (map (fun _ => Xmask (Xreal 0) x) bounds) Xnan) with (Xmask (Xreal 0) x).
 apply I.mask_correct.
-apply I.fromZ_correct.
+rewrite I.zero_correct.
+split ; apply Rle_refl.
 exact Hx.
 rewrite <- H2 in H.
 rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
@@ -1084,7 +1085,7 @@ apply sym_eq.
 refine (map_nth _ bounds (Bproof 0 I.nai _) _).
 now rewrite I.nai_correct.
 rewrite <- H1 in H.
-rewrite (nth_indep _ I.nai (I.mask (I.fromZ 0) xi) H).
+rewrite (nth_indep _ I.nai (I.mask I.zero xi) H).
 apply sym_eq.
 refine (map_nth _ bounds (Bproof 0 I.nai _) _).
 now rewrite I.nai_correct.
@@ -1596,7 +1597,7 @@ Qed.
 
 Definition eval prec formula bounds n xi :=
   match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) formula
-    ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) bounds)) (I.nai, I.nai) with
+    ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) bounds)) (I.nai, I.nai) with
   | (yi, yi') =>
     diff_refining prec xi yi yi'
       (fun b => nth n (BndValuator.eval prec formula (b :: bounds)) I.nai)
@@ -1616,7 +1617,7 @@ pose (ff' := fun x => nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_op
      ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan)).
 set (fi := fun xi => nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai).
 pose (ffi' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
-     ((xi, I.mask (I.fromZ 1) xi) :: map (fun b => (b, I.mask (I.fromZ 0) xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
+     ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
 fold (ffi' xi).
 rewrite (surjective_pairing (ffi' xi)).
 refine (_ (eval_diff_bnd_correct prec prog bounds n)).

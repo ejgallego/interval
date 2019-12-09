@@ -47,6 +47,11 @@ Module FloatInterval (F : FloatOps with Definition sensible_format := true).
 
 Module F' := FloatExt F.
 
+Definition c1 := F.fromZ 1.
+Definition cm1 := F.fromZ (-1).
+Definition c2 := F.fromZ 2.
+Definition p52 := F.PtoP 52.
+
 Definition type := f_interval F.type.
 Definition bound_type := F.type.
 Definition precision := F.precision.
@@ -61,7 +66,7 @@ Definition convert (xi : type) :=
 Definition nai : type := @Inan F.type.
 Definition bnd l u : type := Ibnd l u.
 Definition zero : type := Ibnd F.zero F.zero.
-Definition empty : type := Ibnd (F.fromZ 1) F.zero.
+Definition empty : type := Ibnd c1 F.zero.
 Definition real (xi : type) :=
   match xi with
   | Inan => false
@@ -94,7 +99,8 @@ Proof.
 intros [|x].
 easy.
 simpl.
-rewrite F.fromZ_correct, F.zero_correct.
+unfold c1.
+rewrite F.fromZ_correct, F.zero_correct by easy.
 lra.
 Qed.
 
@@ -224,7 +230,11 @@ Definition upper xi :=
   | _ => F.nan
   end.
 
-Definition fromZ n := let f := F.fromZ n in Ibnd f f.
+Definition fromZ_small n :=
+  let f := F.fromZ n in Ibnd f f.
+
+Definition fromZ prec n :=
+  Ibnd (F.fromZ_DN prec n) (F.fromZ_UP prec n).
 
 Definition midpoint xi :=
   match xi with
@@ -235,10 +245,10 @@ Definition midpoint xi :=
     | Xeq, Xeq => F.zero
     | Xlt, Xund => F.zero
     | Xund, Xgt => F.zero
-    | Xeq, Xund => F.fromZ 1%Z
-    | Xund, Xeq => F.fromZ (-1)%Z
-    | Xgt, Xund => F.mul rnd_UP (F.PtoP 52) xl (F.fromZ 2)
-    | Xund, Xlt => F.mul rnd_DN (F.PtoP 52) xu (F.fromZ 2)
+    | Xeq, Xund => c1
+    | Xund, Xeq => cm1
+    | Xgt, Xund => F.mul rnd_UP p52 xl c2
+    | Xund, Xlt => F.mul rnd_DN p52 xu c2
     | _, _ => F.midpoint xl xu
     end
   end.
@@ -252,10 +262,10 @@ Definition midpoint' xi :=
     | Xeq, Xeq => zero
     | Xlt, Xund => zero
     | Xund, Xgt => zero
-    | Xeq, Xund => fromZ 1%Z
-    | Xund, Xeq => fromZ (-1)%Z
-    | Xgt, Xund => let m := F.mul rnd_UP (F.PtoP 52) xl (F.fromZ 2) in Ibnd m m
-    | Xund, Xlt => let m := F.mul rnd_DN (F.PtoP 52) xu (F.fromZ 2) in Ibnd m m
+    | Xeq, Xund => Ibnd c1 c1
+    | Xund, Xeq => Ibnd cm1 cm1
+    | Xgt, Xund => let m := F.mul rnd_UP p52 xl c2 in Ibnd m m
+    | Xund, Xlt => let m := F.mul rnd_DN p52 xu c2 in Ibnd m m
     | _, _ =>
       if F'.lt xu xl then empty
       else let m := F.midpoint xl xu in Ibnd m m
@@ -321,8 +331,7 @@ Definition abs xi :=
 Definition mul2 prec xi :=
   match xi with
   | Ibnd xl xu =>
-    let two := F.fromZ 2 in  (* TODO: eval *compute in? *)
-    Ibnd (F.mul rnd_DN prec xl two) (F.mul rnd_UP prec xu two)
+    Ibnd (F.mul rnd_DN prec xl c2) (F.mul rnd_UP prec xu c2)
   | Inan => Inan
   end.
 
@@ -431,8 +440,8 @@ Definition inv prec xi :=
     match sign_strict_ xl xu with
     | Xund => Inan
     | Xeq => Inan
-    | _ => let one := F.fromZ 1 in
-      Ibnd (Fdivz rnd_DN prec one xu) (Fdivz rnd_UP prec one xl)
+    | _ =>
+      Ibnd (Fdivz rnd_DN prec c1 xu) (Fdivz rnd_UP prec c1 xl)
     end
   | _ => Inan
   end.
@@ -488,7 +497,7 @@ Definition power_pos prec xi n :=
 Definition power_int prec xi n :=
   match n with
   | Zpos p => power_pos prec xi p
-  | Z0 => match xi with Inan => Inan | _ => fromZ 1 end
+  | Z0 => match xi with Inan => Inan | _ => Ibnd c1 c1 end
   | Zneg p => inv prec (power_pos prec xi p)
   end.
 
@@ -1031,14 +1040,25 @@ case (sign_strict_ xl xu) ;
   exact (proj1 (H _ Hx)).
 Qed.
 
-Theorem fromZ_correct :
+Theorem fromZ_small_correct :
   forall v,
-  contains (convert (fromZ v)) (Xreal (IZR v)).
+  (Z.abs v <= 256)%Z ->
+  contains (convert (fromZ_small v)) (Xreal (IZR v)).
 Proof.
 intros.
 simpl.
-rewrite F.fromZ_correct.
+rewrite F.fromZ_correct by easy.
 split ; apply Rle_refl.
+Qed.
+
+Theorem fromZ_correct :
+  forall prec v,
+  contains (convert (fromZ prec v)) (Xreal (IZR v)).
+Proof.
+intros.
+apply le_contains.
+apply F.fromZ_DN_correct.
+apply F.fromZ_UP_correct.
 Qed.
 
 Theorem midpoint_correct :
@@ -1060,12 +1080,13 @@ assert (Hr: (1 <= IZR (Zpower_pos F.radix 1))%R).
   rewrite <- bpow_powerRZ.
   now apply (bpow_le F.radix 0). }
 simpl.
+unfold c1, cm1, c2.
 repeat rewrite F'.cmp_correct.
 xreal_tac xl ; xreal_tac xu ; simpl ;
   rewrite F.zero_correct ; simpl; [now repeat split| | |].
 { (* infinite lower *)
   destruct (Rcompare_spec r 0).
-  { rewrite F.mul_correct, F.fromZ_correct.
+  { rewrite F.mul_correct, F.fromZ_correct by easy.
     rewrite X0.
     simpl.
     repeat split.
@@ -1076,7 +1097,7 @@ xreal_tac xl ; xreal_tac xu ; simpl ;
     { exact (Rlt_le _ _ H). }
     lra. }
   { rewrite H.
-    rewrite F.fromZ_correct.
+    rewrite F.fromZ_correct by easy.
     repeat split.
     now apply IZR_le. }
   rewrite F.zero_correct.
@@ -1088,10 +1109,10 @@ xreal_tac xl ; xreal_tac xu ; simpl ;
     repeat split.
     exact (Rlt_le _ _ H). }
   { rewrite H.
-    rewrite F.fromZ_correct.
+    rewrite F.fromZ_correct by easy.
     repeat split.
     now apply IZR_le. }
-  rewrite F.mul_correct, F.fromZ_correct.
+  rewrite F.mul_correct, F.fromZ_correct by easy.
   rewrite X.
   simpl.
   repeat split.
@@ -1142,6 +1163,7 @@ intros [|xl xu].
   rewrite F.zero_correct.
   split ; apply Rle_refl. }
 unfold midpoint'.
+unfold c1, cm1, c2.
 set (m := F.midpoint xl xu).
 set (mi := if F'.lt xu xl then empty else Ibnd m m).
 rewrite 2!F'.cmp_correct, F.zero_correct.
@@ -1164,7 +1186,7 @@ case_eq (F.toX xl) ; [|intros xlr] ; intros Hl.
   split.
   { case Rcompare_spec ; intros Hu0 ; simpl ;
       (intros [|x] ; [easy|]).
-    { rewrite F.mul_correct, F.fromZ_correct, Hu.
+    { rewrite F.mul_correct, F.fromZ_correct, Hu by easy.
       simpl.
       intros [_ H].
       apply (conj I).
@@ -1175,7 +1197,7 @@ case_eq (F.toX xl) ; [|intros xlr] ; intros Hl.
       apply Rmult_le_compat_neg_l.
       { now apply Rlt_le. }
       lra. }
-    { rewrite F.fromZ_correct.
+    { rewrite F.fromZ_correct by easy.
       intros [H1 H2].
       apply (conj I).
       rewrite (Rle_antisym _ _ H2 H1), Hu0.
@@ -1197,12 +1219,12 @@ case_eq (F.toX xu) ; [|intros xur] ; intros Hu ; simpl.
     refine (conj _ I).
     rewrite (Rle_antisym _ _ H2 H1).
     now apply Rlt_le. }
-  { rewrite F.fromZ_correct.
+  { rewrite F.fromZ_correct by easy.
     intros [H1 H2].
     refine (conj _ I).
     rewrite (Rle_antisym _ _ H2 H1), Hl0.
     now apply IZR_le. }
-  { rewrite F.mul_correct, F.fromZ_correct, Hl.
+  { rewrite F.mul_correct, F.fromZ_correct, Hl by easy.
     simpl.
     intros [H _].
     refine (conj _ I).
@@ -1227,11 +1249,8 @@ split.
     rewrite Hl, Hu.
     simpl.
     case Rlt_bool_spec ; intros Hlu.
-    { simpl.
-      destruct x as [|x].
-      easy.
-      rewrite F.fromZ_correct, F.zero_correct.
-      lra. }
+    { intros H.
+      now elim empty_correct with x. }
     simpl.
     destruct x as [|x]; [easy|].
     generalize (F.midpoint_correct xl xu (eq_refl _)).
@@ -1450,8 +1469,8 @@ intros [ | x] Hx.
 elim Hx.
 unfold convert in Hx.
 destruct Hx as (Hxl, Hxu).
-unfold convert, mul2.
-rewrite 2!F.mul_correct, F.fromZ_correct.
+unfold convert, mul2, c2.
+rewrite 2!F.mul_correct, F.fromZ_correct by easy.
 split ; xreal_tac2 ; simpl ; apply (Rle_trans _ (r * 2)) ; try lra.
 { now apply Generic_fmt.round_DN_pt, FLX.FLX_exp_valid. }
 now apply Generic_fmt.round_UP_pt, FLX.FLX_exp_valid.
@@ -1766,6 +1785,7 @@ simpl.
 unfold bnd, contains, convert, Xinv'.
 (* case study on sign of xi *)
 generalize (sign_strict_correct_ xl xu x (conj Hxl Hxu)).
+unfold c1.
 case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
   (* case study on sign of yi *)
   try exact I ; try simpl_is_zero ;
@@ -1779,7 +1799,7 @@ case (sign_strict_ xl xu) ; intros Hx0 ; simpl in Hx0 ;
         simpl ; auto with mulauto ; fail ) ;
   (* remove rounding operators *)
   rewrite F.div_correct ;
-  rewrite F.fromZ_correct ;
+  rewrite F.fromZ_correct by easy ;
   try rewrite X0 ;
   try rewrite Hx2 ;
   unfold Xdiv', Xbind2, Rdiv ;
@@ -2326,7 +2346,8 @@ unfold power_int, Xpower_int.
 intros [ | xl xu] [ | x] ; try easy.
 intros _.
 simpl.
-rewrite F.fromZ_correct.
+unfold c1.
+rewrite F.fromZ_correct by easy.
 split ; apply Rle_refl.
 apply power_pos_correct.
 intros xi x Hx.

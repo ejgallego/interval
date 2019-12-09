@@ -612,13 +612,15 @@ rewrite <- rev_length.
 now induction (rev p) as [|h t].
 Qed.
 
+Definition c1 := F.fromZ 1.
+
 Definition bertrand_infty_interval alpha beta prec ui :=
-  if F'.le' (F.fromZ 1) (I.lower ui) then
+  if F'.le' c1 (I.lower ui) then
     BI.f_int_fast prec ui alpha beta
   else I.nai.
 
 Definition bertrand_zero_interval alpha beta prec vi :=
-  if andb (F'.lt' F.zero (I.lower vi)) (F'.le' (I.upper vi) (F.fromZ 1)) then
+  if andb (F'.lt' F.zero (I.lower vi)) (F'.le' (I.upper vi) c1) then
     BI.f0eps_int prec vi alpha beta
   else I.nai.
 
@@ -643,7 +645,7 @@ now induction (rev p) as [|h t].
 Qed.
 
 Definition invxln_interval beta prec ui :=
-  if F'.lt' (F.fromZ 1) (I.lower ui) then
+  if F'.lt' c1 (I.lower ui) then
     BI.f_neg_int prec ui (S beta)
   else I.nai.
 
@@ -855,13 +857,13 @@ apply eval_RInt_gen_infty_correct ; cycle 1.
   now rewrite Hp.
 - exact Hp.
 - intros fi ui f u Hu Hc Hf Hb.
-  unfold bertrand_infty_interval.
+  unfold bertrand_infty_interval, c1.
   destruct F'.le' eqn:Hul ; cycle 1.
     now rewrite I.nai_correct.
   intros _.
   assert (Hu': (1 <= u)%R).
     apply F'.le'_correct in Hul.
-    rewrite F.fromZ_correct in Hul.
+    rewrite F.fromZ_correct in Hul by easy.
     rewrite I.lower_correct in Hul.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
     now apply Rle_trans with (2 := proj1 Hu).
@@ -916,13 +918,13 @@ apply eval_RInt_gen_infty_correct ; cycle 1.
   now rewrite Hp.
 - exact Hp.
 - intros fi ui f u Hu Hc Hf Hb.
-  unfold invxln_interval.
+  unfold invxln_interval, c1.
   destruct F'.lt' eqn:Hul ; cycle 1.
     now rewrite I.nai_correct.
   intros _.
   assert (Hu': (1 < u)%R).
     apply F'.lt'_correct in Hul.
-    rewrite F.fromZ_correct in Hul.
+    rewrite F.fromZ_correct in Hul by easy.
     rewrite I.lower_correct in Hul.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
     now apply Rlt_le_trans with (2 := proj1 Hu).
@@ -1159,7 +1161,7 @@ apply eval_RInt_gen_zero_correct ; cycle 1.
   now rewrite Hp.
 - exact Hp.
 - intros fi vi f v Hv Hc Hf Hb.
-  unfold bertrand_zero_interval.
+  unfold bertrand_zero_interval, c1.
   destruct F'.lt' eqn:Hvl ; cycle 1.
     cbv [andb].
     now rewrite I.nai_correct.
@@ -1198,7 +1200,7 @@ apply eval_RInt_gen_zero_correct ; cycle 1.
     apply Hx.
     apply Rle_trans with (1 := proj2 Hx).
     apply F'.le'_correct in Hvu.
-    rewrite F.fromZ_correct in Hvu.
+    rewrite F.fromZ_correct in Hvu by easy.
     rewrite I.upper_correct in Hvu.
     destruct (I.convert vi) as [|vr [|vu]] ; try easy.
     now apply Rle_trans with (1 := proj2 Hv).

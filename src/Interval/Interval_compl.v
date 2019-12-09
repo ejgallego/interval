@@ -332,10 +332,10 @@ Qed.
 (******************************************************************************)
 
 Lemma R_from_nat_correct :
-  forall (b : I.type) (n : nat),
-  contains (I.convert (I.fromZ (Z.of_nat n)))
+  forall p (b : I.type) (n : nat),
+  contains (I.convert (I.fromZ p (Z.of_nat n)))
            (Xreal (INR n)).
-Proof. move=> b n; rewrite INR_IZR_INZ; exact: I.fromZ_correct. Qed.
+Proof. move=> p b n; rewrite INR_IZR_INZ; exact: I.fromZ_correct. Qed.
 
 Section PrecArgument.
 

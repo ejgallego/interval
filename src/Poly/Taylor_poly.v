@@ -51,13 +51,13 @@ Variable u : C.U.
 
 Definition inv_rec (x : C.T) (a : C.T) (n : nat) : C.T := C.div u a (C.opp x).
 
-Definition exp_rec (a : C.T) (n : nat) : C.T := C.div u a (C.from_nat n).
+Definition exp_rec (a : C.T) (n : nat) : C.T := C.div u a (C.from_nat u n).
 
 Definition sin_rec (a b : C.T) (n : nat) : C.T :=
-  C.div u (C.opp a) (C.mul u (C.from_nat n) (C.from_nat n.-1)).
+  C.div u (C.opp a) (C.mul u (C.from_nat u n) (C.from_nat u n.-1)).
 
 Definition cos_rec (a b : C.T) (n : nat) : C.T :=
-  C.div u (C.opp a) (C.mul u (C.from_nat n) (C.from_nat n.-1)).
+  C.div u (C.opp a) (C.mul u (C.from_nat u n) (C.from_nat u n.-1)).
 
 Definition pow_aux_rec (p : Z) (x : C.T) (_ : C.T) (n : nat)
   := if Z.ltb p Z0 || Z.geb p (Z.of_nat n) then
@@ -71,18 +71,16 @@ Local Notation "i * j" := (C.mul u i j).
 Local Notation "i / j" := (C.div u i j).
 
 Definition sqrt_rec (x : C.T) (a : C.T) (n : nat) :=
-  let nn := C.from_nat n in
-  let n1 := C.from_nat n.-1 in
-  let one := C.from_nat 1 in
-  let two := C.from_nat 2 in
-  (one - two * n1) * a / (two * x * nn).
+  let nn := C.from_nat u n in
+  let n1 := C.from_nat u n.-1 in
+  let two := C.from_nat u 2 in
+  (C.one - two * n1) * a / (two * x * nn).
 
 Definition invsqrt_rec (x : C.T) (a : C.T) (n : nat) :=
-  let nn := C.from_nat n in
-  let n1 := C.from_nat n.-1 in
-  let one := C.from_nat 1 in
-  let two := C.from_nat 2 in
-  C.opp (one + two * n1) * a / (two * x * nn).
+  let nn := C.from_nat u n in
+  let n1 := C.from_nat u n.-1 in
+  let two := C.from_nat u 2 in
+  C.opp (C.one + two * n1) * a / (two * x * nn).
 
 (*
 Definition ln_rec (x : T) (a b : T) (n : nat) :=
@@ -153,7 +151,7 @@ Definition T_tan x :=
   let s := [::] in
   let F q n :=
     let q' := P.deriv u q in
-    P.div_mixed_r u (P.add u q' (P.lift 2 q')) (C.from_nat n) in
+    P.div_mixed_r u (P.add u q' (P.lift 2 q')) (C.from_nat u n) in
   let G q _ := P.horner u q J (* in monomial basis *) in
   P.grec1 F G polyX s.
 
@@ -162,9 +160,9 @@ Definition T_atan x :=
   let J := C.atan u x in
   let s := [:: J] in
   let F q n :=
-    let q2nX := P.mul_mixed u (C.from_nat ((n.-1).*2)) (P.lift 1 q) in
+    let q2nX := P.mul_mixed u (C.from_nat u ((n.-1).*2)) (P.lift 1 q) in
     let q' := P.deriv u q in
-    P.div_mixed_r u (P.sub u (P.add u q' (P.lift 2 q')) q2nX) (C.from_nat n) in
+    P.div_mixed_r u (P.sub u (P.add u q' (P.lift 2 q')) q2nX) (C.from_nat u n) in
   let G q n :=
     C.div u (P.horner u q x)
       (C.power_int u (C.add u C.one (C.sqr u x)) (Z_of_nat n)) in
