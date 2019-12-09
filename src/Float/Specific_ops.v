@@ -75,6 +75,8 @@ Definition StoZ := EtoZ.
 Definition PtoP n := ZtoE (Zpos n).
 Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 
+Definition sm1 := ZtoE (-1).
+
 Definition zero := Float mantissa_zero exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
 Definition nan_correct := refl_equal Xnan.
@@ -342,7 +344,7 @@ Qed.
  * div2
  *)
 
-Definition div2 (f : type) := scale2 f (ZtoS (-1)).
+Definition div2 (f : type) := scale2 f sm1.
 
 Lemma div2_correct :
   forall x, sensible_format = true ->
@@ -350,7 +352,7 @@ Lemma div2_correct :
   toX (div2 x) = Xdiv (toX x) (Xreal 2).
 Proof.
 intros x Hf _.
-unfold div2.
+unfold div2, sm1.
 rewrite scale2_correct; [|easy].
 simpl; unfold Z.pow_pos; simpl.
 rewrite Xdiv_split.
@@ -1509,7 +1511,7 @@ Qed.
  * midpoint
  *)
 
-Definition midpoint (x y : type) := scale2 (add_exact x y) (ZtoS (-1)).
+Definition midpoint (x y : type) := scale2 (add_exact x y) sm1.
 
 Lemma midpoint_correct :
   forall x y,
@@ -1518,7 +1520,7 @@ Lemma midpoint_correct :
   -> real (midpoint x y) = true /\ (toR x <= toR (midpoint x y) <= toR y)%R.
 Proof.
 intros x y He.
-unfold toR, midpoint.
+unfold toR, midpoint, sm1.
 rewrite !real_correct.
 rewrite (scale2_correct _ _ He).
 rewrite add_exact_correct.
