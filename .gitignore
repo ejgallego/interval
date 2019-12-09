@@ -10,6 +10,8 @@ remake
 remake.exe
 Remakefile
 *.vo
+*.vok
+*.vos
 *.vd
 *.glob
 *.aux
