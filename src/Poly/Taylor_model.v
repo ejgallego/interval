@@ -93,7 +93,8 @@ Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
     forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x
   | Tm tm =>
     not_empty (I.convert X) ->
-    i_validTM (I.convert (Imid X)) (I.convert X) tm f
+    let x0 := proj_val (I.convert_bound (I.midpoint X)) in
+    i_validTM x0 (I.convert X) tm f
   end.
 
 Theorem approximates_ext f g xi t :
@@ -111,6 +112,18 @@ move=> Hne; move/(_ Hne): Hmain.
 exact: TM_fun_eq.
 Qed.
 
+Lemma contains_midpoint :
+  forall X : I.type,
+  not_empty (I.convert X) ->
+  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
+Proof.
+intros X [x Hx].
+unfold Imid.
+destruct (I.midpoint_correct X) as [H1 H2].
+  now exists (Xreal x).
+now rewrite <- H1.
+Qed.
+
 Lemma get_tm_correct u Y tf f :
   approximates Y tf f ->
   approximates Y (Tm (get_tm u Y tf)) f.
@@ -118,16 +131,15 @@ Proof.
 case: tf =>[c||tm]; rewrite /approximates // => H Hne.
 - destruct H as [H|H].
     split ; intros ; rewrite ?I.mask_propagate_r //.
-    exact: Imid_subset.
+    exact: contains_midpoint.
     exists (PolR.polyC 0).
     now apply Pol.polyC_correct ; rewrite H.
     easy.
   apply TM_cst_correct_strong =>//.
-  exact: Imid_subset.
-  exact: not_empty_Imid.
+  exact: contains_midpoint.
 - apply: TM_var_correct_strong=>//.
     exact: Imid_subset.
-  by move/not_empty_Imid: Hne.
+  exact: Xreal_Imid_contains.
 Qed.
 
 (** ** Main definitions and correctness claims *)
@@ -207,7 +219,6 @@ have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
   apply: not_emptyE; exists x.
   apply: subset_contains Hx.
   exact: I.subset_correct.
-move/(_ c0 Hc0) in Hmain.
 have [qx Hcont Hdelta] := Hmain.
 move: x Hx => [|x Hx] /=.
   move/contains_Xnan => H0.
@@ -355,7 +366,7 @@ Lemma mul_slow_correct u (Y : I.type) tf tg f g :
 Proof.
 intros Hf Hg Hne.
 apply TM_mul_correct ; try apply get_tm_correct ; try easy.
-now apply not_empty_Imid.
+exact: Xreal_Imid_contains.
 Qed.
 
 Theorem mul_correct u (Y : I.type) tf tg f g :
@@ -428,7 +439,7 @@ Lemma div_slow_correct u (Y : I.type) tf tg f g :
 Proof.
 intros Hf Hg Hne.
 apply TM_div_correct ; try apply get_tm_correct ; try easy.
-now apply not_empty_Imid.
+exact: Xreal_Imid_contains.
 Qed.
 
 Theorem div_correct u (Y : I.type) tf tg f g :
@@ -455,7 +466,7 @@ destruct Hg as [Hg|Hg].
 apply: TM_div_mixed_r_correct_strong =>//.
 apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
-exact: not_empty_Imid.
+exact: Xreal_Imid_contains.
 (* Const . Tm *)
 intros Hne.
 destruct Hg as [Hg|Hg].
@@ -510,7 +521,7 @@ Qed.
 Local Ltac byp a b := move=> x Hx; rewrite -a //; exact: b.
 Local Ltac foo :=
   by move=> Hne; apply: TM_any_correct;
-  [ exact: not_empty_Imid | exact: Imid_subset
+  [ exact: contains_midpoint
   | intros x Hx; apply: I.abs_correct; exact: eval_correct Hx].
 
 Theorem abs_correct u (Y : I.type) tf f :
@@ -544,8 +555,7 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply: TM_opp_correct.
   apply: TM_var_correct_strong =>//.
   exact: Imid_subset.
-  apply Imid_contains in Hne.
-  apply: not_emptyE; by eexists; apply Hne.
+  exact: Xreal_Imid_contains.
 - red=> Hne.
   apply (TM_fun_eq Habs).
   apply: TM_opp_correct.
@@ -739,8 +749,7 @@ split=> //=.
   case: I.sign_large;
     try apply: contains_fromZ_lower_upper_div; try lia.
   by apply: contains_fromZ_lower_upper; lia.
-- by apply: Imid_subset.
-move=> x Hx.
+- exact: contains_midpoint.
 move: E1.
 have F1 : Pol.contains_pointwise (Pol.polyC i3) (PolR.polyC (1/2)).
   apply: Pol.polyC_correct.
@@ -947,10 +956,10 @@ Lemma fun_gen_correct
   (ft := fun_gen fi ftm) :
   (forall prec : I.precision, I.extension (Xbind fx) (fi prec)) ->
   (forall prec X0 X n, tmsize (ftm prec X0 X n) = n.+1) ->
-  (forall prec X0 X n,
+  (forall prec x0 X0 X n,
     subset' (I.convert X0) (I.convert X) ->
-    not_empty (I.convert X0) ->
-    i_validTM (I.convert X0) (I.convert X) (ftm prec X0 X n) fx) ->
+    contains (I.convert X0) (Xreal x0) ->
+    i_validTM x0 (I.convert X) (ftm prec X0 X n) fx) ->
   forall (u : U) (X : I.type) (tf : T) (f : R -> ExtendedR),
   approximates X tf f ->
   approximates X (ft u X tf) (fun x => Xbind fx (f x)).
@@ -969,13 +978,11 @@ move=> Hext Hsiz Hvalid u X [c| |tm] f Hmain.
   by move=> *; rewrite Hmain.
   apply: Hvalid.
   exact: Imid_subset.
-  apply not_empty_Imid in HneY.
-  have [y Hy] := HneY; by exists y.
+  exact: Xreal_Imid_contains.
 - move=> HneY; move/(_ HneY) in Hmain.
   have [Hdef Hnai Hzero Hsubset Htm] := Hmain.
-  have Hne' := not_empty_Imid HneY.
-  have [m Hm] := Hne'.
   apply (TM_comp_correct u.1) =>//.
+  exact: Xreal_Imid_contains.
   move=> *; exact: Hvalid.
 Qed.
 

@@ -1793,12 +1793,12 @@ destruct (nth n _ _) as [c| |].
 - intros H Hn.
   destruct (H Hn) as [H1 H2 H3 H4 H5].
   split ; try easy.
-  intros x0 Hx0.
-  destruct (H5 x0 Hx0) as [Q H6 H7].
+  destruct H5 as [Q H6 H7].
   exists Q.
   exact H6.
   intros x Hx.
   simpl.
+  set (x0 := proj_val (I.convert_bound (I.midpoint xi))).
   apply (xreal_to_real (fun v => (v = Xnan -> I.convert (Taylor_model_sharp.error r) = Inan) /\ contains (I.convert (Taylor_model_sharp.error r)) (Xreal (proj_val v - Datatypes.PolR.horner tt Q (x - x0)))) (fun v => contains (I.convert (Taylor_model_sharp.error r)) (Xreal (v - Datatypes.PolR.horner tt Q (x - x0))))).
   + intros [Ha _].
     now rewrite Ha.
