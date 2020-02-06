@@ -159,6 +159,7 @@ case_eq (F'.le' xu (F.mul_DN prec (lower (T.pi4 prec)) (F.fromZ 4))).
   { revert Hu.
     elim (F.mul_DN_correct prec (lower (T.pi4 prec)) (F.fromZ 4)).
     2:{
+      unfold F.is_non_neg_real, F.is_non_pos_real, F.is_non_neg, F.is_non_pos.
       rewrite F.fromZ_correct by easy.
       rewrite (F'.valid_ub_real (F.fromZ 4)) by now rewrite F.real_correct, F.fromZ_correct.
       generalize (T.pi4_correct prec).
@@ -229,6 +230,7 @@ case_eq (F'.le' xu (F.mul_DN prec (lower (T.pi4 prec)) (F.fromZ 8))).
   { revert Hu.
     elim (F.mul_DN_correct prec (lower (T.pi4 prec)) (F.fromZ 8)).
     2:{
+      unfold F.is_non_neg_real, F.is_non_pos_real, F.is_non_neg, F.is_non_pos.
       rewrite F.fromZ_correct by easy.
       rewrite (F'.valid_ub_real (F.fromZ 8))by now rewrite F.real_correct, F.fromZ_correct.
       generalize (T.pi4_correct prec).
@@ -264,6 +266,7 @@ case_eq (F'.le' xu (F.mul_DN prec (lower (T.pi4 prec)) (F.fromZ 8))).
     { revert Hl.
       elim (F.mul_UP_correct prec (upper (T.pi4 prec)) (F.fromZ 4)).
       2:{
+        unfold F.is_non_neg_real, F.is_non_pos_real, F.is_non_neg, F.is_non_pos.
         rewrite F.fromZ_correct by easy.
         rewrite (F'.valid_ub_real (F.fromZ 4)) by now rewrite F.real_correct, F.fromZ_correct.
         generalize (T.pi4_correct prec).
@@ -500,6 +503,7 @@ case_eq (F'.le' (F.neg pi2) xl).
     intros Hpl.
     elim (F.mul_DN_correct prec (lower (T.pi4 prec)) (F.fromZ 2)).
     2: {
+      unfold F.is_non_neg_real, F.is_non_pos_real, F.is_non_neg, F.is_non_pos.
       rewrite F.fromZ_correct by easy.
       rewrite (F'.valid_ub_real (F.fromZ 2)) by now rewrite F.real_correct, F.fromZ_correct.
       generalize (T.pi4_correct prec).
@@ -675,6 +679,7 @@ rewrite bnd_correct.
 rewrite F'.neg_correct in Hlt1.
 elim (F.mul_DN_correct prec (lower (T.pi4 prec)) (F.fromZ 2)).
 2: {
+  unfold F.is_non_neg_real, F.is_non_pos_real, F.is_non_neg, F.is_non_pos.
   rewrite F.fromZ_correct by easy.
   rewrite (F'.valid_ub_real (F.fromZ 2)) by now rewrite F.real_correct, F.fromZ_correct.
   generalize (T.pi4_correct prec).
@@ -786,6 +791,7 @@ unfold c2.
 unfold convert in Hx; rewrite Vxl, Vxu in Hx; simpl in Hx.
 elim (F.mul_UP_correct prec (upper (T.pi4 prec)) (F.fromZ 2)).
 2: {
+  unfold F.is_non_neg, F.is_non_pos, F.is_non_pos_real, F.is_non_neg_real.
   rewrite F.fromZ_correct by easy.
   rewrite (F'.valid_ub_real (F.fromZ 2)) by now rewrite F.real_correct, F.fromZ_correct.
   generalize (T.pi4_correct prec).
