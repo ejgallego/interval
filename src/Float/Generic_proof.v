@@ -54,6 +54,15 @@ rewrite FtoR_split.
 now apply F2R_lt_0.
 Qed.
 
+Lemma FtoR_non_neg :
+  forall beta s m e,
+  (FtoR beta s m e <> 0)%R.
+Proof.
+intros beta [ | ] m e.
+{ generalize (FtoR_Rneg beta m e); lra. }
+generalize (FtoR_Rpos beta m e); lra.
+Qed.
+
 Lemma FtoR_abs :
   forall beta s m e,
   (Rabs (FtoR beta s m e) = FtoR beta false m e)%R.
