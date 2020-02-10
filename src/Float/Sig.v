@@ -258,7 +258,6 @@ Parameter sqrt_UP_correct :
 Parameter sqrt_DN_correct :
   forall p x,
     valid_lb x = true
-    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
     -> (valid_lb (sqrt_DN p x) = true
         /\ le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x))).
 

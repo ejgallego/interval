@@ -384,11 +384,10 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Lemma sqrt_DN_correct :
     forall p x,
     valid_lb x = true
-    -> (match toX x with Xnan => True | Xreal r => (0 <= r)%R end)
     -> (valid_lb (sqrt_DN p x) = true
         /\ le_lower (toX (sqrt_DN p x)) (Xsqrt (toX x))).
   Proof.
-  intros p x _ _; split; [easy|].
+  intros p x _; split; [easy|].
   unfold sqrt_DN.
   rewrite (@Fsqrt_correct radix).
   unfold toX.

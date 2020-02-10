@@ -1741,7 +1741,7 @@ unfold Xcmp; case Rcompare_spec; intro Hrl0; rewrite Vsuxu;
      case F.toX; [easy|intros rxu Hrxu];
      apply Rle_trans, sqrt_le_1_alt..|].
 (* xl positive *)
-elim (F.sqrt_DN_correct prec _ Vxl); [|now rewrite Hrl; apply Rlt_le].
+elim (F.sqrt_DN_correct prec _ Vxl).
 intros Vslxl Hslxl.
 rewrite Vslxl.
 apply le_contains.
