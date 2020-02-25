@@ -20,10 +20,11 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith Reals.
-Require Import Coquelicot.Coquelicot.
-From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+From Coq Require Import ZArith Reals.
+From Coquelicot Require Import Coquelicot.
+From mathcomp.ssreflect Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigop.
 From Flocq Require Import Core.
+
 Require Import Interval_missing.
 Require Import Interval_interval.
 Require Import Interval_xreal.
@@ -254,7 +255,7 @@ Definition opp := map C.opp.
 Section PrecIsPropagated.
 Variable u : U.
 
-Definition add := map2 (C.add u) id.
+Definition add := map2 (C.add u) (fun x => x).
 
 Definition sub := map2 (C.sub u) C.opp.
 
@@ -310,7 +311,7 @@ Qed.
 
 Definition deriv_loop := foldri (fun a i s => C.mul u a (C.from_nat i) :: s) [::].
 
-Definition deriv (p : T) := deriv_loop (behead p) 1%N.
+Definition deriv (p : T) := deriv_loop (behead p) 1.
 
 Definition grec1 (A : Type) := @grec1up A C.T.
 

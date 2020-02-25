@@ -18,9 +18,11 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Psatz.
-Require Import Coquelicot.Coquelicot.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.eqtype mathcomp.ssreflect.ssrnat mathcomp.ssreflect.seq mathcomp.ssreflect.fintype mathcomp.ssreflect.bigop.
+From Coq Require Import Reals Psatz.
+From Coquelicot Require Import Coquelicot.
+From Flocq Require Import Raux.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype bigop.
+
 Require Import Rstruct Interval_missing poly_datatypes.
 
 Section MissingContinuity.
@@ -413,7 +415,7 @@ help_is_derive_n_whole n x.
 Qed.
 
 Lemma is_derive_n_pow :
-  forall m, (0 < m)%N -> forall n x,
+  forall m, (0 < m)%nat -> forall n x,
   is_derive_n (fun x => x ^ m)%R n x
   (\big[Rmult/1%R]_(i < n) INR (m - i) * x ^ (m - n))%R.
 Proof.
@@ -428,7 +430,7 @@ move=> m Hm; help_is_derive_n_whole n x.
 Qed.
 
 Lemma is_derive_n_inv_pow :
-  forall m, (0 < m)%N -> forall n x, x <> 0 ->
+  forall m, (0 < m)%nat -> forall n x, x <> 0 ->
   is_derive_n (fun x => / x ^ m)%R n x
   (\big[Rmult/1%R]_(i < n) - INR (m + i) / x ^ (m + n))%R.
 Proof.
@@ -684,7 +686,7 @@ help_is_derive_n_whole n x.
     have->: (A * / INR n.+2 * (/ Q * (/ Q * / Q ^ n)) * (INR n.+2 * INR (fact n.+1)) =
       A * (/ INR n.+2 * INR n.+2) * (/ Q * (/ Q * / Q ^ n)) * INR (fact n.+1))%R by ring.
     rewrite Rinv_l; last exact: not_0_INR.
-    rewrite /A !Rsimpl. rewrite -mul2n [INR (2 * _)%N]mult_INR; simpl (INR 2).
+    rewrite /A !Rsimpl. rewrite -mul2n [INR (2 * _)%nat]mult_INR; simpl (INR 2).
     field; by split.
 Qed.
 

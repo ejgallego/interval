@@ -17,10 +17,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Bool.
+From Coq Require Import Bool Lia.
 From Bignums Require Import BigN BigZ.
-Require Import Psatz.
 From Flocq Require Import Raux Digits.
+
 Require Import Interval_definitions.
 Require Import Interval_generic.
 Require Import Interval_generic_proof.
@@ -201,6 +201,7 @@ Qed.
 
 Lemma PtoM_correct :
   forall n, MtoP (PtoM n) = n.
+Proof.
 intros.
 unfold MtoP, PtoM.
 rewrite BigN.spec_of_pos.
@@ -210,6 +211,7 @@ Qed.
 Lemma mantissa_pos_correct :
   forall x, valid_mantissa x ->
   MtoZ (mantissa_pos x) = Zpos (MtoP x).
+Proof.
 intros x (p, H).
 unfold MtoZ, MtoP.
 simpl.
@@ -220,6 +222,7 @@ Qed.
 Lemma mantissa_neg_correct :
   forall x, valid_mantissa x ->
   MtoZ (mantissa_neg x) = Zneg (MtoP x).
+Proof.
 intros x (p, H).
 unfold MtoZ, MtoP.
 simpl.
@@ -393,7 +396,7 @@ Proof.
 intros x y z (py, Vy) Hz.
 unfold mantissa_shl, MtoP, valid_mantissa.
 rewrite BigN.spec_shiftl, Vy.
-cutrewrite (Z.shiftl (Zpos py) [BigZ.to_N z]%bigN = Zpos (shift radix py x))%Z.
+enough (Z.shiftl (Zpos py) [BigZ.to_N z]%bigN = Zpos (shift radix py x))%Z as ->.
 repeat split.
 refl_exists.
 unfold EtoZ in Hz.

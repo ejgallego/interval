@@ -1,9 +1,8 @@
-Require Import Reals Coquelicot.Coquelicot.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrfun mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat.
+From Coq Require Import Reals ZArith Psatz.
+From Coquelicot Require Import Coquelicot.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
+
 Require Import coquelicot_compl Interval_missing.
-Require Import mathcomp.ssreflect.bigop.
-Require Import ZArith Psatz.
-Require Import Fourier_util.
 Require Import interval_compl.
 
 (* ultimately, any common results should be put in a different file *)

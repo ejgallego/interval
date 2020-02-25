@@ -1,11 +1,9 @@
-Require Import Reals Coquelicot.Coquelicot.
-Require Import Coquelicot.AutoDerive.
+From Coq Require Import Reals ZArith Psatz.
+From Flocq Require Import Raux.
+From Coquelicot Require Import Coquelicot AutoDerive.
+From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 
-From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat.
 Require Import coquelicot_compl Interval_missing.
-Require Import mathcomp.ssreflect.bigop.
-Require Import ZArith Psatz.
-Require Import Fourier_util.
 Require Import interval_compl.
 
 Section powerRZMissing.

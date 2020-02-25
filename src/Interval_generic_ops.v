@@ -17,7 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith.
+From Coq Require Import ZArith.
+From Flocq Require Import Raux.
+
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.

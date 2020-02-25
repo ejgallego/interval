@@ -17,9 +17,11 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals List ZArith Psatz.
-Require Import Coquelicot.Coquelicot.
+From Coq Require Import Reals List ZArith Psatz.
+From Flocq Require Import Raux.
+From Coquelicot Require Import Coquelicot.
 From mathcomp.ssreflect Require Import ssreflect ssrbool.
+
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.

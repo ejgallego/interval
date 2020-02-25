@@ -20,8 +20,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Psatz.
-Require Import Coquelicot.Coquelicot.
+From Coq Require Import Reals Psatz.
+From Coquelicot Require Import Coquelicot.
+
 Require Import Interval_missing.
 
 Local Open Scope R_scope.
@@ -84,7 +85,7 @@ Proof.
 elim n.
   now intro Hf; simpl; apply continuity_pt_ext with (f O); trivial; apply Hf.
 intros n' IHn Hf; simpl; apply continuity_pt_plus.
-  apply IHn; intros k Hk; apply Hf; omega.
+  apply IHn; intros k Hk; apply Hf; lia.
 now apply Hf.
 Qed.
 

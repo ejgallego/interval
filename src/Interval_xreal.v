@@ -17,8 +17,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Bool.
-Require Import mathcomp.ssreflect.ssreflect.
+From Coq Require Import Reals Bool.
+From mathcomp.ssreflect Require Import ssreflect.
+From Flocq Require Import Raux.
+
 Require Import Interval_missing.
 
 Definition is_zero x := Req_bool x 0.

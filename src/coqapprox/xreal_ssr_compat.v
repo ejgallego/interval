@@ -20,8 +20,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals Psatz.
-Require Import mathcomp.ssreflect.ssreflect mathcomp.ssreflect.ssrbool mathcomp.ssreflect.ssrnat mathcomp.ssreflect.bigop.
+From Coq Require Import Reals Psatz.
+From mathcomp.ssreflect Require Import ssreflect ssrbool ssrnat bigop.
+From Flocq Require Import Raux.
+
 Require Import Interval_missing.
 Require Import Interval_definitions.
 Require Import Interval_xreal.

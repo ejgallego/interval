@@ -17,10 +17,10 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import ZArith.
-Require Import Lia.
-Require Import Bool.
-From Flocq Require Import Digits Bracket.
+From Coq Require Import ZArith Lia Bool.
+From Flocq Require Import Raux Digits Bracket.
+From mathcomp.ssreflect Require Import ssrbool.
+
 Require Import Interval_missing.
 Require Import Interval_xreal.
 Require Import Interval_definitions.
@@ -28,8 +28,6 @@ Require Import Interval_generic.
 Require Import Interval_generic_proof.
 Require Import Interval_float_sig.
 Require Import Interval_specific_sig.
-
-Import ssrbool.
 
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type

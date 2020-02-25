@@ -17,7 +17,9 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-Require Import Reals.
+From Coq Require Import Reals.
+From Flocq Require Import Raux.
+
 Require Import Interval_missing.
 Require Import Interval_xreal.
 
