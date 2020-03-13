@@ -1073,9 +1073,9 @@ have Hdef : forall r : R, X >: r -> xf r <> Xnan.
   by rewrite isNNegOrNPos_false in E1.
 split=>//.
 - by move=> x Hx /(Hdef x Hx).
-- apply I.bounded_correct in E2.
-(*
-  now rewrite (proj2 (I.lower_bounded_correct _ _)).
+- have /I.bounded_correct [E1l E1u] := E2.
+  rewrite (proj2 (I.lower_bounded_correct _ _)) =>//.
+  exists x0; exact: Hsubs.
 - rewrite /= /err /Ztech E1 E2 /=.
   apply: I.join_correct; right.
   have E0 : xf x0 = Xreal (PolR.nth (P x0 n) 0).
@@ -1100,11 +1100,17 @@ set (l := (proj_val (I.convert_bound (I.lower X)))) in Hcl.
 set (u := (proj_val (I.convert_bound (I.upper X)))) in Hcu.
 have HX: I.convert X = Ibnd (Xreal l) (Xreal u).
   rewrite -Hcl -Hcu.
-  now apply I.lower_bounded_correct.
+  apply I.lower_bounded_correct =>//.
+  exists x0; exact: Hsubs.
 have {Hcl Hbl} Hlower : Delta >: Rdelta0 l.
   apply: I.join_correct; left; apply: I.join_correct; left.
   have Hlower : contains (I.convert (I.bnd (I.lower X) (I.lower X))) (Xreal l).
-    rewrite I.bnd_correct Hcl; split; apply Rle_refl.
+  rewrite I.bnd_correct; first last.
+- apply: I.valid_ub_real.
+  by rewrite Hcl.
+- apply: I.valid_lb_real.
+  by rewrite Hcl.
+- rewrite Hcl; split; apply Rle_refl.
   apply: J.sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
@@ -1113,12 +1119,18 @@ have {Hcl Hbl} Hlower : Delta >: Rdelta0 l.
 have {Hcu Hbu} Hupper : Delta >: Rdelta0 u.
   apply: I.join_correct; left; apply: I.join_correct; right.
   have Hupper : contains (I.convert (I.bnd (I.upper X) (I.upper X))) (Xreal u).
-    rewrite I.bnd_correct Hcu; split; apply Rle_refl.
+  rewrite I.bnd_correct; first last.
+- apply: I.valid_ub_real.
+  by rewrite Hcu.
+- apply: I.valid_lb_real.
+  by rewrite Hcu.
+- rewrite Hcu; split; apply Rle_refl.
   apply: J.sub_correct.
   - exact: F_Rcontains.
   - apply: Pol.horner_correct.
     exact: IPoly_nth.
     exact: J.sub_correct.
+have H'x0 : X >: x0 by exact: Hsubs.
 have HX0 : Delta >: Rdelta0 x0.
   apply: I.join_correct; right.
   apply: J.sub_correct; first exact: F_Rcontains.
@@ -1129,16 +1141,15 @@ have HX0 : Delta >: Rdelta0 x0.
   move=> i _.
   by rewrite /= Rmult_0_l Rmult_0_r.
 clearbody Delta l u.
-rewrite -> HX in Hx, H0.
+rewrite -> HX in Hx, H'x0.
 have [||Hlow|Hup] := @intvl_lVu l u x0 x => //.
   have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected l x0) Rdelta0 _ _ _ _ _ _ Hlow.
   + have [|||||H _] := @Zumkeller_monot_rem _ (contains_connected (I.convert X)) _ _ _ x0 n => //.
     apply Poly_size.
     apply Poly_nth.
-    by rewrite HX.
     exact: Ztech_derive_sign.
     case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
-      try apply: intvl_connected (intvl_l H0) (H0) _ _ => // ;
+      try apply: intvl_connected (intvl_l H'x0) (H'x0) _ _ => // ;
       try apply Hp ; try apply Hq.
     exact: intvl_l Hlow.
     exact: intvl_u Hlow.
@@ -1148,18 +1159,15 @@ have [|||H1|H2] := @Rmonot_contains _ (@intvl_connected x0 u) Rdelta0 _ _ _ _ _ 
 + have [|||||_ H] := @Zumkeller_monot_rem _ (contains_connected (I.convert X)) _ _ _ x0 n => //.
   apply Poly_size.
   apply Poly_nth.
-  by rewrite HX.
   exact: Ztech_derive_sign.
   case: H => H ; [left|right] ; intros p q Hp Hq Hpq ; apply H => // ; rewrite HX ; split ;
-    try apply: intvl_connected (H0) (intvl_u H0) _ _ => // ;
+    try apply: intvl_connected (H'x0) (intvl_u H'x0) _ _ => // ;
     try apply Hp ; try apply Hq.
   exact: intvl_l Hup.
   exact: intvl_u Hup.
 + exact: contains_connected H1.
 + exact: contains_connected H2.
 Qed.
-*)
-Admitted.
 
 End GenericProof.
 
@@ -3118,8 +3126,18 @@ have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
     apply/contains_Xnan; rewrite I.add_propagate_r //.
     rewrite /A0 in Hv.
     apply/contains_Xnan.
-(*
-    by rewrite /Imid I.bnd_correct in Hv.
+    rewrite /Imid I.bnd_correct in Hv.
+    - by rewrite Fnai.
+    - apply I.valid_lb_real.
+      apply I.midpoint_correct.
+      have [Q HQ1 _] := Fmain.
+      move/(_ 0) in HQ1.
+      by exists (Xreal (PolR.nth Q O)).
+    - apply I.valid_ub_real.
+      apply I.midpoint_correct.
+      have [Q HQ1 _] := Fmain.
+      move/(_ 0) in HQ1.
+      by exists (Xreal (PolR.nth Q O)).
   rewrite /Bf.
   step_xr (Xadd (Xreal v) (Xreal 0)); last by rewrite Xadd_0_r.
   apply: I.add_correct =>//.
@@ -3204,8 +3222,6 @@ apply: HGa0'.
 rewrite -Efx.
 exact: inBfMf.
 Qed.
-*)
-Admitted.
 
 Definition TM_inv_comp Mf (X0 X : I.type) (n : nat) := TM_comp TM_inv Mf X0 X n.
 
