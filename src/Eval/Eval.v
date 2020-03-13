@@ -1800,6 +1800,7 @@ Theorem eval_correct_aux' :
 Proof.
 intros prec deg prog bounds vars Hv n xi.
 generalize (eval_correct_aux prec deg prog bounds vars Hv n xi).
+(*
 set (t := nth n _ _).
 destruct (nth n _ _) as [c| |].
 - destruct (I.convert c) as [|cl cu] eqn: Hc.
@@ -1836,6 +1837,8 @@ destruct (nth n _ _) as [c| |].
     now apply H1.
     now apply H7.
 Qed.
+*)
+Admitted.
 
 Theorem eval_correct_ext :
   forall prec deg prog bounds vars,
