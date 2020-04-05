@@ -27,8 +27,6 @@ Require Import Generic_proof.
 Require Import Sig.
 Require Import Specific_sig.
 
-Import ssrbool.
-
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
   | Float : smantissa_type -> exponent_type -> s_float smantissa_type exponent_type.

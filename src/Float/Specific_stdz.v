@@ -106,7 +106,6 @@ Definition mantissa_shr m d pos :=
   | _ => (xH, pos_Eq) (* dummy *)
   end.
 
-
 Fixpoint mantissa_shrp_aux m d :=
   match m with
   | xO m1 =>
@@ -129,7 +128,7 @@ apply eq_trans with
   now rewrite Pos.eqb_compare; destruct Pos.compare.
 rewrite Pos2Z.inj_eqb, shift_correct, Z.pow_pos_fold, Zmult_1_l.
 rewrite <- radix_to_pos, <- Pos2Z.inj_pow.
-revert d; induction m as [| m | m]; intros d.
+revert d; induction m as [m|m|]; intros d.
 - case (Pos.succ_pred_or d); intro Hd.
     now rewrite Hd; simpl; destruct m.
   rewrite <- Hd, Pos.pow_succ_r.
