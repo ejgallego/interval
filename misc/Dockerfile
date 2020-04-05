@@ -8,7 +8,7 @@ USER root
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -yq && \
     apt-get upgrade -yq --with-new-pkgs --auto-remove && \
-    apt-get install -yq --no-install-recommends autoconf build-essential ca-certificates git g++ ocaml-nox unzip wget && \
+    apt-get install -yq --no-install-recommends autoconf build-essential ca-certificates git graphviz g++ ocaml-nox unzip wget && \
     apt-get clean
 
 RUN wget --quiet https://github.com/ocaml/opam/releases/download/2.0.6/opam-2.0.6-x86_64-linux -O /usr/local/bin/opam && \

@@ -101,7 +101,7 @@ testsuite/clean:
 
 deps.dot: $(VFILES)
 	(echo "digraph interval_deps {" ;
-	echo "node [shape=ellipse, style=filled, URL=\"Interval.\N.html\", color=black];";
+	echo "node [shape=ellipse, style=filled, URL=\"html/Interval.\N.html\", color=black];";
 	(cd src ; @COQDEP@ -R . Interval $(addsuffix .v,$(FILES))) |
 	  sed -n -e 's,/,.,g;s/[.]vo.*: [^ ]*[.]v//p' |
 	  while read src dst; do
@@ -118,6 +118,25 @@ deps.png: deps.dot
 
 deps.map: deps.dot
 	dot -T cmap deps.dot | sed -e 's,>$,/>,' > deps.map
+
+html/index.html: $(VOFILES)
+	rm -rf html
+	mkdir -p html
+	@COQDOC@ -toc -interpolate -utf8 -html -g -R src Interval -d html \
+	  --coqlib http://coq.inria.fr/distrib/current/stdlib \
+	  --external https://math-comp.github.io/htmldoc mathcomp \
+	  --external http://flocq.gforge.inria.fr/html Flocq \
+	  $(VFILES)
+	for f in html/*.html; do
+	  sed -e 's;<a href="index.html">Index</a>;Go back to the <a href="../index.html">Main page</a> or <a href="index.html">Index</a>.;' -i $f
+	done
+
+doc: html/index.html
+
+public: deps.png deps.map html/index.html
+	mkdir -p public
+	sed -e '/#include deps.map/r deps.map' misc/template.html > public/index.html
+	cp -r html deps.png public/
 
 install:
 	prefix=@prefix@
