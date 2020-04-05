@@ -4,7 +4,7 @@ stages:
   - test
 
 variables:
-  BUILD_IMAGE: "$CI_REGISTRY_IMAGE:ci-3.4-2020-04-05"
+  BUILD_IMAGE: "$CI_REGISTRY_IMAGE:ci-master-2020-04-05"
   GIT_CLEAN_FLAGS: "-ffdxq"
 
 build-image:
