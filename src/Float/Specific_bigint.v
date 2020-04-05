@@ -318,7 +318,7 @@ apply sym_eq.
 generalize (BigZ.spec_compare x y).
 unfold Z.lt, Z.gt.
 case (x ?= y)%bigZ ; intro H ; rewrite H ;
- first [ apply Zcompare_refl | apply refl_equal ].
+ first [ apply Z.compare_refl | apply refl_equal ].
 Qed.
 
 Lemma mantissa_digits_correct :

@@ -1180,13 +1180,13 @@ split.
     by apply: Rmult_le_compat_l HPint; lra.
   apply: norm_RInt_le HisInt _; first lra.
     move => x Hx.
-    Focus 2.
-    apply: is_RInt_scal.
-
+    2: {
+      apply: is_RInt_scal.
       apply: (is_RInt_const_sign g) => // .
         case: Hg => [gpos | gneg]; [left|right] => x Hx.
           by apply: gpos; move: Hx; rewrite Rmin_left ?Rmax_right; lra.
         by apply: gneg; move: Hx; rewrite Rmin_left ?Rmax_right; lra.
+    }
   rewrite /=.
   eapply Rle_trans.
     exact: norm_scal.
@@ -1337,11 +1337,12 @@ split.
     by apply: Rmult_le_compat_l HPint; lra.
   apply: norm_RInt_le HisInt _; first lra.
     move => x Hx.
-    Focus 2.
+    2: {
     apply: is_RInt_scal.
       suff -> : norm Ig' = Ig'.
         exact: HIg''.
       by rewrite /norm /= /abs /=; rewrite Rabs_right //; lra.
+    }
   rewrite /=.
   eapply Rle_trans.
     exact: norm_scal.
