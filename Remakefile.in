@@ -126,6 +126,7 @@ html/index.html: $(VOFILES)
 	  --coqlib http://coq.inria.fr/distrib/current/stdlib \
 	  --external https://math-comp.github.io/htmldoc mathcomp \
 	  --external http://flocq.gforge.inria.fr/html Flocq \
+	  --external http://coquelicot.saclay.inria.fr/html Coquelicot \
 	  $(VFILES)
 	for f in html/*.html; do
 	  sed -e 's;<a href="index.html">Index</a>;Go back to the <a href="../index.html">Main page</a> or <a href="index.html">Index</a>.;' -i $f
