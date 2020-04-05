@@ -5,7 +5,7 @@ In addition to the [Coq proof assistant](https://coq.inria.fr/) (>= 8.8),
 you need the following libraries:
 
 - [Mathematical Components](http://math-comp.github.io/math-comp/) (>= 1.6),
-- [Flocq](http://flocq.gforge.inria.fr/) (>= 3.0),
+- [Flocq](http://flocq.gforge.inria.fr/) (>= 3.1),
 - [Coquelicot](http://coquelicot.saclay.inria.fr/) (>= 3.0)
 - [BigNums](https://github.com/coq/bignums/)
 

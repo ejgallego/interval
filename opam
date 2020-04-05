@@ -13,7 +13,7 @@ install: ["./remake" "install"]
 depends: [
   "coq" {>= "8.8" & < "8.12~"}
   "coq-bignums"
-  "coq-flocq" {>= "3.0"}
+  "coq-flocq" {>= "3.1"}
   "coq-mathcomp-ssreflect" {>= "1.6"}
   "coq-coquelicot" {>= "3.0"}
   "conf-autoconf" {build & dev}
