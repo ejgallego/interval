@@ -848,7 +848,7 @@ Definition seq_contains_pointwise si s : Prop :=
 Notation seq_eq_size si s := (seq.size si = seq.size s).
 
 Module Import Notations.
-Declare Scope ipoly_scope.
+(*Declare Scope ipoly_scope.*)
 Notation "i >: x" := (contains (I.convert i) (Xreal x)) : ipoly_scope.
 Notation "p >:: x" := (contains_pointwise p x) : ipoly_scope.
 Notation eq_size pi p := (size pi = PolR.size p).

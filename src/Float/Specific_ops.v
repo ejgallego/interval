@@ -19,6 +19,7 @@ liability. See the COPYING file for more details.
 
 From Coq Require Import ZArith Lia Bool Psatz.
 From Flocq Require Import Raux Digits Bracket.
+From mathcomp.ssreflect Require Import ssrbool.
 
 Require Import Xreal.
 Require Import Basic.
@@ -1513,6 +1514,7 @@ rewrite !real_correct.
 rewrite (scale2_correct _ _ He).
 rewrite add_exact_correct.
 do 2 (case toX; [easy|]).
+change (bpow radix2 (-1)) with (/2)%R.
 clear x y; simpl; intros x y _ _ Hxy.
 now split; [|lra].
 Qed.

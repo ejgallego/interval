@@ -174,6 +174,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   rewrite Fadd_exact_correct.
   unfold toX.
   do 2 (case FtoX; [easy|]).
+  change (bpow radix2 (ZtoS (-1))) with (/2)%R.
   clear x y; simpl; intros x y _ _ Hxy.
   now split; [|lra].
   Qed.
