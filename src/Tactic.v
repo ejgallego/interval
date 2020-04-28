@@ -429,8 +429,7 @@ Definition eval_bisect_taylor_plain prec deg depth extend hyps prog consts :=
   let (xi, fi) := eval_bisect_taylor_init prec deg hyps prog consts in
   A.lookup_1d fi (I.lower xi) (I.upper xi) extend depth.
 
-Definition eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g :=
-  let hyps := R.merge_hyps prec hyps in
+Definition eval_RInt_init prec deg hyps pf pu pv cf cu cv :=
   let fi :=
     let bounds := hyps ++ map (T.eval_bnd prec) cf in
     fun b => nth 0 (A.BndValuator.eval prec pf (b :: bounds)) I.nai in
@@ -458,33 +457,23 @@ Definition eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g :=
           (nth 0 (A.TaylorValuator.eval prec deg xi pf (A.TaylorValuator.TM.var :: bounds))
             A.TaylorValuator.TM.dummy) in
       IT.taylor_integral_naive_intersection prec fi gi xi u v in
-  let check :=
-    let bounds := hyps ++ map (T.eval_bnd prec) cg in
-    fun b =>
-      let yi := nth 0 (A.BndValuator.eval prec pg (b :: bounds)) I.nai in
-      R.eval_goal_bnd prec g yi in
-  check (IR.bisect prec limit mid Fi check).
+  (mid, Fi).
 
-Theorem eval_RInt_correct :
-  forall prec deg limit vars hyps pg pf pu pv cg cf cu cv g,
+Lemma contains_RInt :
+  forall prec deg limit check vars hyps pf pu pv cf cu cv,
+  R.eval_hyps_bnd (R.merge_hyps prec hyps) vars ->
   no_floor_prog pf = true ->
-  eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g = true ->
-  eval_hyps hyps vars (
-    eval_goal g (Prog.eval_real' pg (
-      (RInt (fun t => Prog.eval_real' pf (t :: vars) cf)
-        (Prog.eval_real' pu vars cu) (Prog.eval_real' pv vars cv)) :: vars) cg)).
+  let hyps := R.merge_hyps prec hyps in
+  let (mid, Fi) := eval_RInt_init prec deg hyps pf pu pv cf cu cv in
+  contains (I.convert (IR.bisect prec limit mid Fi check))
+    (Xreal (RInt (fun t => Prog.eval_real' pf (t :: vars) cf)
+      (Prog.eval_real' pu vars cu) (Prog.eval_real' pv vars cv))).
 Proof.
-intros prec deg limit vars hyps pg pf pu pv cg cf cu cv g Hp H.
-apply (R.eval_hyps_bnd_correct prec).
-intros H'.
-apply (R.eval_goal_bnd_correct prec) with (2 := H).
-unfold Prog.eval_real'.
+intros prec deg limit check vars hyps pf pu pv cf cu cv H' Hp.
+unfold eval_RInt_init, Prog.eval_real'.
 simpl.
-fold (compute_inputs prec hyps cg).
 fold (compute_inputs prec hyps cu).
 fold (compute_inputs prec hyps cv).
-destruct (app_merge_hyps_eval_bnd prec _ _ cg H') as [bpg [<- <-]].
-apply A.BndValuator.eval_correct_ext'.
 destruct (app_merge_hyps_eval_bnd prec _ _ cu H') as [bpu [<- <-]].
 destruct (app_merge_hyps_eval_bnd prec _ _ cv H') as [bpv [<- <-]].
 generalize (A.BndValuator.eval_correct' prec pu bpu 0) (A.BndValuator.eval_correct' prec pv bpv 0).
@@ -547,6 +536,75 @@ apply A.TaylorValuator.TM.get_tm_correct ; cycle 1.
 rewrite map_map.
 apply A.TaylorValuator.eval_correct_aux'.
 Qed.
+
+Definition check_goal prec hyps pg cg g :=
+  let bounds := hyps ++ map (T.eval_bnd prec) cg in
+  fun b =>
+    let yi := nth 0 (A.BndValuator.eval prec pg (b :: bounds)) I.nai in
+    R.eval_goal_bnd prec g yi.
+
+Definition eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g :=
+  let hyps := R.merge_hyps prec hyps in
+  let (mid, Fi) := eval_RInt_init prec deg hyps pf pu pv cf cu cv in
+  let check := check_goal prec hyps pg cg g in
+  check (IR.bisect prec limit mid Fi check).
+
+Theorem eval_RInt_correct :
+  forall prec deg limit vars hyps pg pf pu pv cg cf cu cv g,
+  no_floor_prog pf = true ->
+  eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g = true ->
+  eval_hyps hyps vars (
+    eval_goal g (Prog.eval_real' pg (
+      (RInt (fun t => Prog.eval_real' pf (t :: vars) cf)
+        (Prog.eval_real' pu vars cu) (Prog.eval_real' pv vars cv)) :: vars) cg)).
+Proof.
+intros prec deg limit vars hyps pg pf pu pv cg cf cu cv g Hp H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+apply (R.eval_goal_bnd_correct prec) with (2 := H).
+unfold eval_real'.
+simpl.
+fold (compute_inputs prec hyps cg).
+destruct (app_merge_hyps_eval_bnd prec _ _ cg H') as [bpg [<- <-]].
+apply A.BndValuator.eval_correct_ext'.
+now apply contains_RInt.
+Qed.
+
+Definition eval_RInt_contains prec deg limit hyps pf pu pv cf cu cv b :=
+  let hyps := R.merge_hyps prec hyps in
+  let (mid, Fi) := eval_RInt_init prec deg hyps pf pu pv cf cu cv in
+  let check yi := I.subset yi b in
+  check (IR.bisect prec limit mid Fi check).
+
+Theorem eval_RInt_contains_correct :
+  forall prec deg limit vars hyps pf pu pv cf cu cv b,
+  no_floor_prog pf = true ->
+  eval_RInt_contains prec deg limit hyps pf pu pv cf cu cv b = true ->
+  eval_hyps hyps vars (
+    contains (I.convert b) (Xreal
+      (RInt (fun t => Prog.eval_real' pf (t :: vars) cf)
+        (Prog.eval_real' pu vars cu) (Prog.eval_real' pv vars cv)))).
+Proof.
+intros prec deg limit vars hyps pf pu pv cf cu cv b Hp H.
+apply (R.eval_hyps_bnd_correct prec).
+intros H'.
+eapply subset_contains.
+apply I.subset_correct.
+apply H.
+now apply contains_RInt.
+Qed.
+
+Definition check_width prec (w : F.type * bool) yi :=
+  let yl := I.lower yi in
+  let yu := I.upper yi in
+  let (f, r) := w in
+  let w := if r then F.mul rnd_NE prec (F.midpoint yl yu) f else f in
+  F'.le' (F.sub rnd_NE prec (I.upper yi) (I.lower yi)) f.
+
+Definition eval_RInt_plain prec deg limit hyps pf pu pv cf cu cv w :=
+  let hyps := R.merge_hyps prec hyps in
+  let (mid, Fi) := eval_RInt_init prec deg hyps pf pu pv cf cu cv in
+  IR.bisect prec limit mid Fi (check_width prec w).
 
 Definition bertrand_prog alpha beta p :=
   let x := length p in
