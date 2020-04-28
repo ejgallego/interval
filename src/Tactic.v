@@ -46,6 +46,8 @@ Inductive interval_tac_parameters : Set :=
   | i_degree (d : nat)
   | i_depth (d : nat)
   | i_fuel (f : positive)
+  | i_width (w : Z)
+  | i_relwidth (w : positive)
   | i_native_compute
   | i_delay.
 
@@ -1534,23 +1536,76 @@ Ltac do_integral prec degree fuel native nocheck :=
   end ;
   do_reduction nocheck native.
 
+Ltac do_integral_intro y extend prec degree fuel width native nocheck :=
+  let prec := eval vm_compute in (F.PtoP prec) in
+  let i := fresh "__i" in
+  evar (i : I.type) ;
+  cut (contains (I.convert i) (Xreal y))%R ; cycle 1 ; [
+    lazymatch y with
+    | context [RInt ?f ?u ?v] =>
+      reify_RInt y f u v ;
+      apply (eval_RInt_contains_correct prec degree fuel) with (1 := eq_refl true) ;
+      match goal with
+      | |- _ ?hyps ?pf ?pu ?pv ?cf ?cu ?cv _ = true =>
+        let yi := constr:(eval_RInt_plain prec degree fuel hyps pf pu pv cf cu cv width) in
+        do_instantiate i extend native yi
+      end
+    | context [RInt_gen ?fm (at_point ?u) (Rbar_locally p_infty)] =>
+      reify_RInt_gen_infty y fm u ;
+      lazymatch fm with
+      | fun t => (_ / (t * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_contains_invxln prec degree fuel) with (1 := eq_refl true)
+      | fun t => (_ * / (t * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_contains_invxln prec degree fuel) with (1 := eq_refl true)
+      | fun t => (_ * (powerRZ t _ * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_contains_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+      end ;
+      match goal with
+      | |- _ ?hyps ?mi ?pf ?pfm ?pu ?cf ?cfm ?cu _ = true =>
+        let yi := constr:(eval_RInt_gen_infty_plain prec degree fuel hyps mi pf pfm pu cf cfm cu width) in
+        do_instantiate i extend native yi
+      end
+    | context [RInt_gen ?fm (at_right 0) (at_point ?v)] =>
+      reify_RInt_gen_zero y fm v ;
+      lazymatch fm with
+      | fun t => (_ * (powerRZ t _ * ln t ^ _))%R =>
+        apply (eval_RInt_gen_zero_contains_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+      end ;
+      match goal with
+      | |- _ ?hyps ?mi ?pf ?pfm ?pv ?cf ?cfm ?cv _ = true =>
+        let yi := constr:(eval_RInt_gen_zero_plain prec degree fuel hyps mi pf pfm pv cf cfm cv width) in
+        do_instantiate i extend native yi
+      end
+    | _ => fail "No integral recognized"
+    end ;
+    do_reduction nocheck native
+  | do_interval_generalize ; clear i ].
+
 Ltac do_parse' params :=
-  let rec aux prec degree fuel native nocheck params :=
+  let rec aux prec degree fuel width native nocheck params :=
     lazymatch params with
-    | nil => constr:((prec, degree, fuel, native, nocheck))
-    | cons (i_prec ?p) ?t => aux p degree fuel native nocheck t
-    | cons (i_degree ?d) ?t => aux prec d fuel native nocheck t
-    | cons (i_fuel ?f) ?t => aux prec degree f native nocheck t
-    | cons i_native_compute ?t => aux prec degree fuel true nocheck t
-    | cons i_delay ?t => aux prec degree fuel native true t
+    | nil => constr:((prec, degree, fuel, width, native, nocheck))
+    | cons (i_prec ?p) ?t => aux p degree fuel width native nocheck t
+    | cons (i_degree ?d) ?t => aux prec d fuel width native nocheck t
+    | cons (i_fuel ?f) ?t => aux prec degree f width native nocheck t
+    | cons (i_width ?w) ?t => aux prec degree fuel (F.scale (F.fromZ 1) (F.ZtoS w), false) native nocheck t
+    | cons (i_relwidth ?w) ?t => aux prec degree fuel (F.scale (F.fromZ 1) (F.ZtoS (Zneg w)), true) native nocheck t
+    | cons i_native_compute ?t => aux prec degree fuel width true nocheck t
+    | cons i_delay ?t => aux prec degree fuel width native true t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux 30%positive 10%nat 100%positive false false params.
+  aux 30%positive 10%nat 100%positive (F.scale (F.fromZ 1) (F.ZtoS (-10)), true) false false params.
 
 Ltac do_integral_parse params :=
   match do_parse' params with
-  | (?prec, ?degree, ?fuel, ?native, ?nocheck) =>
+  | (?prec, ?degree, ?fuel, _, ?native, ?nocheck) =>
     do_integral prec degree fuel native nocheck
+  end.
+
+Ltac do_integral_intro_parse y extend params :=
+  match do_parse' params with
+  | (?prec, ?degree, ?fuel, ?width, ?native, ?nocheck) =>
+    do_integral_intro y extend prec degree fuel width native nocheck
   end.
 
 End Private.
@@ -1604,6 +1659,42 @@ Tactic Notation "integral" :=
 
 Tactic Notation "integral" "with" constr(params) :=
   do_integral_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+
+Tactic Notation "integral_intro" constr(t) :=
+  do_integral_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "lower" :=
+  do_integral_intro_parse t I.upper_extent (@nil interval_tac_parameters) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "upper"  :=
+  do_integral_intro_parse t I.lower_extent (@nil interval_tac_parameters) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "with" constr(params) :=
+  do_integral_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "lower" "with" constr(params) :=
+  do_integral_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "upper" "with" constr(params) :=
+  do_integral_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+
+Tactic Notation "integral_intro" constr(t) "as" simple_intropattern(H) :=
+  do_integral_intro_parse t (fun v : I.type => v) (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "integral_intro" constr(t) "lower" "as" simple_intropattern(H) :=
+  do_integral_intro_parse t I.upper_extent (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "integral_intro" constr(t) "upper" "as" simple_intropattern(H)  :=
+  do_integral_intro_parse t I.lower_extent (@nil interval_tac_parameters) ; intros H.
+
+Tactic Notation "integral_intro" constr(t) "with" constr(params) "as" simple_intropattern(H) :=
+  do_integral_intro_parse t (fun v : I.type => v) ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+
+Tactic Notation "integral_intro" constr(t) "lower" "with" constr(params) "as" simple_intropattern(H) :=
+  do_integral_intro_parse t I.upper_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+
+Tactic Notation "integral_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
+  do_integral_intro_parse t I.lower_extent ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 End IntervalTactic.
 
