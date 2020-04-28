@@ -74,96 +74,72 @@ Ltac get_RInt_vars y i f :=
   let vars := match get_vars y vars with i :: ?vars => vars end in
   vars.
 
-Ltac reify_RInt :=
-  match goal with
-  | |- eval_goal ?g' ?y =>
-    let g := fresh "__goal" in
-    set (g := g') ;
-    match y with
-    | context [RInt ?f ?u ?v] =>
-      let i := constr:(RInt f u v) in
-      let vars := get_RInt_vars y i f in
-      let vars := get_vars u vars in
-      let vars := get_vars v vars in
-      reify_partial y (i :: vars) ;
-      apply eq_ind ;
-      erewrite <- RInt_ext by (
-        let t := fresh "t" in
-        intros t _ ;
-        let fapp := eval cbv beta in (f t) in
-        reify_partial fapp (t :: vars) ;
-        exact (fun H => H)) ;
-      reify_partial u vars ;
-      intros <- ;
-      reify_partial v vars ;
-      intros <- ;
-      find_hyps vars
-    end
-  end.
+Ltac reify_RInt y f u v :=
+  let i := constr:(RInt f u v) in
+  let vars := get_RInt_vars y i f in
+  let vars := get_vars u vars in
+  let vars := get_vars v vars in
+  reify_partial y (i :: vars) ;
+  apply eq_ind ;
+  erewrite <- RInt_ext by (
+    let t := fresh "t" in
+    intros t _ ;
+    let fapp := eval cbv beta in (f t) in
+    reify_partial fapp (t :: vars) ;
+    exact (fun H => H)) ;
+  reify_partial u vars ;
+  intros <- ;
+  reify_partial v vars ;
+  intros <- ;
+  find_hyps vars.
 
-Ltac reify_RInt_gen_infty :=
-  match goal with
-  | |- eval_goal ?g' ?y =>
-    let g := fresh "__goal" in
-    set (g := g') ;
-    match y with
-    | context [RInt_gen ?fm (at_point ?u) (Rbar_locally p_infty)] =>
-      let i := constr:(RInt_gen fm (at_point u) (Rbar_locally p_infty)) in
-      let f :=
-        lazymatch fm with
-        | (fun x => @?f x * _)%R => f
-        | (fun x => @?f x / _)%R => f
-        | (fun x => @?f x * / _)%R => f
-        | _ => fail "Unsupported integrand"
-        end in
-      let vars := get_RInt_vars y i f in
-      let vars := get_vars u vars in
-      reify_partial y (i :: vars) ;
-      apply eq_ind ;
-      erewrite <- RInt_gen_ext_eq by (
-        let t := fresh "t" in
-        intros t ;
-        apply (f_equal (fun x => Rmult x _)) ;
-        let fapp := eval cbv beta in (f t) in
-        reify_partial fapp (t :: vars) ;
-        exact (fun H => H)) ;
-      reify_partial u vars ;
-      intros <- ;
-      find_hyps vars
-    end
-  end.
+Ltac reify_RInt_gen_infty y fm u :=
+  let i := constr:(RInt_gen fm (at_point u) (Rbar_locally p_infty)) in
+  let f :=
+    lazymatch fm with
+    | (fun x => @?f x * _)%R => f
+    | (fun x => @?f x / _)%R => f
+    | (fun x => @?f x * / _)%R => f
+    | _ => fail "Unsupported integrand"
+    end in
+  let vars := get_RInt_vars y i f in
+  let vars := get_vars u vars in
+  reify_partial y (i :: vars) ;
+  apply eq_ind ;
+  erewrite <- RInt_gen_ext_eq by (
+    let t := fresh "t" in
+    intros t ;
+    apply (f_equal (fun x => Rmult x _)) ;
+    let fapp := eval cbv beta in (f t) in
+    reify_partial fapp (t :: vars) ;
+    exact (fun H => H)) ;
+  reify_partial u vars ;
+  intros <- ;
+  find_hyps vars.
 
-Ltac reify_RInt_gen_zero :=
-  match goal with
-  | |- eval_goal ?g' ?y =>
-    let g := fresh "__goal" in
-    set (g := g') ;
-    match y with
-    | context [RInt_gen ?fm (at_right 0) (at_point ?v)] =>
-      let i := constr:(RInt_gen fm (at_right 0) (at_point v)) in
-      let f :=
-        lazymatch fm with
-        | (fun x => @?f x * _)%R => f
-        | (fun x => @?f x / _)%R => f
-        | (fun x => @?f x * / _)%R => f
-        | _ => fail "Unsupported integrand"
-        end in
-      let vars := get_RInt_vars y i f in
-      let vars := get_vars v vars in
-      reify_partial y (i :: vars) ;
-      apply eq_ind ;
-      erewrite <- RInt_gen_ext_eq by (
-        let t := fresh "t" in
-        intros t ;
-        apply (f_equal (fun x => Rmult x _)) ;
-        let fapp := eval cbv beta in (f t) in
-        reify_partial fapp (t :: vars) ;
-        exact (fun H => H)) ;
-      reify_partial v vars ;
-      intros <- ;
-      find_hyps vars
-    end
-  end.
+Ltac reify_RInt_gen_zero y fm v :=
+  let i := constr:(RInt_gen fm (at_right 0) (at_point v)) in
+  let f :=
+    lazymatch fm with
+    | (fun x => @?f x * _)%R => f
+    | (fun x => @?f x / _)%R => f
+    | (fun x => @?f x * / _)%R => f
+    | _ => fail "Unsupported integrand"
+    end in
+  let vars := get_RInt_vars y i f in
+  let vars := get_vars v vars in
+  reify_partial y (i :: vars) ;
+  apply eq_ind ;
+  erewrite <- RInt_gen_ext_eq by (
+    let t := fresh "t" in
+    intros t ;
+    apply (f_equal (fun x => Rmult x _)) ;
+    let fapp := eval cbv beta in (f t) in
+    reify_partial fapp (t :: vars) ;
+    exact (fun H => H)) ;
+  reify_partial v vars ;
+  intros <- ;
+  find_hyps vars.
 
 Definition compute_inputs prec hyps consts :=
   R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts.
@@ -1341,27 +1317,32 @@ Ltac do_interval_intro_parse t extend params :=
 Ltac do_integral prec degree fuel native nocheck :=
   let prec := eval vm_compute in (F.PtoP prec) in
   massage_goal ;
-  lazymatch goal with
-  | |- context [RInt _ _ _] =>
-    reify_RInt ;
-    apply (eval_RInt_correct prec degree fuel) with (1 := eq_refl true)
-  | |- context [RInt_gen _ (at_point _) (Rbar_locally p_infty)] =>
-    reify_RInt_gen_infty ;
-    lazymatch goal with
-    | |- context [RInt_gen (fun t => _ / (t * ln t ^ _))%R _ _] =>
-      apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
-    | |- context [RInt_gen (fun t => _ * / (t * ln t ^ _))%R _ _] =>
-      apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
-    | |- context [RInt_gen (fun t => _ * (powerRZ t _ * ln t ^ _))%R _ _] =>
-      apply (eval_RInt_gen_infty_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+  match goal with
+  | |- eval_goal ?g' ?y =>
+    let g := fresh "__goal" in
+    set (g := g') ;
+    lazymatch y with
+    | context [RInt ?f ?u ?v] =>
+      reify_RInt y f u v ;
+      apply (eval_RInt_correct prec degree fuel) with (1 := eq_refl true)
+    | context [RInt_gen ?fm (at_point ?u) (Rbar_locally p_infty)] =>
+      reify_RInt_gen_infty y fm u ;
+      lazymatch fm with
+      | fun t => (_ / (t * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
+      | fun t => (_ * / (t * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_invxln prec degree fuel) with (1 := eq_refl true)
+      | fun t => (_ * (powerRZ t _ * ln t ^ _))%R =>
+        apply (eval_RInt_gen_infty_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+      end
+    | context [RInt_gen ?fm (at_right 0) (at_point ?v)] =>
+      reify_RInt_gen_zero y fm v ;
+      lazymatch fm with
+      | fun t => (_ * (powerRZ t _ * ln t ^ _))%R =>
+        apply (eval_RInt_gen_zero_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
+      end
+    | _ => fail "No integral recognized"
     end
-  | |- context [RInt_gen _ (at_right 0) (at_point _)] =>
-    reify_RInt_gen_zero ;
-    lazymatch goal with
-    | |- context [RInt_gen (fun t => _ * (powerRZ t _ * ln t ^ _))%R _ _] =>
-      apply (eval_RInt_gen_zero_bertrand prec degree fuel) with (1 := eq_refl Lt) (2 := eq_refl true)
-    end
-  | _ => fail "No integral recognized"
   end ;
   do_reduction nocheck native.
 
