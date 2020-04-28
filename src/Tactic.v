@@ -1232,6 +1232,14 @@ Ltac do_interval vars prec degree depth native nocheck eval_tac :=
   end ;
   do_reduction nocheck native.
 
+Ltac do_instantiate i extend native yi :=
+  let yi :=
+    match native with
+    | true => eval native_compute in (extend yi)
+    | false => eval vm_compute in (extend yi)
+    end in
+  instantiate (i := yi).
+
 Ltac do_interval_intro y extend vars prec degree depth native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
   let i := fresh "__i" in
@@ -1242,26 +1250,30 @@ Ltac do_interval_intro y extend vars prec degree depth native nocheck eval_tac :
     apply (eq_ind _ (fun z => contains (I.convert i) (Xreal z))) ;
     find_hyps vars ;
     match eval_tac with
-    | itm_eval => apply (eval_bnd_contains_correct prec)
-    | itm_bisect => apply (eval_bisect_contains_correct prec depth)
-    | itm_bisect_diff => apply (eval_bisect_contains_diff_correct prec depth)
-    | itm_bisect_taylor => apply (eval_bisect_contains_taylor_correct prec degree depth)
-    end ;
-    match goal with
-    | |- _ ?hyps ?prog ?consts _ = true =>
-      let yi :=
-        match eval_tac with
-        | itm_eval => constr:(eval_bnd_plain prec hyps prog consts)
-        | itm_bisect => constr:(eval_bisect_plain prec depth extend hyps prog consts)
-        | itm_bisect_diff => constr:(eval_bisect_diff_plain prec depth extend hyps prog consts)
-        | itm_bisect_taylor => constr:(eval_bisect_taylor_plain prec degree depth extend hyps prog consts)
-        end in
-      let yi :=
-        match native with
-        | true => eval native_compute in (extend yi)
-        | false => eval vm_compute in (extend yi)
-        end in
-      instantiate (i := yi)
+    | itm_eval =>
+      apply (eval_bnd_contains_correct prec) ;
+      match goal with
+      | |- _ ?hyps ?prog ?consts _ = true =>
+        do_instantiate i extend native (eval_bnd_plain prec hyps prog consts)
+      end
+    | itm_bisect =>
+      apply (eval_bisect_contains_correct prec depth) ;
+      match goal with
+      | |- _ ?hyps ?prog ?consts _ = true =>
+        do_instantiate i extend native (eval_bisect_plain prec depth extend hyps prog consts)
+      end
+    | itm_bisect_diff =>
+      apply (eval_bisect_contains_diff_correct prec depth) ;
+      match goal with
+      | |- _ ?hyps ?prog ?consts _ = true =>
+        do_instantiate i extend native (eval_bisect_diff_plain prec depth extend hyps prog consts)
+      end
+    | itm_bisect_taylor =>
+      apply (eval_bisect_contains_taylor_correct prec degree depth) ;
+      match goal with
+      | |- _ ?hyps ?prog ?consts _ = true =>
+        do_instantiate i extend native (eval_bisect_taylor_plain prec degree depth extend hyps prog consts)
+      end
     end ;
     do_reduction nocheck native
   | do_interval_generalize ; clear i ].
