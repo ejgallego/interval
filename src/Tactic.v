@@ -179,9 +179,12 @@ rewrite <- 2!map_app.
 now exists (bp1 ++ bp2).
 Qed.
 
-Definition eval_bnd prec hyps prog consts g :=
+Definition eval_bnd_plain prec hyps prog consts :=
   let bounds := compute_inputs prec hyps consts in
-  R.eval_goal_bnd prec g (nth 0 (A.BndValuator.eval prec prog bounds) I.nai).
+  nth 0 (A.BndValuator.eval prec prog bounds) I.nai.
+
+Definition eval_bnd prec hyps prog consts g :=
+  R.eval_goal_bnd prec g (eval_bnd_plain prec hyps prog consts).
 
 Theorem eval_bnd_correct :
   forall prec vars hyps prog consts g,
@@ -193,13 +196,13 @@ intros prec vars hyps prog consts g H.
 apply (R.eval_hyps_bnd_correct prec).
 intros H'.
 apply (R.eval_goal_bnd_correct prec) with (2 := H).
+unfold eval_bnd_plain.
 destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
 apply A.BndValuator.eval_correct'.
 Qed.
 
 Definition eval_bnd_contains prec hyps prog consts b :=
-  let bounds := compute_inputs prec hyps consts in
-  I.subset (nth 0 (A.BndValuator.eval prec prog bounds) I.nai) b.
+  I.subset (eval_bnd_plain prec hyps prog consts) b.
 
 Theorem eval_bnd_contains_correct :
   forall prec vars hyps prog consts b,
@@ -212,13 +215,10 @@ apply (R.eval_hyps_bnd_correct prec).
 intros H'.
 eapply subset_contains.
 apply I.subset_correct, H.
+unfold eval_bnd_plain.
 destruct (app_merge_hyps_eval_bnd _ _ _ consts H') as [bp [<- <-]].
 apply A.BndValuator.eval_correct'.
 Qed.
-
-Definition eval_bnd_plain prec hyps prog consts :=
-  let bounds := compute_inputs prec hyps consts in
-  nth 0 (A.BndValuator.eval prec prog bounds) I.nai.
 
 Theorem eval_bisect_aux :
   forall prec depth var0 vars hyps prog consts g fi,
@@ -294,13 +294,15 @@ rewrite I.lower_correct, I.upper_correct.
 now destruct I.convert.
 Qed.
 
-Definition eval_bisect prec depth hyps prog consts g :=
+Definition eval_bisect_init prec hyps prog consts :=
   let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := tail bounds in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
-    R.eval_goal_bnd prec g (nth 0 (A.BndValuator.eval prec prog (b :: bounds)) I.nai)
-  ) depth.
+  (xi, fun xi => nth 0 (A.BndValuator.eval prec prog (xi :: bounds)) I.nai).
+
+Definition eval_bisect prec depth hyps prog consts g :=
+  let (xi, fi) := eval_bisect_init prec hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => R.eval_goal_bnd prec g (fi xi)) depth.
 
 Theorem eval_bisect_correct :
   forall prec depth var0 vars hyps prog consts g,
@@ -315,12 +317,8 @@ apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Ix :: bp)).
 Qed.
 
 Definition eval_bisect_contains prec depth hyps prog consts b :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := tail bounds in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi =>
-    I.subset (nth 0 (A.BndValuator.eval prec prog (xi :: bounds)) I.nai) b
-  ) depth.
+  let (xi, fi) := eval_bisect_init prec hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => I.subset (fi xi) b) depth.
 
 Theorem eval_bisect_contains_correct :
   forall prec depth var0 vars hyps prog consts b,
@@ -335,20 +333,18 @@ apply (A.BndValuator.eval_correct' _ _ (A.Bproof _ _ Ix :: bp)).
 Qed.
 
 Definition eval_bisect_plain prec depth extend hyps prog consts :=
+  let (xi, fi) := eval_bisect_init prec hyps prog consts in
+  A.lookup_1d fi (I.lower xi) (I.upper xi) extend depth.
+
+Definition eval_bisect_diff_init prec hyps prog consts :=
   let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := tail bounds in
-  A.lookup_1d (fun xi =>
-    nth 0 (A.BndValuator.eval prec prog (xi :: bounds)) I.nai
-  ) (I.lower xi) (I.upper xi) extend depth.
+  (xi, fun xi => A.DiffValuator.eval prec prog bounds 0 xi).
 
 Definition eval_bisect_diff prec depth hyps prog consts g :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := tail bounds in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
-    R.eval_goal_bnd prec g (A.DiffValuator.eval prec prog bounds 0 b)
-  ) depth.
+  let (xi, fi) := eval_bisect_diff_init prec hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => R.eval_goal_bnd prec g (fi xi)) depth.
 
 Theorem eval_bisect_diff_correct :
   forall prec depth var0 vars hyps prog consts g,
@@ -363,12 +359,8 @@ apply A.DiffValuator.eval_correct with (1 := Ix).
 Qed.
 
 Definition eval_bisect_contains_diff prec depth hyps prog consts b :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := tail bounds in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi =>
-    I.subset (A.DiffValuator.eval prec prog bounds 0 xi) b
-  ) depth.
+  let (xi, fi) := eval_bisect_diff_init prec hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => I.subset (fi xi) b) depth.
 
 Theorem eval_bisect_contains_diff_correct :
   forall prec depth var0 vars hyps prog consts b,
@@ -383,21 +375,19 @@ apply A.DiffValuator.eval_correct with (1 := Ix).
 Qed.
 
 Definition eval_bisect_diff_plain prec depth extend hyps prog consts :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := tail bounds in
-  A.lookup_1d (fun xi =>
-    A.DiffValuator.eval prec prog bounds 0 xi
-  ) (I.lower xi) (I.upper xi) extend depth.
+  let (xi, fi) := eval_bisect_diff_init prec hyps prog consts in
+  A.lookup_1d fi (I.lower xi) (I.upper xi) extend depth.
 
-Definition eval_bisect_taylor prec deg depth hyps prog consts g :=
+Definition eval_bisect_taylor_init prec deg hyps prog consts :=
   let bounds := compute_inputs prec hyps consts in
   let xi := nth 0 bounds I.nai in
   let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const (tail bounds) in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun b =>
-    R.eval_goal_bnd prec g (A.TaylorValuator.TM.eval (prec, deg)
-      (nth 0 (A.TaylorValuator.eval prec deg b prog bounds) A.TaylorValuator.TM.dummy) b b)
-  ) depth.
+  (xi, fun xi => A.TaylorValuator.TM.eval (prec, deg)
+      (nth 0 (A.TaylorValuator.eval prec deg xi prog bounds) A.TaylorValuator.TM.dummy) xi xi).
+
+Definition eval_bisect_taylor prec deg depth hyps prog consts g :=
+  let (xi, fi) := eval_bisect_taylor_init prec deg hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => R.eval_goal_bnd prec g (fi xi)) depth.
 
 Theorem eval_bisect_taylor_correct :
   forall prec deg depth var0 vars hyps prog consts g,
@@ -416,13 +406,8 @@ apply A.TaylorValuator.eval_correct with (1 := Ix).
 Qed.
 
 Definition eval_bisect_contains_taylor prec deg depth hyps prog consts b :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const (tail bounds) in
-  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi =>
-    I.subset (A.TaylorValuator.TM.eval (prec, deg)
-      (nth 0 (A.TaylorValuator.eval prec deg xi prog bounds) A.TaylorValuator.TM.dummy) xi xi) b
-  ) depth.
+  let (xi, fi) := eval_bisect_taylor_init prec deg hyps prog consts in
+  A.bisect_1d (I.lower xi) (I.upper xi) (fun xi => I.subset (fi xi) b) depth.
 
 Theorem eval_bisect_contains_taylor_correct :
   forall prec deg depth var0 vars hyps prog consts b,
@@ -441,13 +426,8 @@ apply A.TaylorValuator.eval_correct with (1 := Ix).
 Qed.
 
 Definition eval_bisect_taylor_plain prec deg depth extend hyps prog consts :=
-  let bounds := compute_inputs prec hyps consts in
-  let xi := nth 0 bounds I.nai in
-  let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const (tail bounds) in
-  A.lookup_1d (fun xi =>
-    A.TaylorValuator.TM.eval (prec, deg)
-      (nth 0 (A.TaylorValuator.eval prec deg xi prog bounds) A.TaylorValuator.TM.dummy) xi xi
-  ) (I.lower xi) (I.upper xi) extend depth.
+  let (xi, fi) := eval_bisect_taylor_init prec deg hyps prog consts in
+  A.lookup_1d fi (I.lower xi) (I.upper xi) extend depth.
 
 Definition eval_RInt prec deg limit hyps pg pf pu pv cg cf cu cv g :=
   let hyps := R.merge_hyps prec hyps in
