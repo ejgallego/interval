@@ -80,7 +80,7 @@ Ltac reify_RInt y f u v :=
   let vars := get_vars u vars in
   let vars := get_vars v vars in
   reify_partial y (i :: vars) ;
-  apply eq_ind ;
+  intros <- ;
   erewrite <- RInt_ext by (
     let t := fresh "t" in
     intros t _ ;
@@ -105,7 +105,7 @@ Ltac reify_RInt_gen_infty y fm u :=
   let vars := get_RInt_vars y i f in
   let vars := get_vars u vars in
   reify_partial y (i :: vars) ;
-  apply eq_ind ;
+  intros <- ;
   erewrite <- RInt_gen_ext_eq by (
     let t := fresh "t" in
     intros t ;
@@ -129,7 +129,7 @@ Ltac reify_RInt_gen_zero y fm v :=
   let vars := get_RInt_vars y i f in
   let vars := get_vars v vars in
   reify_partial y (i :: vars) ;
-  apply eq_ind ;
+  intros <- ;
   erewrite <- RInt_gen_ext_eq by (
     let t := fresh "t" in
     intros t ;
