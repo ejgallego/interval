@@ -321,52 +321,6 @@ Qed.
 
 Module IntervalAlgos (I : IntervalOps).
 
-Record check := {
-  check_f : I.type -> bool;
-  check_p : ExtendedR -> Prop;
-  _ : forall y yi, contains (I.convert yi) y -> check_f yi = true -> check_p y
-}.
-
-Definition subset_check : I.type -> check.
-Proof.
-intros output.
-apply (Build_check (fun i => I.subset i output) (contains (I.convert output))).
-abstract (
-  intros y yi Hy Hb ;
-  assert (H := I.subset_correct yi output Hb) ;
-  now apply subset_contains with (1 := H)).
-Defined.
-
-Definition positive_check : check.
-Proof.
-apply (Build_check
-  (fun i => match I.sign_strict i with Xgt => true | _ => false end)
-  (fun y => match y with Xreal r => (0 < r)%R | _ => False end)).
-abstract (
-  intros y yi Hy Hb ;
-  generalize (I.sign_strict_correct yi) ;
-  destruct (I.sign_strict yi) ; try easy ;
-  intros H ;
-  destruct (H y Hy) as (H1,H2) ;
-  now rewrite H1).
-Defined.
-
-Definition nonzero_check : check.
-Proof.
-apply (Build_check
-  (fun i => match I.sign_strict i with Xgt => true | Xlt => true | _ => false end)
-  (fun y => match y with Xreal r => r <> R0 | _ => False end)).
-abstract (
-  intros y yi Hy Hb ;
-  generalize (I.sign_strict_correct yi) ;
-  destruct (I.sign_strict yi) ; try easy ;
-  intros H ;
-  destruct (H y Hy) as [H1 H2] ;
-  rewrite H1 ;
-  [ apply Rlt_not_eq | apply Rgt_not_eq ] ;
-  assumption).
-Defined.
-
 Definition bisect_1d_step l u (check : I.type -> bool) cont :=
   if check (I.bnd l u) then true
   else
