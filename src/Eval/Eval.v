@@ -398,38 +398,17 @@ Definition lookup_1d fi l u extend steps :=
     else output
   end.
 
-Inductive bound_proof :=
-  | Bproof : forall x xi, contains (I.convert xi) (Xreal x) -> bound_proof.
-
-Definition real_from_bp v := match v with Bproof x _ _ => x end.
-Definition xreal_from_bp v := Xreal (real_from_bp v).
-Definition interval_from_bp v := match v with Bproof _ xi _ => xi end.
-
-Lemma iterated_bnd_nth :
-  forall bounds n,
-  contains (I.convert (nth n (map interval_from_bp bounds) I.nai))
-    (nth n (map xreal_from_bp bounds) Xnan).
-Proof.
-intros bounds n.
-destruct (le_or_lt (length bounds) n) as [H|H].
-rewrite -> 2!nth_overflow by now rewrite map_length.
-now rewrite I.nai_correct.
-rewrite -> (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
-assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
-pose (b := Bproof 0 I.nai H0).
-change (Xreal 0) with (xreal_from_bp b).
-change I.nai with (interval_from_bp b).
-rewrite 2!map_nth.
-now case (nth n bounds b).
-Qed.
+Definition contains_all xi x :=
+  length xi = length x /\
+  forall n, contains (I.convert (nth n xi I.nai)) (nth n (map Xreal x) Xnan).
 
 Lemma continuous_eval_ext :
-  forall prog bounds x m,
+  forall prog vars x m,
   no_floor_prog prog = true ->
-  notXnan (nth m (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan) ->
-  continuous (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) 0%R) x.
+  notXnan (nth m (eval_ext prog (Xreal x :: map Xreal vars)) Xnan) ->
+  continuous (fun x => nth m (eval_real prog (x :: vars)) 0%R) x.
 Proof.
-intros prog bounds x.
+intros prog vars x.
 rewrite /eval_ext /eval_real.
 intros m Hf H.
 eapply proj2.
@@ -473,14 +452,13 @@ intros _.
 apply (conj eq_refl).
 apply continuous_id.
 simpl.
-destruct (le_or_lt (length bounds) n).
+destruct (le_or_lt (length vars) n).
 rewrite nth_overflow => //.
 by rewrite map_length.
 intros _.
 rewrite (nth_indep _ _ (Xreal 0)).
-unfold xreal_from_bp.
 rewrite <- map_map.
-rewrite map_nth.
+rewrite map_id map_nth.
 apply (conj eq_refl).
 apply continuous_const.
 by rewrite map_length.
@@ -519,13 +497,13 @@ Definition eval prec :=
   eval_generic I.nai (operations prec).
 
 Lemma eval_correct_aux :
-  forall prec prog terms bounds,
- (forall n, contains (I.convert (nth n bounds I.nai)) (nth n terms Xnan)) ->
+  forall prec prog bounds vars,
+ (forall n, contains (I.convert (nth n bounds I.nai)) (nth n vars Xnan)) ->
   forall n,
   contains (I.convert (nth n (eval prec prog bounds) I.nai))
-   (nth n (eval_ext prog terms) Xnan).
+   (nth n (eval_ext prog vars) Xnan).
 Proof.
-intros prec prog terms bounds Hinp.
+intros prec prog bounds vars Hinp.
 unfold eval, eval_ext.
 apply (eval_inductive_prop _ _ (fun a b => contains (I.convert a) b)).
 (* . *)
@@ -557,83 +535,104 @@ exact Hinp.
 Qed.
 
 Theorem eval_correct :
-  forall prec prog bounds n,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n,
   contains
-    (I.convert (nth n (eval prec prog (map interval_from_bp bounds)) I.nai))
-    (nth n (eval_ext prog (map xreal_from_bp bounds)) Xnan).
+    (I.convert (nth n (eval prec prog bounds) I.nai))
+    (nth n (eval_ext prog (map Xreal vars)) Xnan).
 Proof.
-intros prec prog bounds.
+intros prec prog bounds vars [_ H].
 apply eval_correct_aux.
-apply iterated_bnd_nth.
+exact H.
 Qed.
 
 Theorem eval_correct' :
-  forall prec prog bounds n,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n,
   contains
-    (I.convert (nth n (eval prec prog (map interval_from_bp bounds)) I.nai))
-    (Xreal (nth n (eval_real prog (map real_from_bp bounds)) 0%R)).
+    (I.convert (nth n (eval prec prog bounds) I.nai))
+    (Xreal (nth n (eval_real prog vars) 0%R)).
 Proof.
-intros prec prog bounds n.
+intros prec prog bounds vars H n.
 set (yi := nth n _ _).
 apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
 now destruct (I.convert yi).
 easy.
-rewrite map_map.
-apply eval_correct.
+now apply eval_correct.
 Qed.
 
 Theorem eval_correct_ext :
-  forall prec prog bounds n,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n,
   I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan)
-    (fun b => nth n (eval prec prog (b :: map interval_from_bp bounds)) I.nai).
+    (fun x => nth n (eval_ext prog (x :: map Xreal vars)) Xnan)
+    (fun b => nth n (eval prec prog (b :: bounds)) I.nai).
 Proof.
-intros prec prog bounds n xi x Hx.
+intros prec prog bounds vars H n xi x Hx.
 revert n.
 apply eval_correct_aux.
 intros [|n].
 exact Hx.
-apply iterated_bnd_nth.
+apply H.
 Qed.
 
 Theorem eval_correct_ext' :
-  forall prec prog bounds n xi x,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall xi x,
   contains (I.convert xi) (Xreal x) ->
+  forall n,
   contains
-    (I.convert (nth n (eval prec prog (xi :: map interval_from_bp bounds)) I.nai))
-    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+    (I.convert (nth n (eval prec prog (xi :: bounds)) I.nai))
+    (Xreal (nth n (eval_real prog (x :: vars)) 0%R)).
 Proof.
-intros prec prog bounds n xi x Hx.
-apply (eval_correct' prec prog (Bproof _ _ Hx :: bounds)).
+intros prec prog bounds vars H xi x Hx.
+apply eval_correct'.
+split.
+  simpl.
+  apply f_equal.
+  apply H.
+intros [|n].
+exact Hx.
+apply H.
 Qed.
 
 Lemma continuous_eval :
-  forall prec prog bounds m i x,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
   no_floor_prog prog = true ->
-  contains (I.convert i) (Xreal x) ->
-  I.convert (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) <> Inan ->
-  continuous (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) x.
+  forall xi x,
+  contains (I.convert xi) (Xreal x) ->
+  forall m,
+  I.convert (nth m (eval prec prog (xi :: bounds)) I.nai) <> Inan ->
+  continuous (fun x => nth m (eval_real prog (x :: vars)) 0%R) x.
 Proof.
-move => prec prog bounds m i x Hf Hcontains HnotInan.
+intros prec prog bounds vars H Hf xi x Hx m HnotInan.
 apply: continuous_eval_ext => //.
-generalize (eval_correct_ext prec prog bounds m i (Xreal x) Hcontains).
+generalize (eval_correct_ext prec prog bounds vars H m xi (Xreal x) Hx).
 revert HnotInan.
 case I.convert => //.
 by case: (nth _ _ _).
 Qed.
 
 Lemma ex_RInt_eval :
-  forall prec prog bounds m a b i,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
   no_floor_prog prog = true ->
-  (forall x, Rmin a b <= x <= Rmax a b -> contains (I.convert i) (Xreal x)) ->
-  I.convert (nth m (eval prec prog (i :: map interval_from_bp bounds)) I.nai) <> Inan ->
-  ex_RInt (fun x => nth m (eval_real prog (x :: map real_from_bp bounds)) R0) a b.
+  forall a b xi,
+  (forall x, Rmin a b <= x <= Rmax a b -> contains (I.convert xi) (Xreal x)) ->
+  forall m,
+  I.convert (nth m (eval prec prog (xi :: bounds)) I.nai) <> Inan ->
+  ex_RInt (fun x => nth m (eval_real prog (x :: vars)) R0) a b.
 Proof.
-move => prec prog bounds m a b i Hf Hcontains HnotInan.
+intros prec prog bounds vars H Hf a b xi Hx m HnotInan.
 apply: ex_RInt_continuous.
 intros z Hz.
 apply: continuous_eval HnotInan => //.
-exact: Hcontains.
+exact: Hx.
 Qed.
 
 End BndValuator.
@@ -888,15 +887,17 @@ destruct o ; simpl ;
 Qed.
 
 Lemma eval_diff_bnd_correct :
-  forall prec prog bounds n,
-  let ff' x := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan) in
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n,
+  let ff' x := nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) vars)) (Xnan, Xnan) in
   let ffi' xi := nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
-    ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) (map interval_from_bp bounds))) (I.nai, I.nai) in
+    ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) bounds)) (I.nai, I.nai) in
   forall xi,
-  nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai = fst (ffi' xi) /\
+  nth n (BndValuator.eval prec prog (xi :: bounds)) I.nai = fst (ffi' xi) /\
  (forall x, contains (I.convert xi) x -> contains (I.convert (snd (ffi' xi))) (snd (ff' x))).
 Proof.
-intros prec prog bounds n ff' ffi' xi.
+intros prec prog bounds vars Hv n ff' ffi' xi.
 split.
 (* . *)
 unfold ffi', BndValuator.eval.
@@ -969,7 +970,7 @@ exact (fun x Hx => proj1 (H1 x Hx)).
 exact (fun x Hx => proj1 (H2 x Hx)).
 exact (fun x Hx => proj2 (H1 x Hx)).
 exact (fun x Hx => proj2 (H2 x Hx)).
-clear.
+clear -Hv.
 intros [|n] x Hx ; simpl.
 split.
 exact Hx.
@@ -979,38 +980,31 @@ exact Hx.
 split.
 rewrite <- (map_nth (@fst I.type I.type)).
 rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
-do 4 rewrite map_map.
-simpl.
-apply iterated_bnd_nth.
+rewrite 2!map_map /= map_id.
+apply Hv.
 rewrite <- (map_nth (@snd I.type I.type)).
 rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
-do 4 rewrite map_map.
-simpl.
+rewrite 2!map_map /=.
 assert (H1 := map_length (fun _ => I.mask I.zero xi) bounds).
-assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) bounds).
+assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) vars).
 destruct (le_or_lt (length bounds) n).
-generalize H. intro H0.
-rewrite <- H1 in H.
-rewrite <- H2 in H0.
-rewrite -> nth_overflow with (1 := H).
-rewrite -> nth_overflow with (1 := H0).
+rewrite -> nth_overflow by now rewrite H1.
 now rewrite I.nai_correct.
 replace (nth n (map (fun _ => I.mask I.zero xi) bounds) I.nai) with (I.mask I.zero xi).
-replace (nth n (map (fun _ => Xmask (Xreal 0) x) bounds) Xnan) with (Xmask (Xreal 0) x).
+replace (nth n (map (fun _ => Xmask (Xreal 0) x) vars) Xnan) with (Xmask (Xreal 0) x).
 apply I.mask_correct.
 rewrite I.zero_correct.
 split ; apply Rle_refl.
 exact Hx.
-rewrite <- H2 in H.
-rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x) H).
+rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x)).
 apply sym_eq.
-refine (map_nth _ bounds (Bproof 0 I.nai _) _).
-now rewrite I.nai_correct.
+refine (map_nth _ vars 0 _).
+rewrite H2.
+now rewrite <- (proj1 Hv).
 rewrite <- H1 in H.
 rewrite (nth_indep _ I.nai (I.mask I.zero xi) H).
 apply sym_eq.
-refine (map_nth _ bounds (Bproof 0 I.nai _) _).
-now rewrite I.nai_correct.
+refine (map_nth _ bounds I.nai _).
 Qed.
 
 Definition diff_refining_points prec xi di yi yi' ym yl yu :=
@@ -1526,55 +1520,53 @@ Definition eval prec formula bounds n xi :=
   end.
 
 Theorem eval_correct_ext :
-  forall prec prog bounds n,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n,
   I.extension
-    (fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan)
-    (fun b => eval prec prog (map interval_from_bp bounds) n b).
+    (fun x => nth n (eval_ext prog (x :: map Xreal vars)) Xnan)
+    (fun b => eval prec prog bounds n b).
 Proof.
-intros prec prog bounds n xi x Hx.
+intros prec prog bounds vars Hv n xi x Hx.
 unfold eval.
-pose (f := fun x => nth n (eval_ext prog (x :: map xreal_from_bp bounds)) Xnan).
+pose (f := fun x => nth n (eval_ext prog (x :: map Xreal vars)) Xnan).
 fold (f x).
 pose (ff' := fun x => nth n (eval_generic (Xnan, Xnan) (diff_operations _ ext_operations) prog
-     ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) (map real_from_bp bounds))) (Xnan, Xnan)).
-set (fi := fun xi => nth n (BndValuator.eval prec prog (xi :: map interval_from_bp bounds)) I.nai).
+     ((x, Xmask (Xreal 1) x) :: map (fun v => (Xreal v, Xmask (Xreal 0) x)) vars)) (Xnan, Xnan)).
+set (fi := fun xi => nth n (BndValuator.eval prec prog (xi :: bounds)) I.nai).
 pose (ffi' := fun xi => nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) prog
-     ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) (map interval_from_bp bounds))) (I.nai, I.nai)).
+     ((xi, I.mask (I.fromZ_small 1) xi) :: map (fun b => (b, I.mask I.zero xi)) bounds)) (I.nai, I.nai)).
 fold (ffi' xi).
 rewrite (surjective_pairing (ffi' xi)).
-refine (_ (eval_diff_bnd_correct prec prog bounds n)).
-intros H.
-replace (fst (ffi' xi)) with (fi xi).
+assert (H := eval_diff_bnd_correct prec prog bounds vars Hv n).
+replace (fst (ffi' xi)) with (fi xi) by apply H.
 pose (fi' := fun xi => snd (ffi' xi)).
 fold (fi' xi).
 pose (f' x := snd (ff' x)).
 refine (diff_refining_correct prec f f' _ _ _ _ _ xi x Hx) ;
   clear Hx xi x.
-(* . *)
-apply BndValuator.eval_correct_ext.
-intros xi x Hx.
-now apply H.
-intros x.
-generalize (proj2 (eval_diff_correct prog (map real_from_bp bounds) n x)).
-fold (ff' x).
-now rewrite map_map.
-apply H.
+- now apply BndValuator.eval_correct_ext.
+- intros xi x Hx.
+  now apply H.
+- intros x.
+  apply eval_diff_correct.
 Qed.
 
 Theorem eval_correct :
-  forall prec prog bounds n xi x,
+  forall prec prog bounds vars,
+  contains_all bounds vars ->
+  forall n xi x,
   contains (I.convert xi) (Xreal x) ->
-  contains (I.convert (eval prec prog (map interval_from_bp bounds) n xi))
-    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+  contains (I.convert (eval prec prog bounds n xi))
+    (Xreal (nth n (eval_real prog (x :: vars)) 0%R)).
 Proof.
-intros prec prog bounds n xi x Hx.
+intros prec prog bounds vars Hv n xi x Hx.
 set (yi := eval prec prog _ n xi).
 apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
 now destruct (I.convert yi).
 easy.
 simpl.
-rewrite map_map.
-apply eval_correct_ext with (1 := Hx).
+apply eval_correct_ext with (1 := Hv) (2 := Hx).
 Qed.
 
 End DiffValuator.
@@ -1616,17 +1608,19 @@ Definition eval prec deg xi :=
   eval_generic TM.dummy (operations prec deg xi).
 
 Theorem eval_correct_aux :
-  forall prec deg prog bounds n xi,
+  forall prec deg prog bounds vars,
+  contains_all bounds vars ->
+  forall n xi,
   TM.approximates xi
-    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)
-    (fun x => nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan).
+    (nth n (eval prec deg xi prog (TM.var :: map TM.const bounds)) TM.dummy)
+    (fun x => nth n (eval_ext prog (Xreal x :: map Xreal vars)) Xnan).
 Proof.
-intros prec deg prog bounds n xi.
+intros prec deg prog bounds vars Hv n xi.
 unfold eval, eval_ext.
 rewrite rev_formula.
 apply (@TM.approximates_ext (fun t => nth n (fold_right
   (fun y l => eval_generic_body Xnan ext_operations l y)
-  (Xreal t :: map xreal_from_bp bounds)
+  (Xreal t :: map Xreal vars)
   (rev prog)) Xnan)).
 intros t.
 apply (f_equal (fun v => nth n v _)).
@@ -1641,21 +1635,25 @@ induction (rev prog) as [|t l].
     apply (@TM.approximates_ext (fun _ => Xnan)).
     intros t.
     apply sym_eq, nth_overflow.
-    now rewrite map_length.
+    rewrite map_length.
+    now rewrite <- (proj1 Hv).
     now apply TM.dummy_correct.
     assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
-    pose (b := Bproof 0 I.nai H0).
-    rewrite (nth_indep _ TM.dummy (TM.const (interval_from_bp b))).
+    rewrite (nth_indep _ TM.dummy (TM.const I.nai)).
     2: now rewrite map_length.
     rewrite map_nth.
-    apply (@TM.approximates_ext (fun t => xreal_from_bp (nth n bounds b))).
+    apply (@TM.approximates_ext (fun t => Xreal (nth n vars 0))).
     intros t.
-    rewrite (nth_indep _ _ (xreal_from_bp b)).
+    rewrite (nth_indep _ _ (Xreal 0)).
     apply sym_eq, map_nth.
-    now rewrite map_length.
-    destruct (nth n bounds b) as [t ti Ht].
-    simpl.
-    now apply TM.const_correct with (1 := Ht).
+    rewrite map_length.
+    now rewrite <- (proj1 Hv).
+    apply TM.const_correct.
+    generalize (proj2 Hv n).
+    rewrite (nth_indep _ Xnan (Xreal 0)).
+    now rewrite map_nth.
+    rewrite map_length.
+    now rewrite <- (proj1 Hv).
 - intros [|n].
   2: apply IHl.
   simpl.
@@ -1685,13 +1683,15 @@ induction (rev prog) as [|t l].
 Qed.
 
 Theorem eval_correct_aux' :
-  forall prec deg prog bounds n xi,
+  forall prec deg prog bounds vars,
+  contains_all bounds vars ->
+  forall n xi,
   TM.approximates xi
-    (nth n (eval prec deg xi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy)
-    (fun x => Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0)).
+    (nth n (eval prec deg xi prog (TM.var :: map TM.const bounds)) TM.dummy)
+    (fun x => Xreal (nth n (eval_real prog (x :: vars)) 0)).
 Proof.
-intros prec deg prog bounds n xi.
-generalize (eval_correct_aux prec deg prog bounds n xi).
+intros prec deg prog bounds vars Hv n xi.
+generalize (eval_correct_aux prec deg prog bounds vars Hv n xi).
 set (t := nth n _ _).
 destruct (nth n _ _) as [c| |].
 - destruct (I.convert c) as [|cl cu] eqn: Hc.
@@ -1705,13 +1705,9 @@ destruct (nth n _ _) as [c| |].
   exact H1.
   intros x Hx.
   apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
-  simpl.
-  rewrite map_map.
   now apply H2.
 - intros H y Hy.
   apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
-  simpl.
-  rewrite map_map.
   now apply H.
 - intros H Hn.
   destruct (H Hn) as [H1 H2 H3 H4 H5].
@@ -1728,37 +1724,38 @@ destruct (nth n _ _) as [c| |].
   + intros a Ha.
     apply Ha.
   + simpl.
-    rewrite map_map.
     split.
     now apply H1.
     now apply H7.
 Qed.
 
 Theorem eval_correct_ext :
-  forall prec deg prog bounds n yi,
+  forall prec deg prog bounds vars,
+  contains_all bounds vars ->
+  forall n yi,
   I.extension
-    (Xbind (fun x => nth n (eval_ext prog (Xreal x :: map xreal_from_bp bounds)) Xnan))
-    (fun b => TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy) yi b).
+    (Xbind (fun x => nth n (eval_ext prog (Xreal x :: map Xreal vars)) Xnan))
+    (fun b => TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map TM.const bounds)) TM.dummy) yi b).
 Proof.
-intros prec deg prog bounds n yi xi x Hx.
+intros prec deg prog bounds vars Hv n yi xi x Hx.
 apply (@TM.eval_correct (prec,deg) yi) with (2 := Hx).
 now apply eval_correct_aux.
 Qed.
 
 Theorem eval_correct :
-  forall prec deg prog bounds n yi xi x,
+  forall prec deg prog bounds vars,
+  contains_all bounds vars ->
+  forall n yi xi x,
   contains (I.convert xi) (Xreal x) ->
-  contains (I.convert (TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map (fun b => TM.const (interval_from_bp b)) bounds)) TM.dummy) yi xi))
-    (Xreal (nth n (eval_real prog (x :: map real_from_bp bounds)) 0%R)).
+  contains (I.convert (TM.eval (prec,deg) (nth n (eval prec deg yi prog (TM.var :: map TM.const bounds)) TM.dummy) yi xi))
+    (Xreal (nth n (eval_real prog (x :: vars)) 0%R)).
 Proof.
-intros prec deg prog bounds n zi xi x Hx.
+intros prec deg prog bounds vars Hv n zi xi x Hx.
 set (yi := TM.eval _ _ _ _).
 apply (xreal_to_real (fun y => contains (I.convert yi) y) (fun y => contains (I.convert yi) (Xreal y))).
 now destruct (I.convert yi).
 easy.
-simpl.
-rewrite map_map.
-apply (eval_correct_ext prec deg prog bounds n zi xi _ Hx).
+apply (eval_correct_ext prec deg prog bounds vars Hv n zi xi _ Hx).
 Qed.
 
 End TaylorValuator.
