@@ -146,37 +146,6 @@ now apply le_lower_trans with (1 := H1).
 now apply le_upper_trans with (2 := H2).
 Qed.
 
-Definition domain P b :=
-  forall x, contains b x -> P x.
-
-Theorem bisect :
-  forall P xl xm xu,
-  domain P (Ibnd xl xm) ->
-  domain P (Ibnd xm xu) ->
-  domain P (Ibnd xl xu).
-Proof.
-intros P xl xm xu Hl Hu [|x] H.
-elim H.
-case_eq xm ; intros.
-apply Hu.
-rewrite H0.
-exact (conj I (proj2 H)).
-case (Rle_dec x r) ; intros Hr.
-apply Hl.
-apply le_contains.
-exact (proj1 (contains_le _ _ _ H)).
-rewrite H0.
-exact Hr.
-apply Hu.
-apply le_contains.
-rewrite H0.
-unfold le_lower.
-simpl.
-apply Ropp_le_contravar.
-auto with real.
-exact (proj2 (contains_le _ _ _ H)).
-Qed.
-
 Definition domain' P b :=
   forall x, contains b (Xreal x) -> P x.
 
