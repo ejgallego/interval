@@ -183,46 +183,6 @@ intros [|n].
 apply H4.
 Qed.
 
-Definition eval_bnd_plain prec hyps prog consts :=
-  let bounds := compute_inputs prec hyps consts in
-  nth 0 (A.BndValuator.eval prec prog bounds) I.nai.
-
-Definition eval_bnd prec hyps prog consts g :=
-  R.eval_goal_bnd prec g (eval_bnd_plain prec hyps prog consts).
-
-Theorem eval_bnd_correct :
-  forall prec vars hyps prog consts g,
-  eval_bnd prec hyps prog consts g = true ->
-  eval_hyps hyps vars
-    (eval_goal g (nth 0 (eval_real prog (vars ++ map (fun c => eval c nil) consts)) 0%R)).
-Proof.
-intros prec vars hyps prog consts g H.
-apply (R.eval_hyps_bnd_correct prec).
-intros H'.
-apply (R.eval_goal_bnd_correct prec) with (2 := H).
-apply A.BndValuator.eval_correct'.
-now apply app_merge_hyps_eval_bnd.
-Qed.
-
-Definition eval_bnd_contains prec hyps prog consts b :=
-  I.subset (eval_bnd_plain prec hyps prog consts) b.
-
-Theorem eval_bnd_contains_correct :
-  forall prec vars hyps prog consts b,
-  eval_bnd_contains prec hyps prog consts b = true ->
-  eval_hyps hyps vars
-    (contains (I.convert b) (Xreal (nth 0 (eval_real prog (vars ++ map (fun c => eval c nil) consts)) 0%R))).
-Proof.
-intros prec vars hyps prog consts b H.
-apply (R.eval_hyps_bnd_correct prec).
-intros H'.
-eapply subset_contains.
-apply I.subset_correct, H.
-unfold eval_bnd_plain.
-apply A.BndValuator.eval_correct'.
-now apply app_merge_hyps_eval_bnd.
-Qed.
-
 Theorem eval_bisect_aux :
   forall prec depth idx vars hyps prog consts g fi,
   ( forall xi x, A.contains_all xi x ->
