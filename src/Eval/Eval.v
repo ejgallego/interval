@@ -319,12 +319,6 @@ split.
     exact: pow_nonzero.
 Qed.
 
-Module IntervalAlgos (I : IntervalOps).
-
-Definition contains_all xi x :=
-  length xi = length x /\
-  forall n, contains (I.convert (nth n xi I.nai)) (Xreal (nth n x 0)).
-
 Fixpoint change_nth {T} n (l : list T) f {struct l} :=
   match l with
   | nil => nil
@@ -373,6 +367,12 @@ intros [|n].
 simpl.
 apply f_equal, IH.
 Qed.
+
+Module IntervalAlgos (I : IntervalOps).
+
+Definition contains_all xi x :=
+  length xi = length x /\
+  forall n, contains (I.convert (nth n xi I.nai)) (Xreal (nth n x 0)).
 
 Definition bisect_step (bounds : list I.type) i (check : list I.type -> bool) cont :=
   if check bounds then true
