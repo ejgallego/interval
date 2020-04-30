@@ -41,8 +41,8 @@ Module IntervalTactic (F : FloatOps with Definition sensible_format := true).
 Inductive interval_tac_parameters : Set :=
   | i_prec (p : positive)
   | i_bisect (v : R)
-  | i_bisect_diff (v : R)
-  | i_bisect_taylor (v : R)
+  | i_autodiff (v : R)
+  | i_taylor (v : R)
   | i_degree (d : nat)
   | i_depth (d : nat)
   | i_fuel (f : positive)
@@ -1402,9 +1402,38 @@ Ltac do_reduction nocheck native :=
     fail "Numerical evaluation failed to conclude. You may want to adjust some parameters"
   end.
 
-Ltac do_interval vars prec degree depth native nocheck eval_tac :=
+Ltac merge_vars fvar bvars :=
+  let rec aux acc l :=
+    match l with
+    | ?v :: ?l' =>
+      let acc := list_add v acc in
+      aux acc l'
+    | nil => acc
+    end in
+  lazymatch fvar with
+  | Some ?x => aux (cons x nil) bvars
+  | None => aux (@nil R) bvars
+  end.
+
+Ltac get_var_indices vars bvars :=
+  let rec aux1 v i l :=
+    lazymatch l with
+    | v :: _ => i
+    | _ :: ?l' => aux1 v (S i) l'
+    end in
+  let rec aux2 acc l :=
+    lazymatch l with
+    | ?v :: ?l' =>
+      let i := aux1 v 0%nat vars in
+      aux2 (cons i acc) l'
+    | nil => acc
+    end in
+  aux2 (@nil nat) bvars.
+
+Ltac do_interval fvar bvars prec degree depth native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
-  let idx := constr:(cons 0%nat nil) in
+  let vars := merge_vars fvar bvars in
+  let idx := get_var_indices vars bvars in
   massage_goal ;
   reify_full vars ;
   lazymatch eval_tac with
@@ -1423,9 +1452,10 @@ Ltac do_instantiate i extend native yi :=
     end in
   instantiate (i := yi).
 
-Ltac do_interval_intro y extend vars prec degree depth native nocheck eval_tac :=
+Ltac do_interval_intro y extend fvar bvars prec degree depth native nocheck eval_tac :=
   let prec := eval vm_compute in (F.PtoP prec) in
-  let idx := constr:(cons 0%nat nil) in
+  let vars := merge_vars fvar bvars in
+  let idx := get_var_indices vars bvars in
   let i := fresh "__i" in
   evar (i : I.type) ;
   cut (contains (I.convert i) (Xreal y))%R ; cycle 1 ; [
@@ -1463,31 +1493,31 @@ Ltac do_interval_intro y extend vars prec degree depth native nocheck eval_tac :
   | do_interval_generalize ; clear i ].
 
 Ltac do_parse params depth :=
-  let rec aux vars prec degree depth native nocheck itm params :=
+  let rec aux fvar bvars prec degree depth native nocheck itm params :=
     lazymatch params with
-    | nil => constr:((vars, prec, degree, depth, native, nocheck, itm))
-    | cons (i_prec ?p) ?t => aux vars p degree depth native nocheck itm t
-    | cons (i_degree ?d) ?t => aux vars prec d depth native nocheck itm t
-    | cons (i_bisect ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect t
-    | cons (i_bisect_diff ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect_diff t
-    | cons (i_bisect_taylor ?x) ?t => aux (cons x nil) prec degree depth native nocheck itm_bisect_taylor t
-    | cons (i_depth ?d) ?t => aux vars prec degree d native nocheck itm t
-    | cons i_native_compute ?t => aux vars prec degree depth true nocheck itm t
-    | cons i_delay ?t => aux vars prec degree depth native true itm t
+    | nil => constr:((fvar, bvars, prec, degree, depth, native, nocheck, itm))
+    | cons (i_prec ?p) ?t => aux fvar bvars p degree depth native nocheck itm t
+    | cons (i_degree ?d) ?t => aux fvar bvars prec d depth native nocheck itm t
+    | cons (i_bisect ?x) ?t => aux fvar (cons x bvars) prec degree depth native nocheck itm_bisect t
+    | cons (i_autodiff ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_bisect_diff t
+    | cons (i_taylor ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_bisect_taylor t
+    | cons (i_depth ?d) ?t => aux fvar bvars prec degree d native nocheck itm t
+    | cons i_native_compute ?t => aux fvar bvars prec degree depth true nocheck itm t
+    | cons i_delay ?t => aux fvar bvars prec degree depth native true itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@nil R) 30%positive 10%nat depth false false itm_eval params.
+  aux (@None R) (@nil R) 30%positive 10%nat depth false false itm_eval params.
 
 Ltac do_interval_parse params :=
   match do_parse params 15%nat with
-  | (?vars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
-    do_interval vars prec degree depth native nocheck itm
+  | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
+    do_interval fvar bvars prec degree depth native nocheck itm
   end.
 
 Ltac do_interval_intro_parse t extend params :=
   match do_parse params 5%nat with
-  | (?vars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
-    do_interval_intro t extend vars prec degree depth native nocheck itm
+  | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
+    do_interval_intro t extend fvar bvars prec degree depth native nocheck itm
   end.
 
 Ltac do_integral prec degree fuel native nocheck :=

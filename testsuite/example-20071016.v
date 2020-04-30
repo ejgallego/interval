@@ -46,7 +46,7 @@ Goal
     <= 5/65536.
 Proof.
   intros.
-  interval with (i_bisect_taylor x, i_degree 3).
+  interval with (i_bisect x, i_taylor x, i_degree 3).
 Qed.
 
 Goal
@@ -55,7 +55,7 @@ Goal
 Proof.
   intros.
   apply Rminus_lt.
-  interval with (i_bisect_diff x).
+  interval with (i_bisect x, i_autodiff x).
 Qed.
 
 Require Import Coquelicot.Coquelicot.

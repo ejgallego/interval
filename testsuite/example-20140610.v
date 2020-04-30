@@ -26,7 +26,7 @@ Proof.
 unfold rp, arp, umf2, a, f, max.
 intros phi Hphi.
 (*
-Time interval with (i_bisect_diff phi). (* 38 s *)
+Time interval with (i_bisect phi, i_autodiff phi). (* 15 s *)
 *)
-Time interval with (i_bisect_taylor phi, i_degree 5). (* 4.4 s *)
+Time interval with (i_bisect phi, i_taylor phi, i_degree 5). (* 1.2 s *)
 Qed.

@@ -18,5 +18,5 @@ Goal forall x : R, Rabs x <= 35/100 ->
 Proof.
 intros x Hx p q r.
 unfold r, p, q.
-interval with (i_prec 40, i_bisect_taylor x, i_degree 3).
+interval with (i_prec 40, i_bisect x, i_taylor x, i_degree 3).
 Qed.

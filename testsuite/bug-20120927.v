@@ -6,6 +6,6 @@ Goal
   True.
 Proof.
 intros x Hx.
-interval_intro (Rabs x + x)%R upper with (i_bisect_diff x, i_depth 5).
+interval_intro (Rabs x + x)%R upper with (i_bisect x, i_autodiff x, i_depth 5).
 exact I.
 Qed.
