@@ -321,86 +321,171 @@ Qed.
 
 Module IntervalAlgos (I : IntervalOps).
 
-Definition bisect_1d_step l u (check : I.type -> bool) cont :=
-  if check (I.bnd l u) then true
-  else
-    let m := I.midpoint (I.bnd l u) in
-    match cont l m with
-    | true => cont m u
-    | false => false
-    end.
-
-Fixpoint bisect_1d l u check steps { struct steps } :=
-  match steps with
-  | O => false
-  | S n =>
-    bisect_1d_step l u check
-      (fun l u => bisect_1d l u check n)
-  end.
-
-Theorem bisect_1d_correct' :
-  forall steps inpl inpu f P,
-  (forall y yi, contains (I.convert yi) (Xreal y) -> f yi = true -> P y) ->
-  bisect_1d inpl inpu f steps = true ->
-  forall x,
-  contains (I.convert (I.bnd inpl inpu)) (Xreal x) -> P x.
-Proof.
-intros steps inpl inpu f P Hf.
-revert inpl inpu.
-induction steps.
-intros inpl inpu Hb.
-discriminate Hb.
-intros inpl inpu.
-simpl.
-unfold bisect_1d_step.
-case_eq (f (I.bnd inpl inpu)).
-intros Hb _ x Hx.
-now apply Hf with (2 := Hb).
-intros _.
-set (inpm := I.midpoint (I.bnd inpl inpu)).
-case_eq (bisect_1d inpl inpm f steps) ; try easy.
-intros Hl Hr x Hx.
-change x with (proj_val (Xreal x)).
-apply (bisect' P (I.convert_bound inpl) (I.convert_bound inpm) (I.convert_bound inpu)).
-unfold domain'.
-rewrite <- I.bnd_correct.
-apply IHsteps with (1 := Hl).
-unfold domain'.
-rewrite <- I.bnd_correct.
-apply IHsteps with (1 := Hr).
-now rewrite <- I.bnd_correct.
-Qed.
-
-Definition lookup_1d_step fi l u output cont :=
-  if I.subset (fi (I.bnd l u)) output then output
-  else
-    let m := I.midpoint (I.bnd l u) in
-    let output := cont l m output in
-    if I.lower_bounded output || I.upper_bounded output then cont m u output
-    else output.
-
-Fixpoint lookup_1d_main fi l u output steps { struct steps } :=
-  match steps with
-  | O => I.join (fi (I.bnd l u)) output
-  | S n =>
-    lookup_1d_step fi l u output
-      (fun l u output => lookup_1d_main fi l u output n)
-  end.
-
-Definition lookup_1d fi l u extend steps :=
-  let m := iter_nat (fun u => I.midpoint (I.bnd l u)) steps u in
-  let output := extend (fi (I.bnd l m)) in
-  match steps with
-  | O => I.whole
-  | S steps =>
-    if I.lower_bounded output || I.upper_bounded output then
-      lookup_1d_main fi l u output steps
-    else output
-  end.
-
 Definition contains_all xi x :=
   length xi = length x /\
   forall n, contains (I.convert (nth n xi I.nai)) (nth n (map Xreal x) Xnan).
+
+Fixpoint change_nth {T} n (l : list T) f {struct l} :=
+  match l with
+  | nil => nil
+  | h :: t =>
+    match n with
+    | O => f h :: t
+    | S n => h :: change_nth n t f
+    end
+  end.
+
+Lemma change_nth_correct :
+  forall {T} n m (l : list T) d f,
+  ((n < length l)%nat /\ n = m /\ nth n (change_nth m l f) d = f (nth n l d)) \/
+  nth n (change_nth m l f) d = nth n l d.
+Proof.
+intros T n m l d f.
+revert n m.
+induction l as [|h l IH].
+  intros n m.
+  now right.
+intros [|n] [|m] ; simpl.
+- left.
+  repeat split.
+  apply lt_O_Sn.
+- now right.
+- now right.
+- destruct (IH n m) as [[H1 [H2 H3]]|H].
+  2: now right.
+  left.
+  repeat split.
+  now apply lt_n_S.
+  now rewrite <- H2.
+  exact H3.
+Qed.
+
+Lemma length_change_nth :
+  forall {T} n (l : list T) f,
+  length (change_nth n l f) = length l.
+Proof.
+intros T n l f.
+revert n.
+induction l as [|h l IH].
+  easy.
+intros [|n].
+  easy.
+simpl.
+apply f_equal, IH.
+Qed.
+
+Definition bisect_step (bounds : list I.type) i (check : list I.type -> bool) cont :=
+  if check bounds then true
+  else
+    let bounds' := change_nth i bounds (fun xi => fst (I.bisect xi)) in
+    match cont bounds' with
+    | true =>
+      let bounds' := change_nth i bounds (fun xi => snd (I.bisect xi)) in
+      cont bounds'
+    | false => false
+    end.
+
+Fixpoint bisect bounds idx check steps { struct steps } :=
+  match steps, idx with
+  | O, _ => false
+  | S _, nil => check bounds
+  | S steps, i :: idx =>
+    let idx := app idx (i :: nil) in
+    bisect_step bounds i check (fun b => bisect b idx check steps)
+  end.
+
+Theorem bisect_correct :
+  forall steps bounds idx check (P : _ -> Prop),
+  ( forall xi x, contains_all xi x ->
+    check xi = true -> P x ) ->
+  bisect bounds idx check steps = true ->
+  forall x,
+  contains_all bounds x ->
+  P x.
+Proof.
+intros steps bounds idx check P HP.
+revert idx bounds.
+induction steps as [|steps IH].
+  easy.
+intros [|i idx] bounds Hc x H.
+  apply HP with (1 := H) (2 := Hc).
+revert Hc.
+simpl.
+unfold bisect_step.
+case_eq (check bounds).
+  intros Hc _ .
+  apply HP with (1 := H) (2 := Hc).
+intros _.
+generalize (IH (app idx (i :: nil)) (change_nth i bounds (fun xi => fst (I.bisect xi)))).
+case bisect. 2: easy.
+intros H1 Hc.
+specialize (H1 eq_refl x).
+assert (H2 := IH _ _ Hc x).
+clear -H H1 H2.
+destruct (I.bisect_correct (nth i bounds I.nai) (nth i (map Xreal x) Xnan)) as [Hi|Hi].
+- apply H.
+- apply H1.
+  clear -H Hi.
+  split.
+    rewrite length_change_nth.
+    apply H.
+  intros n.
+  generalize (change_nth_correct n i bounds I.nai (fun xi => fst (I.bisect xi))).
+  intros [[_ [<- ->]] | ->].
+  exact Hi.
+  apply H.
+- apply H2.
+  clear -H Hi.
+  split.
+    rewrite length_change_nth.
+    apply H.
+  intros n.
+  generalize (change_nth_correct n i bounds I.nai (fun xi => snd (I.bisect xi))).
+  intros [[_ [<- ->]] | ->].
+  exact Hi.
+  apply H.
+Qed.
+
+Definition lookup_step fi (bounds : list I.type) i output cont :=
+  if I.subset (fi bounds) output then output
+  else
+    let bounds' := change_nth i bounds (fun xi => fst (I.bisect xi)) in
+    let output := cont bounds' output in
+    if I.lower_bounded output || I.upper_bounded output then
+      let bounds' := change_nth i bounds (fun xi => snd (I.bisect xi)) in
+      cont bounds' output
+    else output.
+
+Fixpoint lookup_main fi bounds idx output steps { struct steps } :=
+  match steps, idx with
+  | O, _ => I.join (fi bounds) output
+  | S _, nil => I.join (fi bounds) output
+  | S steps, i :: idx =>
+    let idx := app idx (i :: nil) in
+    lookup_step fi bounds i output
+      (fun bounds output => lookup_main fi bounds idx output steps)
+  end.
+
+Fixpoint lookup_piece bounds idx steps { struct steps } :=
+  match steps, idx with
+  | O, _ => bounds
+  | S _, nil => bounds
+  | S steps, i :: idx =>
+    let idx := app idx (i :: nil) in
+    let bounds := change_nth i bounds (fun xi => fst (I.bisect xi)) in
+    lookup_piece bounds idx steps
+  end.
+
+Definition lookup fi bounds idx extend steps :=
+  match steps with
+  | O => I.whole
+  | S steps =>
+    let bounds' := lookup_piece bounds idx steps in
+    let output := extend (fi bounds') in
+    if I.lower_bounded output || I.upper_bounded output then
+      lookup_main fi bounds idx output steps
+    else output
+  end.
 
 Lemma continuous_eval_ext :
   forall prog vars x m,
