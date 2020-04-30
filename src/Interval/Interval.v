@@ -299,6 +299,13 @@ Parameter midpoint'_correct :
   (forall x, contains (convert (midpoint' xi)) x -> contains (convert xi) x) /\
   (not_empty (convert xi) -> not_empty (convert (midpoint' xi))).
 
+Parameter bisect : type -> type * type.
+
+Parameter bisect_correct :
+  forall xi x,
+  contains (convert xi) x ->
+  contains (convert (fst (bisect xi))) x \/ contains (convert (snd (bisect xi))) x.
+
 Definition extension f fi := forall b x,
   contains (convert b) x -> contains (convert (fi b)) (f x).
 

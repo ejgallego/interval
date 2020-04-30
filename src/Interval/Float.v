@@ -272,6 +272,25 @@ Definition midpoint' xi :=
     end
   end.
 
+Definition bisect xi :=
+  match xi with
+  | Inan => (Inan, Inan)
+  | Ibnd xl xu =>
+    let m :=
+      match F'.cmp xl F.zero, F'.cmp xu F.zero with
+      | Xund, Xund => F.zero
+      | Xeq, Xeq => F.zero
+      | Xlt, Xund => F.zero
+      | Xund, Xgt => F.zero
+      | Xeq, Xund => c1
+      | Xund, Xeq => cm1
+      | Xgt, Xund => F.mul rnd_UP p52 xl c2
+      | Xund, Xlt => F.mul rnd_DN p52 xu c2
+      | _, _ => F.midpoint xl xu
+      end in
+    (Ibnd xl m, Ibnd m xu)
+  end.
+
 Definition extension f fi := forall b x,
   contains (convert b) x -> contains (convert (fi b)) (f x).
 
@@ -1278,6 +1297,34 @@ rewrite Hl, Hu.
 rewrite Rlt_bool_false.
 { case Rcompare ; case Rcompare ; apply He. }
 now apply Rle_trans with v.
+Qed.
+
+Theorem bisect_correct :
+  forall xi x,
+  contains (convert xi) x ->
+  contains (convert (fst (bisect xi))) x \/ contains (convert (snd (bisect xi))) x.
+Proof.
+intros [|xl xu] [|x] H.
+  now left.
+  now left.
+  easy.
+unfold bisect.
+fold (midpoint (Ibnd xl xu)).
+destruct (midpoint_correct (Ibnd xl xu)) as [H1 H2].
+  now exists (Xreal x).
+set (m := midpoint _).
+fold m in H1, H2.
+clearbody m.
+revert H.
+simpl.
+rewrite H1.
+intros [H3 H4].
+destruct (Rle_or_lt x (proj_val (F.toX m))) as [H5|H5].
+  now left.
+right.
+split.
+now apply Rlt_le.
+exact H4.
 Qed.
 
 Theorem mask_correct :
