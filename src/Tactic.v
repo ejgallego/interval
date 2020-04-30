@@ -1356,10 +1356,9 @@ Ltac tuple_to_list params l :=
   end.
 
 Inductive interval_tac_method : Set :=
-  | itm_eval
-  | itm_bisect
-  | itm_bisect_diff
-  | itm_bisect_taylor.
+  | itm_naive
+  | itm_autodiff
+  | itm_taylor.
 
 Ltac do_interval_generalize :=
   match goal with
@@ -1437,10 +1436,9 @@ Ltac do_interval fvar bvars prec degree depth native nocheck eval_tac :=
   massage_goal ;
   reify_full vars ;
   lazymatch eval_tac with
-  | itm_eval => apply (eval_bnd_correct prec)
-  | itm_bisect => apply (eval_bisect_correct prec depth idx)
-  | itm_bisect_diff => apply (eval_bisect_diff_correct prec depth idx)
-  | itm_bisect_taylor => apply (eval_bisect_taylor_correct prec degree depth idx)
+  | itm_naive => apply (eval_bisect_correct prec depth idx)
+  | itm_autodiff => apply (eval_bisect_diff_correct prec depth idx)
+  | itm_taylor => apply (eval_bisect_taylor_correct prec degree depth idx)
   end ;
   do_reduction nocheck native.
 
@@ -1464,25 +1462,19 @@ Ltac do_interval_intro y extend fvar bvars prec degree depth native nocheck eval
     apply (eq_ind _ (fun z => contains (I.convert i) (Xreal z))) ;
     find_hyps vars ;
     lazymatch eval_tac with
-    | itm_eval =>
-      apply (eval_bnd_contains_correct prec) ;
-      match goal with
-      | |- _ ?hyps ?prog ?consts _ = true =>
-        do_instantiate i extend native (eval_bnd_plain prec hyps prog consts)
-      end
-    | itm_bisect =>
+    | itm_naive =>
       apply (eval_bisect_contains_correct prec depth idx) ;
       match goal with
       | |- _ ?hyps ?prog ?consts _ = true =>
         do_instantiate i extend native (eval_bisect_plain prec depth extend idx hyps prog consts)
       end
-    | itm_bisect_diff =>
+    | itm_autodiff =>
       apply (eval_bisect_contains_diff_correct prec depth idx) ;
       match goal with
       | |- _ ?hyps ?prog ?consts _ = true =>
         do_instantiate i extend native (eval_bisect_diff_plain prec depth extend idx hyps prog consts)
       end
-    | itm_bisect_taylor =>
+    | itm_taylor =>
       apply (eval_bisect_contains_taylor_correct prec degree depth idx) ;
       match goal with
       | |- _ ?hyps ?prog ?consts _ = true =>
@@ -1498,15 +1490,15 @@ Ltac do_parse params depth :=
     | nil => constr:((fvar, bvars, prec, degree, depth, native, nocheck, itm))
     | cons (i_prec ?p) ?t => aux fvar bvars p degree depth native nocheck itm t
     | cons (i_degree ?d) ?t => aux fvar bvars prec d depth native nocheck itm t
-    | cons (i_bisect ?x) ?t => aux fvar (cons x bvars) prec degree depth native nocheck itm_bisect t
-    | cons (i_autodiff ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_bisect_diff t
-    | cons (i_taylor ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_bisect_taylor t
+    | cons (i_bisect ?x) ?t => aux fvar (cons x bvars) prec degree depth native nocheck itm t
+    | cons (i_autodiff ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_autodiff t
+    | cons (i_taylor ?x) ?t => aux (Some x) bvars prec degree depth native nocheck itm_taylor t
     | cons (i_depth ?d) ?t => aux fvar bvars prec degree d native nocheck itm t
     | cons i_native_compute ?t => aux fvar bvars prec degree depth true nocheck itm t
     | cons i_delay ?t => aux fvar bvars prec degree depth native true itm t
     | cons ?h _ => fail 100 "Unknown tactic parameter" h
     end in
-  aux (@None R) (@nil R) 30%positive 10%nat depth false false itm_eval params.
+  aux (@None R) (@nil R) 30%positive 10%nat depth false false itm_naive params.
 
 Ltac do_interval_parse params :=
   match do_parse params 15%nat with
