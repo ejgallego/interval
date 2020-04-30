@@ -195,6 +195,31 @@ rewrite /= Xmul_1_r Xmul_Xneg_distr_l.
 apply Xadd_comm.
 Qed.
 
+Lemma nth_map :
+  forall {T U} d' n (f : T -> U) l d,
+  nth n (map f l) d =
+    match le_lt_dec (length l) n with left _ => d | right _ => f (nth n l d') end.
+Proof.
+intros T U d' n f l d.
+destruct le_lt_dec as [H|H].
+- apply nth_overflow.
+  now rewrite map_length.
+- rewrite (nth_indep _ d (f d')).
+  apply map_nth.
+  now rewrite map_length.
+Qed.
+
+Lemma nth_map_lt :
+  forall {T U} d' n (f : T -> U) l d,
+  (n < length l)%nat ->
+  nth n (map f l) d = f (nth n l d').
+Proof.
+intros T U d' n f l d H.
+rewrite (nth_indep _ d (f d')).
+apply map_nth.
+now rewrite map_length.
+Qed.
+
 Lemma xreal_to_real :
   forall (P1 : ExtendedR -> Prop) (P2 : R -> Prop),
   (P1 Xnan -> forall r, P2 r) ->
@@ -241,10 +266,8 @@ destruct o ; try easy ; simpl ; unfold Xdiv'.
 now destruct (is_zero b2).
 (* . *)
 intros k.
-destruct (le_or_lt (length (map Xreal terms)) k) as [H|H].
-now rewrite nth_overflow.
-rewrite (nth_indep _ _ (Xreal 0) H).
-now rewrite map_nth.
+rewrite (nth_map 0).
+now destruct le_lt_dec as [H|H].
 Qed.
 
 Lemma continuous_unary :
@@ -534,16 +557,12 @@ intros _.
 apply (conj eq_refl).
 apply continuous_id.
 simpl.
-destruct (le_or_lt (length vars) n).
-rewrite nth_overflow => //.
-by rewrite map_length.
+rewrite (nth_map 0).
+destruct le_lt_dec.
+  easy.
 intros _.
-rewrite (nth_indep _ _ (Xreal 0)).
-rewrite <- map_map.
-rewrite map_id map_nth.
 apply (conj eq_refl).
 apply continuous_const.
-by rewrite map_length.
 Qed.
 
 Lemma contains_map_Xreal :
@@ -553,13 +572,11 @@ Lemma contains_map_Xreal :
   contains (I.convert (nth n xi I.nai)) (nth n (map Xreal x) Xnan).
 Proof.
 intros xi x [H1 H2] n.
-destruct (le_or_lt (length x) n) as [H'|H'].
-  rewrite -> 2!nth_overflow.
+rewrite (nth_map 0).
+destruct le_lt_dec as [H|H].
+  rewrite -> nth_overflow.
   now rewrite I.nai_correct.
-  now rewrite map_length.
   now rewrite H1.
-rewrite -> (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
-rewrite map_nth.
 apply H2.
 Qed.
 
@@ -890,15 +907,12 @@ now apply map_ext.
 rewrite <- map_nth.
 rewrite map_map.
 simpl.
-destruct (le_or_lt (length terms) n) as [H|H].
-rewrite -> 2!nth_overflow by now rewrite map_length.
-now case x.
-rewrite -> (nth_indep (map (fun _ => Xmask (Xreal 0) x) terms) _ (Xmask (Xreal 0) x))
-  by now rewrite map_length.
-change (Xmask (Xreal 0) x) with ((fun _ => Xmask (Xreal 0) x) R0) at 2.
-rewrite map_nth.
-rewrite -> (nth_indep _ _ (Xreal 0)) by now rewrite map_length.
-rewrite map_nth.
+rewrite (nth_map 0).
+destruct le_lt_dec as [H|H].
+  rewrite nth_overflow.
+  now case x.
+  now rewrite map_length.
+rewrite -> (nth_map_lt 0) by easy.
 apply Xderive_pt_constant.
 Qed.
 
@@ -1094,26 +1108,18 @@ now apply contains_map_Xreal.
 rewrite <- (map_nth (@snd I.type I.type)).
 rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
 rewrite 2!map_map /=.
-assert (H1 := map_length (fun _ => I.mask I.zero xi) bounds).
-assert (H2 := map_length (fun _ => Xmask (Xreal 0) x) vars).
-destruct (le_or_lt (length bounds) n).
-rewrite -> nth_overflow by now rewrite H1.
-now rewrite I.nai_correct.
-replace (nth n (map (fun _ => I.mask I.zero xi) bounds) I.nai) with (I.mask I.zero xi).
-replace (nth n (map (fun _ => Xmask (Xreal 0) x) vars) Xnan) with (Xmask (Xreal 0) x).
+rewrite (nth_map I.nai).
+destruct le_lt_dec as [H|H].
+  rewrite nth_overflow.
+  now rewrite I.nai_correct.
+  rewrite map_length.
+  now rewrite <- (proj1 Hv).
+rewrite (nth_map_lt 0).
 apply I.mask_correct.
 rewrite I.zero_correct.
 split ; apply Rle_refl.
 exact Hx.
-rewrite (nth_indep _ Xnan (Xmask (Xreal 0) x)).
-apply sym_eq.
-refine (map_nth _ vars 0 _).
-rewrite H2.
 now rewrite <- (proj1 Hv).
-rewrite <- H1 in H.
-rewrite (nth_indep _ I.nai (I.mask I.zero xi) H).
-apply sym_eq.
-refine (map_nth _ bounds I.nai _).
 Qed.
 
 Definition diff_refining_points prec xi di yi yi' ym yl yu :=
@@ -1739,26 +1745,20 @@ induction (rev prog) as [|t l].
 - intros [|n].
   + now apply TM.var_correct.
   + simpl.
-    destruct (le_or_lt (length bounds) n) as [H|H].
-    rewrite -> nth_overflow by now rewrite map_length.
-    apply (@TM.approximates_ext (fun _ => Xnan)).
-    intros _.
-    apply sym_eq, nth_overflow.
-    rewrite map_length.
-    now rewrite <- (proj1 Hv).
-    now apply TM.dummy_correct.
-    assert (H0: contains (I.convert I.nai) (Xreal 0)) by now rewrite I.nai_correct.
-    rewrite (nth_indep _ TM.dummy (TM.const I.nai)).
-    2: now rewrite map_length.
-    rewrite map_nth.
-    apply (@TM.approximates_ext (fun t => Xreal (nth n vars 0))).
-    intros _.
-    rewrite (nth_indep _ _ (Xreal 0)).
-    apply sym_eq, map_nth.
-    rewrite map_length.
-    now rewrite <- (proj1 Hv).
+    rewrite (nth_map I.nai).
+    destruct le_lt_dec as [H|H].
+      rewrite nth_overflow.
+      eapply TM.approximates_ext.
+      easy.
+      now apply TM.dummy_correct.
+      rewrite map_length.
+      now rewrite <- (proj1 Hv).
+    rewrite (nth_map_lt 0).
+    eapply TM.approximates_ext.
+    easy.
     apply TM.const_correct.
     apply Hv.
+    now rewrite <- (proj1 Hv).
 - intros [|n].
   2: apply IHl.
   simpl.

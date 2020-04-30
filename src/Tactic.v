@@ -161,13 +161,10 @@ induction (R.merge_hyps prec hyps) as [|h t IH].
   split.
     now rewrite 2!map_length.
   intros n.
-  destruct (le_or_lt (length consts) n) as [H|H].
-    rewrite 2!nth_overflow by now rewrite map_length.
+  rewrite (nth_map (Evar 0)).
+  destruct le_lt_dec as [H|H].
     now rewrite I.nai_correct.
-  rewrite (nth_indep _ I.nai (T.eval_bnd prec (Evar 0))) by now rewrite map_length.
-  rewrite (nth_indep _ 0 (eval (Evar 0) nil)) by now rewrite map_length.
-  rewrite map_nth.
-  rewrite (map_nth (fun x => eval x nil)).
+  rewrite (nth_map_lt (Evar 0)) by easy.
   apply T.eval_bnd_correct.
 intros [|v vars].
   easy.
