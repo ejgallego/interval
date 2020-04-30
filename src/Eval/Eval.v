@@ -323,7 +323,7 @@ Module IntervalAlgos (I : IntervalOps).
 
 Definition contains_all xi x :=
   length xi = length x /\
-  forall n, contains (I.convert (nth n xi I.nai)) (nth n (map Xreal x) Xnan).
+  forall n, contains (I.convert (nth n xi I.nai)) (Xreal (nth n x 0)).
 
 Fixpoint change_nth {T} n (l : list T) f {struct l} :=
   match l with
@@ -423,7 +423,7 @@ intros H1 Hc.
 specialize (H1 eq_refl x).
 assert (H2 := IH _ _ Hc x).
 clear -H H1 H2.
-destruct (I.bisect_correct (nth i bounds I.nai) (nth i (map Xreal x) Xnan)) as [Hi|Hi].
+destruct (I.bisect_correct (nth i bounds I.nai) (Xreal (nth i x 0))) as [Hi|Hi].
 - apply H.
 - apply H1.
   clear -H Hi.
@@ -546,6 +546,38 @@ apply continuous_const.
 by rewrite map_length.
 Qed.
 
+Lemma contains_map_Xreal :
+  forall xi x,
+  contains_all xi x ->
+  forall n,
+  contains (I.convert (nth n xi I.nai)) (nth n (map Xreal x) Xnan).
+Proof.
+intros xi x [H1 H2] n.
+destruct (le_or_lt (length x) n) as [H'|H'].
+  rewrite -> 2!nth_overflow.
+  now rewrite I.nai_correct.
+  now rewrite map_length.
+  now rewrite H1.
+rewrite -> (nth_indep _ Xnan (Xreal 0)) by now rewrite map_length.
+rewrite map_nth.
+apply H2.
+Qed.
+
+Lemma contains_all_cons :
+  forall li l xi x,
+  contains_all li l ->
+  contains (I.convert xi) (Xreal x) ->
+  contains_all (xi :: li) (x :: l).
+Proof.
+intros li l xi x [H1 H2] Hx.
+split.
+  simpl.
+  apply f_equal, H1.
+intros [|n].
+  exact Hx.
+apply H2.
+Qed.
+
 Module BndValuator.
 
 Definition operations prec :=
@@ -624,9 +656,9 @@ Theorem eval_correct :
     (I.convert (nth n (eval prec prog bounds) I.nai))
     (nth n (eval_ext prog (map Xreal vars)) Xnan).
 Proof.
-intros prec prog bounds vars [_ H].
+intros prec prog bounds vars H.
 apply eval_correct_aux.
-exact H.
+now apply contains_map_Xreal.
 Qed.
 
 Theorem eval_correct' :
@@ -657,8 +689,9 @@ intros prec prog bounds vars H n xi x Hx.
 revert n.
 apply eval_correct_aux.
 intros [|n].
-exact Hx.
-apply H.
+  exact Hx.
+simpl.
+now apply contains_map_Xreal.
 Qed.
 
 Theorem eval_correct_ext' :
@@ -671,15 +704,9 @@ Theorem eval_correct_ext' :
     (I.convert (nth n (eval prec prog (xi :: bounds)) I.nai))
     (Xreal (nth n (eval_real prog (x :: vars)) 0%R)).
 Proof.
-intros prec prog bounds vars H xi x Hx.
+intros prec prog bounds vars [H1 H2] xi x Hx.
 apply eval_correct'.
-split.
-  simpl.
-  apply f_equal.
-  apply H.
-intros [|n].
-exact Hx.
-apply H.
+now apply contains_all_cons.
 Qed.
 
 Lemma continuous_eval :
@@ -1063,7 +1090,7 @@ split.
 rewrite <- (map_nth (@fst I.type I.type)).
 rewrite <- (map_nth (@fst ExtendedR ExtendedR)).
 rewrite 2!map_map /= map_id.
-apply Hv.
+now apply contains_map_Xreal.
 rewrite <- (map_nth (@snd I.type I.type)).
 rewrite <- (map_nth (@snd ExtendedR ExtendedR)).
 rewrite 2!map_map /=.
@@ -1715,7 +1742,7 @@ induction (rev prog) as [|t l].
     destruct (le_or_lt (length bounds) n) as [H|H].
     rewrite -> nth_overflow by now rewrite map_length.
     apply (@TM.approximates_ext (fun _ => Xnan)).
-    intros t.
+    intros _.
     apply sym_eq, nth_overflow.
     rewrite map_length.
     now rewrite <- (proj1 Hv).
@@ -1725,17 +1752,13 @@ induction (rev prog) as [|t l].
     2: now rewrite map_length.
     rewrite map_nth.
     apply (@TM.approximates_ext (fun t => Xreal (nth n vars 0))).
-    intros t.
+    intros _.
     rewrite (nth_indep _ _ (Xreal 0)).
     apply sym_eq, map_nth.
     rewrite map_length.
     now rewrite <- (proj1 Hv).
     apply TM.const_correct.
-    generalize (proj2 Hv n).
-    rewrite (nth_indep _ Xnan (Xreal 0)).
-    now rewrite map_nth.
-    rewrite map_length.
-    now rewrite <- (proj1 Hv).
+    apply Hv.
 - intros [|n].
   2: apply IHl.
   simpl.

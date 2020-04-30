@@ -161,26 +161,20 @@ induction (R.merge_hyps prec hyps) as [|h t IH].
   split.
     now rewrite 2!map_length.
   intros n.
-  rewrite map_map.
   destruct (le_or_lt (length consts) n) as [H|H].
     rewrite 2!nth_overflow by now rewrite map_length.
     now rewrite I.nai_correct.
   rewrite (nth_indep _ I.nai (T.eval_bnd prec (Evar 0))) by now rewrite map_length.
-  rewrite (nth_indep _ Xnan (Xreal (eval (Evar 0) nil))) by now rewrite map_length.
+  rewrite (nth_indep _ 0 (eval (Evar 0) nil)) by now rewrite map_length.
   rewrite map_nth.
-  rewrite (map_nth (fun x => Xreal (eval x nil))).
+  rewrite (map_nth (fun x => eval x nil)).
   apply T.eval_bnd_correct.
 intros [|v vars].
   easy.
 simpl.
 intros [H1 H2].
-destruct (IH _ H2) as [H3 H4].
-split.
-  simpl.
-  now rewrite <- H3.
-intros [|n].
-  exact H1.
-apply H4.
+apply A.contains_all_cons with (2 := H1).
+now apply IH.
 Qed.
 
 Theorem eval_bisect_aux :
