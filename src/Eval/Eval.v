@@ -387,7 +387,7 @@ Definition bisect_step (bounds : list I.type) i (check : list I.type -> bool) co
 
 Fixpoint bisect bounds idx check steps { struct steps } :=
   match steps, idx with
-  | O, _ => false
+  | O, _ => check bounds
   | S _, nil => check bounds
   | S steps, i :: idx =>
     let idx := app idx (i :: nil) in
@@ -406,7 +406,8 @@ Proof.
 intros steps bounds idx check P HP.
 revert idx bounds.
 induction steps as [|steps IH].
-  easy.
+  intros idx bounds Hc x H.
+  apply HP with (1 := H) (2 := Hc).
 intros [|i idx] bounds Hc x H.
   apply HP with (1 := H) (2 := Hc).
 revert Hc.
@@ -477,15 +478,11 @@ Fixpoint lookup_piece bounds idx steps { struct steps } :=
   end.
 
 Definition lookup fi bounds idx extend steps :=
-  match steps with
-  | O => I.whole
-  | S steps =>
-    let bounds' := lookup_piece bounds idx steps in
-    let output := extend (fi bounds') in
-    if I.lower_bounded output || I.upper_bounded output then
-      lookup_main fi bounds idx output steps
-    else output
-  end.
+  let bounds' := lookup_piece bounds idx steps in
+  let output := extend (fi bounds') in
+  if I.lower_bounded output || I.upper_bounded output then
+    lookup_main fi bounds idx output steps
+  else output.
 
 Lemma continuous_eval_ext :
   forall prog vars x m,
