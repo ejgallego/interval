@@ -33,7 +33,7 @@ The tactic can be applied on a goal of the form `c1 <= e <= c2` with
 `e` an expression involving real-valued operators. Sub-expressions that
 are not recognized by the tactic should be either terms `t` appearing in
 hypothesis inequalities `c3 <= t <= c4` or simple integers. The
-bounds `c1`, `c2`, etc are expressions that contain only constant leaves,
+bounds `c1`, `c2`, etc, are expressions that contain only constant leaves,
 e.g., `5 / sqrt (1 + PI)`.
 
 The complete list of recognized goals is as follows:
@@ -55,29 +55,38 @@ Operators recognized by the tactic are `PI`, `Ropp`, `Rabs`, `Rinv`,
 There are some restrictions on the domain of a few functions: `pow` and
 `powerRZ` should be written with a numeric exponent; the input of `cos`
 and `sin` should be between `-2*PI` and `2*PI`; the input of `tan` should
-be between `-PI/2` and `PI/2`.
+be between `-PI/2` and `PI/2`. Outside of these domains, the
+trigonometric functions return meaningful results only for singleton
+input intervals.
 
-The tactic also recognizes integral expressions `RInt` whose bounds are
-constants and whose integrand is an expression containing only constant
-leaves except for the integration variable. Some improper integral
-expressions `RInt_gen` are also supported with bounds `(at_right 0)
-(at_point _)` or `(at_point _) (Rbar_locally p_infty)`. In the improper
-case, the integrand should be of the form `(fun t => f t * g t)` with `g`
-one of the following expressions:
+A helper tactic `interval_intro e` is also available. Instead of proving
+the current goal, it computes an enclosure of the expression `e` passed
+as argument and it introduces the resulting inequalities into the proof
+context. If only one bound is needed, the keywords `lower` and `upper`
+can be passed to the tactic, so that it does not perform useless
+computations. For example, `interval_intro e lower` introduces only the
+inequality corresponding to the lower bound of `e` in the context. The
+`interval_intro` tactic uses a fresh name for the generated inequalities,
+unless one uses `as` followed by an intro pattern.
+
+The `integral` tactic is dedicated to verifying enclosures of integrals.
+Such an integral should be expressed using `RInt`; its bounds should be
+constant; and its integrand should be an expression containing only
+constant leaves except for the integration variable. Improper integrals
+are also supported, when expressed using `RInt_gen`. The supported bounds
+are then `(at_right 0) (at_point _)` and `(at_point _) (Rbar_locally
+p_infty)`. In the improper case, the integrand should be of the form
+`(fun t => f t * g t)` with `f` a function bounded on the integration
+domain and `g` one of the following expressions:
 
   - `exp (- (_ * t))`,
   - `powerRZ t _ * (ln t) ^ _`,
   - `/ (t * (ln t) ^ _)`.
 
-A helper tactic `interval_intro e` is also available. Instead of proving
-the current goal, it computes an enclosure of the expression `e` passed
-as argument and it introduces the inequalities into the proof context. If
-only one bound is needed, the keywords `lower` and `upper` can be passed
-to the tactic, so that it does not perform useless computations. For
-example, `interval_intro e lower` introduces only a floating-point lower
-bound of `e` in the context. Unless one uses `as` followed by an intro
-pattern, the `interval_intro` tactic generates a fresh name for the
-hypothesis added to the context.
+The helper tactic `integral_intro` is the pendant of `interval_intro`,
+but for introducing enclosures of integrals into the proof context. As
+with `interval_intro`, keywords `lower`, `upper`, and `as`, are
+supported.
 
 
 Fine-tuning
@@ -89,46 +98,111 @@ left to right. If some parameters are conflicting, the earlier ones are
 discarded. Available parameters are as follows (with the type of their
 arguments, if any):
 
-  - `i_prec (p:nat)` sets the precision of the floating-point computations;
-  - `i_depth (n:nat)` sets the bisection depth (`2^n` sub-intervals at most);
-  - `i_bisect (x:R)`      splits input interval on `x` and repeat until proven;
-  - `i_bisect_diff (x:R)` same as `i_bisect`, but studies variations
-    along `x` too;
-  - `i_bisect_taylor (x:R) (d:nat)` same as `i_bisect_diff`, but computes
-    degree-`d` Taylor models instead of performing automatic differentiation;
-  - `i_integral_prec (p:nat)` sets the target relative accuracy of
-    integral expressions to approximately `p` bits;
-  - `i_integral_width (p:Z)` sets the target accuracy of integral
-    expressions to an interval width of `2^p`;
-  - `i_integral_depth (n:nat)` sets the bisection depth for bounding
-    integral expressions (`2^n` sub-intervals at most);
-  - `i_integral_deg (d:nat)` sets the degree of Taylor models for
-    approximating the integrand when bounding integral expressions;
-  - `i_native_compute` uses `native_compute` instead of `vm_compute`;
-  - `i_delay` delays proof checking till `Qed`, especially useful when
-    experimenting with `interval_intro`.
+  - `i_prec (p:positive)`
 
-For both tactics, performing a bisection of depth 1 is not much slower
-than performing no bisection. If the current goal can be proven by
-`interval` with a bisection of depth n, then increasing the depth to n + 1
-will not have any noticeable effect. For `interval_intro`, increasing the
-depth from n to n + 1 can, however, doubles the computation time.
+    Set the precision of the floating-point computations. Default
+    precision is 30 bits.
 
-Performing an `i_bisect_diff` bisection has a much higher cost per
-sub-interval, but it can considerably reduce the amount of sub-intervals
-considered. As a consequence, unless there is a huge amount of trivial
-propositions to prove, one should use this improved bisection.
+  - `i_native_compute`
 
-If the proof process is still too slow, the `i_bisect_taylor` bisection
-can be tried instead, as it usually reduces the number of sub-intervals
-much further. In some corner cases though, it will not be able to prove
-properties for which `i_bisect_diff` would have succeeded.
+    Instruct the tactics to perform computations using `native_compute`
+    instead of `vm_compute`. This greatly increases the startup time of
+    the tactics, but makes the computations faster. This is useful only
+    for computationally-intensive proofs.
 
-By default, the precision of the floating-point computations is 30 bits.
-If the user enables a bisection, the default depth is 15 for `interval`
-and 5 for `interval_intro`. When bounding integral expressions, the
-tactics target 10 bits of accuracy by splitting the domain into 2^3
-subdomains at most and by using degree-10 Taylor models.
+  - `i_bisect (x:R)`
+
+    Instruct the tactics to split the interval enclosing `x` until the
+    goal is proved on all the sub-intervals. Several `i_bisect`
+    parameters can be given. In that case, the tactic cycles through all
+    of them, splitting the input domain along the corresponding variable.
+    Computation time is more or less proportional to the final number of
+    sub-domains. This parameter is only meaningful for the `interval` and
+    `interval_intro` tactics.
+
+  - `i_depth (n:nat)`
+
+    Set the maximal bisection depth. Setting it to a nonzero value has no
+    effect unless `i_bisect` parameters are also passed. If the maximal
+    depth is `n`, the tactic will consider up to `2^n` sub-domains in the
+    worst case. As with `i_bisect`, this parameter is only meaningful for
+    the `interval` and `interval_intro` tactics. The maximal depth
+    defaults to `15` for `interval`, and to `5` for `interval_intro`.
+    Note that `interval_intro` computes the best enclosure that could be
+    verified by `interval` using the same maximal depth.
+
+  - `i_autodiff (x:R)`
+
+    Instruct the tactics to perform an automatic differentiation of the
+    target expression with respect to `x`. This makes the tactic about
+    twice slower on each sub-domain. But it makes it possible to detect
+    some monotony properties of the target expression, thus reducing the
+    amount of sub-domains that need to be considered. Note that this is
+    only useful if there are several occurrences of `x` in the goal. This
+    parameter is only meaningful for the `interval` and `interval_intro`
+    tactics. It is mutually exclusive with `i_taylor`.
+
+  - `i_taylor (x:R)`
+
+    Instruct the tactics to compute a reliable polynomial enclosure of
+    the target expression using Taylor models in `x`. As with
+    `i_autodiff`, this is useful only if `x` occurs several times in the
+    goal. Computing polynomial enclosures is much slower than automatic
+    differentiation, but it can reduce the final number of sub-domains
+    even further, thus speeding up proofs. Note that it might fail to
+    prove goals that are feasible using automatic differentiation. As
+    with `i_autodiff`, the `i_taylor` parameter is only meaningful for
+    the `interval` and `interval_intro` tactics. It is implicit for the
+    `integral` and `integral_intro` tactics, as Taylor models of the
+    integrand are computed with respect to the integration variable.
+
+  - `i_degree (d:nat)`
+
+    Set the degree of polynomials used as enclosures. The default degree
+    is 10. For `interval` and `interval_intro`, this parameter is only
+    meaningful in conjunction with `i_taylor`.
+
+  - `i_fuel (n:positive)`
+
+    Set the maximum number of sub-domains considered when bounding
+    integrals. The tactics maintain a set of integration sub-domains; it
+    splits the sub-domains that contribute the most to the inaccuracy of
+    the integral until its enclosure is tight enough to satisfy the goal.
+    By default, the tactics will split the integration domain into at
+    most 100 sub-domains. This parameter is only meaningful for the
+    `integral` and `integral_intro` tactics.
+
+  - `i_width (p:Z)`
+
+    Instruct the `integral_intro` tactic to compute an enclosure of the
+    integral that is no larger than `2^p`. The tactic will split the
+    integration domain until the resulting enclosure reaches this width
+    or `i_fuel` is exhausted. This parameter is meaningless for the other
+    tactics. It is mutually exclusive with `i_relwidth`.
+
+  - `i_relwidth (p:positive)`
+
+    Instruct the `integral_intro` tactic to compute an enclosure of the
+    integral whose relative width is no larger than `2^-p`. This
+    parameter is meaningless for the other tactics. It defaults to 10.
+    This means that, if neither `i_width` nor `i_relwidth` is used,
+    `integral_intro` will compute an enclosure of the integral accurate
+    to three decimal digits, assuming `i_fuel` is large enough.
+
+  - `i_delay`
+
+    Prevent Coq from verifying the generated proof at invocation time.
+    Instead, Coq will check the proof term at `Qed` time. This makes the
+    tactics `interval` and `integral` instant. But it also means that
+    failures, if any, will only be detected at `Qed` time, possibly with
+    an inscrutable error message. This parameter is thus meant to be used
+    when editing a proof script for which the tactics are already known
+    to succeed. For the tactics `interval_intro` and `integral_intro`,
+    computations are still performed (the risk of failure is thus
+    negligible), but the `i_delay` parameter delays their verification to
+    `Qed` time. This makes these tactics twice as fast. This is
+    especially useful when looking for optimal values for parameters such
+    as `i_prec` and `i_degree`.
 
 
 Examples
@@ -183,7 +257,7 @@ Goal
     <= 5/65536.
 Proof.
   intros.
-  interval with (i_bisect_taylor x 3).
+  interval with (i_bisect x, i_taylor x, i_degree 3).
 Qed.
 
 Goal
@@ -191,7 +265,7 @@ Goal
   x < 1 + powerRZ x 3.
 Proof.
   intros.
-  interval with (i_bisect_diff x).
+  interval with (i_bisect x, i_autodiff x).
 Qed.
 
 Require Import Coquelicot.Coquelicot.
@@ -200,7 +274,7 @@ Goal
   Rabs (RInt (fun x => atan (sqrt (x*x + 2)) / (sqrt (x*x + 2) * (x*x + 1))) 0 1
         - 5/96*PI*PI) <= 1/1000.
 Proof.
-  interval with (i_integral_prec 9, i_integral_depth 1, i_integral_deg 5).
+  integral with (i_fuel 2, i_degree 5).
 Qed.
 
 Goal
@@ -208,14 +282,6 @@ Goal
            (at_right 0) (at_point 1) = 1/32.
 Proof.
   refine ((fun H => Rle_antisym _ _ (proj2 H) (proj1 H)) _).
-  interval.
-Qed.
-
-Goal
-  Rabs (RInt_gen (fun t => 1/sqrt t * exp (-(1*t)))
-                 (at_point 1) (Rbar_locally p_infty)
-        - 2788/10000) <= 1/1000.
-Proof.
-  interval.
+  integral.
 Qed.
 ```
