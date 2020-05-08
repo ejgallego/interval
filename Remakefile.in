@@ -36,7 +36,9 @@ FILES = \
 	Poly/Taylor_poly \
 	Real/Taylor \
 	Real/Xreal \
-	Real/Xreal_derive
+	Real/Xreal_derive \
+	Tactic_float \
+	@PRIM_FLOAT@
 
 VFILES  = $(addprefix src/,$(addsuffix .v,$(FILES)))
 VOFILES = $(addprefix src/,$(addsuffix .vo,$(FILES)))
@@ -57,7 +59,10 @@ configure config.status: configure.in
 	autoconf
 	./config.status --recheck
 
-%.vo: %.v
+src/Tactic_float.v: src/Tactic_bignum.v src/Tactic_primfloat.v Remakefile
+	cp @PRIM_FLOAT_TAC@ src/Tactic_float.v
+
+%.vo: %.v | src/Tactic_float.v
 	@COQDEP@ -R src Interval $< | @REMAKE@ -r $@
 	@COQC@ -R src Interval $<
 

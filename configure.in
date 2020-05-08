@@ -15,6 +15,8 @@ m4_divert_pop([HELP_ENABLE])
 
 AC_PROG_CXX
 
+AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
+
 AC_ARG_VAR(COQBIN, [path to Coq executables [empty]])
 if test ${COQBIN##*/}; then COQBIN=$COQBIN/; fi
 
@@ -28,6 +30,12 @@ if test ! "$COQC"; then
    fi
 fi
 AC_MSG_RESULT([$COQC])
+
+AC_MSG_CHECKING([Coq version])
+coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.]]*\).*$/\1/'`
+AX_VERSION_GE([$coq_version], 8.7, [],
+  [AC_MSG_ERROR([must be at least 8.7 (you have version $coq_version).])])
+AC_MSG_RESULT($coq_version)
 
 AC_ARG_VAR(COQDEP, [Coq dependency analyzer command [coqdep]])
 AC_MSG_CHECKING([for coqdep])
@@ -60,6 +68,18 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Flocq >= 3.1 (http://flocq.gforge.inria.fr/)])])
 rm -f conftest.v conftest.vo conftest.err
 
+AC_MSG_CHECKING([for primitive floats])
+AX_VERSION_GE([$coq_version], 8.11,
+  [prim_float=yes],
+  [prim_float=no])
+AS_IF(
+  [ echo "Require Import Flocq.Version BinNat." \
+         "Goal (30300 <= Flocq_version)%N. easy. Qed." > conftest.v
+    $COQC conftest.v 2> conftest.err ],
+  [], [prim_float=no])
+rm -f conftest.v conftest.vo conftest.err
+AC_MSG_RESULT([$prim_float])
+
 AC_MSG_CHECKING([for Ssreflect])
 AS_IF(
   [ echo "Require Import mathcomp.ssreflect.ssreflect." > conftest.v
@@ -91,6 +111,16 @@ rm -f conftest.v conftest.vo conftest.err
 if test "$libdir" = '${exec_prefix}/lib'; then
   libdir="`$COQC -where | tr -d '\r' | tr '\\\\' '/'`/user-contrib/Interval"
 fi
+
+if test "$prim_float" = "yes"; then
+   PRIM_FLOAT=Float/Primitive_ops
+   PRIM_FLOAT_TAC=src/Tactic_primfloat.v
+else
+   PRIM_FLOAT=
+   PRIM_FLOAT_TAC=src/Tactic_bignum.v
+fi
+AC_SUBST(PRIM_FLOAT)
+AC_SUBST(PRIM_FLOAT_TAC)
 
 AC_MSG_NOTICE([building remake...])
 case `uname -s` in
