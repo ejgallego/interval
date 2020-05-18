@@ -121,8 +121,8 @@ have H4 : (a2 + a2 + (a2 + a2) <> 0)%R.
   case/(I.upper_bounded_correct _) => _.
   rewrite /I.bounded_prop.
   set d := I.div prec _ _.
-(*
-  suff->: I.convert d = Inan by [].
+  suff->: I.convert d = Inan.
+  { by rewrite /not_empty; move/(_ (@ex_intro _ (fun _ => True) 0%R I)). }
   apply -> contains_Xnan.
   rewrite -(Xdiv_0_r (Xsqr (Xreal a1))).
   apply: I.div_correct =>//.
@@ -148,8 +148,6 @@ by rewrite addnC leq_subnK.
 move=> i /andP [Hi _].
 by rewrite PolR.nth_default ?Rmult_0_l.
 Qed.
-*)
-Admitted.
 
 Lemma ComputeBound_propagate :
   forall prec pi,
