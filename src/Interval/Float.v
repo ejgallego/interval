@@ -317,16 +317,21 @@ Definition bisect xi :=
   | Inan => (Inan, Inan)
   | Ibnd xl xu =>
     let m :=
-      match F'.cmp xl F.zero, F'.cmp xu F.zero with
-      | Xund, Xund => F.zero
-      | Xeq, Xeq => F.zero
-      | Xlt, Xund => F.zero
-      | Xund, Xgt => F.zero
-      | Xeq, Xund => c1
-      | Xund, Xeq => cm1
-      | Xgt, Xund => F.mul_UP p52 xl c2
-      | Xund, Xlt => F.mul_DN p52 xu c2
-      | _, _ => F.midpoint xl xu
+      match F.real xl, F.real xu with
+      | false, false => F.zero
+      | true, false =>
+        match F.cmp xl F.zero with
+        | Xund | Xlt => F.zero
+        | Xeq => c1
+        | Xgt => xl
+        end
+      | false, true =>
+        match F.cmp xu F.zero with
+        | Xund | Xgt => F.zero
+        | Xeq => cm1
+        | Xlt => xu
+        end
+      | true, true => F.midpoint xl xu
       end in
     (Ibnd xl m, Ibnd m xu)
   end.
@@ -1398,30 +1403,30 @@ Theorem bisect_correct :
   contains (convert xi) x ->
   contains (convert (fst (bisect xi))) x \/ contains (convert (snd (bisect xi))) x.
 Proof.
-intros [|xl xu] [|x] H.
-  now left.
-  now left.
-  admit.
-unfold bisect.
-(*
+intros [|xl xu] [|x]; simpl; [now left..|now case (_ && _)|].
+case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
+case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
+intros Vxu Vxl (Hxl, Hxu).
+simpl; rewrite Bool.andb_comm; simpl.
 fold (midpoint (Ibnd xl xu)).
 destruct (midpoint_correct (Ibnd xl xu)) as [H1 H2].
-  now exists (Xreal x).
+{ now exists (Xreal x); simpl; rewrite Vxl, Vxu. }
+rewrite F'.valid_lb_real; [|now rewrite F.real_correct, H1].
+rewrite F'.valid_ub_real; [|now rewrite F.real_correct, H1].
 set (m := midpoint _).
 fold m in H1, H2.
 clearbody m.
-revert H.
+revert Hxl Hxu.
 simpl.
 rewrite H1.
-intros [H3 H4].
+intros H3 H4.
 destruct (Rle_or_lt x (proj_val (F.toX m))) as [H5|H5].
   now left.
 right.
 split.
 now apply Rlt_le.
 exact H4.
-*)
-Admitted.
+Qed.
 
 Theorem mask_correct :
   extension_2 Xmask mask.
