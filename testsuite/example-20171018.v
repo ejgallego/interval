@@ -8,5 +8,5 @@ Lemma h_54_ln_2  h :
   -  Rnearbyint rnd_DN (h * ln 2 / ln 5) * ln 5 <= 54 * ln 2.
 Proof.
 intros.
-interval.
+interval with (i_prec 10).
 Qed.

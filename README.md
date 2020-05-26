@@ -100,15 +100,19 @@ arguments, if any):
 
   - `i_prec (p:positive)`
 
-    Set the precision of the floating-point computations. Default
-    precision is 30 bits.
+    Set the precision used to emulate floating-point computations. If
+    this parameter is not specified, the tactics perform computations
+    using machine floating-point numbers, when available. Otherwise, the
+    tactic defaults to using `i_prec 53`. Note that, in some corner
+    cases, the tactics might fail when using native numbers, despite the
+    goals being provable using a 53-bit emulation.
 
   - `i_native_compute`
 
-    Instruct the tactics to perform computations using `native_compute`
-    instead of `vm_compute`. This greatly increases the startup time of
-    the tactics, but makes the computations faster. This is useful only
-    for computationally-intensive proofs.
+    Perform computations using `native_compute` instead of `vm_compute`.
+    This greatly increases the startup time of the tactics, but makes the
+    computations faster. This is useful only for
+    computationally-intensive proofs.
 
   - `i_bisect (x:R)`
 

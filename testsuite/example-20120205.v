@@ -11,7 +11,7 @@ Goal forall x, (1 <= x)%R -> (x <= x * x)%R.
 Proof.
 intros.
 apply Rminus_le.
-interval with (i_autodiff x).
+interval with (i_autodiff x, i_prec 10).
 Qed.
 
 Goal forall x, (2 <= x)%R -> (x < x * x)%R.
