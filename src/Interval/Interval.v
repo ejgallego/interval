@@ -232,6 +232,7 @@ Parameter zero : type.
 Parameter nai : type.
 Parameter empty : type.
 Parameter bnd : bound_type -> bound_type -> type.
+Parameter singleton : bound_type -> type.
 Parameter real : type -> bool.
 
 Parameter valid_lb_real :
@@ -247,6 +248,10 @@ Parameter valid_ub_nan : valid_ub nan.
 Parameter bnd_correct :
   forall l u, valid_lb l -> valid_ub u ->
   convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
+
+Parameter singleton_correct :
+  forall b,
+  contains (convert (singleton b)) (Xreal (proj_val (convert_bound b))).
 
 Parameter zero_correct :
   convert zero = Ibnd (Xreal 0) (Xreal 0).

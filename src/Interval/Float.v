@@ -78,6 +78,10 @@ Definition real (xi : type) :=
   | Ibnd _ _ => true
   end.
 
+Definition singleton b :=
+  if andb (F.valid_lb b) (F.valid_ub b) then @Ibnd F.type b b
+  else @Inan F.type.
+
 Lemma valid_lb_real :
   forall b, F.toX b = Xreal (proj_val (F.toX b)) -> F.valid_lb b = true.
 Proof.
@@ -100,6 +104,22 @@ Lemma bnd_correct :
   forall l u, valid_lb l -> valid_ub u ->
   convert (bnd l u) = Interval.Ibnd (F.toX l) (F.toX u).
 Proof. now intros l u Vl Vu; unfold convert; simpl; rewrite Vl, Vu. Qed.
+
+Lemma singleton_correct :
+  forall b,
+  contains (convert (singleton b)) (Xreal (proj_val (convert_bound b))).
+Proof.
+intros b.
+unfold singleton, convert, convert_bound.
+destruct F.valid_lb eqn:Hl. 2: easy.
+destruct F.valid_ub eqn:Hu. 2: easy.
+simpl.
+rewrite Hl, Hu.
+simpl.
+destruct F.toX.
+repeat split.
+split ; apply Rle_refl.
+Qed.
 
 Lemma nai_correct :
   convert nai = Interval.Inan.
