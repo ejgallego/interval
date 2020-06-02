@@ -770,15 +770,12 @@ apply IR.valid_at_mixed with (u := u) (v := Rbar_locally p_infty)
     now apply I.upper_extent_correct with (1 := Hu).
     change (I.convert (fi (I.upper_extent ui)) <> Inan).
     clear -Hb.
-(*
-    now destruct fi.
+    admit.
   + intros t Ht.
     apply A.BndValuator.eval_correct_ext' with (1 := H').
     now apply I.upper_extent_correct with (1 := Hu).
   + contradict Hi.
     now apply I.mul_propagate_r.
-Qed.
-*)
 Admitted.
 
 Definition eval_RInt_gen_infty prec deg limit hyps mi pg pf pfm pu cg cf cfm cu g :=
@@ -828,10 +825,9 @@ apply contains_RInt_gen_infty ; cycle 2.
   assert (Hu': (1 <= u)%R).
     apply F'.le'_correct in Hul.
     rewrite F.fromZ_correct in Hul by easy.
-    rewrite I.lower_correct in Hul.
+    rewrite I.lower_correct in Hul by now exists u.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
     now apply Rle_trans with (2 := proj1 Hu).
-    admit.
   eapply IU.integral_interval_mul_infty with (1 := Hu) (2 := Hf) (3 := Hb) (4 := Hc).
   + intros x Hx.
     assert (Hx': (0 < x)%R).
@@ -861,7 +857,7 @@ apply contains_RInt_gen_infty ; cycle 2.
     exact Hu.
     now apply Rlt_le_trans with (1 := Rlt_0_1).
     now apply Zlt_not_eq.
-Admitted.
+Qed.
 
 Theorem eval_RInt_gen_infty_bertrand :
   forall prec deg limit vars hyps alpha beta pg pf pu cg cf cu g,
@@ -933,10 +929,9 @@ apply contains_RInt_gen_infty ; cycle 2.
   assert (Hu': (1 < u)%R).
     apply F'.lt'_correct in Hul.
     rewrite F.fromZ_correct in Hul by easy.
-    rewrite I.lower_correct in Hul.
+    rewrite I.lower_correct in Hul by now exists u.
     destruct (I.convert ui) as [|[|ul] ur] ; try easy.
     now apply Rlt_le_trans with (2 := proj1 Hu).
-    admit.
   eapply IU.integral_interval_mul_infty with (1 := Hu) (2 := Hf) (3 := Hb) (4 := Hc).
   + intros x Hx.
     assert (Hx': (1 < x)%R).
@@ -954,7 +949,7 @@ apply contains_RInt_gen_infty ; cycle 2.
     now apply Rlt_le_trans with u.
   + now apply (f_neg_correct_RInt_gen_a_infty u (S beta)).
   + now apply BI.f_neg_int_correct.
-Admitted.
+Qed.
 
 Theorem eval_RInt_gen_infty_invxln :
   forall prec deg limit vars hyps beta pg pf pu cg cf cu g,
@@ -1167,15 +1162,12 @@ apply IR.valid_at_mixed' with (u := at_right 0) (v := v)
     now apply Ht'.
     change (I.convert (fi (I.join I.zero vi)) <> Inan).
     clear -Hb.
-(*
-    now destruct fi.
+    admit.
   + intros t Ht.
     apply A.BndValuator.eval_correct_ext' with (1 := H').
     now apply Ht'.
   + contradict Hi.
     now apply I.mul_propagate_r.
-Qed.
-*)
 Admitted.
 
 Definition eval_RInt_gen_zero prec deg limit hyps mi pg pf pfm pv cg cf cfm cv g :=
@@ -1229,7 +1221,7 @@ apply contains_RInt_gen_zero ; cycle 2.
   assert (Hv': (0 < v)%R).
     apply F'.lt'_correct in Hvl.
     rewrite F.zero_correct in Hvl.
-    rewrite I.lower_correct in Hvl; [|admit].
+    rewrite I.lower_correct in Hvl by now exists v.
     destruct (I.convert vi) as [|[|vl] vr] ; try easy.
     now apply Rlt_le_trans with (2 := proj1 Hv).
   eapply IU.integral_interval_mul_zero with (1 := Hv') (2 := Hv) (3 := Hf) (4 := Hb) (5 := Hc).
@@ -1258,14 +1250,13 @@ apply contains_RInt_gen_zero ; cycle 2.
     apply Rle_trans with (1 := proj2 Hx).
     apply F'.le'_correct in Hvu.
     rewrite F.fromZ_correct in Hvu by easy.
-    rewrite I.upper_correct in Hvu.
+    rewrite I.upper_correct in Hvu by now exists v.
     destruct (I.convert vi) as [|vr [|vu]] ; try easy.
     now apply Rle_trans with (1 := proj2 Hv).
-    admit.
   + now apply f0eps_lim_correct with (1 := Halpha).
   + apply BI.f0eps_correct ; try easy.
     now apply Zgt_not_eq.
-Admitted.
+Qed.
 
 Theorem eval_RInt_gen_zero_bertrand :
   forall prec deg limit vars hyps alpha beta pg pf pv cg cf cv g,

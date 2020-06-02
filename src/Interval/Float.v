@@ -1280,21 +1280,22 @@ Theorem fromZ_small_correct :
 Proof.
 intros.
 simpl.
+rewrite F'.valid_lb_real, F'.valid_ub_real by now rewrite F.real_correct, F.fromZ_correct.
 rewrite F.fromZ_correct by easy.
-Admitted.
+split ; apply Rle_refl.
+Qed.
 
 Theorem fromZ_correct :
   forall prec v,
   contains (convert (fromZ prec v)) (Xreal (IZR v)).
 Proof.
 intros.
-(*
-apply le_contains.
-apply F.fromZ_DN_correct.
-apply F.fromZ_UP_correct.
+simpl.
+destruct (F.fromZ_DN_correct prec v) as [Hlv Lv].
+destruct (F.fromZ_UP_correct prec v) as [Huv Uv].
+rewrite Hlv, Huv.
+now apply le_contains.
 Qed.
-*)
-Admitted.
 
 Theorem midpoint_correct :
   forall xi,
