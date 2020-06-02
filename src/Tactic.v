@@ -380,7 +380,7 @@ Definition eval_RInt_init prec deg hyps pf pu pv cf cu cv :=
     let bounds := hyps ++ map (T.eval_bnd prec) cv in
     nth 0 (A.BndValuator.eval prec pv bounds) I.nai in
   let cb := fun x =>
-    match x with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end in
+    match x with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.singleton x end in
   let mid := fun u v =>
     let u := cb u in
     let v := cb v in
@@ -427,8 +427,8 @@ intros u v ui vi Hu Hv.
 apply IR.contains_RInt_valid.
 apply IR.bisect_correct ; [ typeclasses eauto .. | idtac ].
 intros u' v'.
-set (cbu := match u' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end).
-set (cbv := match v' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.bnd x x end).
+set (cbu := match u' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.singleton x end).
+set (cbv := match v' with IR.IBu => ui | IR.IBv => vi | IR.IBp x => I.singleton x end).
 fold (compute_inputs prec hyps cf).
 match goal with
 | |- IR.valid _ _ _ _ _ ?fi =>
@@ -619,8 +619,8 @@ Definition eval_RInt_gen_infty_init prec deg hyps (mi : F.precision -> I.type ->
   let mid u v :=
     match u, v with
     | IR.IBu, IR.IBv => I.midpoint (I.upper_extent ui)
-    | IR.IBu, IR.IBp v => I.midpoint (I.join ui (I.bnd v v))
-    | IR.IBp u, IR.IBv => I.midpoint (I.upper_extent (I.bnd u u))
+    | IR.IBu, IR.IBp v => I.midpoint (I.join ui (I.singleton v))
+    | IR.IBp u, IR.IBv => I.midpoint (I.upper_extent (I.singleton u))
     | IR.IBp u, IR.IBp v => I.midpoint (I.bnd u v)
     | _, _ => F.zero
     end in
@@ -643,9 +643,9 @@ Definition eval_RInt_gen_infty_init prec deg hyps (mi : F.precision -> I.type ->
   let Fi u v :=
     match u, v with
     | IR.IBu, IR.IBv => Fi2 ui
-    | IR.IBu, IR.IBp v => Fi1 ui (I.bnd v v)
-    | IR.IBp u, IR.IBv => Fi2 (I.bnd u u)
-    | IR.IBp u, IR.IBp v => Fi1 (I.bnd u u) (I.bnd v v)
+    | IR.IBu, IR.IBp v => Fi1 ui (I.singleton v)
+    | IR.IBp u, IR.IBv => Fi2 (I.singleton u)
+    | IR.IBp u, IR.IBp v => Fi1 (I.singleton u) (I.singleton v)
     | _, _ => I.nai
     end in
   (mid, Fi).
@@ -1004,7 +1004,7 @@ Definition eval_RInt_gen_zero_init prec deg hyps (mi : I.precision -> I.type -> 
     match u, v with
     | IR.IBu, IR.IBv => I.midpoint (I.join I.zero vi)
     | IR.IBu, IR.IBp v => I.midpoint (I.bnd F.zero v)
-    | IR.IBp u, IR.IBv => I.midpoint (I.join (I.bnd u u) vi)
+    | IR.IBp u, IR.IBv => I.midpoint (I.join (I.singleton u) vi)
     | IR.IBp u, IR.IBp v => I.midpoint (I.bnd u v)
     | _, _ => F.zero
     end in
@@ -1027,9 +1027,9 @@ Definition eval_RInt_gen_zero_init prec deg hyps (mi : I.precision -> I.type -> 
   let Fi u v :=
     match u, v with
     | IR.IBu, IR.IBv => Fi2 vi
-    | IR.IBu, IR.IBp v => Fi2 (I.bnd v v)
-    | IR.IBp u, IR.IBv => Fi1 (I.bnd u u) vi
-    | IR.IBp u, IR.IBp v => Fi1 (I.bnd u u) (I.bnd v v)
+    | IR.IBu, IR.IBp v => Fi2 (I.singleton v)
+    | IR.IBp u, IR.IBv => Fi1 (I.singleton u) vi
+    | IR.IBp u, IR.IBp v => Fi1 (I.singleton u) (I.singleton v)
     | _, _ => I.nai
     end in
   (mid, Fi).

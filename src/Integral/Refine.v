@@ -401,7 +401,7 @@ Theorem valid_at_point :
     contains (I.convert (fi ui' vi')) (Xreal (RInt f u' v'))) ->
   forall u' v',
   let cb := fun x =>
-    match x with IBu => ui | IBv => vi | IBp x => I.bnd x x end in
+    match x with IBu => ui | IBv => vi | IBp x => I.singleton x end in
   valid (at_point u) (at_point v) f u' v' (fi (cb u') (cb v')).
 Proof.
 intros f u v fi ui vi Hu Hv Hf u' v' cb.
@@ -413,11 +413,7 @@ assert (H2: forall p, contains (I.convert (cb p)) (Xreal (cb' p))).
   intros [| |p].
   exact Hu.
   exact Hv.
-  simpl.
-  rewrite I.bnd_correct; [|admit..].
-  destruct (I.convert_bound p) as [|pr].
-  easy.
-  split ; apply Rle_refl.
+  apply I.singleton_correct.
 rewrite <- 2!H1.
 destruct (Hf (cb u') (cb v') (cb' u') (cb' v') (H2 u') (H2 v')) as [H3 H4].
 destruct (I.convert (fi (cb u') (cb v'))) as [|il iu] eqn:E.
@@ -429,7 +425,7 @@ now apply H3.
 rewrite RInt_gen_at_point.
 exact H4.
 now apply H3.
-Admitted.
+Qed.
 
 Theorem valid_at_mixed :
   forall f u v (Fv: ProperFilter v) fi1 fi2 ui,
@@ -446,28 +442,21 @@ Theorem valid_at_mixed :
   forall u' v',
   valid (at_point u) v f u' v'
     (match u', v' with
-    | IBu, IBp xu => fi1 ui (I.bnd xu xu)
-    | IBp xl, IBp xu => fi1 (I.bnd xl xl) (I.bnd xu xu)
+    | IBu, IBp xu => fi1 ui (I.singleton xu)
+    | IBp xl, IBp xu => fi1 (I.singleton xl) (I.singleton xu)
     | IBu, IBv => fi2 ui
-    | IBp xl, IBv => fi2 (I.bnd xl xl)
+    | IBp xl, IBv => fi2 (I.singleton xl)
     | _, _ => I.nai
     end).
 Proof.
 intros f u v Fv fi1 fi2 ui Hu Hf1 Hf2 u' v'.
 unfold valid.
-assert (H1: forall p, contains (I.convert (I.bnd p p)) (Xreal (proj_val (I.convert_bound p)))).
-  intros p.
-  rewrite I.bnd_correct; [|admit..].
-  destruct (I.convert_bound p) as [|pr].
-  easy.
-  split ; apply Rle_refl.
 destruct u' as [| |ur] ;
   destruct v' as [| |vr] ;
     try (rewrite I.nai_correct ; apply valid_Inan).
 - now apply Hf2.
-- destruct (Hf1 ui (I.bnd vr vr) u (proj_val (I.convert_bound vr)) Hu) as [H2 H3].
-  apply H1.
-  destruct (I.convert (fi1 ui (I.bnd vr vr))) as [|il iu] eqn:E.
+- destruct (Hf1 ui _ u _ Hu (I.singleton_correct vr)) as [H2 H3].
+  destruct (I.convert (fi1 ui (I.singleton vr))) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
@@ -477,18 +466,15 @@ destruct u' as [| |ur] ;
   rewrite RInt_gen_at_point.
   apply H3.
   now apply H2.
-- destruct (Hf2 (I.bnd ur ur) (proj_val (I.convert_bound ur))) as [H2 H3].
-  apply H1.
-  destruct (I.convert (fi2 (I.bnd ur ur))) as [|il iu] eqn:E.
+- destruct (Hf2 _ _ (I.singleton_correct ur)) as [H2 H3].
+  destruct (I.convert (fi2 (I.singleton ur))) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
   now apply H2.
   apply H3.
-- destruct (Hf1 (I.bnd ur ur) (I.bnd vr vr) (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))) as [H2 H3].
-  apply H1.
-  apply H1.
-  destruct (I.convert (fi1 (I.bnd ur ur) (I.bnd vr vr))) as [|il iu] eqn:E.
+- destruct (Hf1 _ _ _ _ (I.singleton_correct ur) (I.singleton_correct vr)) as [H2 H3].
+  destruct (I.convert (fi1 (I.singleton ur) (I.singleton vr))) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
@@ -498,7 +484,7 @@ destruct u' as [| |ur] ;
   rewrite RInt_gen_at_point.
   apply H3.
   now apply H2.
-Admitted.
+Qed.
 
 Theorem valid_at_mixed' :
   forall f u v (Fu: ProperFilter u) fi1 fi2 vi,
@@ -515,37 +501,29 @@ Theorem valid_at_mixed' :
   forall u' v',
   valid u (at_point v) f u' v'
     (match u', v' with
-    | IBu, IBp xu => fi2 (I.bnd xu xu)
-    | IBp xl, IBp xu => fi1 (I.bnd xl xl) (I.bnd xu xu)
+    | IBu, IBp xu => fi2 (I.singleton xu)
+    | IBp xl, IBp xu => fi1 (I.singleton xl) (I.singleton xu)
     | IBu, IBv => fi2 vi
-    | IBp xl, IBv => fi1 (I.bnd xl xl) vi
+    | IBp xl, IBv => fi1 (I.singleton xl) vi
     | _, _ => I.nai
     end).
 Proof.
 intros f u v Fu fi1 fi2 vi Hv Hf1 Hf2 u' v'.
 unfold valid.
-assert (H1: forall p, contains (I.convert (I.bnd p p)) (Xreal (proj_val (I.convert_bound p)))).
-  intros p.
-  rewrite I.bnd_correct; [|admit..].
-  destruct (I.convert_bound p) as [|pr].
-  easy.
-  split ; apply Rle_refl.
 destruct u' as [| |ur] ;
   destruct v' as [| |vr] ;
     try (rewrite I.nai_correct ; apply valid_Inan).
 - now apply Hf2.
-- destruct (Hf2 (I.bnd vr vr) (proj_val (I.convert_bound vr))) as [H2 H3].
-  apply H1.
-  destruct (I.convert (fi2 (I.bnd vr vr))) as [|il iu] eqn:E.
+- destruct (Hf2 _ _ (I.singleton_correct vr)) as [H2 H3].
+  destruct (I.convert (fi2 (I.singleton vr))) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
   now apply H2.
   apply H3.
-- destruct (Hf1 (I.bnd ur ur) vi (proj_val (I.convert_bound ur)) v) as [H2 H3].
-  apply H1.
+- destruct (Hf1 _ vi _ v (I.singleton_correct ur)) as [H2 H3].
   apply Hv.
-  destruct (I.convert (fi1 (I.bnd ur ur) vi)) as [|il iu] eqn:E.
+  destruct (I.convert (fi1 (I.singleton ur) vi)) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
@@ -555,10 +533,8 @@ destruct u' as [| |ur] ;
   rewrite RInt_gen_at_point.
   apply H3.
   now apply H2.
-- destruct (Hf1 (I.bnd ur ur) (I.bnd vr vr) (proj_val (I.convert_bound ur)) (proj_val (I.convert_bound vr))) as [H2 H3].
-  apply H1.
-  apply H1.
-  destruct (I.convert (fi1 (I.bnd ur ur) (I.bnd vr vr))) as [|il iu] eqn:E.
+- destruct (Hf1 _ _ _ _ (I.singleton_correct ur) (I.singleton_correct vr)) as [H2 H3].
+  destruct (I.convert (fi1 (I.singleton ur) (I.singleton vr))) as [|il iu] eqn:E.
   easy.
   split.
   intros _.
@@ -568,7 +544,7 @@ destruct u' as [| |ur] ;
   rewrite RInt_gen_at_point.
   apply H3.
   now apply H2.
-Admitted.
+Qed.
 
 End IntegralRefiner.
 
