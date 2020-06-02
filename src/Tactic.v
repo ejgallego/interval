@@ -769,14 +769,14 @@ apply IR.valid_at_mixed with (u := u) (v := Rbar_locally p_infty)
     apply A.BndValuator.continuous_eval with (prec := prec) (xi := I.upper_extent ui) (1 := H') (2 := Hp).
     now apply I.upper_extent_correct with (1 := Hu).
     change (I.convert (fi (I.upper_extent ui)) <> Inan).
-    clear -Hb.
-    admit.
+    contradict Hi.
+    now apply I.mul_propagate_l.
   + intros t Ht.
     apply A.BndValuator.eval_correct_ext' with (1 := H').
     now apply I.upper_extent_correct with (1 := Hu).
   + contradict Hi.
     now apply I.mul_propagate_r.
-Admitted.
+Qed.
 
 Definition eval_RInt_gen_infty prec deg limit hyps mi pg pf pfm pu cg cf cfm cu g :=
   let hyps := R.merge_hyps prec hyps in
@@ -1161,14 +1161,14 @@ apply IR.valid_at_mixed' with (u := at_right 0) (v := v)
     apply A.BndValuator.continuous_eval with (prec := prec) (xi := I.join I.zero vi) (1 := H') (2 := Hp).
     now apply Ht'.
     change (I.convert (fi (I.join I.zero vi)) <> Inan).
-    clear -Hb.
-    admit.
+    contradict Hi.
+    now apply I.mul_propagate_l.
   + intros t Ht.
     apply A.BndValuator.eval_correct_ext' with (1 := H').
     now apply Ht'.
   + contradict Hi.
     now apply I.mul_propagate_r.
-Admitted.
+Qed.
 
 Definition eval_RInt_gen_zero prec deg limit hyps mi pg pf pfm pv cg cf cfm cv g :=
   let hyps := R.merge_hyps prec hyps in
