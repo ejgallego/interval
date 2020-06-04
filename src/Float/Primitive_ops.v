@@ -13,6 +13,7 @@ Module SFBI2 := SpecificFloat BigIntRadix2.
 
 Require Import Flocq.IEEE754.BinarySingleNaN.
 Require Import Flocq.IEEE754.PrimFloat.
+Require Import Flocq.Prop.Sterbenz.
 Require Import Flocq.Prop.Mult_error.
 
 Module PrimitiveFloat <: FloatOps.
@@ -225,9 +226,43 @@ Definition sqrt_UP (_ : precision) x := next_up (PrimFloat.sqrt x).
 
 Definition sqrt_DN (_ : precision) x := next_down (PrimFloat.sqrt x).
 
-Definition nearbyint_UP (mode : rounding_mode) (x : type) := nan.  (* TODO *)
+Definition nearbyint default (mode : rounding_mode) (f : type) :=
+  if real f then
+    let '(f', e) := frshiftexp f in
+    if Int63.leb (of_Z (FloatOps.prec + FloatOps.shift))%int63 e then f else
+      let m := normfr_mantissa f' in
+      let d := (of_Z (FloatOps.prec + FloatOps.shift) - e)%int63 in
+      let mh := (m >> d)%int63 in
+      match mode with
+      | rnd_ZR => if get_sign f then (- (of_int63 mh))%float else of_int63 mh
+      | rnd_DN =>
+        if get_sign f then
+          let f'' := (- (of_int63 mh))%float in
+          if (f < f'')%float then (- (of_int63 (mh + 1)))%float else f''
+        else
+          of_int63 mh
+      | rnd_UP =>
+        if get_sign f then
+          (- (of_int63 mh))%float
+        else
+          let f'' := of_int63 mh in
+          if (f'' < f)%float then of_int63 (mh + 1) else f''
+      | rnd_NE =>
+        let fl := of_int63 mh in
+        let f' :=
+            match (abs f - fl ?= 0.5)%float with
+            | FLt => fl
+            | FGt => of_int63 (mh + 1)
+            | FEq | FNotComparable (* never happens *) =>
+                if (mh land 1 == 0)%int63 then fl else of_int63 (mh + 1)
+            end in
+        if get_sign f then (- f')%float else f'
+      end
+  else default.
 
-Definition nearbyint_DN (mode : rounding_mode) (x : type) := nan.  (* TODO *)
+Definition nearbyint_UP := nearbyint infinity.
+
+Definition nearbyint_DN := nearbyint neg_infinity.
 
 Definition midpoint (x y : type) :=
   let z := ((x + y) / 2)%float in
@@ -257,6 +292,13 @@ Proof.
 case x as [s|s| |s m e B]; [ |now simpl..| ].
 { now simpl; intro H; injection H. }
 now simpl; rewrite <-FtoR_split; intro H; injection H.
+Qed.
+
+Lemma B2R_BtoX x r : is_finite x = true -> B2R x = r -> BtoX x = Xreal r.
+Proof.
+case x as [s|s| |s m e B]; [ |now intro H; discriminate H..| ]; intros _ <-.
+{ now simpl. }
+now simpl; rewrite FtoR_split.
 Qed.
 
 Lemma toX_Prim2B x : toX x = BtoX (Prim2B x).
@@ -2480,17 +2522,519 @@ apply Ulp.pred_round_le_id.
 now apply Generic_fmt.valid_rnd_N.
 Qed.
 
+(* TODO: use the one from Flocq when we'll require Flocq >= 3.3.2
+   (which will imply Coq >= 8.12) *)
+Lemma Bnormfr_mantissa_correct :
+  forall f : binary_float FloatOps.prec emax,
+  (/ 2 <= Rabs (B2R f) < 1)%R ->
+  match f with
+  | B754_finite _ m e _ =>
+    Bnormfr_mantissa f = N.pos m
+    /\ Z.pos (digits2_pos m) = FloatOps.prec /\ (e = - FloatOps.prec)%Z
+  | _ => False
+  end.
+Proof.
+intro f.
+destruct f as [s|s| |s m e B]; [now simpl; rewrite Rabs_R0; lra..| ].
+unfold Bnormfr_mantissa, SFnormfr_mantissa; simpl.
+intro Hf.
+cut (e = -53 /\ Z.pos (digits2_pos m) = FloatOps.prec)%Z.
+{ now intros [-> ->]; rewrite Z.eqb_refl. }
+revert Hf.
+change (/ 2)%R with (bpow radix2 (0 - 1)); change 1%R with (bpow radix2 0).
+intro H; generalize (mag_unique _ _ _ H); clear H.
+rewrite Float_prop.mag_F2R_Zdigits; [ |now case s].
+replace (Digits.Zdigits _ _)
+  with (Digits.Zdigits radix2 (Z.pos m)); [ |now case s].
+clear s.
+rewrite <-Digits.Zpos_digits2_pos.
+intro He; replace e with (e - 0)%Z by ring; rewrite <-He.
+cut (Z.pos (digits2_pos m) = 53)%Z.
+{ intro H; split; [ |exact H]; ring_simplify.
+  now rewrite <-Pos2Z.opp_pos; apply f_equal. }
+revert B; unfold SpecFloat.bounded, canonical_mantissa.
+intro H; generalize (andb_prop _ _ H); clear H; intros [H _]; revert H.
+intro H; generalize (Zeq_bool_eq _ _ H); clear H.
+unfold fexp, emin; fold FloatOps.prec.
+apply Z.max_case_strong; [ |unfold emax]; lia.
+Qed.
+
+Lemma nearbyint_correct :
+  forall default mode x,
+  real x = true ->
+  Xnearbyint mode (toX x) = toX (nearbyint default mode x).
+Proof.
+intros default mode x Hx.
+unfold nearbyint.
+rewrite Hx; clear default.
+revert Hx.
+rewrite <-(B2Prim_Prim2B x).
+rewrite real_is_finite.
+case (Prim2B x) as [s|s| |s m e B]; clear x; [ |now simpl..| ]; intros _.
+{ rewrite toX_Prim2B, Prim2B_B2Prim; simpl.
+  rewrite Generic_proof.Rnearbyint_IZR.
+  now case mode, s. }
+rewrite toX_Prim2B, Prim2B_B2Prim; unfold BtoX.
+set (f := B2Prim (B754_finite s m e B)).
+generalize (frexp_equiv f).
+unfold frexp.
+case frshiftexp as [f' e'].
+generalize (Bfrexp_correct _ _ _ (Prim2B f)).
+unfold f; rewrite Prim2B_B2Prim; clear f.
+intro H; generalize (H (eq_refl _)); clear H.
+case (Bfrexp _) as [f'' e''].
+intros [H1 H2]; revert H1; generalize (H2 (eq_refl _)); clear H2.
+intros [H1 H2] H3 [= H4 H5]; revert H1 H2 H3.
+rewrite <-H4, <-H5; clear f'' e'' H4 H5.
+intros Hf' He' Hf'e'.
+case lebP;
+  (replace (to_Z _) with (FloatOps.prec + FloatOps.shift)%Z by now compute);
+  intro H'e'.
+{ rewrite toX_Prim2B, Prim2B_B2Prim; unfold BtoX.
+  rewrite FtoR_split; unfold Defs.F2R; simpl.
+  revert B He' Hf'e'.
+  case e; [ |intro pe..]; intros B He' Hf'e'.
+  { now simpl; rewrite Rmult_1_r, Generic_proof.Rnearbyint_IZR. }
+  { now simpl; rewrite <-mult_IZR, Generic_proof.Rnearbyint_IZR. }
+  exfalso; revert H'e'; apply Zlt_not_le.
+  apply (Zplus_lt_reg_r _ _ (- FloatOps.shift)); ring_simplify.
+  revert He'; unfold Z.sub; intros ->.
+  simpl; rewrite Float_prop.mag_F2R_Zdigits; [ |now case s].
+  replace (Digits.Zdigits _ _)
+    with (Digits.Zdigits radix2 (Z.pos m)); [ |now case s].
+  rewrite <-Digits.Zpos_digits2_pos.
+  clear Hf'e'; revert B; unfold SpecFloat.bounded, canonical_mantissa; simpl.
+  intro H; generalize (andb_prop _ _ H); clear H; intros [H _]; revert H.
+  intro H; generalize (Zeq_bool_eq _ _ H); clear H.
+  unfold fexp; lia. }
+assert (He'' : (to_Z e' - FloatOps.shift < FloatOps.prec)%Z) by lia.
+replace (of_Z _ - e')%int63
+  with (of_Z (FloatOps.prec - (to_Z e' - FloatOps.shift))).
+2:{ apply Int63.to_Z_inj; rewrite Int63.sub_spec, Int63.of_Z_spec.
+  apply f_equal2; [ |reflexivity].
+  change (to_Z (of_Z _)) with (FloatOps.prec + FloatOps.shift)%Z.
+  ring. }
+revert He' Hf'e' He''; clear H'e'.
+set (e'' := (to_Z e' - FloatOps.shift)%Z); clearbody e''; clear e'.
+intros He'' Hf'e'' He''prec.
+replace (get_sign _) with s; [ |now rewrite get_sign_equiv, Prim2B_B2Prim].
+rewrite <-(B2Prim_Prim2B (of_int63 _)).
+rewrite <-(B2Prim_Prim2B (of_int63 (_ + 1))).
+replace (_ == 0)%int63
+  with (Z.eqb (Int63.to_Z (normfr_mantissa f' >> of_Z (FloatOps.prec - e'') land 1)) 0).
+2:{ now case Int63.eqbP; intro H; [rewrite H|rewrite Z.eqb_neq]. }
+rewrite Int63.land_spec', Int63.to_Z_1.
+rewrite !of_int63_equiv, Int63.add_spec, !lsr_spec, normfr_mantissa_equiv.
+rewrite to_Z_1.
+assert (He''emin : (emin + 1 <= e'')%Z).
+{ rewrite He''.
+  apply mag_ge_bpow.
+  replace (emin + 1 - 1)%Z with emin by ring.
+  now apply abs_B2R_ge_emin. }
+rewrite of_Z_spec, Zmod_small.
+2:{ split; [lia| ].
+    now apply (Z.le_lt_trans _ (FloatOps.prec - emin - 1)); [lia| ]. }
+set (fl := B2Prim (binary_normalize _ _ _ _ _ _ 0 false)).
+set (fu := B2Prim (binary_normalize _ _ _ _ _ _ 0 false)).
+rewrite <-(B2Prim_Prim2B (- fl)); rewrite opp_equiv.
+rewrite <-(B2Prim_Prim2B (- fu)); rewrite opp_equiv.
+rewrite !ltb_spec, <-!B2SF_Prim2B, !Prim2B_B2Prim.
+rewrite compare_equiv, sub_equiv, abs_equiv, Prim2B_B2Prim.
+unfold fl, fu; clear fl fu; rewrite !Prim2B_B2Prim.
+generalize (Bnormfr_mantissa_correct _ Hf').
+revert Hf' Hf'e''.
+case (Prim2B f') as [ | | |sf' mf' ef' Bf']; [now intros _ _ H; case H..| ].
+clear f'.
+change (Babs _) with (B754_finite false m e B).
+intros Hf' Hf'e'' [-> [Hmf' Hef']].
+unfold B2R at 2 in Hf'e''.
+rewrite Hef' in Hf'e''.
+revert Bf' Hf'; rewrite Hef'; intros Bf' Hf'; clear Hef' ef'.
+rewrite <-FtoR_split in Hf'e''.
+change (Z.of_N (N.pos mf')) with (Z.pos mf').
+set (mh := (_ / 2 ^ _)%Z).
+assert (Hmh : (0 <= mh < 2 ^ FloatOps.prec)%Z).
+{ unfold mh; split.
+  { now apply Z.div_pos; [ |apply Z.pow_pos_nonneg; lia]. }
+  apply Cyclic63.div_lt; split; [now simpl| ].
+  apply (Z.lt_le_trans _ (2 ^ FloatOps.prec)).
+  { change (Z.pos mf') with (Z.abs (Z.pos mf')).
+    rewrite <-Hmf', Digits.Zpos_digits2_pos.
+    apply Digits.Zdigits_correct. }
+  apply Z.le_refl. }
+assert (Hmagmh : (mh <> 0 -> 0 < Raux.mag radix2 (IZR mh) <= FloatOps.prec)%Z).
+{ intro Nzmh; split.
+  { now apply mag_gt_bpow; simpl; rewrite Rabs_pos_eq; apply IZR_le; lia. }
+  apply mag_le_bpow; [now apply IZR_neq| ].
+  rewrite Rabs_pos_eq; [ |now apply IZR_le].
+  now apply IZR_lt. }
+assert (Hmagmh1 : (mh + 1 = 2 ^ FloatOps.prec
+                   \/ 0 < Raux.mag radix2 (IZR (mh + 1)) <= FloatOps.prec)%Z).
+{ assert (H := Ztac.Zlt_le_add_1 _ _ (proj2 Hmh)).
+  rewrite Z.le_lteq in H; destruct H as [H|H]; [right|now left].
+  split.
+  { now apply mag_gt_bpow; simpl; rewrite Rabs_pos_eq; apply IZR_le; lia. }
+  apply mag_le_bpow; [now apply IZR_neq; lia| ].
+  rewrite Rabs_pos_eq; [ |now apply IZR_le; lia].
+  now apply IZR_lt. }
+rewrite Zmod_small.
+2:{ split; [lia| ].
+  now apply (Z.le_lt_trans _ (2 ^ FloatOps.prec)%Z); [lia| ]. }
+generalize (binary_normalize_correct _ _ _ _ mode_NE mh 0 false).
+generalize (binary_normalize_correct _ _ _ _ mode_NE (mh + 1) 0 false).
+unfold Defs.F2R; intros H H'; simpl in H, H'; revert H' H.
+rewrite !Rmult_1_r.
+rewrite Generic_fmt.round_generic.
+2:{ apply Generic_fmt.valid_rnd_N. }
+2:{ revert Hmh Hmagmh; case mh; [ |intro pmh..].
+  { intros _ _; apply Generic_fmt.generic_format_0. }
+  { intros Hmh Hmagmh.
+    unfold Generic_fmt.generic_format, Defs.F2R; simpl.
+    unfold Generic_fmt.scaled_mantissa, Generic_fmt.cexp, fexp.
+    rewrite Z.max_l.
+    2:{ apply (Zplus_le_reg_r _ _ FloatOps.prec); ring_simplify.
+      apply Z.lt_le_incl, (Z.le_lt_trans _ 0); [compute; discriminate| ].
+      apply Hmagmh; discriminate. }
+    case_eq (Raux.mag radix2 (IZR (Z.pos pmh)) - FloatOps.prec)%Z.
+    { now intros _; rewrite !Rmult_1_r, Ztrunc_IZR. }
+    { intros p; lia. }
+    intros p Hp; simpl.
+    rewrite <-mult_IZR, Ztrunc_IZR, mult_IZR.
+    rewrite Rmult_assoc, Rinv_r; [now rewrite Rmult_1_r| ].
+    apply IZR_neq; generalize (Zpower_pos_gt_0 2 p); lia. }
+  now simpl. }
+rewrite Rlt_bool_true.
+2:{ apply Rabs_lt; rewrite <-opp_IZR; split; apply IZR_lt.
+  { now apply (Z.lt_le_trans _ 0). }
+  now apply (Z.lt_trans _ _ _ (proj2 Hmh)). }
+intros [Hrmh [Hfmh _]].
+rewrite Generic_fmt.round_generic.
+2:{ apply Generic_fmt.valid_rnd_N. }
+2:{ destruct Hmagmh1 as [->|Hmagmh1].
+  { change (IZR _) with (bpow radix2 FloatOps.prec).
+    now apply FLT.generic_format_FLT_bpow. }
+  unfold Generic_fmt.generic_format, Defs.F2R; simpl.
+  unfold Generic_fmt.scaled_mantissa, Generic_fmt.cexp, fexp.
+  rewrite Z.max_l.
+  2:{ apply (Zplus_le_reg_r _ _ FloatOps.prec); ring_simplify.
+      apply Z.lt_le_incl, (Z.le_lt_trans _ 0); [compute; discriminate| ].
+      apply Hmagmh1; discriminate. }
+  case_eq (Raux.mag radix2 (IZR (mh + 1)) - FloatOps.prec)%Z.
+  { now intros _; rewrite !Rmult_1_r, Ztrunc_IZR. }
+  { intros p; lia. }
+  intros p Hp; simpl.
+  rewrite <-mult_IZR, Ztrunc_IZR, mult_IZR.
+  rewrite Rmult_assoc, Rinv_r; [now rewrite Rmult_1_r| ].
+  apply IZR_neq; generalize (Zpower_pos_gt_0 2 p); lia. }
+rewrite Rlt_bool_true.
+2:{ apply Rabs_lt; rewrite <-opp_IZR; split; apply IZR_lt.
+  { now apply (Z.lt_le_trans _ 0); [compute|lia]. }
+  now apply (Z.lt_trans _ (2 ^ FloatOps.prec + 1)); [lia|compute]. }
+intros [Hrmh1 [Hfmh1 _]].
+assert (Hsf' : sf' = s).
+{ revert Hf'e''; simpl; unfold Defs.F2R; simpl.
+  unfold Rdiv; rewrite Rmult_assoc.
+  change (/ _)%R with (bpow radix2 (- FloatOps.prec)).
+  rewrite <-bpow_plus.
+  case s, sf'; [now simpl| | |now simpl].
+  { intro H; exfalso; apply (Rlt_irrefl 0).
+    apply (Rlt_le_trans _ (IZR (cond_Zopp true (Z.pos m)) * bpow radix2 e)%R).
+    { now rewrite H; apply Rmult_lt_0_compat; [apply IZR_lt|apply bpow_gt_0]. }
+    now apply Stdlib.Rmult_le_neg_pos; [apply IZR_le|apply bpow_ge_0]. }
+  intro H; exfalso; apply (Rlt_irrefl 0).
+  apply (Rlt_le_trans _ (IZR (cond_Zopp false (Z.pos m)) * bpow radix2 e)%R).
+  { now apply Rmult_lt_0_compat; [apply IZR_lt|apply bpow_gt_0]. }
+  now rewrite H; apply Stdlib.Rmult_le_neg_pos; [apply IZR_le|apply bpow_ge_0]. }
+assert (HB2R_FtoR :
+          forall s m e (B : SpecFloat.bounded FloatOps.prec emax m e = true),
+            B2R (B754_finite s m e B) = FtoR radix2 s m e).
+{ now intros s' m' e' B'; rewrite FtoR_split. }
+assert (H'f'e'' :
+  (FtoR radix2 s m e
+   = IZR (cond_Zopp s (Z.pos mf')) * bpow radix2 (- FloatOps.prec + e''))%R).
+{ rewrite <-(HB2R_FtoR _ _ _ B), Hf'e'', Hsf', FtoR_split.
+  unfold Defs.F2R, Defs.Fnum, Defs.Fexp.
+  now rewrite bpow_plus, Rmult_assoc. }
+assert (Haf'e'' :
+  (FtoR radix2 false m e
+   = IZR (Z.pos mf') * bpow radix2 (- FloatOps.prec + e''))%R).
+{ revert H'f'e''; rewrite !FtoR_split; unfold Defs.F2R, Defs.Fnum, Defs.Fexp.
+  case s; [ |now intros ->].
+  unfold cond_Zopp; rewrite !opp_IZR, <-!Ropp_mult_distr_l.
+  now intro H; generalize (f_equal Ropp H); rewrite !Ropp_involutive; intros ->. }
+assert (Hbpow : bpow radix2 (FloatOps.prec - e'') = IZR (2 ^ (FloatOps.prec - e''))).
+{ now generalize (proj2 (Z.lt_0_sub _ _) He''prec); case (_ - _)%Z. }
+assert (Hbpow' : (bpow radix2 (- FloatOps.prec + e'') = / IZR (2 ^ (FloatOps.prec - e'')))%R).
+{ replace (- _ + _)%Z with (- (FloatOps.prec - e''))%Z by ring.
+  now case_eq (FloatOps.prec - e'')%Z; [ |intro p..]; [lia| |lia]. }
+case mode; clear mode.
+{ case_eq s; intro Hs; simpl.
+  { rewrite toX_Prim2B, Prim2B_B2Prim, BtoX_Bopp.
+    rewrite (B2R_BtoX _ _ Hfmh Hrmh).
+    revert H'f'e''; rewrite Hs; intros->.
+    unfold cond_Zopp, Zceil, Xlift.
+    rewrite !opp_IZR, <-Ropp_mult_distr_l, Ropp_involutive.
+    do 3 apply f_equal.
+    rewrite Hbpow'; unfold mh.
+    apply Zfloor_div, pow2_nz; lia. }
+  unfold SFltb.
+  generalize (Bcompare_correct _ _ _ (B754_finite false m e B) Hfmh (eq_refl _)).
+  unfold Bcompare, B2SF at 2; intros ->.
+  case Rcompare_spec.
+  { rewrite Hrmh, HB2R_FtoR; simpl.
+    rewrite toX_Prim2B, Prim2B_B2Prim, (B2R_BtoX _ _ Hfmh1 Hrmh1).
+    rewrite <-Hs, H'f'e'', Hs; unfold cond_Zopp.
+    intros H'mh.
+    do 2 apply f_equal.
+    apply Zceil_imp.
+    split.
+    { revert H'mh; apply Rle_lt_trans; right; apply IZR_eq; ring. }
+    rewrite Hbpow'.
+    change (_ * _)%R with (IZR (Z.pos mf') / IZR (2 ^ (FloatOps.prec - e'')))%R.
+    rewrite Rcomplements.Rle_div_l; [ |now rewrite <-Hbpow; apply bpow_gt_0].
+    rewrite <-mult_IZR; apply IZR_le.
+    rewrite Z.mul_comm, Z.mul_add_distr_l, Z.mul_1_r.
+    rewrite (Z_div_mod_eq _ (2 ^ (FloatOps.prec - e''))) at 1.
+    2:{ apply Z.lt_gt, lt_IZR; rewrite <-Hbpow; apply bpow_gt_0. }
+    apply Zplus_le_compat_l.
+    apply Z.lt_le_incl, Z_mod_lt.
+    apply Z.lt_gt, lt_IZR; rewrite <-Hbpow; apply bpow_gt_0. }
+  { rewrite HB2R_FtoR; intros <-; rewrite Hrmh, Zceil_IZR, <-Hrmh; simpl.
+    now rewrite toX_Prim2B, Prim2B_B2Prim, (B2R_BtoX _ _ Hfmh Hrmh), Hrmh. }
+  intro H; exfalso; revert H; apply Rle_not_lt.
+  rewrite Hrmh; unfold mh.
+  rewrite HB2R_FtoR, <-Hs, H'f'e'', Hs; unfold cond_Zopp.
+  rewrite Hbpow', <-Zfloor_div; [ |apply pow2_nz; lia].
+  apply Zfloor_lb. }
+{ generalize Hfmh; rewrite <-is_finite_Bopp; intro Hfomh.
+  generalize (f_equal Ropp Hrmh); rewrite <-B2R_Bopp; intro Hromh.
+  case_eq s; intro Hs; simpl.
+  { unfold SFltb.
+    generalize (Bcompare_correct _ _ (B754_finite true m e B) _ (eq_refl _) Hfomh).
+    unfold Bcompare, B2SF at 1; intros ->.
+    case Rcompare_spec.
+    { rewrite Hromh, HB2R_FtoR; simpl.
+      rewrite toX_Prim2B, Prim2B_B2Prim, BtoX_Bopp.
+      rewrite (B2R_BtoX _ _ Hfmh1 Hrmh1).
+      rewrite <-(Z.opp_involutive (Zfloor _)), <-(Ropp_involutive (FtoR _ _ _ _)).
+      fold (Zceil (- (FtoR radix2 true m e))).
+      rewrite <-Hs, H'f'e'', Hs; unfold cond_Zopp.
+      rewrite opp_IZR, <-Ropp_mult_distr_l, !Ropp_involutive.
+      unfold Xlift; rewrite opp_IZR.
+      intro H; generalize (Ropp_lt_cancel _ _ H); clear H.
+      intros H'mh.
+      do 3 apply f_equal.
+      apply Zceil_imp.
+      split.
+      { revert H'mh; apply Rle_lt_trans; right; apply IZR_eq; ring. }
+      rewrite Hbpow'.
+      change (_ * _)%R with (IZR (Z.pos mf') / IZR (2 ^ (FloatOps.prec - e'')))%R.
+      rewrite Rcomplements.Rle_div_l; [ |now rewrite <-Hbpow; apply bpow_gt_0].
+      rewrite <-mult_IZR; apply IZR_le.
+      rewrite Z.mul_comm, Z.mul_add_distr_l, Z.mul_1_r.
+      rewrite (Z_div_mod_eq _ (2 ^ (FloatOps.prec - e''))) at 1.
+      2:{ apply Z.lt_gt, lt_IZR; rewrite <-Hbpow; apply bpow_gt_0. }
+      apply Zplus_le_compat_l.
+      apply Z.lt_le_incl, Z_mod_lt.
+      apply Z.lt_gt, lt_IZR; rewrite <-Hbpow; apply bpow_gt_0. }
+    { rewrite HB2R_FtoR; simpl.
+      rewrite toX_Prim2B, Prim2B_B2Prim.
+      rewrite Hromh, (B2R_BtoX _ _ Hfomh Hromh); intros ->.
+      now rewrite <-opp_IZR, Zfloor_IZR. }
+    rewrite B2R_Bopp.
+    rewrite HB2R_FtoR, <-Hs, H'f'e'', Hs.
+    unfold cond_Zopp.
+    rewrite opp_IZR, <-Ropp_mult_distr_l.
+    intro H; exfalso; revert H; apply Rle_not_lt, Ropp_le_contravar.
+    rewrite Hrmh; unfold mh.
+    rewrite Hbpow', <-Zfloor_div; [ |apply pow2_nz; lia].
+    apply Zfloor_lb. }
+  rewrite toX_Prim2B, Prim2B_B2Prim.
+  rewrite (B2R_BtoX _ _ Hfmh Hrmh).
+  revert H'f'e''; rewrite Hs; intros->.
+  unfold cond_Zopp, Zceil, Xlift.
+  do 2 apply f_equal.
+  rewrite Hbpow'; unfold mh.
+  apply Zfloor_div, pow2_nz; lia. }
+{ simpl; unfold Ztrunc.
+  case_eq s; intro Hs; simpl.
+  { rewrite Rlt_bool_true.
+    2:{ apply Generic_proof.FtoR_Rneg. }
+    rewrite toX_Prim2B, Prim2B_B2Prim, BtoX_Bopp.
+    rewrite (B2R_BtoX _ _ Hfmh Hrmh).
+    rewrite <-Hs, H'f'e'', Hs.
+    unfold cond_Zopp, Zceil, Xlift.
+    rewrite !opp_IZR, <-Ropp_mult_distr_l, Ropp_involutive.
+    do 3 apply f_equal.
+    rewrite Hbpow'; unfold mh.
+    apply Zfloor_div, pow2_nz; lia. }
+  rewrite Rlt_bool_false.
+  2:{ apply Rlt_le, Generic_proof.FtoR_Rpos. }
+  rewrite toX_Prim2B, Prim2B_B2Prim.
+  rewrite (B2R_BtoX _ _ Hfmh Hrmh).
+  rewrite <-Hs, H'f'e'', Hs.
+  do 2 apply f_equal.
+  rewrite Hbpow'; unfold mh.
+  apply Zfloor_div, pow2_nz; lia. }
+set (f' := B754_finite false m _ B).
+set (fl := binary_normalize _ _ _ _ _ mh _ _).
+set (fu := binary_normalize _ _ _ _ _ (mh + 1) _ _).
+generalize (Bminus_correct _ _ _ _ mode_NE f' fl (eq_refl _) Hfmh).
+assert (Hpos : (0 < 2 ^ (FloatOps.prec - e''))%Z).
+{ now apply Z.pow_pos_nonneg; [ |lia]. }
+assert (Hpos' : (0 <= Z.pos mf' / 2 ^ (FloatOps.prec - e''))%Z).
+{ apply Z.div_pos; lia. }
+assert (Pf' : (0 < B2R f')%R).
+{ unfold f', B2R; rewrite <-FtoR_split.
+  apply Generic_proof.FtoR_Rpos. }
+assert (Nzf' : (B2R f' <> 0)%R); [now apply Rgt_not_eq| ].
+assert (Hflf' : (B2R fl <= B2R f')%R).
+{ unfold fl, f'; rewrite Hrmh.
+  unfold B2R; rewrite <-FtoR_split, Haf'e''.
+  apply (Rmult_le_reg_r (bpow radix2 (FloatOps.prec - e''))).
+  { apply bpow_gt_0. }
+  rewrite Rmult_assoc, <-bpow_plus; replace (_ + _)%Z with 0%Z by ring.
+  rewrite Rmult_1_r, Hbpow, <-mult_IZR; apply IZR_le.
+  now rewrite Z.mul_comm; apply Z.mul_div_le. }
+assert (Hf'fu : (B2R f' <= B2R fu)%R).
+{ unfold f', fu; rewrite Hrmh1.
+  unfold B2R; rewrite <-FtoR_split, Haf'e''.
+  apply (Rmult_le_reg_r (bpow radix2 (FloatOps.prec - e''))).
+  { apply bpow_gt_0. }
+  rewrite Rmult_assoc, <-bpow_plus; replace (_ + _)%Z with 0%Z by ring.
+  rewrite Rmult_1_r, Hbpow, <-mult_IZR; apply IZR_le.
+  rewrite Z.mul_comm, Z.mul_add_distr_l, Z.mul_1_r.
+  rewrite (Z_div_mod_eq _ (2 ^ (FloatOps.prec - e''))) at 1; [ |lia].
+  apply Zplus_le_compat_l, Z.lt_le_incl, Z_mod_lt; lia. }
+assert (Pfl : (0 <= B2R fl)%R).
+{ now unfold fl; rewrite Hrmh; unfold mh; apply IZR_le, Z.div_pos. }
+assert (Hflfu : (B2R fu = B2R fl + 1)%R).
+{ now unfold fl, fu; rewrite Hrmh, Hrmh1, plus_IZR. }
+rewrite Generic_fmt.round_generic.
+2:{ apply Generic_fmt.valid_rnd_N. }
+2:{ case (Req_dec (B2R fl) 0).
+  { intros ->; rewrite Rminus_0_r; apply generic_format_B2R. }
+  intro Nzfl.
+  apply sterbenz.
+  { now apply FLT.FLT_exp_valid. }
+  { apply FLT.FLT_exp_monotone. }
+  { apply generic_format_B2R. }
+  { apply generic_format_B2R. }
+  split; [lra| ].
+  apply (Rle_trans _ _ _ Hf'fu); rewrite Hflfu.
+  cut (1 <= B2R fl)%R; [lra| ].
+  revert Nzfl Pfl; unfold fl; rewrite Hrmh.
+  intro H; generalize (neq_IZR _ _ H); clear H; intro Nzfl.
+  intro H; generalize (le_IZR _ _ H); clear H; intro Pfl.
+  apply IZR_le; lia. }
+rewrite Rlt_bool_true.
+2:{ rewrite Rabs_pos_eq; [ |lra].
+  apply (Rle_lt_trans _ (B2R f')); [lra| ].
+  generalize (abs_B2R_lt_emax _ _ f'); apply Rle_lt_trans.
+  rewrite Rabs_pos_eq; lra. }
+intros [Hrf'mfl [Hff'mfl _]].
+rewrite (Bcompare_correct _ _ _ (Prim2B 0.5) Hff'mfl (eq_refl _)).
+rewrite Hrf'mfl.
+replace (B2R (Prim2B 0.5)) with (/ 2)%R; [ |now compute; lra].
+case Rcompare_spec; intro Hf'flhalf; simpl.
+{ cut (Xreal (Rnearbyint rnd_NE (FtoR radix2 false m e)) = toX (B2Prim fl)).
+  { unfold Rnearbyint; case s; [ |now intros->].
+    intro H; rewrite toX_Prim2B, opp_equiv, BtoX_Bopp, <-toX_Prim2B, <-H.
+    change false with (negb true); rewrite <-Generic_proof.FtoR_neg.
+    rewrite Generic_fmt.Znearest_opp, opp_IZR.
+    unfold Xlift; rewrite Ropp_involutive.
+    do 2 f_equal.
+    unfold Generic_fmt.Znearest.
+    now rewrite Z.even_opp, Z.add_1_r, Z.even_succ, Z.negb_odd. }
+  unfold fl; rewrite toX_Prim2B, Prim2B_B2Prim, (B2R_BtoX _ _ Hfmh Hrmh).
+  unfold Rnearbyint; do 2 apply f_equal.
+  apply Generic_fmt.Znearest_imp.
+  rewrite <-Hrmh; fold fl.
+  replace (FtoR _ _ _ _) with (B2R f'); [ |now rewrite FtoR_split].
+  rewrite Rabs_pos_eq; lra. }
+2:{ cut (Xreal (Rnearbyint rnd_NE (FtoR radix2 false m e)) = toX (B2Prim fu)).
+  { unfold Rnearbyint; case s; [ |now intros->].
+    intro H; rewrite toX_Prim2B, opp_equiv, BtoX_Bopp, <-toX_Prim2B, <-H.
+    change false with (negb true); rewrite <-Generic_proof.FtoR_neg.
+    rewrite Generic_fmt.Znearest_opp, opp_IZR.
+    unfold Xlift; rewrite Ropp_involutive.
+    do 2 f_equal.
+    unfold Generic_fmt.Znearest.
+    now rewrite Z.even_opp, Z.add_1_r, Z.even_succ, Z.negb_odd. }
+  unfold fu; rewrite toX_Prim2B, Prim2B_B2Prim, (B2R_BtoX _ _ Hfmh1 Hrmh1).
+  unfold Rnearbyint; do 2 apply f_equal.
+  apply Generic_fmt.Znearest_imp.
+  rewrite <-Hrmh1; fold fu.
+  replace (FtoR _ _ _ _) with (B2R f'); [ |now rewrite FtoR_split].
+  rewrite Rabs_minus_sym, Rabs_pos_eq; lra. }
+cut (Xreal (Rnearbyint rnd_NE (FtoR radix2 false m e))
+     = toX (if (Z.land mh 1 =? 0)%Z then B2Prim fl else B2Prim fu)).
+{ unfold Rnearbyint; case s; [ |now intros->].
+  intro H; rewrite toX_Prim2B, opp_equiv, BtoX_Bopp, <-toX_Prim2B, <-H.
+  change false with (negb true); rewrite <-Generic_proof.FtoR_neg.
+  rewrite Generic_fmt.Znearest_opp, opp_IZR.
+  unfold Xlift; rewrite Ropp_involutive.
+  do 2 f_equal.
+  unfold Generic_fmt.Znearest.
+  now rewrite Z.even_opp, Z.add_1_r, Z.even_succ, Z.negb_odd. }
+unfold Rnearbyint, Generic_fmt.Znearest.
+replace (FtoR _ _ _ _) with (B2R f'); [ |now rewrite FtoR_split].
+replace (Zfloor (B2R f')) with mh.
+2:{ symmetry; apply Zfloor_imp.
+  rewrite <-Hrmh, <-Hrmh1; fold fl fu; lra. }
+replace (Zceil (B2R f')) with (mh + 1)%Z.
+2:{ symmetry; apply Zceil_imp.
+  replace (_ - _)%Z with mh by ring.
+  rewrite <-Hrmh, <-Hrmh1; fold fl fu; lra. }
+rewrite <-Hrmh; fold fl.
+case Rcompare_spec; [lra| |lra]; intros _.
+rewrite Bool.if_negb.
+cut (Z.even mh = (Z.land mh 1 =? 0)%Z).
+{ now intros <-; case (Z.even mh);
+    rewrite toX_Prim2B, Prim2B_B2Prim; symmetry; apply B2R_BtoX. }
+revert Hmh; case mh as [ |pmh|pmh]; [now simpl|intros _|lia]; simpl.
+now case pmh as [pmh|pmh| ].
+Qed.
+
 Lemma nearbyint_UP_correct :
   forall mode x,
   valid_ub (nearbyint_UP mode x) = true
   /\ le_upper (Xnearbyint mode (toX x)) (toX (nearbyint_UP mode x)).
-Proof. now intros m x; compute. Qed.
+Proof.
+intros mode x.
+unfold nearbyint_UP.
+case_eq (real x); intro Hx; [ |now unfold nearbyint; rewrite Hx].
+split.
+{ rewrite valid_ub_correct.
+  generalize (classify_correct (nearbyint infinity mode x)).
+  rewrite real_correct.
+  rewrite <-(nearbyint_correct _ _ _ Hx).
+  unfold Xlift; simpl.
+  revert Hx; rewrite real_correct.
+  now case toX; [ |case classify]. }
+rewrite <-(nearbyint_correct _ _ _ Hx).
+now case toX; [ |intro x'; right].
+Qed.
 
 Lemma nearbyint_DN_correct :
   forall mode x,
   valid_lb (nearbyint_DN mode x) = true
   /\ le_lower (toX (nearbyint_DN mode x)) (Xnearbyint mode (toX x)).
-Proof. now intros m x; compute. Qed.
+Proof.
+intros mode x.
+unfold nearbyint_DN.
+case_eq (real x); intro Hx; [ |now unfold nearbyint; rewrite Hx].
+split.
+{ rewrite valid_lb_correct.
+  generalize (classify_correct (nearbyint neg_infinity mode x)).
+  rewrite real_correct.
+  rewrite <-(nearbyint_correct _ _ _ Hx).
+  unfold Xlift; simpl.
+  revert Hx; rewrite real_correct.
+  now case toX; [ |case classify]. }
+rewrite <-(nearbyint_correct _ _ _ Hx).
+now case toX; [ |intro x'; right].
+Qed.
 
 Lemma midpoint_correct :
   forall x y,
