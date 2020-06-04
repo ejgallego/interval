@@ -1334,6 +1334,11 @@ intros prec f f' xi yi yi' ym yl yu Hd Hyi Hyi' Hym Hyl Hyu m x Hx.
 unfold m. clear m.
 unfold diff_refining_points.
 generalize (I.sign_large_correct yi').
+assert (Hnexi : not_empty (I.convert xi)).
+{ revert Hx.
+  case (I.convert xi) as [|l u].
+  { now intros _; exists 0. }
+  now case x as [|x]; [|exists x]. }
 case_eq (I.sign_large yi') ; intros Hs1 Hs2.
 (* - sign is Xeq *)
 destruct (I.midpoint_correct xi (ex_intro _ _ Hx)) as (H1, H2).
@@ -1373,8 +1378,7 @@ destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear Hym Hyu H.
 assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-(*
-rewrite Hxi Hxl.
+rewrite (Hxi Hnexi) Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1399,6 +1403,7 @@ simpl.
 now rewrite <- Hx1.
 rewrite -> Hxi, Hx1, Hxl in Hx.
 exact (proj1 Hx).
+exact Hnexi.
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
 apply I.whole_correct.
@@ -1409,7 +1414,7 @@ destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
 assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi Hxu.
+rewrite (Hxi Hnexi) Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1434,6 +1439,7 @@ simpl.
 now rewrite <- Hxu.
 rewrite -> Hxi, Hx1, Hxu in Hx.
 exact (proj2 Hx).
+exact Hnexi.
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
 apply I.whole_correct.
@@ -1465,7 +1471,7 @@ destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear H.
 assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
-rewrite Hxi Hxl.
+rewrite (Hxi Hnexi) Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1490,6 +1496,7 @@ simpl.
 now rewrite <- Hx1.
 rewrite -> Hxi, Hx1, Hxl in Hx.
 exact (proj1 Hx).
+exact Hnexi.
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
 apply I.whole_correct.
@@ -1500,7 +1507,7 @@ destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
 assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
-rewrite Hxi Hxu.
+rewrite (Hxi Hnexi) Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
@@ -1525,6 +1532,7 @@ simpl.
 now rewrite <- Hxu.
 rewrite -> Hxi, Hx1, Hxu in Hx.
 exact (proj2 Hx).
+exact Hnexi.
 intros _.
 rewrite (proj1 (Hs2 x Hx R0)).
 apply I.whole_correct.
@@ -1538,14 +1546,14 @@ eapply diff_refining_aux_1 with (1 := Hd).
 rewrite I.bnd_correct.
 rewrite Hm1.
 split ; apply Rle_refl.
+now apply I.valid_lb_real.
+now apply I.valid_ub_real.
 now rewrite <- Hm1.
 now rewrite <- Hm1.
 exact Hyi'.
 exact Hx.
 now apply Hyi.
 Qed.
-*)
-Admitted.
 
 Lemma convert_bnd :
   forall l u v, contains (Ibnd l u) (I.convert_bound v) ->
