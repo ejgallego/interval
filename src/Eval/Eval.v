@@ -29,6 +29,7 @@ Require Import Xreal.
 Require Import Xreal_derive.
 Require Import Basic.
 Require Import Interval.
+Require Import Interval_compl.
 Require Import Taylor_model.
 Require Import Tree.
 Require Import Prog.
@@ -1590,8 +1591,10 @@ intro H1.
 generalize (I.lower_bounded_correct _ (proj1 (H1 (refl_equal _)))).
 clear H1. intros (_, H1).
 unfold I.bounded_prop in H1.
-(*
-now destruct (I.convert (fi' xi)).
+{ destruct (I.convert (fi' xi)).
+  have Hex : exists v : R, contains Inan (Xreal v) by exists R0.
+  by move/(_ Hex) in H1.
+  by case: H0. }
 intros _.
 now apply Hf.
 (* - xi is Ibnd *)
@@ -1612,8 +1615,9 @@ apply Hf.
 apply (convert_bnd l l).
 rewrite -> H1, H0 in H.
 rewrite H0.
-inversion H.
-split ; apply Rle_refl.
+inversion_clear H.
+split; exact: Rle_refl.
+by apply/not_emptyE; exists x.
 now intros _.
 (*   upper bound *)
 generalize (I.upper_bounded_correct xi).
@@ -1627,10 +1631,9 @@ rewrite -> H1, H0 in H.
 rewrite H0.
 inversion H.
 split ; apply Rle_refl.
+by apply/not_emptyE; exists x.
 now intros _.
 Qed.
-*)
-Admitted.
 
 Definition eval prec formula bounds n xi :=
   match nth n (eval_generic (I.nai, I.nai) (diff_operations _ (BndValuator.operations prec)) formula
