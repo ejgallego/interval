@@ -1803,26 +1803,23 @@ Theorem eval_correct_aux' :
 Proof.
 intros prec deg prog bounds vars Hv n xi.
 generalize (eval_correct_aux prec deg prog bounds vars Hv n xi).
-(*
-set (t := nth n _ _).
+intros H Ex.
+specialize (H Ex).
 destruct (nth n _ _) as [c| |].
-- destruct (I.convert c) as [|cl cu] eqn: Hc.
+- destruct H as [->|[[|y] H1 H2]].
   now left.
-  intros [Hf|[y H1 H2]].
-  now left.
-  destruct y as [|y].
-  now rewrite Hc in H1.
+  left.
+  now destruct (I.convert c).
   right.
   exists (Xreal y).
   exact H1.
   intros x Hx.
   apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
   now apply H2.
-- intros H y Hy.
+- intros y Hy.
   apply (xreal_to_real (fun x => x = Xreal y) (fun x => Xreal x = Xreal y)) ; try easy.
   now apply H.
-- intros H Hn.
-  destruct (H Hn) as [H1 H2 H3 H4 H5].
+- destruct H as [H1 H2 H3 H4 H5].
   split ; try easy.
   destruct H5 as [Q H6 H7].
   exists Q.
@@ -1840,8 +1837,6 @@ destruct (nth n _ _) as [c| |].
     now apply H1.
     now apply H7.
 Qed.
-*)
-Admitted.
 
 Theorem eval_correct_ext :
   forall prec deg prog bounds vars,
