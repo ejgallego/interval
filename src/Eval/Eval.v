@@ -1555,8 +1555,11 @@ rewrite I.bnd_correct.
 destruct (I.convert_bound v).
 elim H.
 split ; apply Rle_refl.
-Admitted.
-(* Qed. *)
+- apply I.valid_lb_real.
+  now revert H; case I.convert_bound.
+- apply I.valid_ub_real.
+  now revert H; case I.convert_bound.
+Qed.
 
 Theorem diff_refining_correct :
   forall prec f f' fi fi',
