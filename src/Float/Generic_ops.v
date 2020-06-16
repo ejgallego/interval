@@ -56,7 +56,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition PtoP := fun x : positive => x.
   Definition incr_prec := Pplus.
   Definition zero := @Fzero radix.
-  Definition one := @Float radix false 1 0.
   Definition nan := @Basic.Fnan radix.
   Definition mag := @Fmag radix.
   Definition cmp := @Fcmp radix.
@@ -79,7 +78,6 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition nearbyint_UP := @Fnearbyint_exact radix.
   Definition nearbyint_DN := @Fnearbyint_exact radix.
   Definition zero_correct := refl_equal (Xreal R0).
-  Definition one_correct := refl_equal (Xreal R1).
   Definition nan_correct := refl_equal Fnan.
 
   Definition classify (f : float radix) :=

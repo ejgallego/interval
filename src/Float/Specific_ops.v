@@ -78,7 +78,6 @@ Definition incr_prec x y := exponent_add x (ZtoE (Zpos y)).
 Definition sm1 := ZtoE (-1).
 
 Definition zero := Float mantissa_zero exponent_zero.
-Definition one := Float (ZtoM 1) exponent_zero.
 Definition nan := @Fnan smantissa_type exponent_type.
 
 Lemma zero_correct :
@@ -158,10 +157,6 @@ rewrite exponent_zero_correct.
 rewrite (proj1 H0).
 now case s.
 Qed.
-
-Lemma one_correct :
-  toX one = Xreal 1.
-Proof. now unfold one; fold (fromZ 1); rewrite fromZ_correct'. Qed.
 
 Lemma fromZ_correct :
   forall n,

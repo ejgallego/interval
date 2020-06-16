@@ -41,7 +41,6 @@ Definition StoZ := SFBI2.StoZ.
 Definition incr_prec := SFBI2.incr_prec.
 
 Definition zero := zero.
-Definition one := one.
 Definition nan := nan.
 
 Definition fromZ x :=
@@ -273,9 +272,6 @@ Definition toR x := proj_val (toX x).
 
 Lemma zero_correct : toX zero = Xreal 0.
 Proof. reflexivity. Qed.
-
-Lemma one_correct : toX one = Xreal 1.
-Proof. compute; apply f_equal; field. Qed.
 
 Lemma nan_correct : classify nan = Sig.Fnan.
 Proof. reflexivity. Qed.

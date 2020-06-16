@@ -47,7 +47,6 @@ Parameter StoZ : sfactor -> Z.
 Parameter incr_prec : precision -> positive -> precision.
 
 Parameter zero : type.
-Parameter one : type.
 Parameter nan : type.
 
 Parameter fromZ : Z -> type.
@@ -84,7 +83,6 @@ Parameter nearbyint_DN : rounding_mode -> type -> type.
 Parameter midpoint : type -> type -> type.
 
 Parameter zero_correct : toX zero = Xreal 0.
-Parameter one_correct : toX one = Xreal 1.
 Parameter nan_correct : classify nan = Fnan.
 
 Parameter fromZ_correct :
@@ -322,20 +320,6 @@ Proof.
 generalize (F.valid_ub_correct F.zero).
 generalize (F.classify_correct F.zero).
 rewrite F.real_correct, F.zero_correct.
-now case F.classify.
-Qed.
-
-Lemma valid_lb_one : F.valid_lb F.one = true.
-Proof.
-generalize (F.classify_correct F.one).
-rewrite F.valid_lb_correct, F.real_correct, F.one_correct.
-now case F.classify.
-Qed.
-
-Lemma valid_ub_one : F.valid_ub F.one = true.
-Proof.
-generalize (F.classify_correct F.one).
-rewrite F.valid_ub_correct, F.real_correct, F.one_correct.
 now case F.classify.
 Qed.
 
