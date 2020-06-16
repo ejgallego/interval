@@ -6,7 +6,6 @@ From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool ssrnat bigop.
 Require Import Stdlib.
 Require Import Coquelicot.
 Require Import Xreal.
-Require Import Sig.
 Require Import Interval.
 
 Section powerRZMissing.
@@ -996,14 +995,14 @@ Qed.
 
 End ZeroToEpsilon.
 
-Module BertrandInterval (F : FloatOps with Definition sensible_format := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
+Module BertrandInterval (I : IntervalOps).
 
 Module J := IntervalExt I.
 
 Section EffectiveBertrand.
 (* TODO: factor out the A^alpha+1 and compute ln A only once for efficiency *)
 
-Variable prec : F.precision.
+Variable prec : I.precision.
 
 Section Infinity.
 

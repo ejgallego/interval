@@ -148,10 +148,10 @@ Module F' := FloatExt F.
 Module A := IntervalAlgos I.
 Module T := Tree.Bnd I.
 Module R := Reify.Bnd I.
-Module BI := BertrandInterval F I.
+Module BI := BertrandInterval I.
 Module IR := IntegralRefiner I.
 Module IT := IntegralTaylor I.
-Module IU := IntegralTactic F I.
+Module IU := IntegralTactic I.
 
 Definition reify_var : R.
 Proof. exact 0%R. Qed.

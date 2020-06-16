@@ -24,7 +24,6 @@ From mathcomp.ssreflect Require Import ssreflect ssrfun ssrbool.
 Require Import Stdlib.
 Require Import Coquelicot.
 Require Import Xreal.
-Require Import Sig.
 Require Import Interval.
 Require Import Taylor_model.
 Require Import Interval_compl.
@@ -389,10 +388,9 @@ Qed.
 
 End Missing.
 
-Module IntegralTactic (F : FloatOps with Definition sensible_format := true) (I : IntervalOps with Definition bound_type := F.type with Definition precision := F.precision with Definition convert_bound := F.toX).
+Module IntegralTactic (I : IntervalOps).
 
 Module J := IntervalExt I.
-Module F' := FloatExt F.
 
 (* this can probably be significantly shortened *)
 Lemma bounded_ex {xi} (Hne : not_empty (I.convert xi)) (Hbnded : I.bounded xi) :
