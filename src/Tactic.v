@@ -138,21 +138,6 @@ Ltac get_var_indices vars bvars :=
     end in
   aux2 (@nil nat) bvars.
 
-End Private.
-
-Module IntervalTacticAux (F : FloatOps with Definition sensible_format := true).
-
-Module I := FloatIntervalFull F.
-Module J := IntervalExt I.
-Module F' := FloatExt F.
-Module A := IntervalAlgos I.
-Module T := Tree.Bnd I.
-Module R := Reify.Bnd I.
-Module BI := BertrandInterval I.
-Module IR := IntegralRefiner I.
-Module IT := IntegralTaylor I.
-Module IU := IntegralTactic I.
-
 Definition reify_var : R.
 Proof. exact 0%R. Qed.
 
@@ -231,6 +216,21 @@ Ltac reify_RInt_gen_zero y fm v :=
   reify_partial v vars ;
   intros <- ;
   find_hyps vars.
+
+End Private.
+
+Module IntervalTacticAux (F : FloatOps with Definition sensible_format := true).
+
+Module I := FloatIntervalFull F.
+Module J := IntervalExt I.
+Module F' := FloatExt F.
+Module A := IntervalAlgos I.
+Module T := Tree.Bnd I.
+Module R := Reify.Bnd I.
+Module BI := BertrandInterval I.
+Module IR := IntegralRefiner I.
+Module IT := IntegralTaylor I.
+Module IU := IntegralTactic I.
 
 Definition compute_inputs prec hyps consts :=
   R.merge_hyps prec hyps ++ map (T.eval_bnd prec) consts.
