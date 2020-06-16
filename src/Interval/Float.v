@@ -294,13 +294,13 @@ Definition midpoint xi :=
       match F.cmp xl F.zero with
       | Xund | Xlt => F.zero
       | Xeq => c1
-      | Xgt => xl
+      | Xgt => let m := F.mul_UP p52 xl c2 in if F.real m then m else xl
       end
     | false, true =>
       match F.cmp xu F.zero with
       | Xund | Xgt => F.zero
       | Xeq => cm1
-      | Xlt => xu
+      | Xlt => let m := F.mul_DN p52 xu c2 in if F.real m then m else xu
       end
     | true, true => F.midpoint xl xu
     end
@@ -1286,35 +1286,152 @@ intros [|xl xu].
   simpl.
   now rewrite F.zero_correct. }
 intros (x, Hx).
-destruct x as [|x]; [now revert Hx; unfold contains; simpl; case (_ && _)|].
-revert Hx; unfold midpoint, c1, cm1.
-rewrite !F.cmp_correct, F'.classify_zero.
-unfold convert.
-rewrite F.valid_lb_correct, F.valid_ub_correct.
-generalize (F.classify_correct xl); rewrite F.real_correct ;
-case_eq (F.classify xl) ; intro Cl ;
-  [xreal_tac xl; [easy|] | xreal_tac xl; [|easy]..] ; intros _ ;
-  [..|simpl; intro H; exfalso; lra] ;
-  ( generalize (F.classify_correct xu); rewrite F.real_correct ;
-    case_eq (F.classify xu) ; intro Cu ;
-      [xreal_tac xu; [easy|] | xreal_tac xu; [|easy]..] ; intros _ ;
-      [| |simpl; intro H; exfalso; lra|] ) ;
-  simpl ;
-  intros [Hl Hu] ;
-  rewrite ?F.zero_correct ;
-  try easy ;
-  try ( case Rcompare_spec; intros Hr ) ;
-  rewrite ?F.zero_correct, ?F.fromZ_correct by easy ;
-  rewrite ?X, ?X0 ;
-  [|now ( split; simpl; try lra)..].
-elim (F.midpoint_correct xl xu (eq_refl _));
-  [|now rewrite !F.real_correct, ?X, ?X0..|
-    unfold F.toR; rewrite ?X, ?X0; simpl; lra].
-intros Rm [Hml Hmu].
-rewrite (F'.real_correct _ Rm); split; [easy|].
-revert Hml Hmu.
-unfold F.toR.
-now rewrite X, X0.
+destruct x as [|x].
+  exfalso.
+  revert Hx.
+  simpl.
+  now case andb.
+unfold midpoint, c1, cm1, c2.
+destruct (F.real xl) eqn:Rl.
+- destruct (F.real xu) eqn:Ru.
+  + revert Hx.
+    simpl.
+    rewrite F'.valid_lb_real, F'.valid_ub_real by easy.
+    rewrite 2!F'.real_correct by easy.
+    intros [Hxl Hxu].
+    destruct (F.midpoint_correct _ _ eq_refl Rl Ru (Rle_trans _ _ _ Hxl Hxu)) as [Hm1 Hm2].
+    simpl.
+    now rewrite F'.real_correct.
+  + assert (Hx': (proj_val (F.toX xl) <= x)%R).
+    { revert Hx.
+      simpl.
+      case andb ; simpl.
+      now rewrite F'.real_correct.
+      lra. }
+    assert (Hz: forall z, (F.toR xl <= z)%R -> contains (convert (Ibnd xl xu)) (Xreal z)).
+    { intros z Hz.
+      revert Hx.
+      simpl.
+      case andb ; simpl.
+      intros _.
+      split.
+      now rewrite F'.real_correct.
+      now rewrite F'.real_correct_false.
+      lra. }
+    rewrite F.cmp_correct.
+    rewrite F'.classify_real by easy.
+    rewrite F'.classify_real by now rewrite F.real_correct, F.zero_correct.
+    rewrite (F'.real_correct xl) by easy.
+    rewrite F.zero_correct.
+    simpl Xcmp.
+    case Rcompare_spec ; intros Hl.
+    * rewrite F.zero_correct.
+      apply (conj eq_refl).
+      apply Hz.
+      now apply Rlt_le.
+    * rewrite F.fromZ_correct by easy.
+      apply (conj eq_refl).
+      apply Hz.
+      rewrite Hl.
+      apply Rle_0_1.
+    * destruct (F.mul_UP_correct p52 xl (F.fromZ 2)) as [Hm1 Hm2].
+      { left.
+        unfold F.is_non_neg.
+        repeat split.
+        now apply F'.valid_ub_real.
+        rewrite F'.real_correct by easy.
+        now apply Rlt_le.
+        apply F'.valid_ub_real.
+        now rewrite F.real_correct, F.fromZ_correct.
+        rewrite F.fromZ_correct by easy.
+        now apply IZR_le. }
+      destruct (F.real (F.mul_UP p52 xl (F.fromZ 2))) eqn:Rp.
+      split.
+      now apply F'.real_correct.
+      rewrite F'.real_correct by easy.
+      apply Hz.
+      revert Hm2.
+      unfold le_upper, F.toR.
+      rewrite F'.real_correct by easy.
+      rewrite F'.real_correct by easy.
+      rewrite F.fromZ_correct by easy.
+      simpl.
+      lra.
+      split.
+      now apply F'.real_correct.
+      rewrite F'.real_correct by easy.
+      apply Hz.
+      apply Rle_refl.
+- destruct (F.real xu) eqn:Ru.
+  + assert (Hx': (x <= proj_val (F.toX xu))%R).
+    { revert Hx.
+      simpl.
+      case andb ; simpl.
+      now rewrite (F'.real_correct xu).
+      lra. }
+    assert (Hz: forall z, (z <= F.toR xu)%R -> contains (convert (Ibnd xl xu)) (Xreal z)).
+    { intros z Hz.
+      revert Hx.
+      simpl.
+      case andb ; simpl.
+      intros _.
+      split.
+      now rewrite F'.real_correct_false.
+      now rewrite F'.real_correct.
+      lra. }
+    rewrite F.cmp_correct.
+    rewrite F'.classify_real by easy.
+    rewrite F'.classify_real by now rewrite F.real_correct, F.zero_correct.
+    rewrite (F'.real_correct xu) by easy.
+    rewrite F.zero_correct.
+    simpl Xcmp.
+    case Rcompare_spec ; intros Hu.
+    * destruct (F.mul_DN_correct p52 xu (F.fromZ 2)) as [Hm1 Hm2].
+      { right. right. right.
+        unfold F.is_non_pos, F.is_non_neg.
+        repeat split.
+        now apply F'.valid_lb_real.
+        rewrite F'.real_correct by easy.
+        now apply Rlt_le.
+        apply F'.valid_ub_real.
+        now rewrite F.real_correct, F.fromZ_correct.
+        rewrite F.fromZ_correct by easy.
+        now apply IZR_le. }
+      destruct (F.real (F.mul_DN p52 xu (F.fromZ 2))) eqn:Rp.
+      split.
+      now apply F'.real_correct.
+      rewrite F'.real_correct by easy.
+      apply Hz.
+      revert Hm2.
+      unfold le_lower, le_upper, F.toR.
+      unfold Xneg.
+      rewrite F'.real_correct by easy.
+      rewrite F'.real_correct by easy.
+      rewrite F.fromZ_correct by easy.
+      simpl.
+      lra.
+      split.
+      now apply F'.real_correct.
+      rewrite F'.real_correct by easy.
+      apply Hz.
+      apply Rle_refl.
+    * rewrite F.fromZ_correct by easy.
+      apply (conj eq_refl).
+      apply Hz.
+      rewrite Hu.
+      now apply IZR_le.
+    * rewrite F.zero_correct.
+      apply (conj eq_refl).
+      apply Hz.
+      now apply Rlt_le.
+  + rewrite F.zero_correct.
+    apply (conj eq_refl).
+    revert Hx.
+    simpl.
+    case andb ; simpl.
+    intros _.
+    now rewrite 2!F'.real_correct_false.
+    lra.
 Qed.
 
 Theorem bisect_correct :
