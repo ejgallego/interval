@@ -22,7 +22,6 @@ From Flocq Require Import Raux.
 
 Require Import Xreal.
 Require Import Basic.
-Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Variant fclass := Freal | Fnan | Fminfty | Fpinfty.  (* TODO PR: move? *)
 

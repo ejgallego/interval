@@ -25,7 +25,6 @@ Require Import Basic.
 Require Import Generic.
 Require Import Generic_proof.
 Require Import Sig.
-Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Module Type Radix.
   Parameter val : radix.

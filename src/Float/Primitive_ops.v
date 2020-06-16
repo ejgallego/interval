@@ -5,7 +5,6 @@ From Bignums Require Import BigZ.
 Require Import Xreal.
 Require Import Basic.
 Require Import Sig.
-Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Require Import Specific_bigint.
 Require Import Specific_ops.

@@ -27,7 +27,6 @@ Require Import Generic.
 Require Import Generic_proof.
 Require Import Sig.
 Require Import Specific_sig.
-Require Import Interval.Interval.  (* for le_upper/lower, TODO PR: move them? *)
 
 Inductive s_float (smantissa_type exponent_type : Type) : Type :=
   | Fnan : s_float smantissa_type exponent_type
