@@ -1208,7 +1208,8 @@ Qed.
 
 (** Return a dummy Taylor model of order [n] that contains every point of [Y] *)
 Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
-  let mid := I.midpoint' Y in
+  let mid := I.midpoint Y in
+  let mid := I.bnd mid mid in
   let pol := Pol.polyC mid in
   {| approx := if n == 0 then pol
                else Pol.set_nth pol n Pol.Int.zero;
@@ -1240,8 +1241,19 @@ have Hrr := Hf _ H0.
 set r := proj_val (f x0).
 have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
-have Hmid := I.midpoint'_correct Y.
-have [m Hm] := proj2 Hmid (ex_intro _ r Hr).
+destruct (I.midpoint_correct Y) as [Hm1 Hm2].
+  now exists (Xreal r).
+set (m := proj_val (I.convert_bound (I.midpoint Y))).
+rewrite Hm1 in Hm2.
+fold m in Hm1, Hm2.
+assert (Hm: I.convert (I.bnd (I.midpoint Y) (I.midpoint Y)) = Ibnd (Xreal m) (Xreal m)).
+  rewrite I.bnd_correct.
+  now rewrite Hm1.
+  now apply I.valid_lb_real.
+  now apply I.valid_ub_real.
+assert (Hm': contains (I.convert (I.bnd (I.midpoint Y) (I.midpoint Y))) (Xreal m)).
+  rewrite Hm.
+  split ; apply Rle_refl.
 split=>//.
   move=> /= x Hx Nx.
   rewrite /TM_any /= in Nx.
@@ -1250,8 +1262,13 @@ split=>//.
   exact: Hf.
   apply I.mask_propagate_r.
   apply I.mask_correct'.
-  apply: subset_sub_contains_0 Hm _.
-  exact: proj1 Hmid.
+  apply: subset_sub_contains_0 Hm' _.
+  intros t.
+  rewrite Hm.
+  destruct t as [|t].
+  easy.
+  intros [H1 H2].
+  now rewrite (Rle_antisym _ _ H2 H1).
 set pol0 := PolR.polyC m.
 set pol' := if n == 0 then pol0 else PolR.set_nth pol0 n 0%R.
 exists pol'.
