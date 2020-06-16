@@ -310,24 +310,7 @@ Definition bisect xi :=
   match xi with
   | Inan => (Inan, Inan)
   | Ibnd xl xu =>
-    let m :=
-      match F.real xl, F.real xu with
-      | false, false => F.zero
-      | true, false =>
-        match F.cmp xl F.zero with
-        | Xund | Xlt => F.zero
-        | Xeq => c1
-        | Xgt => xl
-        end
-      | false, true =>
-        match F.cmp xu F.zero with
-        | Xund | Xgt => F.zero
-        | Xeq => cm1
-        | Xlt => xu
-        end
-      | true, true => F.midpoint xl xu
-      end in
-    (Ibnd xl m, Ibnd m xu)
+    let m := midpoint xi in (Ibnd xl m, Ibnd m xu)
   end.
 
 Definition extension f fi := forall b x,
@@ -1339,23 +1322,28 @@ Theorem bisect_correct :
   contains (convert xi) x ->
   contains (convert (fst (bisect xi))) x \/ contains (convert (snd (bisect xi))) x.
 Proof.
-intros [|xl xu] [|x]; simpl; [now left..|now case (_ && _)|].
-case_eq (F.valid_lb xl); [|intros _ [H0 H1]; exfalso; lra].
-case_eq (F.valid_ub xu); [|intros _ _ [H0 H1]; exfalso; lra].
-intros Vxu Vxl (Hxl, Hxu).
-simpl; rewrite Bool.andb_comm; simpl.
-fold (midpoint (Ibnd xl xu)).
-destruct (midpoint_correct (Ibnd xl xu)) as [H1 H2].
-{ now exists (Xreal x); simpl; rewrite Vxl, Vxu. }
-rewrite F'.valid_lb_real; [|now rewrite F.real_correct, H1].
-rewrite F'.valid_ub_real; [|now rewrite F.real_correct, H1].
-set (m := midpoint _).
+intros xi x Hx.
+destruct (midpoint_correct xi) as [H1 H2].
+  now exists x.
+unfold bisect.
+set (m := midpoint xi).
 fold m in H1, H2.
 clearbody m.
-revert Hxl Hxu.
+destruct xi as [|xl xu].
+now left.
+revert Hx.
+simpl.
+destruct x as [|x].
+  now case (_ && _).
+destruct (F.valid_lb xl).
+2: simpl ; lra.
+destruct (F.valid_ub xu).
+2: simpl ; lra.
+intros [H3 H4].
+rewrite valid_lb_real by easy.
+rewrite valid_ub_real by easy.
 simpl.
 rewrite H1.
-intros H3 H4.
 destruct (Rle_or_lt x (proj_val (F.toX m))) as [H5|H5].
   now left.
 right.
