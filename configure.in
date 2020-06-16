@@ -69,14 +69,10 @@ AS_IF(
 rm -f conftest.v conftest.vo conftest.err
 
 AC_MSG_CHECKING([for primitive floats])
-AX_VERSION_GE([$coq_version], 8.11,
-  [prim_float=yes],
-  [prim_float=no])
 AS_IF(
-  [ echo "Require Import Flocq.Version BinNat." \
-         "Goal (30300 <= Flocq_version)%N. easy. Qed." > conftest.v
+  [ echo "Require Import Flocq.IEEE754.PrimFloat." > conftest.v
     $COQC conftest.v 2> conftest.err ],
-  [], [prim_float=no])
+  [prim_float=yes], [prim_float=no])
 rm -f conftest.v conftest.vo conftest.err
 AC_MSG_RESULT([$prim_float])
 
