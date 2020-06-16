@@ -523,6 +523,16 @@ unfold F.toR.
 now destruct F.toX as [|rx].
 Qed.
 
+Lemma real_correct_false :
+  forall x,
+  F.real x = false ->
+  F.toX x = Xnan.
+Proof.
+intros x Rx.
+rewrite F.real_correct in Rx.
+now destruct F.toX.
+Qed.
+
 Inductive toX_prop (x : F.type) : ExtendedR -> Prop :=
   | toX_Xnan : toX_prop x Xnan
   | toX_Xreal : F.toX x = Xreal (F.toR x) -> toX_prop x (Xreal (F.toR x)).
@@ -542,11 +552,18 @@ unfold F.toR.
 now rewrite H at 2.
 Qed.
 
+Lemma classify_real :
+  forall x, F.real x = true -> F.classify x = Freal.
+Proof.
+intros x.
+rewrite F.classify_correct.
+now case F.classify.
+Qed.
+
 Lemma classify_zero : F.classify F.zero = Freal.
 Proof.
-generalize (F.classify_correct F.zero).
-rewrite F.real_correct, F.zero_correct.
-now case F.classify.
+apply classify_real.
+now rewrite F.real_correct, F.zero_correct.
 Qed.
 
 Lemma min_valid_lb x y :
