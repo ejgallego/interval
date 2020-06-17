@@ -38,28 +38,6 @@ Local Open Scope nat_scope.
 
 Notation IInan := Interval.Inan (only parsing).
 
-Lemma contains_Xreal (xi : interval) (x : ExtendedR) :
-  contains xi x -> contains xi (Xreal (proj_val x)).
-Proof. by case: x =>//; case: xi. Qed.
-
-(*******************************************************************************)
-(** For convenience, define a predicate [not_empty'] equivalent to [not_empty] *)
-(*******************************************************************************)
-
-Definition not_empty' (xi : interval) := exists v : ExtendedR, contains xi v.
-
-Lemma not_emptyE xi : not_empty' xi -> not_empty xi.
-Proof.
-case: xi =>[|l u] [v Hv]; first by exists R0.
-case: v Hv =>[//|r] Hr.
-by exists r.
-Qed.
-
-Lemma not_empty'E xi : not_empty xi -> not_empty' xi.
-Proof.
-case=>[r Hr]; by exists (Xreal r).
-Qed.
-
 (**************************************************************)
 (** Some support results relating inequalities and [contains] *)
 (**************************************************************)
@@ -270,65 +248,6 @@ Proof.
 move=> Hx; rewrite /apart0.
 have := I.sign_strict_correct X; case: I.sign_strict=>//;
   by case/(_ _ Hx) =>/=; auto with real.
-Qed.
-
-(*******************************************************)
-(** Support results about [I.midpoint] and [not_empty] *)
-(*******************************************************)
-
-Definition Imid i : I.type := I.bnd (I.midpoint i) (I.midpoint i).
-
-Lemma not_empty_Imid (X : I.type) :
-  not_empty (I.convert X) -> not_empty (I.convert (Imid X)).
-Proof.
-case=>[v Hv].
-rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
-  [|now apply I.midpoint_correct; exists (Xreal v)..].
-apply: not_emptyE.
-exists (I.convert_bound (I.midpoint X)).
-red.
-have e : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
-have [-> _] := I.midpoint_correct X e.
-by auto with real.
-Qed.
-
-Lemma Imid_subset (X : I.type) :
-  not_empty (I.convert X) ->
-  subset' (I.convert (Imid X)) (I.convert X).
-Proof.
-case=>[v Hv].
-rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
-  [|now apply I.midpoint_correct; exists (Xreal v)..].
-have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
-have [->] := I.midpoint_correct X HX.
-case: I.convert =>[//|l u].
-move => H [//|x].
-intros [H1 H2].
-by rewrite (Rle_antisym _ _ H2 H1).
-Qed.
-
-Lemma Imid_contains (X : I.type) :
-  not_empty (I.convert X) ->
-  contains (I.convert (Imid X)) (I.convert_bound (I.midpoint X)).
-Proof.
-move=>[v Hv].
-rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
-  [|now apply I.midpoint_correct; exists (Xreal v)..].
-have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
-have [-> Hreal] := I.midpoint_correct X HX.
-split ; apply Rle_refl.
-Qed.
-
-Lemma Xreal_Imid_contains (X : I.type) :
-  not_empty (I.convert X) ->
-  contains (I.convert (Imid X)) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
-Proof.
-move=>[v Hv].
-rewrite /Imid I.bnd_correct; [|apply I.valid_lb_real|apply I.valid_ub_real];
-  [|now apply I.midpoint_correct; exists (Xreal v)..].
-have HX : exists x : ExtendedR, contains (I.convert X) x by exists (Xreal v).
-have [-> Hreal] := I.midpoint_correct X HX.
-split ; apply Rle_refl.
 Qed.
 
 (******************************************************************************)

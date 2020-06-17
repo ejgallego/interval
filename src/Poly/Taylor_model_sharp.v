@@ -1208,8 +1208,7 @@ Qed.
 
 (** Return a dummy Taylor model of order [n] that contains every point of [Y] *)
 Definition TM_any (Y : I.type) (X : I.type) (n : nat) :=
-  let mid := I.midpoint Y in
-  let mid := I.bnd mid mid in
+  let mid := J.midpoint Y in
   let pol := Pol.polyC mid in
   {| approx := if n == 0 then pol
                else Pol.set_nth pol n Pol.Int.zero;
@@ -1241,19 +1240,10 @@ have Hrr := Hf _ H0.
 set r := proj_val (f x0).
 have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
-destruct (I.midpoint_correct Y) as [Hm1 Hm2].
-  now exists (Xreal r).
 set (m := proj_val (I.convert_bound (I.midpoint Y))).
-rewrite Hm1 in Hm2.
-fold m in Hm1, Hm2.
-assert (Hm: I.convert (I.bnd (I.midpoint Y) (I.midpoint Y)) = Ibnd (Xreal m) (Xreal m)).
-  rewrite I.bnd_correct.
-  now rewrite Hm1.
-  now apply I.valid_lb_real.
-  now apply I.valid_ub_real.
-assert (Hm': contains (I.convert (I.bnd (I.midpoint Y) (I.midpoint Y))) (Xreal m)).
-  rewrite Hm.
-  split ; apply Rle_refl.
+assert (Hm': contains (I.convert (J.midpoint Y)) (Xreal m)).
+  apply J.contains_midpoint.
+  now exists r.
 split=>//.
   move=> /= x Hx Nx.
   rewrite /TM_any /= in Nx.
@@ -1263,12 +1253,8 @@ split=>//.
   apply I.mask_propagate_r.
   apply I.mask_correct'.
   apply: subset_sub_contains_0 Hm' _.
-  intros t.
-  rewrite Hm.
-  destruct t as [|t].
-  easy.
-  intros [H1 H2].
-  now rewrite (Rle_antisym _ _ H2 H1).
+  apply J.subset_midpoint.
+  now exists r.
 set pol0 := PolR.polyC m.
 set pol' := if n == 0 then pol0 else PolR.set_nth pol0 n 0%R.
 exists pol'.
@@ -3063,7 +3049,7 @@ Definition TMset0 (Mf : rpa) t :=
 Definition TM_comp (TMg : TM_type) (Mf : rpa) (X0 X : I.type) n :=
   let Bf := Bnd.ComputeBound prec (approx Mf) (I.sub prec X X0) in
   let A0 := Pol.nth (approx Mf) 0 in
-  let a0 := Imid A0 in
+  let a0 := J.midpoint A0 in
   let Mg := TMg a0 (I.add prec Bf (error Mf)) n in
   let M1 := TMset0 Mf (I.sub prec A0 a0) in
   let M0 := TM_horner n (approx Mg) M1 X0 X in
@@ -3122,7 +3108,7 @@ Lemma TM_comp_correct (x0 : R) (X0 X : I.type) (TMg : TM_type) (Mf : rpa) g f :
 Proof.
 move=> Hne Hf Hg n; rewrite /TM_comp.
 set A0 := Pol.nth (approx Mf) 0.
-set a0 := Imid A0.
+set a0 := J.midpoint A0.
 set Bf := Bnd.ComputeBound prec (approx Mf) (I.sub prec X X0).
 set BfMf := I.add prec Bf (error Mf).
 set Mg := TMg a0 (I.add prec Bf (error Mf)) n.
@@ -3136,25 +3122,18 @@ have ne_A0 : not_empty (I.convert A0).
   by eexists; eapply hq1.
 pose alpha0 := proj_val (I.convert_bound (I.midpoint A0)).
 have in_a0 : a0 >: alpha0.
-  exact: Xreal_Imid_contains.
+  exact: J.contains_midpoint.
 have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
   rewrite /a0 /BfMf.
   move=> [|v] Hv.
     apply/contains_Xnan; rewrite I.add_propagate_r //.
     rewrite /A0 in Hv.
     apply/contains_Xnan.
-    rewrite /Imid I.bnd_correct in Hv.
-    - by rewrite Fnai.
-    - apply I.valid_lb_real.
-      apply I.midpoint_correct.
-      have [Q HQ1 _] := Fmain.
-      move/(_ 0) in HQ1.
-      by exists (Xreal (PolR.nth Q O)).
-    - apply I.valid_ub_real.
-      apply I.midpoint_correct.
-      have [Q HQ1 _] := Fmain.
-      move/(_ 0) in HQ1.
-      by exists (Xreal (PolR.nth Q O)).
+    rewrite J.midpoint_correct in Hv.
+    easy.
+    have [Q HQ1 _] := Fmain.
+    move/(_ 0) in HQ1.
+    by exists (PolR.nth Q O).
   rewrite /Bf.
   step_xr (Xadd (Xreal v) (Xreal 0)); last by rewrite Xadd_0_r.
   apply: I.add_correct =>//.
@@ -3162,7 +3141,7 @@ have subs_a0 : subset' (I.convert a0) (I.convert BfMf).
   apply: (@ComputeBound_nth0 _ _ qf) =>//.
   rewrite <- (Rminus_eq_0 x0).
   now apply J.sub_correct.
-  exact: Imid_subset.
+  exact: J.subset_midpoint.
 have [Gdef Gnai Gzero Gsubs Gmain] := Hg alpha0 a0 BfMf n subs_a0 in_a0.
 have inBfMf : forall x : R, X >: x -> contains (I.convert BfMf) (f x).
   move=> x Hx; rewrite /BfMf /Bf.

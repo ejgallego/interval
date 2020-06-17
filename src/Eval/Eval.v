@@ -390,6 +390,8 @@ Qed.
 
 Module IntervalAlgos (I : IntervalOps).
 
+Module J := IntervalExt I.
+
 Definition contains_all xi x :=
   length xi = length x /\
   forall n, contains (I.convert (nth n xi I.nai)) (Xreal (nth n x 0)).
@@ -1144,13 +1146,12 @@ Definition diff_refining prec xi yi yi' fi :=
   match I.sign_large yi' with
   | Xund =>
     if I.bounded yi' then
-      let m := I.midpoint xi in
-      let mi := I.bnd m m in
+      let mi := J.midpoint xi in
       I.meet yi
        (I.add prec (fi mi) (I.mul prec (I.sub prec xi mi) yi'))
     else yi
   | Xeq =>
-    let m := I.midpoint xi in fi (I.bnd m m)
+    fi (J.midpoint xi)
   | Xlt =>
     I.meet
      (if I.lower_bounded xi then
@@ -1326,26 +1327,20 @@ Theorem diff_refining_points_correct :
  (if I.upper_bounded xi then
     contains (I.convert yu) (f (I.convert_bound (I.upper xi)))
   else True) ->
-  let m := I.midpoint xi in
   forall x, contains (I.convert xi) x ->
-  contains (I.convert (diff_refining_points prec xi (I.sub prec xi (I.bnd m m)) yi yi' ym yl yu)) (f x).
+  contains (I.convert (diff_refining_points prec xi (I.sub prec xi (J.midpoint xi)) yi yi' ym yl yu)) (f x).
 Proof.
-intros prec f f' xi yi yi' ym yl yu Hd Hyi Hyi' Hym Hyl Hyu m x Hx.
-unfold m. clear m.
+intros prec f f' xi yi yi' ym yl yu Hd Hyi Hyi' Hym Hyl Hyu x Hx.
 unfold diff_refining_points.
 generalize (I.sign_large_correct yi').
 assert (Hnexi : not_empty (I.convert xi)).
-{ revert Hx.
-  case (I.convert xi) as [|l u].
-  { now intros _; exists 0. }
-  now case x as [|x]; [|exists x]. }
+{ apply not_empty_contains with (1 := Hx). }
 case_eq (I.sign_large yi') ; intros Hs1 Hs2.
 (* - sign is Xeq *)
-destruct (I.midpoint_correct xi (ex_intro _ _ Hx)) as (H1, H2).
 eapply diff_refining_aux_2 with (1 := Hd) (5 := Hx).
-instantiate (1 := proj_val (I.convert_bound (I.midpoint xi))).
-now rewrite <- H1.
-now rewrite <- H1.
+apply J.subset_midpoint with (1 := Hnexi).
+now apply J.contains_midpoint.
+now destruct (I.midpoint_correct xi Hnexi) as [<- _].
 intros.
 rewrite (Hs2 (f' x0)).
 split ; apply Rle_refl.
@@ -1541,13 +1536,9 @@ clear Hs1 Hs2.
 case_eq (I.bounded yi') ; intro Hb.
 apply I.meet_correct.
 now apply Hyi.
-destruct (I.midpoint_correct xi (ex_intro _ _ Hx)) as (Hm1, Hm2).
+destruct (I.midpoint_correct xi Hnexi) as (Hm1, Hm2).
 eapply diff_refining_aux_1 with (1 := Hd).
-rewrite I.bnd_correct.
-rewrite Hm1.
-split ; apply Rle_refl.
-now apply I.valid_lb_real.
-now apply I.valid_ub_real.
+now apply J.contains_midpoint.
 now rewrite <- Hm1.
 now rewrite <- Hm1.
 exact Hyi'.
@@ -1612,7 +1603,8 @@ apply Hf'.
 apply Hf.
 apply (convert_bnd l u).
 rewrite <- H.
-exact (proj2 (I.midpoint_correct _ (ex_intro _ _ Hx))).
+apply I.midpoint_correct.
+apply not_empty_contains with (1 := Hx).
 (*   lower bound *)
 generalize (I.lower_bounded_correct xi).
 case (I.lower_bounded xi).
@@ -1625,7 +1617,7 @@ rewrite -> H1, H0 in H.
 rewrite H0.
 inversion_clear H.
 split; exact: Rle_refl.
-by apply/not_emptyE; exists x.
+apply not_empty_contains with (1 := Hx).
 now intros _.
 (*   upper bound *)
 generalize (I.upper_bounded_correct xi).
@@ -1639,7 +1631,7 @@ rewrite -> H1, H0 in H.
 rewrite H0.
 inversion H.
 split ; apply Rle_refl.
-by apply/not_emptyE; exists x.
+apply not_empty_contains with (1 := Hx).
 now intros _.
 Qed.
 

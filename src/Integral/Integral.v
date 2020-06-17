@@ -785,7 +785,7 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 Variable Mf : TM.TMI.rpa.
 Variables X : I.type.
 Definition x0 := proj_val (I.convert_bound (I.midpoint X)).
-Definition X0 := I.bnd (I.midpoint X) (I.midpoint X).
+Definition X0 := J.midpoint X.
 Definition iX := I.convert X.
 Definition iX0 := I.convert X0.
 
@@ -818,13 +818,8 @@ Lemma taylor_integral_correct :
 Proof.
 rewrite /taylor_integral.
 apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.convert_bound (I.midpoint X)))) => //.
-assert (Hex : exists x : ExtendedR, contains (I.convert X) x).
-{ eexists.
-  exact: Hcontxa. }
-rewrite /X0 I.bnd_correct.
-{ now rewrite (proj1 (I.midpoint_correct X _)); [split ; apply Rle_refl|]. }
-{ now apply I.valid_lb_real, I.midpoint_correct. }
-now apply I.valid_ub_real, I.midpoint_correct.
+apply J.contains_midpoint.
+now exists a.
 Qed.
 
 Lemma taylor_integral_naive_intersection_correct :

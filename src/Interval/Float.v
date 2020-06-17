@@ -1276,7 +1276,7 @@ Qed.
 
 Theorem midpoint_correct :
   forall xi,
-  (exists x, contains (convert xi) x) ->
+  not_empty (convert xi) ->
   F.toX (midpoint xi) = Xreal (proj_val (F.toX (midpoint xi))) /\
   contains (convert xi) (F.toX (midpoint xi)).
 Proof.
@@ -1286,11 +1286,6 @@ intros [|xl xu].
   simpl.
   now rewrite F.zero_correct. }
 intros (x, Hx).
-destruct x as [|x].
-  exfalso.
-  revert Hx.
-  simpl.
-  now case andb.
 unfold midpoint, c1, cm1, c2.
 destruct (F.real xl) eqn:Rl.
 - destruct (F.real xu) eqn:Ru.
@@ -1441,7 +1436,7 @@ Theorem bisect_correct :
 Proof.
 intros xi x Hx.
 destruct (midpoint_correct xi) as [H1 H2].
-  now exists x.
+{ apply not_empty_contains with (1 := Hx). }
 unfold bisect.
 set (m := midpoint xi).
 fold m in H1, H2.

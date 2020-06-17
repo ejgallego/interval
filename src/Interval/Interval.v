@@ -189,6 +189,26 @@ Qed.
 Definition not_empty xi :=
   exists v, contains xi (Xreal v).
 
+Lemma contains_Xreal :
+  forall xi x,
+  contains xi x ->
+  contains xi (Xreal (proj_val x)).
+Proof.
+intros xi [|x].
+now destruct xi.
+easy.
+Qed.
+
+Lemma not_empty_contains :
+  forall xi x,
+  contains xi x ->
+  not_empty xi.
+Proof.
+intros xi x Hx.
+exists (proj_val x).
+now apply contains_Xreal.
+Qed.
+
 Lemma contains_lower :
   forall l u x,
   contains (Ibnd (Xreal l) u) x ->
@@ -315,7 +335,7 @@ Parameter midpoint : type -> bound_type.
 
 Parameter midpoint_correct :
   forall xi,
-  (exists x, contains (convert xi) x) ->
+  not_empty (convert xi) ->
   convert_bound (midpoint xi) = Xreal (proj_val (convert_bound (midpoint xi))) /\
   contains (convert xi) (convert_bound (midpoint xi)).
 
@@ -724,6 +744,45 @@ apply: le_contains.
   apply: RInt_le_r => // x Hx.
   apply Hext.
   now rewrite -> Rmin_left, Rmax_right ; try apply Rlt_le.
+Qed.
+
+Definition midpoint xi :=
+  let m := I.midpoint xi in I.bnd m m.
+
+Lemma midpoint_correct :
+  forall xi, not_empty (I.convert xi) ->
+  I.convert (midpoint xi) = let m := Xreal (proj_val (I.convert_bound (I.midpoint xi))) in Ibnd m m.
+Proof.
+intros xi Ex.
+destruct (I.midpoint_correct xi Ex) as [H1 H2].
+unfold midpoint.
+rewrite I.bnd_correct.
+now rewrite H1.
+now apply I.valid_lb_real.
+now apply I.valid_ub_real.
+Qed.
+
+Lemma contains_midpoint :
+  forall xi, not_empty (I.convert xi) ->
+  contains (I.convert (midpoint xi)) (Xreal (proj_val (I.convert_bound (I.midpoint xi)))).
+Proof.
+intros xi Hx.
+rewrite (midpoint_correct xi Hx).
+split ; apply Rle_refl.
+Qed.
+
+Lemma subset_midpoint :
+  forall xi, not_empty (I.convert xi) ->
+  subset' (I.convert (midpoint xi)) (I.convert xi).
+Proof.
+intros xi Ex.
+rewrite (midpoint_correct xi Ex).
+intros [|x].
+easy.
+intros [H1 H2].
+rewrite (Rle_antisym _ _ H2 H1).
+destruct (I.midpoint_correct xi Ex) as [H3 H4].
+now rewrite <- H3.
 Qed.
 
 End IntervalBasicExt.

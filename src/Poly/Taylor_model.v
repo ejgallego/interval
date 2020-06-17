@@ -80,7 +80,7 @@ Definition tsize (t : T) : nat :=
 Definition get_tm (u : U) X (t : T) : rpa :=
   match t with
     | Const c => TM_cst X c
-    | Var => let X0 := Imid X in (TM_var X X0)
+    | Var => TM_var X (J.midpoint X)
     | Tm tm => tm (* ignore u, X in this branch *)
   end.
 
@@ -121,10 +121,8 @@ Lemma contains_midpoint :
   not_empty (I.convert X) ->
   contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
 Proof.
-intros X [x Hx].
-unfold Imid.
-destruct (I.midpoint_correct X) as [H1 H2].
-  now exists (Xreal x).
+intros X H.
+destruct (I.midpoint_correct X H) as [H1 H2].
 now rewrite <- H1.
 Qed.
 
@@ -143,8 +141,8 @@ move/(_ Hne) in H.
   apply TM_cst_correct_strong =>//.
   exact: contains_midpoint.
 - apply: TM_var_correct_strong=>//.
-    exact: Imid_subset.
-  exact: Xreal_Imid_contains.
+    exact: J.subset_midpoint.
+  exact: J.contains_midpoint.
 - exact: H.
 Qed.
 
@@ -183,7 +181,7 @@ Definition eval (u : U) (t : T) (Y X : I.type) : I.type :=
   | Const c => I.mask c X (* the need for I.mask comes from I.extension below *)
   | Var => X
   | Tm tm =>
-    let X0 := Imid Y in
+    let X0 := J.midpoint Y in
     let tm := get_tm u Y t in
     I.add u.1
       (Bnd.ComputeBound u.1 (approx tm) (I.sub u.1 X X0))
@@ -198,13 +196,14 @@ move=> Hf X x Hx.
 rewrite /eval.
 case HXY: I.subset; last by rewrite I.nai_correct.
 move/I.subset_correct: (HXY) => Hsubset.
+apply subset_contains in Hsubset.
+have HneY: not_empty (I.convert Y).
+{ apply (not_empty_contains _ x).
+  exact: Hsubset. }
 case: tf Hf => [c| |tm].
 (* Const *)
 case.
-{ apply/not_emptyE.
-  move/subset_contains in Hsubset.
-  eexists; apply Hsubset.
-  exact: Hx. }
+{ easy. }
 { move=> Hne.
   now rewrite I.mask_propagate_l. }
 { move=> H.
@@ -214,29 +213,16 @@ case.
   rewrite /is_const in H.
   case: H => y H1 H2.
   rewrite (H2 x) //.
-  move/subset_contains in Hsubset.
   exact: Hsubset. }
 (* Var *)
 case: x Hx => [|x] Hx //= -> //.
-{ move/subset_contains in Hsubset.
-  eexists; apply Hsubset.
-  exact: Hx. }
-exact: subset_contains Hsubset _ _.
+exact: Hsubset.
 (* Tm *)
 move=> Hf.
 have /= {Hf} := get_tm_correct u Hf=> Htm.
-have HneY: not_empty (I.convert Y).
-apply: not_emptyE.
-exists x; exact: subset_contains Hsubset _ _.
 move/(_ HneY): Htm.
 case => [Hdef Hnai Hzero _ Hmain].
-have [L1 L2] := I.midpoint_correct Y (not_empty'E HneY).
-set c0 := proj_val (I.convert_bound (I.midpoint Y)) in L1.
-have Hc0 : contains (I.convert (Imid Y)) (Xreal c0).
-  apply: Xreal_Imid_contains.
-  apply: not_emptyE; exists x.
-  apply: subset_contains Hx.
-  exact: I.subset_correct.
+set c0 := proj_val (I.convert_bound (I.midpoint Y)).
 have [qx Hcont Hdelta] := Hmain.
 move: x Hx => [|x Hx] /=.
   move/contains_Xnan => H0.
@@ -251,14 +237,15 @@ simpl.
 by congr Xreal; ring.
 apply I.add_correct =>//.
   apply: Bnd.ComputeBound_correct =>//.
-  exact: J.sub_correct.
+  apply: J.sub_correct Hx _.
+  exact: J.contains_midpoint.
 case Efx: (f x) => [|fx].
 apply/contains_Xnan.
 apply: Hdef Efx.
-exact: (subset_contains _ _ Hsubset).
+exact: Hsubset.
 rewrite Efx in Hdelta.
 apply: Hdelta.
-exact: (subset_contains _ _ Hsubset).
+exact: Hsubset.
 Qed.
 
 Definition add_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
@@ -370,7 +357,7 @@ Qed.
 Definition mul_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let M1 := get_tm u X t1 in
   let M2 := get_tm u X t2 in
-  let X0 := Imid X in
+  let X0 := J.midpoint X in
   Tm (TM_mul u.1 M1 M2 X0 X u.2).
 
 Definition mul (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
@@ -387,7 +374,7 @@ Lemma mul_slow_correct u (Y : I.type) tf tg f g :
 Proof.
 intros Hf Hg Hne.
 apply TM_mul_correct ; try apply get_tm_correct ; try easy.
-exact: Xreal_Imid_contains.
+exact: J.contains_midpoint.
 Qed.
 
 Theorem mul_correct u (Y : I.type) tf tg f g :
@@ -444,7 +431,7 @@ Qed.
 Definition div_slow (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
   let M1 := get_tm u X t1 in
   let M2 := get_tm u X t2 in
-  let X0 := Imid X in
+  let X0 := J.midpoint X in
   Tm (TM_div u.1 M1 M2 X0 X u.2).
 
 Definition div (u : U) (X : I.type) (t1 : T) (t2 : T) : T :=
@@ -461,7 +448,7 @@ Lemma div_slow_correct u (Y : I.type) tf tg f g :
 Proof.
 intros Hf Hg Hne.
 apply TM_div_correct ; try apply get_tm_correct ; try easy.
-exact: Xreal_Imid_contains.
+exact: J.contains_midpoint.
 Qed.
 
 Theorem div_correct u (Y : I.type) tf tg f g :
@@ -488,8 +475,8 @@ move: Hg => /(_ Hne) [Hg|Hg].
   now apply get_tm_correct.
 apply: TM_div_mixed_r_correct_strong =>//.
 apply: TM_var_correct_strong =>//.
-- exact: Imid_subset.
-- exact: Xreal_Imid_contains.
+- exact: J.subset_midpoint.
+- exact: J.contains_midpoint.
 - exact: Hf.
 (* Const . Tm *)
 move=> Hne.
@@ -582,8 +569,8 @@ case: I.sign_large (@Isign_large_Xabs u tf Y Y f Hf) => Habs;
   apply (TM_fun_eq Habs).
   apply: TM_opp_correct.
   apply: TM_var_correct_strong =>//.
-  exact: Imid_subset.
-  exact: Xreal_Imid_contains.
+  exact: J.subset_midpoint.
+  exact: J.contains_midpoint.
   exact: Hmain Hne.
 - red=> Hne.
   apply (TM_fun_eq Habs).
@@ -754,9 +741,8 @@ case E1 : Iconst => /=.
     by have := eval_correct u Hf Hx. }
   have Hi : not_empty (I.convert i).
   { rewrite /i.
-    apply/not_emptyE.
     have [y Hy] := Y0.
-    exists (Xlift (Rnearbyint m) (Xbind f (Xreal y))).
+    apply (not_empty_contains _ (Xlift (Rnearbyint m) (Xbind f (Xreal y)))).
     apply: I.nearbyint_correct.
     exact: eval_correct. }
   rewrite I.bnd_correct /=.
@@ -983,8 +969,8 @@ Definition fun_gen
   (u : U) (X : I.type) (t : T) : T :=
   match t with
     | Const c => Const (fi u.1 c)
-    | Var => let X0 := Imid X in Tm (ftm u.1 X0 X u.2)
-    | Tm tm => let X0 := Imid X in
+    | Var => let X0 := J.midpoint X in Tm (ftm u.1 X0 X u.2)
+    | Tm tm => let X0 := J.midpoint X in
       Tm (TM_comp u.1 (ftm u.1) tm X0 X u.2)
   end.
 
@@ -1015,12 +1001,12 @@ move=> Hext Hsiz Hvalid u X [c| |tm] f Hmain Hne.
 - apply: (@TM_fun_eq fx).
   by move=> *; rewrite Hmain.
   apply: Hvalid.
-  exact: Imid_subset.
-  exact: Xreal_Imid_contains.
+  exact: J.subset_midpoint.
+  exact: J.contains_midpoint.
 - move/(_ Hne) in Hmain.
   have [Hdef Hnai Hzero Hsubset Htm] := Hmain.
   apply (TM_comp_correct u.1) =>//.
-  exact: Xreal_Imid_contains.
+  exact: J.contains_midpoint.
   move=> *; exact: Hvalid.
 Qed.
 
