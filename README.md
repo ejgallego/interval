@@ -39,16 +39,18 @@ e.g., `5 / sqrt (1 + PI)`.
 The complete list of recognized goals is as follows:
 
   - `c1 <= e <= c2`;
-  - `e <= c2`;
-  - `c1 <= e`;
-  - `0 < e`;
-  - `e <> 0`;
-  - `Rabs e <= c2`, handled as `-c2 <= e <= c2`;
-  - `e1 <= e2`, handled as `e1 - e2 <= 0`;
-  - `e1 < e2`, handled as `0 < e2 - e1`;
-  - `e1 <> e2`, handled as `e1 - e2 <> 0`.
+  - `e <= c1`, `c1 <= e`, `e >= c1`, and `c1 >= e`;
+  - `e < c1`, `c1 < e`, `e > c1`, and `c1 > e`;
+  - `e <> c1` and `c1 <> e`;
+  - `Rabs e <= c1`, handled as `-c1 <= e <= c1`.
 
-Operators recognized by the tactic are `PI`, `Ropp`, `Rabs`, `Rinv`,
+The complete list of recognized hypotheses is as follows:
+
+  - `c1 <= t <= c2`;
+  - `t <= c1`, `c1 <= t`, `t >= c1`, and `c1 >= t`;
+  - `Rabs t <= c1`.
+
+The tactic recognize the following operators: `PI`, `Ropp`, `Rabs`, `Rinv`,
 `Rsqr`, `sqrt`, `cos`, `sin`, `tan`, `atan`, `exp`, `ln`, `pow`,
 `powerRZ`, `Rplus`, `Rminus`, `Rmult`, `Rdiv`. Operators `Zfloor`,
 `Zceil`, `Ztrunc`, `ZnearestE` (composed with `IZR`) are also recognized.
