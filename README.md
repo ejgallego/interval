@@ -79,11 +79,10 @@ p_infty)`. In the improper case, the integrand should be of the form
 `(fun t => f t * g t)` with `f` a function bounded on the integration
 domain and `g` one of the following expressions:
 
-  - `exp (- (_ * t))`,
   - `powerRZ t _ * (ln t) ^ _`,
   - `/ (t * (ln t) ^ _)`.
 
-The helper tactic `integral_intro` is the pendant of `interval_intro`,
+The helper tactic `integral_intro` is the counterpart of `interval_intro`,
 but for introducing enclosures of integrals into the proof context. As
 with `interval_intro`, keywords `lower`, `upper`, and `as`, are
 supported.
@@ -269,6 +268,7 @@ Goal
   x < 1 + powerRZ x 3.
 Proof.
   intros.
+  apply Rminus_lt.
   interval with (i_bisect x, i_autodiff x).
 Qed.
 
@@ -286,6 +286,6 @@ Goal
            (at_right 0) (at_point 1) = 1/32.
 Proof.
   refine ((fun H => Rle_antisym _ _ (proj2 H) (proj1 H)) _).
-  integral.
+  integral with (i_prec 10).
 Qed.
 ```
