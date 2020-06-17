@@ -1,6 +1,12 @@
 Guillaume Melquiond <guillaume.melquiond@inria.fr>
 
-Authors of the CoqApprox files are:
+The following people have made major contributions to CoqInterval:
+
+Érik Martin-Dorel <erik.martin-dorel@irit.fr>
+Pierre Roux <pierre.roux@onera.fr>
+Thomas Sibut-Pinote <thomas.sibut-pinote@inria.fr>
+
+The following people are the original authors of CoqApprox (src/Poly):
 
 Érik Martin-Dorel <erik.martin-dorel@ens-lyon.org>
 Micaela Mayero <micaela.mayero@lipn.univ-paris13.fr>

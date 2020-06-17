@@ -1,3 +1,27 @@
+Version 4.0.0
+-------------
+
+* ensured compatibility from Coq 8.8 to 8.12
+* made native floating-point computations the default:
+  - they are enabled when `i_prec` is not specified
+  - this requires support from both Coq (e.g., 8.11) and Flocq (e.g., 3.3)
+  - if support is missing, the tactic behaves as if passed `i_prec 53`
+* improved handling of bisection:
+  - `i_bisect` can now be passed several times, to split along several variables
+  - automatic differentiation is now enabled by `i_autodiff` (was `i_bisect_diff`)
+  - Taylor models are enabled by `i_taylor` (was `i_bisect_taylor`)
+  - automatic differentiation and Taylor models no longer implies bisection,
+    so `i_bisect` should also be passed if needed
+* moved support of integrals from `interval` to a dedicated tactic `integral`:
+  - only one integral can occur in the goal, but its enclosure is refined until the goal is proved
+  - bisection is not supported
+  - `i_fuel` controls the maximal number of sub-intervals (replaces `i_integral_depth`)
+  - `i_degree` controls the size of the polynomials (was `i_integral_deg`)
+* moved support of integrals from `interval_intro` to a dedicated tactic `integral_intro`:
+  - the expression has to be an integral
+  - `i_width` controls the width of the computed enclosure (was `i_integral_width`)
+  - `i_relwidth` controls the accuracy of the computed enclosure (was `i_integral_prec`)
+
 Version 3.4.2
 -------------
 
