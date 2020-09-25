@@ -26,6 +26,7 @@ FILES = \
 	Missing/Coquelicot \
 	Missing/MathComp \
 	Missing/Stdlib \
+	Plot/Plot \
 	Poly/Basic_rec \
 	Poly/Bound \
 	Poly/Bound_quad \
