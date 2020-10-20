@@ -46,7 +46,7 @@ The complete list of recognized goals is as follows:
 
 The complete list of recognized hypotheses is as follows:
 
-  - `c1 <= t <= c2`;
+  - `c1 <= t <= c2`, `c1 <= e < c2`, `c1 < e <= c2`, and `c1 < e < c2`;
   - `t <= c1`, `c1 <= t`, `t >= c1`, and `c1 >= t`;
   - `t < c1`, `c1 < t`, `t > c1`, and `c1 > t`;
   - `Rabs t <= c1` and `Rabs t < c1`, handled as `-c1 <= e <= c1`.
