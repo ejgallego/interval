@@ -48,9 +48,10 @@ The complete list of recognized hypotheses is as follows:
 
   - `c1 <= t <= c2`;
   - `t <= c1`, `c1 <= t`, `t >= c1`, and `c1 >= t`;
-  - `Rabs t <= c1`.
+  - `t < c1`, `c1 < t`, `t > c1`, and `c1 > t`;
+  - `Rabs t <= c1` and `Rabs t < c1`, handled as `-c1 <= e <= c1`.
 
-The tactic recognize the following operators: `PI`, `Ropp`, `Rabs`, `Rinv`,
+The tactic recognizes the following operators: `PI`, `Ropp`, `Rabs`, `Rinv`,
 `Rsqr`, `sqrt`, `cos`, `sin`, `tan`, `atan`, `exp`, `ln`, `pow`,
 `powerRZ`, `Rplus`, `Rminus`, `Rmult`, `Rdiv`. Operators `Zfloor`,
 `Zceil`, `Ztrunc`, `ZnearestE` (composed with `IZR`) are also recognized.

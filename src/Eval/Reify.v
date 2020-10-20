@@ -27,20 +27,26 @@ Require Import Tree.
 Require Import Prog.
 
 Inductive hyp : Set :=
-  | Hle (b : bool) (v : expr)
-  | Hge (b : bool) (u : expr)
+  | Hle (b l : bool) (v : expr)
+  | Hge (b l : bool) (u : expr)
   | Hlele (u v : expr)
-  | Habsle (b : bool) (v : expr).
+  | Habsle (b l : bool) (v : expr).
 
 Fixpoint eval_hyp (h : hyp) (var : R) :=
   match h with
-  | Hle true v => (var <= eval v nil)%R
-  | Hle false v => (eval v nil >= var)%R
-  | Hge true u => (eval u nil <= var)%R
-  | Hge false u => (var >= eval u nil)%R
+  | Hle true true v => (var <= eval v nil)%R
+  | Hle true false v => (var < eval v nil)%R
+  | Hle false true v => (eval v nil >= var)%R
+  | Hle false false v => (eval v nil > var)%R
+  | Hge true true u => (eval u nil <= var)%R
+  | Hge true false u => (eval u nil < var)%R
+  | Hge false true u => (var >= eval u nil)%R
+  | Hge false false u => (var > eval u nil)%R
   | Hlele u v => (eval u nil <= var <= eval v nil)%R
-  | Habsle true v => (Rabs var <= eval v nil)%R
-  | Habsle false v => (eval v nil >= Rabs var)%R
+  | Habsle true true v => (Rabs var <= eval v nil)%R
+  | Habsle true false v => (Rabs var < eval v nil)%R
+  | Habsle false true v => (eval v nil >= Rabs var)%R
+  | Habsle false false v => (eval v nil > Rabs var)%R
   end.
 
 Fixpoint eval_hyps_aux (hyps : list hyp) (var : R) (g : Prop) :=
@@ -113,12 +119,18 @@ Ltac find_hyps_aux x known cont :=
   | H : (?u <= x <= ?v)%R |- _ =>
     let u := reify u (@nil R) in
     aux H v (Hlele u)
-  | H : (?u <= x)%R |- _ => aux H u (Hge true)
-  | H : (x >= ?u)%R |- _ => aux H u (Hge false)
-  | H : (x <= ?v)%R |- _ => aux H v (Hle true)
-  | H : (?v >= x)%R |- _ => aux H v (Hle false)
-  | H : (Rabs x <= ?v)%R |- _ => aux H v (Habsle true)
-  | H : (?v >= Rabs x)%R |- _ => aux H v (Habsle false)
+  | H : (?u <= x)%R |- _ => aux H u (Hge true true)
+  | H : (x >= ?u)%R |- _ => aux H u (Hge false true)
+  | H : (x <= ?v)%R |- _ => aux H v (Hle true true)
+  | H : (?v >= x)%R |- _ => aux H v (Hle false true)
+  | H : (Rabs x <= ?v)%R |- _ => aux H v (Habsle true true)
+  | H : (?v >= Rabs x)%R |- _ => aux H v (Habsle false true)
+  | H : (?u < x)%R |- _ => aux H u (Hge true false)
+  | H : (x > ?u)%R |- _ => aux H u (Hge false false)
+  | H : (x < ?v)%R |- _ => aux H v (Hle true false)
+  | H : (?v > x)%R |- _ => aux H v (Hle false false)
+  | H : (Rabs x < ?v)%R |- _ => aux H v (Habsle true false)
+  | H : (?v > Rabs x)%R |- _ => aux H v (Habsle false false)
   | _ =>
     cont known
   end.
@@ -188,9 +200,9 @@ Module J := IntervalExt I.
 Definition eval_hyp_bnd (prec : I.precision) (h : hyp) :=
   match h with
   | Hlele u v => I.join (E.eval_bnd prec u) (E.eval_bnd prec v)
-  | Hle _ v => I.lower_extent (E.eval_bnd prec v)
-  | Hge _ u => I.upper_extent (E.eval_bnd prec u)
-  | Habsle _ v => let vi := I.lower_extent (E.eval_bnd prec v) in I.meet (I.neg vi) vi
+  | Hle _ _ v => I.lower_extent (E.eval_bnd prec v)
+  | Hge _ _ u => I.upper_extent (E.eval_bnd prec u)
+  | Habsle _ _ v => let vi := I.lower_extent (E.eval_bnd prec v) in I.meet (I.neg vi) vi
   end.
 
 Theorem eval_hyp_bnd_correct :
@@ -199,20 +211,23 @@ Theorem eval_hyp_bnd_correct :
   contains (I.convert (eval_hyp_bnd prec h)) (Xreal var).
 Proof.
 intros prec h var.
-destruct h as [b v|b u|u v|b v] ; intros H.
+destruct h as [b l v|b l u|u v|b l v] ; intros H.
 - apply I.lower_extent_correct with (eval v nil).
   apply E.eval_bnd_correct.
-  destruct b ; [|apply Rge_le] ; apply H.
+  destruct l ; [|apply Rlt_le] ;
+    destruct b ; [|apply Rge_le| |] ; apply H.
 - apply I.upper_extent_correct with (eval u nil).
   apply E.eval_bnd_correct.
-  destruct b ; [|apply Rge_le] ; apply H.
+  destruct l ; [|apply Rlt_le] ;
+    destruct b ; [|apply Rge_le| |] ; apply H.
 - apply J.join_correct with (eval u nil) (eval v nil).
   apply E.eval_bnd_correct.
   apply E.eval_bnd_correct.
   apply H.
 - assert (H': (- eval v nil <= var <= eval v nil)%R).
     apply Rabs_le_inv.
-    destruct b ; [|apply Rge_le] ; apply H.
+    destruct l ; [|apply Rlt_le] ;
+      destruct b ; [|apply Rge_le| |] ; apply H.
   apply I.meet_correct.
   rewrite <- (Ropp_involutive var).
   apply J.neg_correct.
