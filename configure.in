@@ -8,11 +8,6 @@ if test "$ac_init_help" = "long"; then
 fi
 m4_divert_pop(99)
 
-m4_divert_push([HELP_ENABLE])
-Fine tuning of the installation directory:
-AS_HELP_STRING([--libdir=DIR], [library @<:@DIR=`$COQC -where`/user-contrib/Interval@:>@])
-m4_divert_pop([HELP_ENABLE])
-
 AC_PROG_CXX
 
 AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
@@ -106,8 +101,10 @@ AS_IF(
     AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])
 rm -f conftest.v conftest.vo conftest.err
 
-if test "$libdir" = '${exec_prefix}/lib'; then
-  libdir="`$COQC -where | tr -d '\r' | tr '\\\\' '/'`/user-contrib/Interval"
+AC_ARG_VAR(COQUSERCONTRIB, [installation directory [`$COQC -where`/user-contrib]])
+
+if test -z "$COQUSERCONTRIB"; then
+  COQUSERCONTRIB="`$COQC -where | tr -d '\r' | tr '\\\\' '/'`/user-contrib"
 fi
 
 if test "$prim_float" = "yes"; then

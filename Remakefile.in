@@ -144,12 +144,11 @@ public: deps.png deps.map html/index.html
 	cp -r html deps.png public/
 
 install:
-	prefix=@prefix@
-	exec_prefix=@exec_prefix@
-	mkdir -p @libdir@
-	for d in Eval Float Integral Interval Missing Poly Real; do mkdir -p @libdir@/$d; done
-	for f in $(FILES); do cp src/$f.vo @libdir@/$f.vo; done
-	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "@libdir@/{}" \; )
+	dir="$DESTDIR@COQUSERCONTRIB@/Interval"
+	mkdir -p $dir
+	for d in Eval Float Integral Interval Missing Poly Real; do mkdir -p $dir/$d; done
+	for f in $(FILES); do cp src/$f.vo $dir/$f.vo; done
+	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "$dir/{}" \; )
 
 EXTRA_DIST = \
 	configure
