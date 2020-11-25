@@ -3325,7 +3325,7 @@ intros [Rx2py2 [Fx2py2 _]].
 split.
 { revert Fx2py2; case bplus => [s|s| |s m' e Hme];
     [ |intro H; discriminate H..| ]; reflexivity. }
-unfold proj_val at -2-3.
+unfold proj_val at -2 3.
 replace (proj_val _) with (B2R (bplus (bdiv b_x b2) (bdiv b_y b2))).
 2:{ now case bplus => [s|s| |s m' e Hme]; [..|simpl; rewrite <-FtoR_split]. }
 unfold B2SF, b_x, b_y, FtoX; fold b_x b_y.
