@@ -58,6 +58,8 @@ if test ! "$COQDOC"; then
 fi
 AC_MSG_RESULT([$COQDOC])
 
+AC_ARG_VAR(COQEXTRAFLAGS, [extra flags passed to Coq compiler [empty]])
+
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
   [ echo "Require Import Flocq.Version BinNat." \

@@ -63,7 +63,7 @@ src/Tactic_float.v: src/Tactic_bignum.v src/Tactic_primfloat.v Remakefile
 
 %.vo: %.v | src/Tactic_float.v
 	@COQDEP@ -R src Interval $< | @REMAKE@ -r $@
-	@COQC@ -R src Interval $<
+	@COQC@ @COQEXTRAFLAGS@ -R src Interval $<
 
 src/clean:
 	rm -f $(VOFILES) $(GLOBS)
