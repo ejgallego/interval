@@ -1,3 +1,9 @@
+Version 4.1.0
+-------------
+
+* ensured compatibility from Coq 8.8 to 8.13
+* added support for strict inequalities in hypotheses
+
 Version 4.0.0
 -------------
 
