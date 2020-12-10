@@ -1617,7 +1617,7 @@ assert (Hes: EtoZ e1 = Z.div2 (snd s4e2) /\ EtoZ s3 = fst s4e2).
   rewrite Zodd_even_bool.
   rewrite exponent_sub_correct, Hs in He.
   assert (Z.even (EtoZ ex - s2) = negb r).
-    rewrite He at 1 3.
+    rewrite He.
     rewrite (Zplus_comm (2 * EtoZ e1)).
     rewrite Z.even_add_mul_2.
     now case r.
