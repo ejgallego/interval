@@ -32,7 +32,7 @@ Inductive hyp : Set :=
   | Hlele (l1 l2 : bool) (u v : expr)
   | Habsle (b l : bool) (v : expr).
 
-Fixpoint eval_hyp (h : hyp) (var : R) :=
+Definition eval_hyp (h : hyp) (var : R) :=
   match h with
   | Hle true true v => (var <= eval v nil)%R
   | Hle true false v => (var < eval v nil)%R
