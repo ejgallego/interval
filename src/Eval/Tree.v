@@ -87,6 +87,22 @@ Fixpoint eval (e : expr) (l : list R) :=
   | Ebinary o e1 e2 => binary_real o (eval e1 l) (eval e2 l)
   end.
 
+Ltac is_positive_const x :=
+  match x with
+  | xO ?p => is_positive_const p
+  | xI ?p => is_positive_const p
+  | xH => true
+  | _ => false
+  end.
+
+Ltac is_Z_const x :=
+  lazymatch x with
+  | Zpos ?p => is_positive_const p
+  | Zneg ?p => is_positive_const p
+  | Z0 => true
+  | _ => false
+  end.
+
 Ltac list_add a l :=
   let rec aux l :=
     match l with
@@ -139,7 +155,11 @@ Ltac get_vars t l :=
     | IZR (Round_NE.ZnearestE ?a) => aux_u a
     | PI => l
     | Raux.bpow _ _ => l
-    | IZR ?n => l
+    | IZR ?n =>
+      lazymatch is_Z_const n with
+      | true => l
+      | false => list_add t l
+      end
     | _ => list_add t l
     end in
   aux t l.
@@ -181,7 +201,13 @@ Ltac reify t l :=
     | IZR (Round_NE.ZnearestE ?a) => aux_u (Nearbyint rnd_NE) a
     | PI => constr:(Econst Pi)
     | Raux.bpow ?r ?n => constr:(Econst (Bpow (Zaux.radix_val r) n))
-    | IZR ?n => constr:(Econst (Int n))
+    | IZR ?n =>
+      match is_Z_const n with
+      | true => constr:(Econst (Int n))
+      | false =>
+        let n := list_find t l in
+        constr:(Evar n)
+      end
     | _ =>
       let n := list_find t l in
       constr:(Evar n)
