@@ -127,6 +127,8 @@ Ltac get_vars t l :=
     let aux_b a b :=
       let l := aux a l in
       aux b l in
+    match True with
+    | True =>
     lazymatch t with
     | Ropp ?a => aux_u a
     | Rabs ?a => aux_u a
@@ -156,10 +158,9 @@ Ltac get_vars t l :=
     | PI => l
     | Raux.bpow _ _ => l
     | IZR ?n =>
-      lazymatch is_Z_const n with
-      | true => l
-      | false => list_add t l
-      end
+      let n := eval lazy in n in
+      lazymatch is_Z_const n with true => l end
+    end
     | _ => list_add t l
     end in
   aux t l.
@@ -173,6 +174,8 @@ Ltac reify t l :=
       let u := aux a in
       let v := aux b in
       constr:(Ebinary o u v) in
+    match True with
+    | True =>
     lazymatch t with
     | Ropp ?a => aux_u Neg a
     | Rabs ?a => aux_u Abs a
@@ -202,12 +205,9 @@ Ltac reify t l :=
     | PI => constr:(Econst Pi)
     | Raux.bpow ?r ?n => constr:(Econst (Bpow (Zaux.radix_val r) n))
     | IZR ?n =>
-      match is_Z_const n with
-      | true => constr:(Econst (Int n))
-      | false =>
-        let n := list_find t l in
-        constr:(Evar n)
-      end
+      let n := eval lazy in n in
+      match is_Z_const n with true => constr:(Econst (Int n)) end
+    end
     | _ =>
       let n := list_find t l in
       constr:(Evar n)
