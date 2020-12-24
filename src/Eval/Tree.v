@@ -87,6 +87,13 @@ Fixpoint eval (e : expr) (l : list R) :=
   | Ebinary o e1 e2 => binary_real o (eval e1 l) (eval e2 l)
   end.
 
+Ltac is_nat_const n :=
+  match n with
+  | S ?n => is_nat_const n
+  | O => true
+  | _ => false
+  end.
+
 Ltac is_positive_const x :=
   match x with
   | xO ?p => is_positive_const p
@@ -142,8 +149,12 @@ Ltac get_vars t l :=
     | atan ?a => aux_u a
     | exp ?a => aux_u a
     | ln ?a => aux_u a
-    | powerRZ ?a ?b => aux_u a
-    | pow ?a ?b => aux_u a
+    | powerRZ ?a ?b =>
+      let b := eval lazy in b in
+      lazymatch is_Z_const b with true => aux_u a end
+    | pow ?a ?b =>
+      let b := eval lazy in b in
+      lazymatch is_nat_const b with true => aux_u a end
     | Rplus ?a ?b => aux_b a b
     | Rminus ?a ?b => aux_b a b
     | Rplus ?a (Ropp ?b) => aux_b a b
@@ -193,8 +204,12 @@ Ltac reify t l :=
     | atan ?a => aux_u Atan a
     | exp ?a => aux_u Exp a
     | ln ?a => aux_u Ln a
-    | powerRZ ?a ?b => aux_u (PowerInt b) a
-    | pow ?a ?b => aux_u (PowerInt (Z_of_nat b)) a
+    | powerRZ ?a ?b =>
+      let b := eval lazy in b in
+      lazymatch is_Z_const b with true => aux_u (PowerInt b) a end
+    | pow ?a ?b =>
+      let b := eval lazy in (Z_of_nat b) in
+      lazymatch is_Z_const b with true => aux_u (PowerInt b) a end
     | Rplus ?a ?b => aux_b Add a b
     | Rminus ?a ?b => aux_b Sub a b
     | Rplus ?a (Ropp ?b) => aux_b Sub a b
