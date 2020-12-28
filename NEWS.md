@@ -1,3 +1,8 @@
+Version 4.1.1
+-------------
+
+* made reification of `IZR`, `pow`, `powerRZ`, and `bpow`, more robust
+
 Version 4.1.0
 -------------
 
