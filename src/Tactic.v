@@ -138,6 +138,13 @@ Ltac get_var_indices vars bvars :=
     end in
   aux2 (@nil nat) bvars.
 
+Ltac hide_lhs :=
+  lazymatch goal with
+  | |- ?l = _ =>
+    let l' := fresh "l" in
+    set (l' := l)
+  end.
+
 Definition reify_var : R.
 Proof. exact 0%R. Qed.
 
@@ -159,7 +166,7 @@ Ltac reify_RInt y f u v :=
   intros <- ;
   erewrite <- RInt_ext by (
     let t := fresh "t" in
-    intros t _ ;
+    intros t _ ; hide_lhs ;
     let fapp := eval cbv beta in (f t) in
     reify_partial fapp (t :: vars) ;
     exact (fun H => H)) ;
@@ -184,7 +191,7 @@ Ltac reify_RInt_gen_infty y fm u :=
   intros <- ;
   erewrite <- RInt_gen_ext_eq by (
     let t := fresh "t" in
-    intros t ;
+    intros t ; hide_lhs ;
     apply (f_equal (fun x => Rmult x _)) ;
     let fapp := eval cbv beta in (f t) in
     reify_partial fapp (t :: vars) ;
@@ -208,7 +215,7 @@ Ltac reify_RInt_gen_zero y fm v :=
   intros <- ;
   erewrite <- RInt_gen_ext_eq by (
     let t := fresh "t" in
-    intros t ;
+    intros t ; hide_lhs ;
     apply (f_equal (fun x => Rmult x _)) ;
     let fapp := eval cbv beta in (f t) in
     reify_partial fapp (t :: vars) ;
