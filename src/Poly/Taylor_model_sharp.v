@@ -646,7 +646,7 @@ move=> [k Hk] Hneg.
 rewrite pow_Rabs_sign; case: Rle_bool_spec =>[Hr|Hr].
   have->: r = R0 by psatzl R.
   rewrite Rabs_R0 pow_ne_zero ?Rmult_0_r; first by auto with real.
-  by zify; omega. (* odd => nonzero *)
+  by lia. (* odd => nonzero *)
 rewrite Hk.
 apply: Rmult_le_neg_pos; last by apply: pow_le; exact: Rabs_pos.
 rewrite powerRZ_add; discrR.

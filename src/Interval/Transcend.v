@@ -309,7 +309,7 @@ assert (Hpow': contains (I.convert powi') (Xreal (x ^ (2 * (n - S m + 1))))).
   now apply J.sqr_correct.
 apply J.sub_correct.
   rewrite <- pow_add.
-  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
+  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; lia).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   apply J.div_correct.
@@ -645,7 +645,7 @@ set (divi' := I.add prec divi i1).
 specialize (IHm powi' divi').
 assert (H: forall p, n - S m + S p = n - m + p).
   intros p.
-  clear -Hm ; omega.
+  clear -Hm ; lia.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (ln1p_fast0_aux prec thre powi' xi divi' m)))
     (Xreal ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m))))).
   case F'.cmp ; try easy.
@@ -655,7 +655,7 @@ replace ((-1) ^ (n - S m + 1) * (ln1pc x - Ai x (n - S m)%nat))%R
   with ((-1) ^ (n - S m + 1) * (-1) ^ S (n - S m) * x ^ (S (n - S m)) * / INR (S (n - S m) + 1) - (((-1) * (-1) ^ (n - S m + 1)) * (ln1pc x - (Ai x (n - S m)%nat + ((-1) ^ S (n - S m) * / INR (S (n - S m) + 1) * x ^ (S (n - S m)))))))%R by ring.
 apply J.sub_correct.
   rewrite <- pow_add.
-  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
+  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; lia).
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   apply J.div_correct with (2 := Hdiv).
   rewrite pow_1_even, Rmult_1_l.
@@ -978,7 +978,7 @@ assert (Hexit: forall k powi divi,
     apply Un_decreasing_cos.
     lra.
     apply (Un_cv_subseq (fun n => (/ INR (fact n) * toR x ^ n)%R)).
-    clear ; intros n ; omega.
+    clear ; intros n ; lia.
     eapply Un_cv_ext.
     intros n.
     apply Rmult_comm.
@@ -1052,7 +1052,7 @@ assert (Hpow': contains (I.convert powi') (Xreal (toR x ^ (2 * (n - S m + 1)))))
   now apply J.sqr_correct.
 apply J.sub_correct.
   rewrite <- pow_add.
-  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
+  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; lia).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   now apply J.div_correct.
@@ -1361,7 +1361,7 @@ assert (Hexit : forall k powi divi,
     intros eps Heps.
     exists 1%nat.
     intros n Hn.
-    rewrite pow_ne_zero by (clear -Hn ; omega).
+    rewrite pow_ne_zero by (clear -Hn ; lia).
     unfold R_dist, Rminus.
     now rewrite Rmult_0_r, Rplus_opp_r, Rabs_R0.
     rewrite <- (Rmult_0_l (/toR x)).
@@ -1375,7 +1375,7 @@ assert (Hexit : forall k powi divi,
     exact Zx.
     apply CV_mult.
     apply (Un_cv_subseq (fun n => (/ INR (fact n) * toR x ^ n)%R)).
-    clear ; intros n ; omega.
+    clear ; intros n ; lia.
     eapply Un_cv_ext.
     intros n.
     apply Rmult_comm.
@@ -1441,7 +1441,7 @@ set (facti' := I.add prec facti i2).
 specialize (IHm powi' divi' facti').
 assert (H: forall p, n - S m + S p = n - m + p).
   intros p.
-  clear -Hm ; omega.
+  clear -Hm ; lia.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (cos_fast0_aux prec thre powi' x2i facti' divi' m)))
     (Xreal ((-1) ^ (n - S m + 1) * (sinc (toR x) - Si (toR x) (n - S m))))).
   case F'.cmp ; try easy.
@@ -1456,7 +1456,7 @@ assert (Hpow': contains (I.convert powi') (Xreal (toR x ^ (2 * (n - S m + 1)))))
   now apply J.sqr_correct.
 apply J.sub_correct.
   rewrite <- pow_add.
-  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; omega).
+  replace (n - S m + 1 + S (n - S m)) with (2 * (n - S m + 1)) by (clear -Hm ; lia).
   rewrite pow_1_even, Rmult_1_l.
   replace (S (n - S m)) with (n - S m + 1) by now rewrite plus_comm.
   now apply J.div_correct.
@@ -2035,7 +2035,7 @@ set (facti' := I.add prec facti i1).
 specialize (IHm powi' divi' facti').
 assert (H: forall p, n - m + p = n - S m + p + 1).
   intros p.
-  clear -Hm ; omega.
+  clear -Hm ; lia.
 cut (contains (I.convert (I.sub prec (I.div prec powi' divi) (expn_fast0_aux prec thre powi' xi facti' divi' m)))
     (Xreal ((-1) ^ (n - S m) * (exp (- toR x) + - E1 (- toR x) (n - S m + 1))))).
   case F'.cmp ; try easy.

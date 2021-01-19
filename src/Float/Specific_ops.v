@@ -716,7 +716,7 @@ change (Zpower Carrier.radix (Zpos dp) <= Z.abs (Zpos (MtoP m1)))%Z.
 apply Zpower_le_Zdigits.
 rewrite <- Hd, <- Hp.
 rewrite <- digits_conversion.
-clear ; zify ; omega.
+clear ; lia.
 (* *)
 intros dp Hd.
 rewrite mantissa_even_correct with (1 := Hm1).
@@ -1122,7 +1122,7 @@ case eqb.
     now intros [|].
   + intros m H.
     assert (H': (Zpos (MtoP my) < Zpos (MtoP mx))%Z).
-      clear -H ; zify ; omega.
+      clear -H ; lia.
     destruct (mantissa_sub_correct mx my Vx Vy H') as [H1 H2].
     rewrite round_aux_correct by exact H2.
     rewrite H1.
@@ -1132,7 +1132,7 @@ case eqb.
     now intros ->.
   + intros m H.
     assert (H': (Zpos (MtoP mx) < Zpos (MtoP my))%Z).
-      clear -H ; zify ; omega.
+      clear -H ; lia.
     destruct (mantissa_sub_correct my mx Vy Vx H') as [H1 H2].
     rewrite round_aux_correct by exact H2.
     rewrite H1.
@@ -1408,7 +1408,7 @@ apply (lt_Zdigits Carrier.radix).
 easy.
 case_eq d.
 unfold d.
-clear ; zify ; omega.
+clear ; lia.
 intros p0 Hp0.
 specialize (Hs' p0 Hp0).
 rewrite (proj1 Hs').
@@ -1417,10 +1417,10 @@ fold (Zpower Carrier.radix (Zpos p0)).
 rewrite Zdigits_mult_Zpower ; try easy.
 rewrite <- Hp0.
 unfold d.
-clear ; zify ; omega.
+clear ; lia.
 intros p0.
 unfold d.
-clear ; zify ; omega.
+clear ; lia.
 (* *)
 clear Hs.
 generalize (mantissa_div_correct _ ny Vmx' Vmy Hxy).
@@ -1463,7 +1463,7 @@ apply f_equal.
 destruct (Zle_or_lt (Zpos (MtoP ny)) 1) as [Ky|Ky].
 (* . *)
 assert (Zpos (MtoP ny) = 1%Z /\ r = Z0).
-clear -Hr Ky ;zify ; omega.
+clear -Hr Ky ; lia.
 rewrite (proj1 H), (proj2 H).
 inversion_clear H2.
 easy.
@@ -1474,7 +1474,7 @@ unfold Rdiv.
 rewrite Rinv_1, Rmult_1_r.
 intros (H0, H2).
 generalize (lt_IZR _ _ H0) (lt_IZR _ _ H2).
-clear ; omega.
+clear ; lia.
 (* . *)
 apply Bracket.inbetween_unique with (1 := H2).
 rewrite plus_IZR.
@@ -1633,12 +1633,12 @@ assert (Hes: EtoZ e1 = Z.div2 (snd s4e2) /\ EtoZ s3 = fst s4e2).
   replace (2 * Z.div2 (EtoZ ex - s2) + 1 - 1)%Z with (2 * Z.div2 (EtoZ ex - s2))%Z by ring.
   rewrite Z.div2_div.
   rewrite Zmult_comm, Z_div_mult by easy.
-  omega.
+  lia.
   rewrite exponent_add_correct.
   rewrite exponent_one_correct.
   now rewrite Hs.
   split.
-  omega.
+  lia.
   exact Hs.
 clearbody s4e2 s3.
 destruct s4e2 as [s4 e2].

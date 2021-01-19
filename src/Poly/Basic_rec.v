@@ -20,7 +20,7 @@ the economic rights, and the successive licensors have only limited
 liability. See the COPYING file for more details.
 *)
 
-From Coq Require Import ZArith Rfunctions NaryFunctions.
+From Coq Require Import ZArith Rfunctions NaryFunctions Lia.
 From mathcomp.ssreflect Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq fintype bigop tuple.
 
 Require Import MathComp.
@@ -37,7 +37,7 @@ Unset Printing Implicit Defensive.
 
 Ltac flatten := repeat
   first[rewrite<-pred_of_minus in *| rewrite<-plusE in *|rewrite<-minusE in *].
-Ltac iomega := intros; flatten; (omega || apply/leP; omega).
+Ltac iomega := intros; flatten; (lia || apply/leP; lia).
 Ltac iomega_le := (repeat move/leP=>?); iomega.
 
 (** * Additional lemmas about [seq] *)

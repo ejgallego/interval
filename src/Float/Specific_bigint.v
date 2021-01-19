@@ -344,7 +344,7 @@ intros (H1,H2).
 unfold MtoP.
 rewrite Vx.
 set (d := Zdigits radix (Zpos px * radix ^ [BigN.head0 x]%bigN)).
-cut (d <= Zpos (BigN.digits x) /\ Zpos (BigN.digits x) - 1 < d)%Z. omega.
+cut (d <= Zpos (BigN.digits x) /\ Zpos (BigN.digits x) - 1 < d)%Z. lia.
 unfold d ; clear d.
 split.
 apply Zdigits_le_Zpower.
@@ -533,7 +533,7 @@ case Zcompare_spec ; intros Hc.
     replace (Zpos x) with (Zpos x - 1 - [BigN.tail0 y]%bigN + 1 + [BigN.tail0 y]%bigN)%Z by ring.
     rewrite <- (Zmult_comm (Zpos q)).
     rewrite Zpower_plus.
-    2: clear -Hc ; omega.
+    2: clear -Hc ; lia.
     2: apply BigN.spec_pos.
     rewrite Zmult_assoc.
     intros H.
@@ -541,7 +541,7 @@ case Zcompare_spec ; intros Hc.
     2: apply Zgt_not_eq, (Zpower_gt_0 radix2), BigN.spec_pos.
     revert H.
     rewrite Zpower_plus ; try easy.
-    2: clear -Hc ; omega.
+    2: clear -Hc ; lia.
     change (2 ^ 1)%Z with 2%Z.
     clear ; intros.
     apply (f_equal Z.even) in H.
@@ -559,7 +559,7 @@ case Zcompare_spec ; intros Hc.
   + contradict H2.
     rewrite Hy2, Hr.
     rewrite Z2Pos.id.
-    2: apply (Zpower_gt_0 radix2) ; clear ; zify ; omega.
+    2: apply (Zpower_gt_0 radix2) ; clear ; lia.
     change (Z.pow_pos radix x) with (Zpower 2 (Zpos x)).
     pattern (Zpos x) at 1 ; replace (Zpos x) with (1 + (Zpos x - 1))%Z by ring.
     rewrite Zpower_plus by easy.
@@ -567,7 +567,7 @@ case Zcompare_spec ; intros Hc.
     replace (2 * 2 ^ (Zpos x - 1) * Zpos q + 2 ^ (Zpos x - 1))%Z with ((1 + Zpos q * 2) * 2 ^ (Zpos x - 1))%Z by ring.
     replace (Zpos x - 1)%Z with (Zpos x - 2 - [BigN.tail0 y]%bigN + ([BigN.tail0 y]%bigN + 1))%Z by ring.
     rewrite Zpower_plus.
-    2: clear -Hc ; omega.
+    2: clear -Hc ; lia.
     2: apply Z.le_le_succ_r, BigN.spec_pos.
     intros H2.
     apply (f_equal (fun v => Zmod v (2 ^ ([BigN.tail0 y]%bigN + 1)))) in H2.
@@ -610,7 +610,7 @@ case Zcompare_spec ; intros Hc.
 - replace r with (Zpos (Z.to_pos (2^(Zpos x - 1)))).
   now rewrite Z.compare_refl.
   rewrite Z2Pos.id.
-  2: apply (Zpower_gt_0 radix2) ; clear ; zify ; omega.
+  2: apply (Zpower_gt_0 radix2) ; clear ; lia.
   replace (Zpower 2 (Zpos x - 1)) with (Zmod (Zpos y') (Zpower 2 (Zpos x))).
   apply sym_eq.
   apply Z.mod_unique_pos with (1 := H3) (2 := H2).
@@ -638,7 +638,7 @@ case Zcompare_spec ; intros Hc.
   rewrite Zpower_plus.
   rewrite Zmult_assoc.
   apply Z_mod_mult.
-  clear -Hc ; omega.
+  clear -Hc ; lia.
   easy.
 Qed.
 
@@ -758,9 +758,9 @@ destruct (Z.eqb_spec r' 0) as [Hr|Hr].
     rewrite Rmult_assoc, Rinv_l, Rmult_1_r, <- mult_IZR ;
     (try now apply IZR_neq) ;
     apply IZR_lt.
-  clear -H2 Hr ; omega.
+  clear -H2 Hr ; lia.
   rewrite Zmult_plus_distr_l.
-  clear -H2 ; omega.
+  clear -H2 ; lia.
   rewrite H1, 2!plus_IZR, mult_IZR.
   destruct (Z.compare_spec (r' * 2) (Zpos y')) as [H|H|H].
   + apply Rcompare_Eq.
@@ -827,7 +827,7 @@ change [0]%bigN with Z0.
 case Z.eqb_spec.
 easy.
 intros H.
-assert (H3: (0 < r)%Z) by omega.
+assert (H3: (0 < r)%Z) by lia.
 case Zcompare_spec ; intros H4.
 apply (conj H3).
 now apply Zlt_le_weak.

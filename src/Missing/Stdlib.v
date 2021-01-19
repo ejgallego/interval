@@ -830,7 +830,7 @@ apply Rinv_lt.
 now apply (lt_INR 0).
 apply lt_INR.
 apply le_lt_trans with (1 := Hn).
-clear ; omega.
+clear ; lia.
 apply Rmult_le_pos.
 now apply Rlt_le.
 rewrite pow_Rsqr.

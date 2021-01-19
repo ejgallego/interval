@@ -292,7 +292,7 @@ rewrite <- F2R_mult.
 simpl.
 rewrite Zplus_0_r.
 rewrite (F2R_change_exp beta (e - Zpos nb) _ e).
-2: generalize (Zgt_pos_0 nb) ; omega.
+2: generalize (Zgt_pos_0 nb) ; clearbody beta ; lia.
 ring_simplify (e - (e - Zpos nb))%Z.
 rewrite <- 2!cond_Zopp_mult.
 apply (f_equal (fun v => F2R (Defs.Float beta (cond_Zopp s v) _))).
@@ -349,7 +349,7 @@ apply refl_equal.
 apply Rlt_le_trans with (1 := proj2 B1).
 apply Rle_trans with (2 := proj1 B2).
 apply bpow_le.
-clear -Hed. omega.
+clear -Hed. lia.
 (* *)
 clear.
 unfold Fcmp_aux1.
@@ -364,7 +364,7 @@ rewrite F2R_change_exp with (e' := e2).
 rewrite shift_correct, He.
 now rewrite Rcompare_F2R.
 generalize (Zgt_pos_0 d).
-omega.
+lia.
 (* . *)
 intros d He.
 rewrite F2R_change_exp with (e := e2) (e' := e1).
@@ -375,14 +375,14 @@ apply Z.opp_inj.
 simpl. rewrite <- He.
 ring.
 generalize (Zlt_neg_0 d).
-omega.
+lia.
 (* *)
 rewrite Rcompare_Gt.
 apply refl_equal.
 apply Rlt_le_trans with (1 := proj2 B2).
 apply Rle_trans with (2 := proj1 B1).
 apply bpow_le.
-clear -Hed. omega.
+clear -Hed. lia.
 Qed.
 
 Theorem Fcmp_correct :
@@ -720,7 +720,7 @@ now apply Rlt_le.
 (* *)
 left.
 unfold FLX_exp.
-cut (0 <= Zdigits beta (Zpos m2) - Zpos prec)%Z. clear. omega.
+cut (0 <= Zdigits beta (Zpos m2) - Zpos prec)%Z. clear. lia.
 change m2 with (fst (m2, e2)).
 rewrite <- (f_equal (@fst _ _) Hn).
 clear.
@@ -1306,14 +1306,14 @@ match goal with |- context [let (m,e') := ?v in let '(q,r) := Zfast_div_eucl _ _
 assert (me = (Zpos mx * Zpower beta (ex - ey - e), e))%Z as ->.
 { unfold me, e ; clear.
   destruct (_ + Zpos prec - _)%Z as [|p|p] eqn:He.
-  - rewrite Z.min_r by omega.
+  - rewrite Z.min_r by lia.
     now rewrite Z.sub_diag, Zmult_1_r.
-  - rewrite Z.min_l by (zify ; omega).
+  - rewrite Z.min_l by lia.
     change (Zneg p) with (Z.opp (Zpos p)).
     fold (Zpower beta (Zpos p)).
     rewrite <- He.
     apply (f_equal2 (fun v1 v2 => (_ * Zpower beta v1, v2)%Z)) ; ring.
-  - rewrite Z.min_r by (zify ; omega).
+  - rewrite Z.min_r by lia.
     now rewrite Z.sub_diag, Zmult_1_r. }
 rewrite Zfast_div_eucl_correct.
 destruct Z.div_eucl as [m r].
@@ -1326,13 +1326,13 @@ assert (Zpos prec <= Zdigits beta m)%Z as H2.
   refine (_ (cexp_inbetween_float _ (FLX_exp (Zpos prec)) _ _ _ _ _ H1 (or_introl _))).
   unfold cexp, FLX_exp, e.
   intros H3.
-  zify ; omega.
+  lia.
   apply Rmult_lt_0_compat.
   now apply F2R_gt_0.
   apply Rinv_0_lt_compat.
   now apply F2R_gt_0.
   unfold cexp, FLX_exp, e.
-  zify ; omega. }
+  lia. }
 destruct m as [|p|p].
 - now elim H2.
 - replace (FtoR beta sx mx ex / FtoR beta sy my ey)%R with
@@ -1418,7 +1418,7 @@ assert (e' = Z.div2 (ex - e1) /\ s' = ex - 2 * e')%Z as [He1 He2].
   rewrite Z.add_simpl_r.
   rewrite Zdiv2_div, (Zmult_comm 2), Z.div_mul by easy.
   apply (conj eq_refl).
-  clear -H' ; omega. }
+  clear -H' ; lia. }
 assert (e' = Z.min (Z.div2 (Zdigits beta (Zpos mx) + ex) - Zpos prec) (Z.div2 ex)) as He1'.
 { rewrite He1.
   unfold e1.
@@ -1436,7 +1436,7 @@ assert (2 * e' <= ex)%Z as He.
   clear.
   assert (Z.min foo (Z.div2 ex) <= Z.div2 ex)%Z as H by apply Z.le_min_r.
   generalize (Zdiv2_odd_eqn ex).
-  destruct Z.odd ; intros ; omega. }
+  destruct Z.odd ; intros ; lia. }
 generalize (Sqrt.Fsqrt_core_correct beta (Zpos mx) ex e' eq_refl He).
 unfold Sqrt.Fsqrt_core.
 set (m' := match s' with Z0 => _ | _ => _ end).
@@ -1445,7 +1445,7 @@ assert (m' = Zpos mx * Zpower beta (ex - 2 * e'))%Z as ->.
   destruct s' as [|p|p].
   now rewrite Zmult_1_r.
   easy.
-  clear -He He2 ; zify ; omega. }
+  clear -He He2 ; lia. }
 destruct Z.sqrtrem as [m' r].
 set (lz := if Zeq_bool _ _ then _ else _).
 intros H1.
@@ -1461,7 +1461,7 @@ assert (Zpos prec <= Zdigits beta m')%Z as H2.
   refine (_ (cexp_inbetween_float _ (FLX_exp (Zpos prec)) _ _ _ _ _ H1 (or_introl _))).
   unfold cexp, FLX_exp.
   rewrite (Sqrt.mag_sqrt_F2R beta (Zpos mx) ex eq_refl).
-  clear -He He' ; intros ; omega.
+  clear -He He' ; intros ; lia.
   apply sqrt_lt_R0.
   now apply F2R_gt_0.
   unfold cexp, FLX_exp.

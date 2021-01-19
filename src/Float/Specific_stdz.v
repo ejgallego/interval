@@ -314,7 +314,7 @@ induction (Pos.to_nat x) as [|p IHp].
   clear H1.
   intros _ H1 H2.
   revert H1.
-  assert (H: r = 0%Z) by omega.
+  assert (H: r = 0%Z) by lia.
   rewrite H, Zplus_0_r.
   split.
   exact H1.
@@ -341,15 +341,15 @@ induction (Pos.to_nat x) as [|p IHp].
   destruct (Zle_or_lt (Zpos m) r') as [Hr|Hr].
   + destruct (IHp (2 * q' + 1)%Z (r' - Zpos m)%Z) as [H4 H5].
     reflexivity.
-    clear -H0 ; omega.
+    clear -H0 ; lia.
     rewrite H2.
     ring.
-    clear -Hr H3 ; omega.
+    clear -Hr H3 ; lia.
     rewrite H2.
     rewrite <- (Zplus_0_l (Zpos m)) at 1.
     apply Zplus_le_compat with (2 := Hr).
     apply Zmult_le_0_compat.
-    clear -H3 ; omega.
+    clear -H3 ; lia.
     now apply Zlt_le_weak.
     clear IHp.
     destruct q' as [|q'|q'] ; try easy.
@@ -382,13 +382,13 @@ induction (Pos.to_nat x) as [|p IHp].
       clear -H H3.
       destruct m as [m|m|] ;
         case Z.compare ; try easy ; try (case k ; easy).
-      clear -H3 H ; omega.
+      clear -H3 H ; lia.
   + destruct (IHp (2 * q')%Z r') as [H4 H5].
     reflexivity.
-    clear -H0 ; omega.
+    clear -H0 ; lia.
     rewrite H2.
     ring.
-    clear -Hr H3 ; omega.
+    clear -Hr H3 ; lia.
     rewrite H2.
     rewrite <- (Zplus_0_r (Zpos m)) at 1.
     apply Zplus_le_compat with (2 := proj1 H3).
@@ -396,7 +396,7 @@ induction (Pos.to_nat x) as [|p IHp].
     replace (2 * Zpos m * q' - Zpos m)%Z with (Zpos m * (2 * q' - 1))%Z by ring.
     apply Zmult_le_0_compat.
     easy.
-    clear -H0 ; omega.
+    clear -H0 ; lia.
     clear IHp.
     destruct q' as [|q'|q'] ; try easy.
     clear H0.
@@ -505,7 +505,7 @@ destruct (Zle_or_lt 2 (Zpos y)) as [Hy|Hy].
 - rewrite Hq, H1.
   clear H1 Hq.
   cut (Zpos y = 1 /\ r = 0)%Z.
-  2: omega.
+  2: lia.
   clear.
   intros [-> ->].
   simpl.
