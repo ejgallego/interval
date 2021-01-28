@@ -784,10 +784,10 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 
 Variable Mf : TM.TMI.rpa.
 Variables X : I.type.
-Definition x0 := proj_val (I.convert_bound (I.midpoint X)).
-Definition X0 := J.midpoint X.
-Definition iX := I.convert X.
-Definition iX0 := I.convert X0.
+Let x0 := proj_val (I.convert_bound (I.midpoint X)).
+Let X0 := J.midpoint X.
+Let iX := I.convert X.
+Let iX0 := I.convert X0.
 
 Hypothesis validMf : TM.TMI.i_validTM x0 iX Mf (fun x => Xreal (f x)).
 

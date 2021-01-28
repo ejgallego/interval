@@ -57,13 +57,14 @@ Local Open Scope nat_scope.
 (** Rigorous Polynomial Approximation structure *)
 Record rpa {pol int : Type} : Type := RPA { approx : pol ; error : int }.
 
+Module TR := TaylorPoly FullR PolR.
+
 Module TaylorModel (I : IntervalOps) (Pol : PolyIntOps I) (Bnd : PolyBound I Pol).
 Import Pol.Notations.
 Import PolR.Notations.
 Local Open Scope ipoly_scope.
 Module Export Aux := IntervalAux I.
 Module Import TI := TaylorPoly Pol.Int Pol.
-Module TR := TaylorPoly FullR PolR.
 Module Import BndThm := PolyBoundThm I Pol Bnd.
 Module J := IntervalExt I.
 
@@ -539,11 +540,11 @@ Variable P : R -> nat -> PolR.T.
 Let f0 := fun x => proj_val (xf x).
 Let Dn n := Derive_n f0 n.
 
-Definition Rdelta (n : nat) (x0 x : R) :=
+Let Rdelta (n : nat) (x0 x : R) :=
   (f0 x - (P x0 n).[x - x0])%R.
 
 (** We now define the derivative of [Rdelta n x0] *)
-Definition Rdelta' (n : nat) (x0 x : R) :=
+Let Rdelta' (n : nat) (x0 x : R) :=
   (Dn 1 x - (PolR.deriv tt (P x0 n)).[x - x0])%R.
 
 Section aux.
@@ -2975,7 +2976,7 @@ Qed.
 
 (** A padding function to change the size of a polynomial over R while
     keeping the same coefficients. *)
-Definition pad pi pr : PolR.T :=
+Let pad pi pr : PolR.T :=
   take (Pol.size pi) (PolR.set_nth pr (Pol.size pi) 0%R).
 
 Lemma size_pad pi pr : eq_size pi (pad pi pr).

@@ -128,7 +128,7 @@ Fixpoint invariant_aux h l (u : integral_bound) :=
     end
   end.
 
-Definition exact_sum (f : R -> R) l :=
+Let exact_sum (f : R -> R) l :=
   fold_right (fun r s => Rplus s
     match r with
     | Piece ur vr _ => RInt_gen f (convert ur) (convert vr)

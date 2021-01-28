@@ -160,7 +160,7 @@ Parameter polyCE : forall c, polyC c = polyCons c polyNil.
 Parameter polyXE : polyX = lift 1 one.
 Parameter oneE : one = polyC C.one.
 
-Parameter poly_ind : forall (f : T -> Type),
+Parameter poly_ind : forall (f : T -> Prop),
   f polyNil ->
   (forall a p, f p -> f (polyCons a p)) ->
   forall p, f p.
@@ -302,7 +302,7 @@ Definition polyC (c : C.T) : T := polyCons c polyNil.
 Definition polyX := [:: C.zero; C.one].
 
 (* TODO: Revise *)
-Lemma poly_ind : forall (f : T -> Type),
+Lemma poly_ind : forall (f : T -> Prop),
   f polyNil ->
   (forall a p, f p -> f (polyCons a p)) ->
   forall p, f p.
