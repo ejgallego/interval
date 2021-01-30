@@ -1,8 +1,6 @@
 From Coq Require Import List Reals.
 Require Import Tactic.
 
-Open Scope R_scope.
-
 Import Xreal Interval Tree Reify Prog.
 Import Tactic.Private.
 Import IT.Private.IT1.
@@ -106,7 +104,7 @@ set (vi' := I.add prec ui (I.mul prec di (I.fromZ prec (Zpos nb)))).
 set (gi := fun yi =>
       let fi := nth 0 (A.TaylorValuator.eval prec deg yi pf bounds) A.TaylorValuator.TM.dummy in
       fun xi => A.TaylorValuator.TM.eval (prec, deg) fi yi xi).
-set (f x := nth 0 (eval_real pf ((x :: vars) ++ map (fun c : expr => eval c nil) cf)) 0).
+set (f x := nth 0 (eval_real pf ((x :: vars) ++ map (fun c : expr => eval c nil) cf)) 0%R).
 fold (gi (I.join ui' vi')).
 set (d := ((v - u) / IZR (Zpos nb))%R).
 assert (Hd : contains (I.convert di) (Xreal d)).
@@ -157,11 +155,11 @@ intros [|i] x Hx.
   apply Hacc.
   revert Hx. clear.
   rewrite !S_INR.
-  replace (u + d * INR n + d * (INR i + 1)) with (u + d * (INR n + 1) + d * INR i) by ring.
-  replace (u + d * INR n + d * (INR i + 1 + 1)) with (u + d * (INR n + 1) + d * (INR i + 1)) by ring.
+  replace (u + d * INR n + d * (INR i + 1))%R with (u + d * (INR n + 1) + d * INR i)%R by ring.
+  replace (u + d * INR n + d * (INR i + 1 + 1))%R with (u + d * (INR n + 1) + d * (INR i + 1))%R by ring.
   easy. }
 assert (Hxi: contains (I.convert xi) (Xreal x)).
-{ apply J.join_correct with (u := u + d * (IZR (Z.of_nat n))) (v := u + d * (IZR (Z.of_nat (S n)))).
+{ apply J.join_correct with (u := (u + d * (IZR (Z.of_nat n)))%R) (v := (u + d * (IZR (Z.of_nat (S n))))%R).
   apply J.add_correct with (1 := Hu).
   apply J.mul_correct with (1 := Hd).
   apply I.fromZ_correct.
@@ -174,9 +172,185 @@ assert (Hxi: contains (I.convert xi) (Xreal x)).
 now destruct c ; simpl ; apply Hg.
 Qed.
 
-Import Float Specific_ops BigZ.
+Definition clamp_lower (v : Basic.float Basic.radix2) (h : Z) :=
+  match v with
+  | Basic.Fzero => 0%Z
+  | Basic.Fnan => 0%Z
+  | Basic.Float true _ _ => 0%Z
+  | Basic.Float false m e =>
+    let v := Z.shiftl (Zpos m) e in
+    if Z.leb h v then h else v
+  end.
 
-Open Scope bigZ_scope.
+Definition clamp_upper (v : Basic.float Basic.radix2) (h : Z) :=
+  match v with
+  | Basic.Fzero => 0%Z
+  | Basic.Fnan => h
+  | Basic.Float true _ _ => 0%Z
+  | Basic.Float false m e =>
+    let v:=
+      match e with
+      | Z0 => Zpos m
+      | Zpos e' => Z.shiftl (Zpos m) e
+      | Zneg e' => Z.shiftl (Zpos m + (Z.shiftl 1 (Zpos e')) - 1) e
+      end in
+    if Z.leb h v then h else v
+  end.
+
+Definition clamp (xi : I.type) (h : Z) :=
+  match xi with
+  | Float.Inan => (0%Z, h)
+  | Float.Ibnd xl xu => (clamp_lower (F.toF xl) h, clamp_upper (F.toF xu) h)
+  end.
+
+Theorem clamp_correct :
+  forall xi h x,
+  contains (I.convert xi) (Xreal x) ->
+  (0 <= x <= IZR h)%R ->
+  let yi := clamp xi h in
+  (IZR (fst yi) <= x <= IZR (snd yi))%R.
+Proof.
+intros [|xl xu] h x Bx Hx.
+{ easy. }
+split ; simpl in * ; unfold F.toX in Bx.
+- destruct F.toF as [| |[|] mx ex] ; try easy.
+  apply Rle_trans with (2 := proj1 Bx).
+  clear.
+  unfold clamp_lower.
+  apply Rle_trans with (IZR (Z.shiftl (Zpos mx) ex)).
+  { destruct (Z.leb_spec h (Z.shiftl (Zpos mx) ex)) as [H|H].
+    now apply IZR_le.
+    apply Rle_refl. }
+  unfold Basic.FtoR.
+  destruct ex as [|ex|ex].
+  + apply Rle_refl.
+  + rewrite Z.shiftl_mul_pow2 by easy.
+    apply Rle_refl.
+  + rewrite Z.shiftl_div_pow2 by easy.
+    rewrite <- Raux.Zfloor_div.
+    apply Raux.Zfloor_lb.
+    apply Zaux.Zgt_not_eq.
+    now apply Z.pow_pos_nonneg.
+- destruct (F.toF xu) as [| |[|] mx ex] ; try easy.
+  { apply Rle_trans with (1 := proj2 Bx).
+    apply Rlt_le, Generic_proof.FtoR_Rneg. }
+  unfold clamp_upper.
+  destruct Z.leb.
+  { easy. }
+  apply Rle_trans with (1 := proj2 Bx).
+  clear.
+  destruct ex as [|ex|ex].
+  + apply Rle_refl.
+  + rewrite Z.shiftl_mul_pow2 by easy.
+    apply Rle_refl.
+  + rewrite Z.shiftl_div_pow2 by easy.
+    rewrite Z.shiftl_mul_pow2 by easy.
+    simpl Z.opp. simpl Basic.FtoR.
+    fold (2 ^ Zpos ex)%Z.
+    apply Generic_proof.Rdiv_ge_mult_pos.
+    apply IZR_lt.
+    now apply Z.pow_pos_nonneg.
+    rewrite <- mult_IZR.
+    apply IZR_le.
+    apply Z.lt_pred_le.
+    replace (Zpos mx + 1 * 2 ^ Zpos ex - 1)%Z with (Zpos mx - 1 + 1 * 2 ^ Zpos ex)%Z by ring.
+    rewrite Zdiv.Z_div_plus_full.
+    apply Z.mul_succ_div_gt.
+    now apply Z.pow_pos_nonneg.
+    apply Zaux.Zgt_not_eq.
+    now apply Z.pow_pos_nonneg.
+Qed.
+
+Fixpoint clamp_plot prec (vi ei : I.type) (h : Z) (l : list I.type) : list (Z * Z) :=
+  match l with
+  | nil => nil
+  | cons yi l =>
+    let r := clamp (I.mul prec (I.sub prec yi vi) ei) h in
+    cons r (clamp_plot prec vi ei h l)
+  end.
+
+Definition plot2 (f : R -> R) (ox dx oy dy : R) (h : Z) (l : list (Z * Z)) :=
+  forall i x, (ox + dx * INR i <= x <= ox + dx * INR (S i))%R ->
+  (oy <= f x <= oy + dy * IZR h)%R ->
+  let r := nth i l (0%Z, h) in
+  (oy + dy * IZR (fst r) <= f x <= oy + dy * IZR (snd r))%R.
+
+Lemma affine_transf :
+  forall oy dy y1 y2 y : R,
+  (0 < dy)%R ->
+  (oy + dy * y1 <= y <= oy + dy * y2)%R <-> (y1 <= (y - oy) / dy <= y2)%R.
+Proof.
+intros oy dy y1 y2 y Hdy.
+replace y with (oy + dy * ((y - oy) / dy))%R at 1 2.
+2: now field ; apply Rgt_not_eq.
+split ; intros [H1 H2] ; split.
+- apply Rmult_le_reg_l with (1 := Hdy).
+  apply Rplus_le_reg_l with (1 := H1).
+- apply Rmult_le_reg_l with (1 := Hdy).
+  apply Rplus_le_reg_l with (1 := H2).
+- apply Rplus_le_compat_l.
+  apply Rmult_le_compat_l with (2 := H1).
+  now apply Rlt_le.
+- apply Rplus_le_compat_l.
+  apply Rmult_le_compat_l with (2 := H2).
+  now apply Rlt_le.
+Qed.
+
+Lemma clamp_plot_correct :
+  forall prec oyi dyi f ox dx oy dy h l,
+  (0 < dy)%R ->
+  contains (I.convert oyi) (Xreal oy) ->
+  contains (I.convert dyi) (Xreal (/dy)) ->
+  plot f ox dx l ->
+  plot2 f ox dx oy dy h (clamp_plot prec oyi dyi h l).
+Proof.
+intros prec oyi dyi f ox dx oy dy h l Hdy Boy Bdy.
+intros H i x Hx Hy.
+specialize (H i x Hx).
+revert i ox H Hx.
+induction l as [|yi l IH] ; intros [|i] ox Hl Hx ; simpl.
+- now rewrite Rmult_0_r, Rplus_0_r.
+- now rewrite Rmult_0_r, Rplus_0_r.
+- assert (By: contains (I.convert (I.mul prec (I.sub prec yi oyi) dyi)) (Xreal ((f x - oy) / dy))).
+  { apply J.mul_correct with (2 := Bdy).
+    apply J.sub_correct with (2 := Boy).
+    now apply Hl. }
+  generalize (clamp_correct (I.mul prec (I.sub prec yi oyi) dyi) h ((f x - oy) / dy)%R By).
+  destruct clamp as [y1 y2].
+  simpl.
+  clear -Hdy Hy.
+  intros H.
+  apply affine_transf with (1 := Hdy).
+  apply H.
+  apply affine_transf with (1 := Hdy).
+  now rewrite Rmult_0_r, Rplus_0_r.
+- apply (IH i (ox + dx * INR 1)%R Hl).
+  now rewrite 2!Rplus_assoc, <- 2!Rmult_plus_distr_l, 2!(Rplus_comm 1), <- 2!S_INR.
+Qed.
+
+Definition get_bounds (prec : F.precision) (l : list I.type): I.type * I.type :=
+  let yi :=
+    match l with
+    | cons hi l => List.fold_left I.join l hi
+    | nil => I.empty
+    end in
+  let yi1 := I.meet yi (I.lower_complement yi) in
+  let yi2 := I.meet yi (I.upper_complement yi) in
+  (*
+  let mi := I.div prec (I.sub prec yi2 yi1) (I.fromZ prec 20) in
+  (I.sub prec yi1 mi, I.add prec yi2 mi)
+  *)
+  (yi1, yi2).
+
+Definition foo prec (l : list I.type) (h : Z) :=
+  let '(yi1, yi2) := get_bounds prec l in
+  let dy := I.div prec (I.fromZ prec h) (I.sub prec yi2 yi1) in
+  clamp_plot prec yi1 dy h l.
+
+Import Float Specific_ops.
+
+Open Scope R_scope.
+Open Scope Z_scope.
 
 Goal True.
 Proof.
@@ -210,5 +384,8 @@ apply eval_plot_correct with
  (check := let prec := F.PtoP 30 in let thr := F.scale (F.fromZ 1) (F.ZtoS (-5)) in
   fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr).
 vm_compute ; apply eq_refl.
+Set Printing Width 1000000000.
+Set Printing Depth 10000.
+Eval vm_compute in foo (F.PtoP 30) p 700%Z.
 exact I.
 Qed.
