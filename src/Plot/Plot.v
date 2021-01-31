@@ -1,4 +1,4 @@
-From Coq Require Import List Reals.
+From Coq Require Import Reals List.
 Require Import Tactic.
 
 Import Xreal Interval Tree Reify Prog.
@@ -7,21 +7,21 @@ Import IT.Private.IT1.
 
 Module F := SFBI2.
 
-Definition plot (f : R -> R) (u d : R) (l : list I.type) :=
-  forall i x, (u + d * INR i <= x <= u + d * INR (S i))%R ->
+Definition plot1 (f : R -> R) (ox dx : R) (l : list I.type) :=
+  forall i x, (ox + dx * INR i <= x <= ox + dx * INR (S i))%R ->
   contains (I.convert (nth i l I.nai)) (Xreal (f x)).
 
 Lemma plot_ext :
   forall f g u d l,
   (forall x, f x = g x) ->
-  plot f u d l -> plot g u d l.
+  plot1 f u d l -> plot1 g u d l.
 Proof.
 intros f g u d l H K i x Hx.
 specialize (K i x Hx).
 now rewrite <- H.
 Qed.
 
-Fixpoint eval_plot_aux prec (gi : I.type -> I.type -> I.type) (check : I.type -> bool) (ui di zi2 : I.type) (fi : I.type -> I.type) (i : nat) (mz xz rz : Z) (acc : list I.type) : list I.type :=
+Fixpoint sample_plot_aux prec (gi : I.type -> I.type -> I.type) (check : I.type -> bool) (ui di zi2 : I.type) (fi : I.type -> I.type) (i : nat) (mz xz rz : Z) (acc : list I.type) : list I.type :=
   match i with
   | O => acc
   | S i =>
@@ -49,88 +49,61 @@ Fixpoint eval_plot_aux prec (gi : I.type -> I.type -> I.type) (check : I.type ->
         let xi0 := I.add prec ui (I.mul prec di (I.fromZ prec mz')) in
         (gi (I.join xi0 xi1), (xz' - mz'))%Z in
     let acc := fst yizi :: acc in
-    eval_plot_aux prec gi check ui di (snd yizi) (fst firz) i mz' xz' (snd firz) acc
+    sample_plot_aux prec gi check ui di (snd yizi) (fst firz) i mz' xz' (snd firz) acc
   end.
 
-Definition eval_plot prec deg check hyps pf pu pv cf cu cv nb :=
+Definition sample_plot prec deg check hyps pf cf oxi dxi nb :=
   let hyps := R.merge_hyps prec hyps in
-  let ui :=
-    let bounds := hyps ++ map (T.eval_bnd prec) cu in
-    nth 0 (A.BndValuator.eval prec pu bounds) I.nai in
-  let vi :=
-    let bounds := hyps ++ map (T.eval_bnd prec) cv in
-    nth 0 (A.BndValuator.eval prec pv bounds) I.nai in
   let gi :=
     let bounds := hyps ++ map (T.eval_bnd prec) cf in
     let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const bounds in
     fun yi =>
       let fi := nth 0 (A.TaylorValuator.eval prec deg yi pf bounds) A.TaylorValuator.TM.dummy in
       fun xi => A.TaylorValuator.TM.eval (prec, deg) fi yi xi in
-  let di := I.div prec (I.sub prec vi ui) (I.fromZ prec nb) in
-  let ui' := I.add prec ui (I.mul prec di (I.fromZ prec 0)) in
-  let vi' := I.add prec ui (I.mul prec di (I.fromZ prec nb)) in
-  eval_plot_aux prec gi check ui di I.whole (gi (I.join ui' vi')) (Z.to_nat nb) 0%Z nb nb nil.
+  let ui := I.add prec oxi (I.mul prec dxi (I.fromZ prec 0)) in
+  let vi := I.add prec oxi (I.mul prec dxi (I.fromZ prec nb)) in
+  sample_plot_aux prec gi check oxi dxi I.whole (gi (I.join ui vi)) (Z.to_nat nb) 0%Z nb nb nil.
 
-Lemma eval_plot_correct :
-  forall prec deg check vars hyps pf pu pv cf cu cv nb l,
-  eval_plot prec deg check hyps pf pu pv cf cu cv (Zpos nb) = l ->
-  let u := eval_real' pu vars cu in
-  let v := eval_real' pv vars cv in
+Lemma sample_plot_correct :
+  forall prec deg check vars hyps pf cf oxi dxi ox dx nb l,
+  contains (I.convert oxi) (Xreal ox) ->
+  contains (I.convert dxi) (Xreal dx) ->
+  sample_plot prec deg check hyps pf cf oxi dxi (Zpos nb) = l ->
   eval_hyps hyps vars (
-    plot (fun t => eval_real' pf (t :: vars) cf) u ((v - u) / IZR (Zpos nb)) l).
+    plot1 (fun t => eval_real' pf (t :: vars) cf) ox dx l).
 Proof.
-intros prec deg check vars hyps pf pu pv cf cu cv nb l H.
+intros prec deg check vars hyps pf cf oxi dxi ox dx nb l Box Bdx <-.
 apply (R.eval_hyps_bnd_correct prec).
 intros H'.
-revert H.
-unfold eval_plot, eval_real'.
-fold (compute_inputs prec hyps cu).
-fold (compute_inputs prec hyps cv).
-assert (Hcu := app_merge_hyps_eval_bnd prec _ _ cu H').
-assert (Hcv := app_merge_hyps_eval_bnd prec _ _ cv H').
-generalize (A.BndValuator.eval_correct' prec pv _ _ Hcv 0).
-generalize (A.BndValuator.eval_correct' prec pu _ _ Hcu 0).
-generalize (nth 0 (A.BndValuator.eval prec pv (compute_inputs prec hyps cv)) I.nai).
-generalize (nth 0 (A.BndValuator.eval prec pu (compute_inputs prec hyps cu)) I.nai).
-generalize (nth 0 (Prog.eval_real pv (vars ++ map (fun c => eval c nil) cv)) 0%R).
-generalize (nth 0 (Prog.eval_real pu (vars ++ map (fun c => eval c nil) cu)) 0%R).
-clear -H'.
-intros u v ui vi Hu Hv.
-intros <-.
+unfold sample_plot, eval_real'.
 set (bounds := A.TaylorValuator.TM.var :: _).
-set (di := I.div prec (I.sub prec vi ui) (I.fromZ prec (Zpos nb))).
-set (ui' := I.add prec ui (I.mul prec di (I.fromZ prec 0))).
-set (vi' := I.add prec ui (I.mul prec di (I.fromZ prec (Zpos nb)))).
+set (ui := I.add prec oxi (I.mul prec dxi (I.fromZ prec 0))).
+set (vi := I.add prec oxi (I.mul prec dxi (I.fromZ prec (Zpos nb)))).
 set (gi := fun yi =>
       let fi := nth 0 (A.TaylorValuator.eval prec deg yi pf bounds) A.TaylorValuator.TM.dummy in
       fun xi => A.TaylorValuator.TM.eval (prec, deg) fi yi xi).
 set (f x := nth 0 (eval_real pf ((x :: vars) ++ map (fun c : expr => eval c nil) cf)) 0%R).
-fold (gi (I.join ui' vi')).
-set (d := ((v - u) / IZR (Zpos nb))%R).
-assert (Hd : contains (I.convert di) (Xreal d)).
-{ apply J.div_correct.
-  now apply J.sub_correct.
-  apply I.fromZ_correct. }
+fold (gi (I.join ui vi)).
 assert (Hg: forall ti xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (gi ti xi)) (Xreal (f x))).
 { intros ti xi x Hx.
   apply A.TaylorValuator.eval_correct with (2 := Hx).
   now apply app_merge_hyps_eval_bnd. }
 rewrite <- (Z2Nat.id (Zpos nb)) at 2 by easy.
 set (i := Z.to_nat (Zpos nb)).
-cut (plot f (u + d * INR i) d nil).
+cut (plot1 f (ox + dx * INR i) dx nil).
 2: now intros [|j] x _.
 generalize (@nil I.type).
-generalize I.whole (I.join ui' vi') 0%Z (Z.pos nb).
-clearbody f gi di d i.
-clear -Hu Hd Hg.
+generalize I.whole (I.join ui vi) 0%Z (Z.pos nb).
+clearbody f gi i.
+clear -Box Bdx Hg.
 induction i as [|n IH].
-{ simpl. intros _ _ _ l. now rewrite Rmult_0_r, Rplus_0_r. }
+{ simpl. intros _ _ _ _ l. now rewrite Rmult_0_r, Rplus_0_r. }
 intros zi2 gxi mz rz acc Hacc.
-cbn beta iota zeta delta [eval_plot_aux].
+cbn beta iota zeta delta [sample_plot_aux].
 rewrite <- Nat2Z.inj_pred by apply lt_O_Sn.
 simpl (Nat.pred (S n)).
-set (xi1 := I.add prec ui (I.mul prec di (I.fromZ prec (Z.of_nat n)))).
-set (xi2 := I.add prec ui (I.mul prec di (I.fromZ prec (Z.of_nat (S n))))).
+set (xi1 := I.add prec oxi (I.mul prec dxi (I.fromZ prec (Z.of_nat n)))).
+set (xi2 := I.add prec oxi (I.mul prec dxi (I.fromZ prec (Z.of_nat (S n))))).
 set (xi := I.join xi1 xi2).
 set (zi1 := gi gxi xi1).
 set (yi := gi gxi xi).
@@ -145,26 +118,26 @@ set (mz' :=
   else (Z.of_nat n - 1 - Z.div2 rz)%Z).
 set (mz'' := if Z.ltb mz' 0%Z then 0%Z else mz').
 clearbody mz' mz''.
-set (gxi' := I.join (I.add prec ui (I.mul prec di (I.fromZ prec mz''))) xi1).
+set (gxi' := I.join (I.add prec oxi (I.mul prec dxi (I.fromZ prec mz''))) xi1).
 clearbody gxi'.
-cut (plot f (u + d * INR n) d (fst yizi :: acc)).
+cut (plot1 f (ox + dx * INR n) dx (fst yizi :: acc)).
 { destruct Z.eqb ; apply IH. }
-clear -Hu Hd Hg Hacc.
+clear -Box Bdx Hg Hacc.
 intros [|i] x Hx.
 2: {
   apply Hacc.
   revert Hx. clear.
   rewrite !S_INR.
-  replace (u + d * INR n + d * (INR i + 1))%R with (u + d * (INR n + 1) + d * INR i)%R by ring.
-  replace (u + d * INR n + d * (INR i + 1 + 1))%R with (u + d * (INR n + 1) + d * (INR i + 1))%R by ring.
+  replace (ox + dx * INR n + dx * (INR i + 1))%R with (ox + dx * (INR n + 1) + dx * INR i)%R by ring.
+  replace (ox + dx * INR n + dx * (INR i + 1 + 1))%R with (ox + dx * (INR n + 1) + dx * (INR i + 1))%R by ring.
   easy. }
 assert (Hxi: contains (I.convert xi) (Xreal x)).
-{ apply J.join_correct with (u := (u + d * (IZR (Z.of_nat n)))%R) (v := (u + d * (IZR (Z.of_nat (S n))))%R).
-  apply J.add_correct with (1 := Hu).
-  apply J.mul_correct with (1 := Hd).
+{ apply J.join_correct with (u := (ox + dx * (IZR (Z.of_nat n)))%R) (v := (ox + dx * (IZR (Z.of_nat (S n))))%R).
+  apply J.add_correct with (1 := Box).
+  apply J.mul_correct with (1 := Bdx).
   apply I.fromZ_correct.
-  apply J.add_correct with (1 := Hu).
-  apply J.mul_correct with (1 := Hd).
+  apply J.add_correct with (1 := Box).
+  apply J.mul_correct with (1 := Bdx).
   apply I.fromZ_correct.
   rewrite Nat2Z.inj_succ, succ_IZR, <- INR_IZR_INZ.
   revert Hx. clear.
@@ -297,14 +270,15 @@ split ; intros [H1 H2] ; split.
 Qed.
 
 Lemma clamp_plot_correct :
-  forall prec oyi dyi f ox dx oy dy h l,
+  forall prec oyi dyi f ox dx oy dy h l1 l2,
   (0 < dy)%R ->
   contains (I.convert oyi) (Xreal oy) ->
   contains (I.convert dyi) (Xreal (/dy)) ->
-  plot f ox dx l ->
-  plot2 f ox dx oy dy h (clamp_plot prec oyi dyi h l).
+  clamp_plot prec oyi dyi h l1 = l2 ->
+  plot1 f ox dx l1 ->
+  plot2 f ox dx oy dy h l2.
 Proof.
-intros prec oyi dyi f ox dx oy dy h l Hdy Boy Bdy.
+intros prec oyi dyi f ox dx oy dy h l l2 Hdy Boy Bdy <-.
 intros H i x Hx Hy.
 specialize (H i x Hx).
 revert i ox H Hx.
@@ -328,64 +302,101 @@ induction l as [|yi l IH] ; intros [|i] ox Hl Hx ; simpl.
   now rewrite 2!Rplus_assoc, <- 2!Rmult_plus_distr_l, 2!(Rplus_comm 1), <- 2!S_INR.
 Qed.
 
-Definition get_bounds (prec : F.precision) (l : list I.type): I.type * I.type :=
+Definition get_bounds (prec : F.precision) (l : list I.type): F.type * F.type :=
   let yi :=
     match l with
     | cons hi l => List.fold_left I.join l hi
     | nil => I.empty
     end in
-  let yi1 := I.meet yi (I.lower_complement yi) in
-  let yi2 := I.meet yi (I.upper_complement yi) in
+  (I.lower yi, I.upper yi).
   (*
   let mi := I.div prec (I.sub prec yi2 yi1) (I.fromZ prec 20) in
   (I.sub prec yi1 mi, I.add prec yi2 mi)
   *)
-  (yi1, yi2).
 
-Definition foo prec (l : list I.type) (h : Z) :=
-  let '(yi1, yi2) := get_bounds prec l in
-  let dy := I.div prec (I.fromZ prec h) (I.sub prec yi2 yi1) in
-  clamp_plot prec yi1 dy h l.
+Ltac plot1_aux f x1 x2 w :=
+  let p := fresh "__plot1" in
+  let Hp := fresh "__Hp" in
+  let ox := reify x1 constr:(@nil R) in
+  let dx := reify constr:(((x2 - x1) / IZR (Zpos w))%R) constr:(@nil R) in
+  let ox := eval vm_compute in (I.lower (T.eval_bnd (F.PtoP 52) ox)) in
+  let dx := eval vm_compute in (I.upper (T.eval_bnd (F.PtoP 52) dx)) in
+  let oxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound ox)) in
+  let dxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound dx)) in
+  evar (p : list I.type) ;
+  assert (Hp : plot1 f oxr dxr p) ; [
+    let fapp := eval cbv beta in (f reify_var) in
+    let vars := constr:((reify_var :: nil)%list) in
+    let vars := get_vars fapp vars in
+    let vars :=
+      match get_vars fapp vars with
+      | (reify_var :: ?vars)%list => vars
+      end in
+    eapply plot_ext ; [
+      let t := fresh "t" in intros t ;
+      let fapp := eval cbv beta in (f t) in
+      reify_partial fapp (t :: vars) ;
+      exact (fun H => H) |] ;
+    find_hyps vars ;
+    apply sample_plot_correct with
+      (prec := F.PtoP 40) (deg := 10%nat) (nb := w)
+      (check := let prec := F.PtoP 30 in let thr := F.scale (F.fromZ 1) (F.ZtoS (-5)) in
+       fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr)
+      (1 := I.singleton_correct ox)
+      (2 := I.singleton_correct dx) ;
+    vm_compute ;
+    exact (eq_refl p)
+  | revert Hp ;
+    unfold p ;
+    clear p ].
 
-Import Float Specific_ops.
+Ltac plot2_aux f x1 x2 w h tacb :=
+  let p := fresh "__plot2" in
+  let ox := fresh "__ox" in
+  let dx := fresh "__dx" in
+  let oy := fresh "__oy" in
+  let dy := fresh "__dy" in
+  let Hp := fresh "__Hp" in
+  evar (p : list (Z * Z)) ;
+  evar (ox : R) ;
+  evar (dx : R) ;
+  evar (oy : R) ;
+  evar (dy : R) ;
+  assert (Hp: plot2 f ox dx oy dy (Zpos h) p) ; [
+    plot1_aux f x1 x2 w ;
+    let prec := constr:(F.PtoP 52) in
+    let y1y2 := tacb prec in
+    let oy' := constr:(fst y1y2) in
+    let dy' := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) oy') (F.fromZ (Zpos h))) in
+    let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound oy')) in
+    let dyr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound dy')) in
+    refine (clamp_plot_correct prec _ _ _ _ _ oyr dyr _ _ _ _ (I.singleton_correct oy') (J.inv_correct prec _ _ (I.singleton_correct dy')) _) ;
+    [ apply Rdiv_lt_0_compat ;
+      now apply IZR_lt
+    | vm_compute ;
+      exact (eq_refl p) ]
+  | revert Hp ;
+    unfold ox, dx, oy, dy, p ;
+    clear ox dx oy dy p ].
 
-Open Scope R_scope.
-Open Scope Z_scope.
+Ltac plot_get_bounds prec :=
+  match goal with
+  | |- plot1 _ _ _ ?p -> plot2 _ _ _ _ _ (Zpos ?h) _ =>
+    let y1y2 := eval vm_compute in (get_bounds prec p) in
+    y1y2
+  end.
 
 Goal True.
 Proof.
-evar (p : list I.type).
-assert (plot (fun x => x^2 * sin (x^2))%R (-4) ((4 - (-4)) / IZR 1000) p).
-match goal with
-| |- plot ?f ?u ?d ?l =>
-match d with
-| ((?v - u) / IZR (Zpos ?d))%R =>
-let fapp := eval cbv beta in (f reify_var) in
-let vars := constr:((reify_var :: nil)%list) in
-let vars := get_vars fapp vars in
-let vars :=
-  match get_vars fapp vars with
-  | (reify_var :: ?vars)%list => vars
-  end in
-let vars := get_vars u vars in
-let vars := get_vars v vars in
-eapply plot_ext ; [
-  let t := fresh "t" in intros t ;
-  let fapp := eval cbv beta in (f t) in
-  reify_partial fapp (t :: vars) ;
-  exact (fun H => H) |] ;
-reify_partial u vars ; intros <- ;
-reify_partial v vars ; intros <- ;
-find_hyps vars
-end
-end.
-apply eval_plot_correct with
- (prec := F.PtoP 30) (deg := 10%nat)
- (check := let prec := F.PtoP 30 in let thr := F.scale (F.fromZ 1) (F.ZtoS (-5)) in
-  fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr).
-vm_compute ; apply eq_refl.
+plot2_aux (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 1000%positive 700%positive
+  ltac:(plot_get_bounds).
 Set Printing Width 1000000000.
 Set Printing Depth 10000.
-Eval vm_compute in foo (F.PtoP 30) p 700%Z.
-exact I.
-Qed.
+match goal with
+| |- plot2 _ ?ox ?dx ?oy ?dy ?h ?p -> _ =>
+  idtac ox ; idtac dx ; idtac oy ; idtac dy ; idtac h ; idtac p
+end.
+Admitted.
+
+(*assert (plot2 (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R (-1/32) (1/16384) (powerRZ 2 (-53)) (powerRZ 2 (-60))) p).*)
+(* plot [-1./32:1./32] 1 + x * (4503599627370587. * 2**(-52) + x * (4503599627370551. * 2**(-53) + x * (6004799497195935. * 2**(-55) + x * (6004799498485985. * 2**(-57) + x * (2402017533563707. * 2**(-58) + x * (6405354563481393. * 2**(-62))))))) - exp(x) *)
