@@ -314,6 +314,8 @@ Definition get_bounds (prec : F.precision) (l : list I.type): F.type * F.type :=
   (I.sub prec yi1 mi, I.add prec yi2 mi)
   *)
 
+Declare ML Module "interval_plot".
+
 Ltac plot1_aux f x1 x2 w :=
   let p := fresh "__plot1" in
   let Hp := fresh "__Hp" in
@@ -388,14 +390,11 @@ Ltac plot_get_bounds prec :=
 
 Goal True.
 Proof.
+(*
 plot2_aux (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 1000%positive 700%positive
   ltac:(plot_get_bounds).
-Set Printing Width 1000000000.
-Set Printing Depth 10000.
-match goal with
-| |- plot2 _ ?ox ?dx ?oy ?dy ?h ?p -> _ =>
-  idtac ox ; idtac dx ; idtac oy ; idtac dy ; idtac h ; idtac p
-end.
+display_plot.
+*)
 Admitted.
 
 (*assert (plot2 (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R (-1/32) (1/16384) (powerRZ 2 (-53)) (powerRZ 2 (-60))) p).*)

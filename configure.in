@@ -10,6 +10,11 @@ m4_divert_pop(99)
 
 AC_DEFUN([AX_VERSION_GE], [AS_VERSION_COMPARE([$1],[$2],[$4],[$3],[$3])])
 
+AC_PROG_CPP
+
+native_tactic=yes
+byte_tactic=yes
+
 AC_ARG_VAR(COQBIN, [path to Coq executables [empty]])
 if test ${COQBIN##*/}; then COQBIN=$COQBIN/; fi
 
@@ -24,11 +29,13 @@ if test ! "$COQC"; then
 fi
 AC_MSG_RESULT([$COQC])
 
+AC_SUBST(COQVERSION)
+
 AC_MSG_CHECKING([Coq version])
-coq_version=`$COQC -v | grep version | sed -e 's/^.*version \([[0-9.]]*\).*$/\1/'`
-AX_VERSION_GE([$coq_version], 8.8, [],
-  [AC_MSG_ERROR([must be at least 8.8 (you have version $coq_version).])])
-AC_MSG_RESULT($coq_version)
+COQVERSION=[`$COQC -v | sed -n -e 's/^.*version \([0-9][0-9.]*\).*$/\1/p' | awk -F. '{ printf("%d%02d%02d\n", $1,$2,$3); }'`]
+AX_VERSION_GE([$COQVERSION], 80800, [],
+  [AC_MSG_ERROR([must be at least 8.8 (you have version $COQVERSION).])])
+AC_MSG_RESULT($COQVERSION)
 
 AC_ARG_VAR(COQDEP, [Coq dependency analyzer command [coqdep]])
 AC_MSG_CHECKING([for coqdep])
@@ -52,6 +59,16 @@ fi
 AC_MSG_RESULT([$COQDOC])
 
 AC_ARG_VAR(COQEXTRAFLAGS, [extra flags passed to Coq compiler [empty]])
+
+AC_ARG_VAR(OCAMLFIND, [OCaml package manager [ocamlfind]])
+AC_MSG_CHECKING([for ocamlfind])
+if test ! "$OCAMLFIND"; then
+  OCAMLFIND=`$COQC -config | sed -n -e 's/^OCAMLFIND=\(.*\)/\1/p'`
+  if test ! "$OCAMLFIND"; then OCAMLFIND=ocamlfind; fi
+  OCAMLFIND=`which $OCAMLFIND`
+fi
+AC_MSG_RESULT([$OCAMLFIND])
+if test ! "$OCAMLFIND"; then OCAMLFIND=ocamlfind; fi
 
 AC_MSG_CHECKING([for Flocq])
 AS_IF(
@@ -98,6 +115,64 @@ AS_IF(
   [ AC_MSG_RESULT([no])
     AC_MSG_ERROR([ *** Unable to find library Bignums (https://github.com/coq/bignums/)])])
 rm -f conftest.v conftest.vo conftest.err
+
+AX_VERSION_GE([$COQVERSION], [81300],
+  [ BIGINTPKG=zarith
+    BIGINTMOD=Big_int_Z ],
+  [ BIGINTPKG=num
+    BIGINTMOD=Big_int ])
+AC_SUBST(BIGINTPKG)
+
+AC_ARG_ENABLE([tactic],
+  AS_HELP_STRING([--disable-tactic], [do not compile a "plot" tactic]),
+  [if test "$enable_tactic" = "no"; then native_tactic=no ; byte_tactic=no ; fi], [])
+
+AC_ARG_ENABLE([native-tactic],
+  AS_HELP_STRING([--disable-native-tactic], [do not compile a native "plot" tactic]),
+  [if test "$enable_native_tactic" = "no"; then native_tactic=no ; fi], [])
+
+AC_ARG_ENABLE([byte-tactic],
+  AS_HELP_STRING([--disable-byte-tactic], [do not compile a bytecode "plot" tactic]),
+  [if test "$enable_byte_tactic" = "no"; then byte_tactic=no ; fi], [])
+
+if test "$native_tactic" = yes; then
+  AC_MSG_CHECKING([for native development files])
+  AS_IF(
+    [ echo "let _ = (Evd.empty, $BIGINTMOD.zero_big_int)" > conftest.ml
+      $OCAMLFIND ocamlopt -rectypes -thread -package coq.engine -package $BIGINTPKG -shared conftest.ml -o conftest.cmxs ],
+    [ AC_MSG_RESULT(yes) ],
+    [ AC_MSG_RESULT(no)
+      AC_MSG_ERROR([ *** Failed to compile a native OCaml library ]) ])
+fi
+
+if test "$byte_tactic" = yes; then
+  AC_MSG_CHECKING([for bytecode development files])
+  AS_IF(
+    [ echo "let _ = (Evd.empty, $BIGINTMOD.zero_big_int)" > conftest.ml
+      $OCAMLFIND ocamlc -rectypes -thread -package coq.engine -package $BIGINTPKG -c conftest.ml -o conftest.cmo ],
+    [ AC_MSG_RESULT(yes) ],
+    [ AC_MSG_RESULT(no)
+      AC_MSG_ERROR([ *** Failed to compile a bytecode OCaml library ]) ])
+fi
+
+AC_SUBST(TACTIC_TARGETS)
+AC_SUBST(TACTIC_PARAM)
+
+tactic_mode=""
+if test "$native_tactic" = yes; then
+  tactic_mode="$tactic_mode native"
+  TACTIC_TARGETS="$TACTIC_TARGETS interval_plot.cmxs"
+  if test "$byte_tactic" = no; then
+    TACTIC_PARAM="-opt"
+  fi
+fi
+if test "$byte_tactic" = yes; then
+  tactic_mode="$tactic_mode bytecode"
+  TACTIC_TARGETS="$TACTIC_TARGETS interval_plot.cmo"
+  if test "$native_tactic" = no; then
+    TACTIC_PARAM="-byte"
+  fi
+fi
 
 AC_ARG_VAR(COQUSERCONTRIB, [installation directory [`$COQC -where`/user-contrib]])
 

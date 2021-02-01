@@ -11,6 +11,7 @@
 /Remakefile
 
 /src/Tactic_float.v
+/src/Plot/interval_plot.ml
 
 /html/
 /public/
@@ -22,6 +23,8 @@
 *.glob
 *.aux
 *.v.bak
+*.cm*
+*.o
 .coq-native
 *~
 *.cache
