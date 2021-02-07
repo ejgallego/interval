@@ -21,6 +21,20 @@ specialize (K i x Hx).
 now rewrite <- H.
 Qed.
 
+Fixpoint bound_plot_aux prec (fi : I.type -> I.type) (ui di : I.type) (xz : Z) (i : nat) (acc : I.type) : I.type :=
+  match i with
+  | O => acc
+  | S i =>
+    let xz := Z.succ xz in
+    let xi := I.add prec ui (I.mul prec di (I.fromZ prec xz)) in
+    bound_plot_aux prec fi ui di xz i (I.join (fi xi) acc)
+  end.
+
+Definition bound_plot prec hyps pf cf oxi dxi nb :=
+  let bounds := R.merge_hyps prec hyps ++ map (T.eval_bnd prec) cf in
+  let fi xi := nth 0 (A.BndValuator.eval prec pf (xi :: bounds)) I.nai in
+  bound_plot_aux prec fi oxi dxi 0%Z (Z.to_nat nb) (fi oxi).
+
 Fixpoint sample_plot_aux prec (gi : I.type -> I.type -> I.type) (check : I.type -> bool) (ui di zi2 : I.type) (fi : I.type -> I.type) (i : nat) (mz xz rz : Z) (acc : list I.type) : list I.type :=
   match i with
   | O => acc
@@ -316,13 +330,13 @@ Definition get_bounds (prec : F.precision) (l : list I.type): F.type * F.type :=
 
 Declare ML Module "interval_plot".
 
-Ltac plot1_aux f x1 x2 w :=
+Ltac plot1_aux prec f x1 x2 w tac_t :=
   let p := fresh "__plot1" in
   let Hp := fresh "__Hp" in
   let ox := reify x1 constr:(@nil R) in
   let dx := reify constr:(((x2 - x1) / IZR (Zpos w))%R) constr:(@nil R) in
-  let ox := eval vm_compute in (I.lower (T.eval_bnd (F.PtoP 52) ox)) in
-  let dx := eval vm_compute in (I.upper (T.eval_bnd (F.PtoP 52) dx)) in
+  let ox := eval vm_compute in (I.lower (T.eval_bnd prec ox)) in
+  let dx := eval vm_compute in (I.upper (T.eval_bnd prec dx)) in
   let oxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound ox)) in
   let dxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound dx)) in
   evar (p : list I.type) ;
@@ -340,10 +354,10 @@ Ltac plot1_aux f x1 x2 w :=
       reify_partial fapp (t :: vars) ;
       exact (fun H => H) |] ;
     find_hyps vars ;
-    apply sample_plot_correct with
-      (prec := F.PtoP 40) (deg := 10%nat) (nb := w)
-      (check := let prec := F.PtoP 30 in let thr := F.scale (F.fromZ 1) (F.ZtoS (-5)) in
-       fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr)
+    let thr := tac_t ox dx in
+    apply (sample_plot_correct prec) with
+      (deg := 10%nat) (nb := w)
+      (check := fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr)
       (1 := I.singleton_correct ox)
       (2 := I.singleton_correct dx) ;
     vm_compute ;
@@ -352,7 +366,7 @@ Ltac plot1_aux f x1 x2 w :=
     unfold p ;
     clear p ].
 
-Ltac plot2_aux f x1 x2 w h tacb :=
+Ltac plot2_aux prec f x1 x2 w h tac_t tac_b :=
   let p := fresh "__plot2" in
   let ox := fresh "__ox" in
   let dx := fresh "__dx" in
@@ -365,9 +379,9 @@ Ltac plot2_aux f x1 x2 w h tacb :=
   evar (oy : R) ;
   evar (dy : R) ;
   assert (Hp: plot2 f ox dx oy dy (Zpos h) p) ; [
-    plot1_aux f x1 x2 w ;
-    let prec := constr:(F.PtoP 52) in
-    let y1y2 := tacb prec in
+    let tac_t := fun ox dx => tac_t prec ox dx w h in
+    plot1_aux prec f x1 x2 w tac_t ;
+    let y1y2 := tac_b prec in
     let oy' := constr:(fst y1y2) in
     let dy' := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) oy') (F.fromZ (Zpos h))) in
     let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound oy')) in
@@ -381,21 +395,43 @@ Ltac plot2_aux f x1 x2 w h tacb :=
     unfold ox, dx, oy, dy, p ;
     clear ox dx oy dy p ].
 
+Definition get_threshold prec hyps pf cf ox dx w h :=
+  let w' := 50%Z in
+  let dx := I.mul prec (I.singleton dx) (I.div prec (I.fromZ prec (Zpos w)) (I.fromZ prec w')) in
+  let yi := bound_plot prec hyps pf cf (I.singleton ox) dx w' in
+  F.div_UP prec (F.sub_UP prec (I.upper yi) (I.lower yi)) (F.fromZ_DN prec (Zpos h)).
+
+Ltac plot_get_threshold prec ox dx w h :=
+  match goal with
+  | |- eval_hyps ?hyps _ (plot1 (fun t => eval_real' ?pf (t :: _) ?cf) _ _ _) =>
+    eval vm_compute in (get_threshold prec hyps pf cf ox dx w h)
+  end.
+
 Ltac plot_get_bounds prec :=
   match goal with
-  | |- plot1 _ _ _ ?p -> plot2 _ _ _ _ _ (Zpos ?h) _ =>
-    let y1y2 := eval vm_compute in (get_bounds prec p) in
-    y1y2
+  | |- plot1 _ _ _ ?p -> _ =>
+    eval vm_compute in (get_bounds prec p)
   end.
 
 Goal True.
 Proof.
 (*
-plot2_aux (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 1000%positive 700%positive
-  ltac:(plot_get_bounds).
+let prec := eval vm_compute in (F.PtoP 52) in
+let h := constr:(700%positive) in
+plot2_aux prec (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 1000%positive 700%positive
+  ltac:(plot_get_threshold) ltac:(plot_get_bounds).
 display_plot.
 *)
-Admitted.
+(*
+let prec := eval vm_compute in (F.PtoP 90) in
+let h := constr:(700%positive) in
+plot2_aux prec (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R
+  (-1/32)%R (1/32)%R 1000%positive 700%positive
+  ltac:(plot_get_threshold) ltac:(plot_get_bounds).
+display_plot.
+*)
+intros.
+exact I.
+Qed.
 
-(*assert (plot2 (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R (-1/32) (1/16384) (powerRZ 2 (-53)) (powerRZ 2 (-60))) p).*)
 (* plot [-1./32:1./32] 1 + x * (4503599627370587. * 2**(-52) + x * (4503599627370551. * 2**(-53) + x * (6004799497195935. * 2**(-55) + x * (6004799498485985. * 2**(-57) + x * (2402017533563707. * 2**(-58) + x * (6405354563481393. * 2**(-62))))))) - exp(x) *)
