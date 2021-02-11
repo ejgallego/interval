@@ -103,14 +103,9 @@ let rec tr_list evd t =
   | _ -> raise (NotPlot t)
 
 let tr_goal evd p =
-  match EConstr.kind evd p with
-  | Constr.Prod (_,p,_) ->
-      begin match EConstr.decompose_app evd p with
-      | c, [_; ox; dx; oy; dy; h; l] when is_global evd interval_plot2 c ->
-          (tr_R evd ox, tr_R evd dx, tr_R evd oy, tr_R evd dy, tr_Z evd h, tr_list evd l)
-      | _ ->
-          raise (NotPlot p)
-      end
+  match EConstr.decompose_app evd p with
+  | c, [_; ox; dx; oy; dy; h; l] when is_global evd interval_plot2 c ->
+      (tr_R evd ox, tr_R evd dx, tr_R evd oy, tr_R evd dy, tr_Z evd h, tr_list evd l)
   | _ ->
       raise (NotPlot p)
 
@@ -133,35 +128,47 @@ let generate fmt h l =
   print_row (List.length l) (fst !z) (snd !z);
   Format.fprintf fmt "e@\npause mouse close@\n@."
 
-let display_plot =
-  Proofview.Goal.enter begin fun gl ->
-    let env = Proofview.Goal.env gl in
-    let evd = Proofview.Goal.sigma gl in
-    let p = Tacmach.New.pf_concl gl in
-    match tr_goal evd p with
-    | (ox, dx, oy, dy, h, l) ->
-        let file = Filename.temp_file "interval_plot" "" in
-        let ch = open_out file in
-        let fmt = Format.formatter_of_out_channel ch in
-        Format.fprintf fmt "ox = %a@\ndx = %a@\noy = %a@\ndy = %a@\n"
-          pr_R ox pr_R dx pr_R oy pr_R dy;
-        generate fmt h l;
-        close_out ch;
-        let e = Sys.command (Printf.sprintf "gnuplot %s &" file) in
-        if e <> 0 then Tacticals.New.tclZEROMSG (Pp.str "Gnuplot not found")
-        else Proofview.tclUNIT ()
-    | exception (NotPlot e) ->
-        Tacticals.New.tclZEROMSG
-          Pp.(str "Cannot parse" ++ spc () ++ Printer.pr_econstr_env env evd e)
-  end
+let display_plot env evd p =
+  match tr_goal evd p with
+  | (ox, dx, oy, dy, h, l) ->
+      let file = Filename.temp_file "interval_plot" "" in
+      let ch = open_out file in
+      let fmt = Format.formatter_of_out_channel ch in
+      Format.fprintf fmt "ox = %a@\ndx = %a@\noy = %a@\ndy = %a@\n"
+        pr_R ox pr_R dx pr_R oy pr_R dy;
+      generate fmt h l;
+      close_out ch;
+      let e = Sys.command (Printf.sprintf "gnuplot %s &" file) in
+      if e <> 0 then
+        CErrors.user_err ~hdr:"plot"
+          (Pp.str "Gnuplot not found")
+  | exception (NotPlot e) ->
+      CErrors.user_err ~hdr:"plot"
+        Pp.(str "Cannot parse" ++ spc () ++ Printer.pr_econstr_env env evd e)
+
+let display_plot p =
+  let env = Global.env () in
+  let evd = Evd.from_env env in
+  let p = Constrintern.locate_reference p in
+  let p, _ = Typeops.type_of_global_in_context env p in
+  let p = EConstr.of_constr p in
+  display_plot env evd p
 
 let __coq_plugin_name = "interval_plot"
 let _ = Mltop.add_known_module __coq_plugin_name
 
-open Ltac_plugin
-
 let () =
-  Tacentries.tactic_extend __coq_plugin_name "interval_plot_display_plot" ~level:0
-    [Tacentries.TyML
-       (Tacentries.TyIdent ("display_plot", Tacentries.TyNil),
-        (fun ist -> display_plot))]
+  Vernacextend.vernac_extend
+    ~command:"VernacPlot"
+    ~classifier:(fun _ -> Vernacextend.classify_as_query) ?entry:None
+    [Vernacextend.TyML
+       (false,
+        Vernacextend.TyTerminal
+          ("Plot",
+           Vernacextend.TyNonTerminal
+             (Extend.TUentry (Genarg.get_arg_tag Stdarg.wit_ref),
+              Vernacextend.TyNil)),
+        (fun r ~atts ->
+          Attributes.unsupported_attributes atts;
+          Vernacextend.VtDefault (fun () -> display_plot r)),
+        None)]
