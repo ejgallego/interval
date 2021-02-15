@@ -146,12 +146,13 @@ let display_plot env evd p =
       CErrors.user_err ~hdr:"plot"
         Pp.(str "Cannot parse" ++ spc () ++ Printer.pr_econstr_env env evd e)
 
-let display_plot p =
-  let env = Global.env () in
-  let evd = Evd.from_env env in
-  let p = Constrintern.locate_reference p in
-  let p, _ = Typeops.type_of_global_in_context env p in
-  let p = EConstr.of_constr p in
+let display_plot ~pstate p =
+  let evd, env =
+    match pstate with
+    | None -> let env = Global.env () in Evd.from_env env, env
+    | Some lemma -> Declare.Proof.get_current_context lemma in
+  let evd, p = Constrintern.interp_constr_evars env evd p in
+  let p = Retyping.get_type_of env evd p in
   display_plot env evd p
 
 let __coq_plugin_name = "interval_plot"
@@ -166,9 +167,9 @@ let () =
         Vernacextend.TyTerminal
           ("Plot",
            Vernacextend.TyNonTerminal
-             (Extend.TUentry (Genarg.get_arg_tag Stdarg.wit_ref),
+             (Extend.TUentry (Genarg.get_arg_tag Stdarg.wit_constr),
               Vernacextend.TyNil)),
         (fun r ~atts ->
           Attributes.unsupported_attributes atts;
-          Vernacextend.VtDefault (fun () -> display_plot r)),
+          Vernacextend.VtReadProofOpt (display_plot r)),
         None)]
