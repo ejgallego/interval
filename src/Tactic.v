@@ -25,6 +25,7 @@ Require Import Sig.
 Require Import Interval_helper.
 Require Import Integral_helper.
 Require Import Plot_helper.
+Require Import Float_full.
 
 Inductive interval_tac_parameters : Set :=
   | i_prec (p : positive)
@@ -45,8 +46,10 @@ Module IntervalTactic (F : FloatOps with Definition sensible_format := true).
 
 Module Private.
 
-Module IT1 := IntegralTacticAux F.
-Module IT2 := IntegralTacticAux Tactic_float.Float.
+Module I1 := FloatIntervalFull F.
+Module IT1 := IntegralTacticAux F I1.
+Module I2 := FloatIntervalFull Tactic_float.Float.
+Module IT2 := IntegralTacticAux Tactic_float.Float I2.
 
 Ltac do_parse params depth :=
   let rec aux fvar bvars prec degree depth native nocheck itm params :=

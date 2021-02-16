@@ -27,7 +27,6 @@ Require Import Xreal.
 Require Import Basic.
 Require Import Sig.
 Require Import Interval.
-Require Import Float_full.
 Require Import Integral.
 Require Import Eval.
 Require Import Bertrand.
@@ -116,10 +115,9 @@ Ltac reify_RInt_gen_zero y fm v :=
   intros <- ;
   find_hyps vars.
 
-Module IntegralTacticAux (F : FloatOps with Definition sensible_format := true).
+Module IntegralTacticAux (F : FloatOps with Definition sensible_format := true) (I : IntervalOps with Module F := F).
 
 Module F' := FloatExt F.
-Module I := FloatIntervalFull F.
 Module IH := IntervalTacticAux I.
 Import IH.
 
