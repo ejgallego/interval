@@ -396,8 +396,8 @@ Module J := IntervalExt I.
 Lemma bounded_ex {xi} (Hne : not_empty (I.convert xi)) (Hbnded : I.bounded xi) :
   (exists l u : R, I.convert xi = Ibnd (Xreal l) (Xreal u)).
 Proof.
-exists (proj_val (I.convert_bound (I.lower xi))).
-exists (proj_val (I.convert_bound (I.upper xi))).
+exists (proj_val (I.F.convert (I.lower xi))).
+exists (proj_val (I.F.convert (I.upper xi))).
 have := (I.bounded_correct xi).
 rewrite Hbnded; case => // .
 move => Hlb Hub.
@@ -784,7 +784,7 @@ Hypothesis HiFIntExt : forall xi x, contains (I.convert xi) (Xreal x) -> contain
 
 Variable Mf : TM.TMI.rpa.
 Variables X : I.type.
-Let x0 := proj_val (I.convert_bound (I.midpoint X)).
+Let x0 := proj_val (I.F.convert (I.midpoint X)).
 Let X0 := J.midpoint X.
 Let iX := I.convert X.
 Let iX0 := I.convert X0.
@@ -817,7 +817,7 @@ Lemma taylor_integral_correct :
     (Xreal (RInt f a b)).
 Proof.
 rewrite /taylor_integral.
-apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.convert_bound (I.midpoint X)))) => //.
+apply: (@TM.TMI.integralEnclosure_correct prec X0 X (fun x => Xreal (f x)) Mf (proj_val (I.F.convert (I.midpoint X)))) => //.
 apply J.contains_midpoint.
 now exists a.
 Qed.

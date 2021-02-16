@@ -1320,12 +1320,12 @@ Theorem diff_refining_points_correct :
   Xderive f f' ->
  (forall x, contains (I.convert xi) x -> contains (I.convert yi) (f x)) ->
  (forall x, contains (I.convert xi) x -> contains (I.convert yi') (f' x)) ->
-  contains (I.convert ym) (f (I.convert_bound (I.midpoint xi))) ->
+  contains (I.convert ym) (f (I.F.convert (I.midpoint xi))) ->
  (if I.lower_bounded xi then
-    contains (I.convert yl) (f (I.convert_bound (I.lower xi)))
+    contains (I.convert yl) (f (I.F.convert (I.lower xi)))
   else True) ->
  (if I.upper_bounded xi then
-    contains (I.convert yu) (f (I.convert_bound (I.upper xi)))
+    contains (I.convert yu) (f (I.F.convert (I.upper xi)))
   else True) ->
   forall x, contains (I.convert xi) x ->
   contains (I.convert (diff_refining_points prec xi (I.sub prec xi (J.midpoint xi)) yi yi' ym yl yu)) (f x).
@@ -1372,12 +1372,12 @@ intros H.
 destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear Hym Hyu H.
-assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
+assert (Hl: contains (I.convert xi) (I.F.convert (I.lower xi))).
 rewrite (Hxi Hnexi) Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
+apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.F.convert (I.lower xi)))).
 now rewrite <- (proj1 (Hs2 _ Hl 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
@@ -1408,12 +1408,12 @@ intros H.
 destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
-assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
+assert (Hu: contains (I.convert xi) (I.F.convert (I.upper xi))).
 rewrite (Hxi Hnexi) Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
+apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.F.convert (I.upper xi)))).
 now rewrite <- (proj1 (Hs2 _ Hu 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_neg_imp_decreasing (proj_fun R0 f) (proj_fun R0 f')).
@@ -1465,12 +1465,12 @@ intros H.
 destruct (I.lower_bounded_correct xi H) as (Hxl, Hxi).
 rewrite H in Hyl.
 clear H.
-assert (Hl: contains (I.convert xi) (I.convert_bound (I.lower xi))).
+assert (Hl: contains (I.convert xi) (I.F.convert (I.lower xi))).
 rewrite (Hxi Hnexi) Hxl.
 apply contains_lower with x.
 now rewrite <- Hxl, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.lower xi)))).
+apply I.upper_extent_correct with (proj_fun 0 f (proj_val (I.F.convert (I.lower xi)))).
 now rewrite <- (proj1 (Hs2 _ Hl 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_pos_imp_increasing (proj_fun 0 f) (proj_fun 0 f')).
@@ -1501,12 +1501,12 @@ intros H.
 destruct (I.upper_bounded_correct xi H) as (Hxu, Hxi).
 rewrite H in Hyu.
 clear H.
-assert (Hu: contains (I.convert xi) (I.convert_bound (I.upper xi))).
+assert (Hu: contains (I.convert xi) (I.F.convert (I.upper xi))).
 rewrite (Hxi Hnexi) Hxu.
 apply contains_upper with x.
 now rewrite <- Hxu, <- Hxi.
 rewrite (proj1 (Hs2 _ Hx R0)).
-apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.convert_bound (I.upper xi)))).
+apply I.lower_extent_correct with (proj_fun 0 f (proj_val (I.F.convert (I.upper xi)))).
 now rewrite <- (proj1 (Hs2 _ Hu 0)).
 destruct (diff_refining_aux_0 _ _ _ _ Hd Hs1 Hyi' _ Hx) as (Hx1, _).
 eapply (derivable_pos_imp_increasing (proj_fun 0 f) (proj_fun 0 f')).
@@ -1547,18 +1547,18 @@ now apply Hyi.
 Qed.
 
 Lemma convert_bnd :
-  forall l u v, contains (Ibnd l u) (I.convert_bound v) ->
-  contains (I.convert (I.bnd v v)) (I.convert_bound v).
+  forall l u v, contains (Ibnd l u) (I.F.convert v) ->
+  contains (I.convert (I.bnd v v)) (I.F.convert v).
 Proof.
 intros l u v H.
 rewrite I.bnd_correct.
-destruct (I.convert_bound v).
+destruct (I.F.convert v).
 elim H.
 split ; apply Rle_refl.
 - apply I.valid_lb_real.
-  now revert H; case I.convert_bound.
+  now revert H; case I.F.convert.
 - apply I.valid_ub_real.
-  now revert H; case I.convert_bound.
+  now revert H; case I.F.convert.
 Qed.
 
 Theorem diff_refining_correct :
@@ -1829,7 +1829,7 @@ destruct (nth n _ _) as [c| |].
   exact H6.
   intros x Hx.
   simpl.
-  set (x0 := proj_val (I.convert_bound (I.midpoint xi))).
+  set (x0 := proj_val (I.F.convert (I.midpoint xi))).
   apply (xreal_to_real (fun v => (v = Xnan -> I.convert (Taylor_model_sharp.error r) = Inan) /\ contains (I.convert (Taylor_model_sharp.error r)) (Xreal (proj_val v - Datatypes.PolR.horner tt Q (x - x0)))) (fun v => contains (I.convert (Taylor_model_sharp.error r)) (Xreal (v - Datatypes.PolR.horner tt Q (x - x0))))).
   + intros [Ha _].
     now rewrite Ha.

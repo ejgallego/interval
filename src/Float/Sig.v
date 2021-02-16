@@ -33,6 +33,7 @@ Parameter radix : radix.
 Parameter type : Type.
 Parameter toF : type -> float radix.
 
+Definition convert x := FtoX (toF x).
 Definition toX x := FtoX (toF x).
 Definition toR x := proj_val (toX x).
 

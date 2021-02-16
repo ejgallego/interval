@@ -268,6 +268,7 @@ Definition midpoint (x y : type) :=
 
 Definition toX x := FtoX (toF x).
 Definition toR x := proj_val (toX x).
+Definition convert x := FtoX (toF x).
 
 Lemma zero_correct : toX zero = Xreal 0.
 Proof. reflexivity. Qed.

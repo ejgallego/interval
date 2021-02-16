@@ -57,6 +57,7 @@ Definition toF (x : type) : float radix :=
 
 Definition toX (x : type) := FtoX (toF x).
 Definition toR (x : type) := proj_val (toX x).
+Definition convert (x : type) := FtoX (toF x).
 
 Definition fromF (f : Basic.float radix) :=
   match f with

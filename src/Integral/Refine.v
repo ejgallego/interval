@@ -90,7 +90,7 @@ Module IntegralRefiner (I : IntervalOps).
 
 Module J := IntervalExt I.
 
-Inductive integral_bound := IBu | IBv | IBp (x : I.bound_type).
+Inductive integral_bound := IBu | IBv | IBp (x : I.F.type).
 
 Section Bounds.
 
@@ -101,7 +101,7 @@ Definition convert b :=
   match b with
   | IBu => uf
   | IBv => vf
-  | IBp x => at_point (proj_val (I.convert_bound x))
+  | IBp x => at_point (proj_val (I.F.convert x))
   end.
 
 Local Instance filter_convert :
@@ -406,7 +406,7 @@ Theorem valid_at_point :
 Proof.
 intros f u v fi ui vi Hu Hv Hf u' v' cb.
 unfold valid.
-set (cb' p := match p with IBu => u | IBv => v | IBp x => proj_val (I.convert_bound x) end).
+set (cb' p := match p with IBu => u | IBv => v | IBp x => proj_val (I.F.convert x) end).
 assert (H1: forall p, at_point (cb' p) = convert (at_point u) (at_point v) p).
   now intros [| |p].
 assert (H2: forall p, contains (I.convert (cb p)) (Xreal (cb' p))).

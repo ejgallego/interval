@@ -239,39 +239,47 @@ apply Rle_trans with (1 := proj1 H) (2 := proj2 H).
 apply Rle_refl.
 Qed.
 
+Module Type IntervalBounds.
+
+Parameter type : Type.
+Parameter nan : type.
+Parameter convert : type -> ExtendedR.
+Parameter precision : Type.
+
+End IntervalBounds.
+
 Module Type IntervalBasicOps.
 
-Parameter bound_type : Type.
-Parameter valid_lb : bound_type -> Prop.
-Parameter valid_ub : bound_type -> Prop.
-Parameter nan : bound_type.
-Parameter convert_bound : bound_type -> ExtendedR.
+Declare Module F : IntervalBounds.
+
 Parameter type : Type.
+Parameter valid_lb : F.type -> Prop.
+Parameter valid_ub : F.type -> Prop.
 Parameter convert : type -> interval.
 Parameter zero : type.
 Parameter nai : type.
 Parameter empty : type.
-Parameter bnd : bound_type -> bound_type -> type.
-Parameter singleton : bound_type -> type.
+Parameter bnd : F.type -> F.type -> type.
+Parameter singleton : F.type -> type.
 Parameter real : type -> bool.
 
 Parameter valid_lb_real :
-  forall b, convert_bound b = Xreal (proj_val (convert_bound b)) -> valid_lb b.
+  forall b, F.convert b = Xreal (proj_val (F.convert b)) -> valid_lb b.
 
 Parameter valid_ub_real :
-  forall b, convert_bound b = Xreal (proj_val (convert_bound b)) -> valid_ub b.
+  forall b, F.convert b = Xreal (proj_val (F.convert b)) -> valid_ub b.
 
-Parameter valid_lb_nan : valid_lb nan.
+Parameter valid_lb_nan : valid_lb F.nan.
 
-Parameter valid_ub_nan : valid_ub nan.
+Parameter valid_ub_nan : valid_ub F.nan.
 
 Parameter bnd_correct :
   forall l u, valid_lb l -> valid_ub u ->
-  convert (bnd l u) = Ibnd (convert_bound l) (convert_bound u).
+  convert (bnd l u) = Ibnd (F.convert l) (F.convert u).
 
 Parameter singleton_correct :
   forall b,
-  contains (convert (singleton b)) (Xreal (proj_val (convert_bound b))).
+  contains (convert (singleton b)) (Xreal (proj_val (F.convert b))).
 
 Parameter zero_correct :
   convert zero = Ibnd (Xreal 0) (Xreal 0).
@@ -331,13 +339,13 @@ Parameter meet_correct' :
   contains (convert (meet xi yi)) v ->
   contains (convert xi) v /\ contains (convert yi) v.
 
-Parameter midpoint : type -> bound_type.
+Parameter midpoint : type -> F.type.
 
 Parameter midpoint_correct :
   forall xi,
   not_empty (convert xi) ->
-  convert_bound (midpoint xi) = Xreal (proj_val (convert_bound (midpoint xi))) /\
-  contains (convert xi) (convert_bound (midpoint xi)).
+  F.convert (midpoint xi) = Xreal (proj_val (F.convert (midpoint xi))) /\
+  contains (convert xi) (F.convert (midpoint xi)).
 
 Parameter bisect : type -> type * type.
 
@@ -362,7 +370,7 @@ Parameter mask_correct' :
   contains (convert xi) x ->
   contains (convert (mask xi yi)) x.
 
-Parameter precision : Type.
+Definition precision := F.precision.
 
 Parameter wider : precision -> type -> type -> bool.
 
@@ -437,13 +445,13 @@ Parameter upper_complement_correct :
   contains (convert (upper_complement xi)) (Xreal y) ->
   (x <= y)%R.
 
-Parameter lower : type -> bound_type.
-Parameter upper : type -> bound_type.
+Parameter lower : type -> F.type.
+Parameter upper : type -> F.type.
 
 Parameter lower_correct :
   forall xi : type,
   not_empty (convert xi) ->
-  convert_bound (lower xi) = Xlower (convert xi).
+  F.convert (lower xi) = Xlower (convert xi).
 
 Parameter valid_lb_lower :
   forall xi : type,
@@ -453,7 +461,7 @@ Parameter valid_lb_lower :
 Parameter upper_correct :
   forall xi : type,
   not_empty (convert xi) ->
-  convert_bound (upper xi) = Xupper (convert xi).
+  F.convert (upper xi) = Xupper (convert xi).
 
 Parameter valid_ub_upper :
   forall xi : type,
@@ -462,18 +470,18 @@ Parameter valid_ub_upper :
 
 Definition bounded_prop xi :=
   not_empty (convert xi) ->
-  convert xi = Ibnd (convert_bound (lower xi)) (convert_bound (upper xi)).
+  convert xi = Ibnd (F.convert (lower xi)) (F.convert (upper xi)).
 
 Parameter lower_bounded_correct :
   forall xi,
   lower_bounded xi = true ->
-  convert_bound (lower xi) = Xreal (proj_val (convert_bound (lower xi))) /\
+  F.convert (lower xi) = Xreal (proj_val (F.convert (lower xi))) /\
   bounded_prop xi.
 
 Parameter upper_bounded_correct :
   forall xi,
   upper_bounded xi = true ->
-  convert_bound (upper xi) = Xreal (proj_val (convert_bound (upper xi))) /\
+  F.convert (upper xi) = Xreal (proj_val (F.convert (upper xi))) /\
   bounded_prop xi.
 
 Parameter bounded_correct :
@@ -758,7 +766,7 @@ Definition midpoint xi :=
 
 Lemma midpoint_correct :
   forall xi, not_empty (I.convert xi) ->
-  I.convert (midpoint xi) = let m := Xreal (proj_val (I.convert_bound (I.midpoint xi))) in Ibnd m m.
+  I.convert (midpoint xi) = let m := Xreal (proj_val (I.F.convert (I.midpoint xi))) in Ibnd m m.
 Proof.
 intros xi Ex.
 destruct (I.midpoint_correct xi Ex) as [H1 H2].
@@ -771,7 +779,7 @@ Qed.
 
 Lemma contains_midpoint :
   forall xi, not_empty (I.convert xi) ->
-  contains (I.convert (midpoint xi)) (Xreal (proj_val (I.convert_bound (I.midpoint xi)))).
+  contains (I.convert (midpoint xi)) (Xreal (proj_val (I.F.convert (I.midpoint xi)))).
 Proof.
 intros xi Hx.
 rewrite (midpoint_correct xi Hx).

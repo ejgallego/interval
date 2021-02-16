@@ -1097,8 +1097,8 @@ set Delta := I.join (I.join _ _) _; rewrite -/(Rdelta n x0 x) -/(Rdelta0 x).
 have [Hbl Hbu] := I.bounded_correct _ E2.
 have [Hcl _] := I.lower_bounded_correct _ Hbl.
 have [Hcu _] := I.upper_bounded_correct _ Hbu.
-set (l := (proj_val (I.convert_bound (I.lower X)))) in Hcl.
-set (u := (proj_val (I.convert_bound (I.upper X)))) in Hcu.
+set (l := (proj_val (I.F.convert (I.lower X)))) in Hcl.
+set (u := (proj_val (I.F.convert (I.upper X)))) in Hcu.
 have HX: I.convert X = Ibnd (Xreal l) (Xreal u).
   rewrite -Hcl -Hcu.
   apply I.lower_bounded_correct =>//.
@@ -1241,7 +1241,7 @@ have Hrr := Hf _ H0.
 set r := proj_val (f x0).
 have Hr : contains (I.convert Y) (Xreal r).
   exact: contains_Xreal.
-set (m := proj_val (I.convert_bound (I.midpoint Y))).
+set (m := proj_val (I.F.convert (I.midpoint Y))).
 assert (Hm': contains (I.convert (J.midpoint Y)) (Xreal m)).
   apply J.contains_midpoint.
   now exists r.
@@ -3121,7 +3121,7 @@ have [Fdef Fnai Fzero Hsubs Fmain] := Hf.
 have ne_A0 : not_empty (I.convert A0).
   have [q hq1 hq2] := Fmain.
   by eexists; eapply hq1.
-pose alpha0 := proj_val (I.convert_bound (I.midpoint A0)).
+pose alpha0 := proj_val (I.F.convert (I.midpoint A0)).
 have in_a0 : a0 >: alpha0.
   exact: J.contains_midpoint.
 have subs_a0 : subset' (I.convert a0) (I.convert BfMf).

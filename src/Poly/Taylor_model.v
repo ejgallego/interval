@@ -97,7 +97,7 @@ Definition approximates (X : I.type) (tf : T) (f : R -> ExtendedR) : Prop :=
   | Var =>
     forall x : R, contains (I.convert X) (Xreal x) -> f x = Xreal x
   | Tm tm =>
-    let x0 := proj_val (I.convert_bound (I.midpoint X)) in
+    let x0 := proj_val (I.F.convert (I.midpoint X)) in
     i_validTM x0 (I.convert X) tm f
   end.
 
@@ -119,7 +119,7 @@ Qed.
 Lemma contains_midpoint :
   forall X : I.type,
   not_empty (I.convert X) ->
-  contains (I.convert X) (Xreal (proj_val (I.convert_bound (I.midpoint X)))).
+  contains (I.convert X) (Xreal (proj_val (I.F.convert (I.midpoint X)))).
 Proof.
 intros X H.
 destruct (I.midpoint_correct X H) as [H1 H2].
@@ -222,7 +222,7 @@ move=> Hf.
 have /= {Hf} := get_tm_correct u Hf=> Htm.
 move/(_ HneY): Htm.
 case => [Hdef Hnai Hzero _ Hmain].
-set c0 := proj_val (I.convert_bound (I.midpoint Y)).
+set c0 := proj_val (I.F.convert (I.midpoint Y)).
 have [qx Hcont Hdelta] := Hmain.
 move: x Hx => [|x Hx] /=.
   move/contains_Xnan => H0.

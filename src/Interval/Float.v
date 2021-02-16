@@ -43,8 +43,9 @@ Definition le_lower' x y :=
     end
   end.
 
-Module FloatInterval (F : FloatOps with Definition sensible_format := true).
+Module FloatInterval (F : FloatOps with Definition sensible_format := true) <: IntervalBasicOps with Module F := F.
 
+Module F := F.
 Module F' := FloatExt F.
 
 Definition c1 := F.fromZ 1.

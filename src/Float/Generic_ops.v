@@ -46,6 +46,7 @@ Module GenericFloat (Rad : Radix) <: FloatOps.
   Definition toF (x : type) := x.
   Definition toX (x : type) := FtoX x.
   Definition toR x := proj_val (toX x).
+  Definition convert (x : type) := FtoX x.
   Definition fromF (x : type) := x.
   Definition precision := positive.
   Definition sfactor := Z.
