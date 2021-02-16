@@ -26,7 +26,6 @@ FILES = \
 	Missing/Coquelicot \
 	Missing/MathComp \
 	Missing/Stdlib \
-	Plot/Plot \
 	Poly/Basic_rec \
 	Poly/Bound \
 	Poly/Bound_quad \
@@ -37,9 +36,11 @@ FILES = \
 	Real/Taylor \
 	Real/Xreal \
 	Real/Xreal_derive \
-	Tactics/Interval_helper \
 	Tactics/Integral_helper \
+	Tactics/Interval_helper \
+	Tactics/Plot_helper \
 	Tactic_float \
+	@PLOT@ \
 	@PRIM_FLOAT@
 
 VFILES  = $(addprefix src/,$(addsuffix .v,$(FILES)))
@@ -82,8 +83,7 @@ src/Plot/interval_plot.cmxs: src/Plot/interval_plot.ml
 
 MLTARGETS = $(addprefix src/Plot/, @TACTIC_TARGETS@)
 
-src/Plot/Plot.vo: src/Plot/Plot.v $(MLTARGETS)
-	@COQDEP@ -R src Interval -I src/Plot $< | @REMAKE@ -r $@
+src/Plot.vo: src/Plot.v $(MLTARGETS)
 	@COQC@ @COQEXTRAFLAGS@ @TACTIC_PARAM@ -R src Interval -I src/Plot $<
 
 src/clean:
@@ -170,9 +170,9 @@ public: deps.png deps.map html/index.html
 install:
 	dir="${DESTDIR}@COQUSERCONTRIB@/Interval"
 	mkdir -p $dir
-	for d in Eval Float Integral Interval Missing Plot Poly Real Tactics; do mkdir -p $dir/$d; done
+	for d in Eval Float Integral Interval Missing Poly Real Tactics; do mkdir -p $dir/$d; done
 	for f in $(FILES); do cp src/$f.vo $dir/$f.vo; done
-	cp $MLTARGETS $dir/
+	test -n "$(MLTARGETS)" && cp $(MLTARGETS) $dir/
 	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "$dir/{}" \; )
 
 EXTRA_DIST = \

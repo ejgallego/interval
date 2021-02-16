@@ -34,7 +34,7 @@ let coq_ref_Rdefinitions = find_reference ["Coq"; "Reals"; "Rdefinitions"]
 let coq_Rdiv = coq_ref_Rdefinitions "Rdiv"
 let coq_IZR = coq_ref_Rdefinitions "IZR"
 
-let interval_plot2 = find_reference ["Interval"; "Plot"; "Plot"] "plot2"
+let interval_plot2 = find_reference ["Interval"; "Tactics"; "Plot_helper"] "plot2"
 
 exception NotPlot of EConstr.t
 

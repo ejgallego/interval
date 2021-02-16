@@ -24,6 +24,7 @@ From Coquelicot Require Import Coquelicot.
 Require Import Sig.
 Require Import Interval_helper.
 Require Import Integral_helper.
+Require Import Plot_helper.
 
 Inductive interval_tac_parameters : Set :=
   | i_prec (p : positive)

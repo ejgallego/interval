@@ -176,6 +176,14 @@ if test "$byte_tactic" = yes; then
   fi
 fi
 
+AC_SUBST(PLOT)
+if test -z "$tactic_mode"; then
+   tactic_mode=" none"
+   PLOT=""
+else
+   PLOT=Plot
+fi
+
 AC_ARG_VAR(COQUSERCONTRIB, [installation directory [`$COQC -where`/user-contrib]])
 
 if test -z "$COQUSERCONTRIB"; then
@@ -211,8 +219,6 @@ case `$CXX -v 2>&1 | grep -e "^Target:"` in
 	;;
 esac
 fi
-
-if test -z "$tactic_mode"; then tactic_mode=" none"; fi
 
 echo
 echo "=== Summary ==="
