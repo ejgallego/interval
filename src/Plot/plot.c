@@ -1,26 +1,19 @@
-#if COQVERSION < 81300
-
-open Big_int
-
-#else
-
+#if COQVERSION >= 81300
 open Big_int_Z
-
+#else
+open Big_int
 #endif
 
-
-#if COQVERSION >= 81000
-
-let constr_of_global = UnivGen.constr_of_monomorphic_global
-
+#if COQVERSION >= 81300
+let get_current_context = Declare.Proof.get_current_context
+#elif COQVERSION >= 81200
+let get_current_context = Declare.get_current_context
 #else
-
-let constr_of_global = Universes.constr_of_global
-
+let get_current_context = Pfedit.get_current_context
 #endif
 
 let find_reference t x =
-  lazy (EConstr.of_constr (constr_of_global (Coqlib.gen_reference_in_modules "Interval" [t] x)))
+  lazy (EConstr.of_constr (UnivGen.constr_of_monomorphic_global (Coqlib.gen_reference_in_modules "Interval" [t] x)))
 
 let is_global evd c t = EConstr.eq_constr evd (Lazy.force c) t
 
@@ -150,7 +143,7 @@ let display_plot ~pstate p =
   let evd, env =
     match pstate with
     | None -> let env = Global.env () in Evd.from_env env, env
-    | Some lemma -> Declare.Proof.get_current_context lemma in
+    | Some lemma -> get_current_context lemma in
   let evd, p = Constrintern.interp_constr_evars env evd p in
   let p = Retyping.get_type_of env evd p in
   display_plot env evd p

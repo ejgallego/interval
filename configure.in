@@ -135,6 +135,8 @@ AC_ARG_ENABLE([byte-tactic],
   AS_HELP_STRING([--disable-byte-tactic], [do not compile a bytecode "plot" tactic]),
   [if test "$enable_byte_tactic" = "no"; then byte_tactic=no ; fi], [])
 
+AX_VERSION_GE([$COQVERSION], 81100, [], [native_tactic=no; byte_tactic=no])
+
 if test "$native_tactic" = yes; then
   AC_MSG_CHECKING([for native development files])
   AS_IF(
@@ -209,6 +211,14 @@ case `$CXX -v 2>&1 | grep -e "^Target:"` in
 	;;
 esac
 fi
+
+if test -z "$tactic_mode"; then tactic_mode=" none"; fi
+
+echo
+echo "=== Summary ==="
+echo "Installation directory   $COQUSERCONTRIB"
+echo "Plot tactic             $tactic_mode"
+echo
 
 AC_CONFIG_FILES(Remakefile)
 AC_OUTPUT

@@ -170,6 +170,7 @@ install:
 	mkdir -p $dir
 	for d in Eval Float Integral Interval Missing Plot Poly Real; do mkdir -p $dir/$d; done
 	for f in $(FILES); do cp src/$f.vo $dir/$f.vo; done
+	cp $MLTARGETS $dir/
 	( cd src && find . -type d -name ".coq-native" -exec cp -RT "{}" "$dir/{}" \; )
 
 EXTRA_DIST = \
