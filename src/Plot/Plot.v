@@ -1,11 +1,36 @@
+(**
+This file is part of the Coq.Interval library for proving bounds of
+real-valued expressions in Coq: http://coq-interval.gforge.inria.fr/
+
+Copyright (C) 2007-2021, Inria
+
+This library is governed by the CeCILL-C license under French law and
+abiding by the rules of distribution of free software. You can use,
+modify and/or redistribute the library under the terms of the CeCILL-C
+license as circulated by CEA, CNRS and Inria at the following URL:
+http://www.cecill.info/
+
+As a counterpart to the access to the source code and rights to copy,
+modify and redistribute granted by the license, users are provided
+only with a limited warranty and the library's author, the holder of
+the economic rights, and the successive licensors have only limited
+liability. See the COPYING file for more details.
+*)
+
 From Coq Require Import Reals List.
-Require Import Tactic.
 
-Import Xreal Interval Tree Reify Prog.
-Import Tactic.Private.
-Import IT.Private.IT1.
+Require Import Sig.
+Require Import Generic_proof.
+Require Import Interval_helper.
+Require Import Xreal Interval Tree Reify Prog.
 
-Module F := SFBI2.
+Definition reify_var : R.
+Proof. exact 0%R. Qed.
+
+Module PlotTacticAux (F : FloatOps with Definition radix := Zaux.radix2 with Definition sensible_format := true).
+
+Module IH := IntervalTacticAux F.
+Import IH.
 
 Definition plot1 (f : R -> R) (ox dx : R) (l : list I.type) :=
   forall i x, (ox + dx * INR i <= x <= ox + dx * INR (S i))%R ->
@@ -199,6 +224,13 @@ Theorem clamp_correct :
 Proof.
 intros [|xl xu] h x Bx Hx.
 { easy. }
+assert (Vl := I.valid_lb_lower _ (not_empty_contains _ _ Bx)).
+assert (Vu := I.valid_ub_upper _ (not_empty_contains _ _ Bx)).
+simpl in Bx.
+simpl in Vl, Vu.
+unfold I.valid_lb in Vl.
+unfold I.valid_ub in Vu.
+rewrite Vl, Vu in Bx.
 split ; simpl in * ; unfold F.toX in Bx.
 - destruct F.toF as [| |[|] mx ex] ; try easy.
   apply Rle_trans with (2 := proj1 Bx).
@@ -328,8 +360,6 @@ Definition get_bounds (prec : F.precision) (l : list I.type): F.type * F.type :=
   (I.sub prec yi1 mi, I.add prec yi2 mi)
   *)
 
-Declare ML Module "interval_plot".
-
 Ltac unify_eq :=
   match goal with
   | |- ?f ?p1 = ?p2 =>
@@ -420,6 +450,22 @@ Ltac plot f x1 x2 w h :=
   let prec := eval vm_compute in (F.PtoP 90) in
   refine (_: plot2 f _ _ _ _ (Zpos h) p) ;
   plot2_aux prec x1 x2 w plot_get_threshold plot_get_bounds.
+
+End PlotTacticAux.
+
+(*
+Require Import Specific_bigint.
+Require Import Specific_ops.
+Module SFBI2 := SpecificFloat BigIntRadix2.
+Module PT := PlotTacticAux SFBI2.
+Import PT.
+
+Declare ML Module "interval_plot".
+
+Goal True.
+assert (foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive)).
+Time Plot foo.
+*)
 
 (*Time Definition foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive).*)
 (*Time Definition foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 600%positive 450%positive).*)
