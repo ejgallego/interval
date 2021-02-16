@@ -25,7 +25,6 @@ Require Import Xreal.
 Require Import Basic.
 Require Import Sig.
 Require Import Interval.
-Require Import Float_full.
 Require Import Eval.
 Require Import Tree.
 Require Import Prog.
@@ -125,11 +124,9 @@ Ltac hide_lhs :=
     set (l' := l)
   end.
 
-Module IntervalTacticAux (F : FloatOps with Definition sensible_format := true).
+Module IntervalTacticAux (I : IntervalOps).
 
-Module I := FloatIntervalFull F.
 Module J := IntervalExt I.
-Module F' := FloatExt F.
 Module A := IntervalAlgos I.
 Module T := Tree.Bnd I.
 Module R := Reify.Bnd I.
@@ -256,7 +253,7 @@ intros prec depth idx vars hyps prog consts g H.
 apply eval_bisect_aux with (2 := H).
 intros xi x Ix.
 destruct xi as [|xi li].
-  easy.
+  apply J.nai_correct.
 destruct Ix as [H1 H2].
 destruct x as [|x l].
   easy.
@@ -281,7 +278,7 @@ intros prec depth idx vars hyps prog consts b H.
 apply eval_bisect_contains_aux with (2 := H).
 intros xi x Ix.
 destruct xi as [|xi li].
-  easy.
+  apply J.nai_correct.
 destruct Ix as [H1 H2].
 destruct x as [|x l].
   easy.
@@ -319,7 +316,7 @@ intros prec deg depth idx vars hyps prog consts g H.
 apply eval_bisect_aux with (2 := H).
 intros xi x Ix.
 destruct xi as [|xi li].
-  easy.
+  apply J.nai_correct.
 destruct Ix as [H1 H2].
 destruct x as [|x l].
   easy.
@@ -344,7 +341,7 @@ intros prec deg depth idx vars hyps prog consts b H.
 apply eval_bisect_contains_aux with (2 := H).
 intros xi x Ix.
 destruct xi as [|xi li].
-  easy.
+  apply J.nai_correct.
 destruct Ix as [H1 H2].
 destruct x as [|x l].
   easy.
@@ -368,7 +365,6 @@ Definition extent e :=
   end.
 
 Ltac do_interval fvar bvars prec degree depth native nocheck eval_tac :=
-  let prec := eval vm_compute in (F.PtoP prec) in
   let vars := merge_vars fvar bvars in
   let idx := get_var_indices vars bvars in
   massage_goal ;
@@ -389,7 +385,6 @@ Ltac do_instantiate i extend native yi :=
   instantiate (i := yi).
 
 Ltac do_interval_intro y extend fvar bvars prec degree depth native nocheck eval_tac :=
-  let prec := eval vm_compute in (F.PtoP prec) in
   let extend := constr:(extent extend) in
   let vars := merge_vars fvar bvars in
   let idx := get_var_indices vars bvars in

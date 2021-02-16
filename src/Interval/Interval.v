@@ -535,6 +535,13 @@ End IntervalOps.
 
 Module IntervalBasicExt (I : IntervalBasicOps).
 
+Lemma nai_correct :
+  forall x, contains (I.convert I.nai) x.
+Proof.
+intros x.
+now rewrite I.nai_correct.
+Qed.
+
 Definition propagate fi :=
   forall xi, I.convert xi = Inan -> I.convert (fi xi) = Inan.
 

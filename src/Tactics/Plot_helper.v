@@ -23,13 +23,16 @@ Require Import Sig.
 Require Import Generic_proof.
 Require Import Interval_helper.
 Require Import Xreal Interval Tree Reify Prog.
+Require Import Float_full.
 
 Definition reify_var : R.
 Proof. exact 0%R. Qed.
 
 Module PlotTacticAux (F : FloatOps with Definition radix := Zaux.radix2 with Definition sensible_format := true).
 
-Module IH := IntervalTacticAux F.
+Module F' := FloatExt F.
+Module I := FloatIntervalFull F.
+Module IH := IntervalTacticAux I.
 Import IH.
 
 Definition plot1 (f : R -> R) (ox dx : R) (l : list I.type) :=
@@ -452,6 +455,18 @@ Ltac plot f x1 x2 w h :=
   plot2_aux prec x1 x2 w plot_get_threshold plot_get_bounds.
 
 End PlotTacticAux.
+
+(*
+Require Tactic_float.
+Module PT := PlotTacticAux Tactic_float.Float.
+Import PT.
+
+Declare ML Module "interval_plot".
+
+Goal True.
+Time assert (foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive)).
+Time Plot foo.
+*)
 
 (*
 Require Import Specific_bigint.

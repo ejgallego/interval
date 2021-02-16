@@ -118,7 +118,9 @@ Ltac reify_RInt_gen_zero y fm v :=
 
 Module IntegralTacticAux (F : FloatOps with Definition sensible_format := true).
 
-Module IH := IntervalTacticAux F.
+Module F' := FloatExt F.
+Module I := FloatIntervalFull F.
+Module IH := IntervalTacticAux I.
 Import IH.
 
 Module BI := BertrandInterval I.
@@ -1056,7 +1058,6 @@ now apply contains_RInt_gen_zero_bertrand.
 Qed.
 
 Ltac do_integral prec degree fuel native nocheck :=
-  let prec := eval vm_compute in (F.PtoP prec) in
   massage_goal ;
   match goal with
   | |- eval_goal ?g' ?y =>
@@ -1088,7 +1089,6 @@ Ltac do_integral prec degree fuel native nocheck :=
   do_reduction nocheck native.
 
 Ltac do_integral_intro y extend prec degree fuel width native nocheck :=
-  let prec := eval vm_compute in (F.PtoP prec) in
   let extend := constr:(extent extend) in
   let width :=
     match width with

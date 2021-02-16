@@ -68,8 +68,12 @@ Ltac do_interval_parse params :=
   match do_parse params 15%nat with
   | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
     lazymatch prec with
-    | Some ?p => IT1.IH.do_interval fvar bvars p degree depth native nocheck itm
-    | None => IT2.IH.do_interval fvar bvars 53%positive degree depth native nocheck itm
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      IT1.IH.do_interval fvar bvars prec degree depth native nocheck itm
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      IT2.IH.do_interval fvar bvars prec degree depth native nocheck itm
     end
   end.
 
@@ -77,8 +81,12 @@ Ltac do_interval_intro_parse t extend params :=
   match do_parse params 5%nat with
   | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
     lazymatch prec with
-    | Some ?p => IT1.IH.do_interval_intro t extend fvar bvars p degree depth native nocheck itm
-    | None => IT2.IH.do_interval_intro t extend fvar bvars 53%positive degree depth native nocheck itm
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      IT1.IH.do_interval_intro t extend fvar bvars prec degree depth native nocheck itm
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      IT2.IH.do_interval_intro t extend fvar bvars prec degree depth native nocheck itm
     end
   end.
 
@@ -101,8 +109,12 @@ Ltac do_integral_parse params :=
   match do_parse' params with
   | (?prec, ?degree, ?fuel, _, ?native, ?nocheck) =>
     lazymatch prec with
-    | Some ?p => IT1.do_integral p degree fuel native nocheck
-    | None => IT2.do_integral 53%positive degree fuel native nocheck
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      IT1.do_integral prec degree fuel native nocheck
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      IT2.do_integral prec degree fuel native nocheck
     end
   end.
 
@@ -110,8 +122,12 @@ Ltac do_integral_intro_parse y extend params :=
   match do_parse' params with
   | (?prec, ?degree, ?fuel, ?width, ?native, ?nocheck) =>
     lazymatch prec with
-    | Some ?p => IT1.do_integral_intro y extend p degree fuel width native nocheck
-    | None => IT2.do_integral_intro y extend 53%positive degree fuel width native nocheck
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      IT1.do_integral_intro y extend prec degree fuel width native nocheck
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      IT2.do_integral_intro y extend prec degree fuel width native nocheck
     end
   end.
 
