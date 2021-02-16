@@ -5,15 +5,9 @@ From Bignums Require Import BigZ.
 Require Import Xreal.
 Require Import Basic.
 Require Import Sig.
+Require Generic_proof.
 
-Require Import Specific_bigint.
-Require Import Specific_ops.
-Module SFBI2 := SpecificFloat BigIntRadix2.
-
-Require Import Flocq.IEEE754.BinarySingleNaN.
-Require Import Flocq.IEEE754.PrimFloat.
-Require Import Flocq.Prop.Sterbenz.
-Require Import Flocq.Prop.Mult_error.
+From Flocq Require Import BinarySingleNaN PrimFloat Sterbenz Mult_error.
 
 Module PrimitiveFloat <: FloatOps.
 
@@ -31,13 +25,13 @@ Definition toF x : float radix2 :=
   | S754_finite s m e => Basic.Float s m e
   end.
 
-Definition precision := SFBI2.precision.
-Definition sfactor := SFBI2.sfactor.
-Definition prec := SFBI2.prec.
-Definition PtoP := SFBI2.PtoP.
-Definition ZtoS := SFBI2.ZtoS.
-Definition StoZ := SFBI2.StoZ.
-Definition incr_prec := SFBI2.incr_prec.
+Definition precision := BigZ.t.
+Definition sfactor := BigZ.t.
+Definition prec p := match BigZ.to_Z p with Zpos q => q | _ => xH end.
+Definition PtoP p := BigZ.of_Z (Zpos p).
+Definition ZtoS := BigZ.of_Z.
+Definition StoZ := BigZ.to_Z.
+Definition incr_prec p i := BigZ.add p (BigZ.of_Z (Zpos i)).
 
 Definition zero := zero.
 Definition nan := nan.
