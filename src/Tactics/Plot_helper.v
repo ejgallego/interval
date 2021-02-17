@@ -23,15 +23,13 @@ Require Import Sig.
 Require Import Generic_proof.
 Require Import Interval_helper.
 Require Import Xreal Interval Tree Reify Prog.
-Require Import Float_full.
 
 Definition reify_var : R.
 Proof. exact 0%R. Qed.
 
-Module PlotTacticAux (F : FloatOps with Definition radix := Zaux.radix2 with Definition sensible_format := true).
+Module PlotTacticAux (F : FloatOps with Definition radix := Zaux.radix2 with Definition sensible_format := true) (I : IntervalOps with Module F := F).
 
 Module F' := FloatExt F.
-Module I := FloatIntervalFull F.
 Module IH := IntervalTacticAux I.
 Import IH.
 
@@ -133,7 +131,7 @@ assert (Hg: forall ti xi x, contains (I.convert xi) (Xreal x) -> contains (I.con
 rewrite <- (Z2Nat.id (Zpos nb)) at 2 by easy.
 set (i := Z.to_nat (Zpos nb)).
 cut (plot1 f (ox + dx * INR i) dx nil).
-2: now intros [|j] x _.
+2: intros [|j] x _ ; apply J.nai_correct.
 generalize (@nil I.type).
 generalize I.whole (I.join ui vi) 0%Z (Z.pos nb).
 clearbody f gi i.
@@ -213,10 +211,7 @@ Definition clamp_upper (v : Basic.float Basic.radix2) (h : Z) :=
   end.
 
 Definition clamp (xi : I.type) (h : Z) :=
-  match xi with
-  | Float.Inan => (0%Z, h)
-  | Float.Ibnd xl xu => (clamp_lower (F.toF xl) h, clamp_upper (F.toF xu) h)
-  end.
+  (clamp_lower (F.toF (I.lower xi)) h, clamp_upper (F.toF (I.upper xi)) h).
 
 Theorem clamp_correct :
   forall xi h x,
@@ -225,19 +220,18 @@ Theorem clamp_correct :
   let yi := clamp xi h in
   (IZR (fst yi) <= x <= IZR (snd yi))%R.
 Proof.
-intros [|xl xu] h x Bx Hx.
-{ easy. }
-assert (Vl := I.valid_lb_lower _ (not_empty_contains _ _ Bx)).
-assert (Vu := I.valid_ub_upper _ (not_empty_contains _ _ Bx)).
-simpl in Bx.
-simpl in Vl, Vu.
-unfold I.valid_lb in Vl.
-unfold I.valid_ub in Vu.
-rewrite Vl, Vu in Bx.
-split ; simpl in * ; unfold F.toX in Bx.
-- destruct F.toF as [| |[|] mx ex] ; try easy.
+intros xi h x Bx Hx.
+unfold clamp.
+assert (Nx := not_empty_contains _ _ Bx).
+split ; simpl.
+- assert (Vl := I.lower_correct _ Nx).
+  change I.F.convert with F.convert in Vl.
+  unfold F.convert in Vl.
+  destruct F.toF as [| |[|] mx ex] ; try easy.
+  destruct (I.convert xi) as [|[|xl] xu] ; try easy.
   apply Rle_trans with (2 := proj1 Bx).
-  clear.
+  clear -Vl.
+  injection Vl as <-.
   unfold clamp_lower.
   apply Rle_trans with (IZR (Z.shiftl (Zpos mx) ex)).
   { destruct (Z.leb_spec h (Z.shiftl (Zpos mx) ex)) as [H|H].
@@ -253,14 +247,26 @@ split ; simpl in * ; unfold F.toX in Bx.
     apply Raux.Zfloor_lb.
     apply Zaux.Zgt_not_eq.
     now apply Z.pow_pos_nonneg.
-- destruct (F.toF xu) as [| |[|] mx ex] ; try easy.
+- assert (Vu := I.upper_correct _ Nx).
+  clear Nx.
+  change I.F.convert with F.convert in Vu.
+  unfold F.convert in Vu.
+  destruct (I.convert xi) as [|xl [|xu]] ; try easy.
+    now destruct F.toF.
+    now destruct F.toF.
+  destruct F.toF as [| |[|] mx ex] ; try easy.
   { apply Rle_trans with (1 := proj2 Bx).
+    injection Vu as <-.
+    apply Rle_refl. }
+  { apply Rle_trans with (1 := proj2 Bx).
+    injection Vu as <-.
     apply Rlt_le, Generic_proof.FtoR_Rneg. }
   unfold clamp_upper.
   destruct Z.leb.
   { easy. }
   apply Rle_trans with (1 := proj2 Bx).
-  clear.
+  clear -Vu.
+  injection Vu as <-.
   destruct ex as [|ex|ex].
   + apply Rle_refl.
   + rewrite Z.shiftl_mul_pow2 by easy.
@@ -331,16 +337,16 @@ intros prec oyi dyi f ox dx oy dy h l l2 Hdy Boy Bdy <-.
 intros H i x Hx Hy.
 specialize (H i x Hx).
 revert i ox H Hx.
-induction l as [|yi l IH] ; intros [|i] ox Hl Hx ; simpl.
-- now rewrite Rmult_0_r, Rplus_0_r.
-- now rewrite Rmult_0_r, Rplus_0_r.
+induction l as [|yi l IH] ; intros [|i] ox Hl Hx.
+- now simpl ; rewrite Rmult_0_r, Rplus_0_r.
+- now simpl ; rewrite Rmult_0_r, Rplus_0_r.
 - assert (By: contains (I.convert (I.mul prec (I.sub prec yi oyi) dyi)) (Xreal ((f x - oy) / dy))).
   { apply J.mul_correct with (2 := Bdy).
     apply J.sub_correct with (2 := Boy).
     now apply Hl. }
+  simpl nth.
   generalize (clamp_correct (I.mul prec (I.sub prec yi oyi) dyi) h ((f x - oy) / dy)%R By).
   destruct clamp as [y1 y2].
-  simpl.
   clear -Hdy Hy.
   intros H.
   apply affine_transf with (1 := Hdy).
@@ -377,8 +383,8 @@ Ltac plot1_aux1 prec x1 x2 w tac_t :=
   let dx := reify constr:(((x2 - x1) / IZR (Zpos w))%R) constr:(@nil R) in
   let ox := eval vm_compute in (I.lower (T.eval_bnd prec ox)) in
   let dx := eval vm_compute in (I.upper (T.eval_bnd prec dx)) in
-  let oxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound ox)) in
-  let dxr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound dx)) in
+  let oxr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert ox)) in
+  let dxr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert dx)) in
   match goal with
   | |- plot1 ?f ?ox' ?dx' ?p =>
     unify ox' oxr ;
@@ -417,8 +423,8 @@ Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
     let y1y2 := tac_b prec in
     let oy' := constr:(fst y1y2) in
     let dy' := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) oy') (F.fromZ (Zpos h))) in
-    let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound oy')) in
-    let dyr := eval cbv -[IZR Rdiv] in (proj_val (I.convert_bound dy')) in
+    let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert oy')) in
+    let dyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert dy')) in
     unify oy oyr ;
     unify dy dyr ;
     refine (clamp_plot_correct prec _ _ _ _ _ oyr dyr _ _ _ _ (I.singleton_correct oy') (J.inv_correct prec _ _ (I.singleton_correct dy')) _) ;
@@ -457,28 +463,26 @@ Ltac plot f x1 x2 w h :=
 End PlotTacticAux.
 
 (*
+Require Import Float_full.
 Require Tactic_float.
-Module PT := PlotTacticAux Tactic_float.Float.
-Import PT.
-
-Declare ML Module "interval_plot".
-
-Goal True.
-Time assert (foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive)).
-Time Plot foo.
+Module I := FloatIntervalFull Tactic_float.Float.
+Module PT := PlotTacticAux Tactic_float.Float I.
 *)
 
 (*
+Require Import Float_full.
 Require Import Specific_bigint.
 Require Import Specific_ops.
 Module SFBI2 := SpecificFloat BigIntRadix2.
-Module PT := PlotTacticAux SFBI2.
-Import PT.
+Module I := FloatIntervalFull SFBI2.
+Module PT := PlotTacticAux SFBI2 I.
+*)
 
+(*
 Declare ML Module "interval_plot".
-
+Import PT.
 Goal True.
-assert (foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive)).
+Time assert (foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 600%positive 450%positive)).
 Time Plot foo.
 *)
 
