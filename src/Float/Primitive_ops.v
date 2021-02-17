@@ -1,6 +1,5 @@
 From Coq Require Import ZArith Int63 Floats Psatz.
 From Flocq Require Import Raux.
-From Bignums Require Import BigZ.
 
 Require Import Xreal.
 Require Import Basic.
@@ -16,8 +15,6 @@ Definition sensible_format := true.
 
 Definition type := PrimFloat.float.
 
-Definition bigZ_of_int x := BigZ.Pos (BigN.N0 x).
-
 Definition toF x : float radix2 :=
   match Prim2SF x with
   | S754_zero _ => Fzero
@@ -25,13 +22,13 @@ Definition toF x : float radix2 :=
   | S754_finite s m e => Basic.Float s m e
   end.
 
-Definition precision := BigZ.t.
-Definition sfactor := BigZ.t.
-Definition prec p := match BigZ.to_Z p with Zpos q => q | _ => xH end.
-Definition PtoP p := BigZ.of_Z (Zpos p).
-Definition ZtoS := BigZ.of_Z.
-Definition StoZ := BigZ.to_Z.
-Definition incr_prec p i := BigZ.add p (BigZ.of_Z (Zpos i)).
+Definition precision := Z.
+Definition sfactor := Z.
+Definition prec p := match p with Zpos q => q | _ => xH end.
+Definition PtoP p := Zpos p.
+Definition ZtoS (x : Z) := x.
+Definition StoZ (x : Z) := x.
+Definition incr_prec p i := Zplus p (Zpos i).
 
 Definition zero := zero.
 Definition nan := nan.
@@ -58,29 +55,21 @@ Definition fromZ_UP (p : precision) x :=
     match (x ?= 9007199254740992)%positive (* 2^53 *) with
     | Lt => of_int63 (Int63.of_pos x)
     | _ =>
-      let x := BigZ.of_Z (Zpos x) in
-      let d := BigZ.log2 x in
-      let e := (d - 52)%bigZ in
-      let m := BigZ.shiftr x e in
-      match m with
-      | BigZ.Pos (BigN.N0 m) =>
-        ldexp (of_int63 (m + 1)) (BigZ.to_Z e)
-      | _ => infinity  (* never happens *)
-      end
+      let x := Zpos x in
+      let d := Z.log2 x in
+      let e := (d - 52)%Z in
+      let m := Z.shiftr x e in
+      ldexp (of_int63 (of_Z m + 1)) e
     end
   | Zneg x =>
     match (x ?= 9007199254740992)%positive (* 2^53 *) with
     | Lt => (-(of_int63 (Int63.of_pos x)))%float
     | _ =>
-      let x := BigZ.of_Z (Zpos x) in
-      let d := BigZ.log2 x in
-      let e := (d - 52)%bigZ in
-      let m := BigZ.shiftr x e in
-      match m with
-      | BigZ.Pos (BigN.N0 m) =>
-        next_up (ldexp (-(of_int63 m)) (BigZ.to_Z e))
-      | _ => infinity  (* never happens *)
-      end
+      let x := Zpos x in
+      let d := Z.log2 x in
+      let e := (d - 52)%Z in
+      let m := Z.shiftr x e in
+      next_up (ldexp (-(of_int63 (of_Z m))) e)
     end
   end.
 
@@ -91,29 +80,21 @@ Definition fromZ_DN (p : precision) x :=
     match (x ?= 9007199254740992)%positive (* 2^53 *) with
     | Lt => of_int63 (Int63.of_pos x)
     | _ =>
-      let x := BigZ.of_Z (Zpos x) in
-      let d := BigZ.log2 x in
-      let e := (d - 52)%bigZ in
-      let m := BigZ.shiftr x e in
-      match m with
-      | BigZ.Pos (BigN.N0 m) =>
-        next_down (ldexp (of_int63 m) (BigZ.to_Z e))
-      | _ => neg_infinity  (* never happens *)
-      end
+      let x := Zpos x in
+      let d := Z.log2 x in
+      let e := (d - 52)%Z in
+      let m := Z.shiftr x e in
+      next_down (ldexp (of_int63 (of_Z m)) e)
     end
   | Zneg x =>
     match (x ?= 9007199254740992)%positive (* 2^53 *) with
     | Lt => (-(of_int63 (Int63.of_pos x)))%float
     | _ =>
-      let x := BigZ.of_Z (Zpos x) in
-      let d := BigZ.log2 x in
-      let e := (d - 52)%bigZ in
-      let m := BigZ.shiftr x e in
-      match m with
-      | BigZ.Pos (BigN.N0 m) =>
-        ldexp (-(of_int63 (m + 1))) (BigZ.to_Z e)
-      | _ => neg_infinity  (* never happens *)
-      end
+      let x := Zpos x in
+      let d := Z.log2 x in
+      let e := (d - 52)%Z in
+      let m := Z.shiftr x e in
+      ldexp (-(of_int63 (Int63.of_Z m + 1))) e
     end
   end.
 
@@ -151,11 +132,9 @@ Definition is_nan x :=
   | _ => false
   end.
 
-Definition bigZ_shift := Eval vm_compute in BigZ.of_Z FloatOps.shift.
-
 Definition mag x :=
   let (_, e) := PrimFloat.frshiftexp x in
-  ((BigZ.Pos (BigN.N0 e)) - bigZ_shift)%bigZ.
+  (Int63.to_Z e - FloatOps.shift)%Z.
 
 Definition valid_ub x := negb (x == neg_infinity)%float.
 
@@ -190,11 +169,7 @@ Definition neg x := (- x)%float.
 Definition abs x := abs x.
 
 Definition scale x e :=
-  match e with
-  | BigZ.Pos (BigN.N0 e') => ldshiftexp x (e' + Int63.of_Z FloatOps.shift)%int63
-  | BigZ.Neg (BigN.N0 e') => ldshiftexp x (-e' + Int63.of_Z FloatOps.shift)%int63
-  | _ => nan
-  end.
+  ldshiftexp x (Int63.of_Z e + Int63.of_Z FloatOps.shift)%int63.
 
 Definition div2 x := (x / 2)%float.
 
@@ -452,18 +427,15 @@ now set (d := match digits2_pos m' with 53%positive => _ | _ => _ end); case s',
 Qed.
 
 Lemma shiftr_pos p :
-  let d := BigZ.log2 (BigZ.of_Z (Z.pos p)) in
-  let s := BigZ.shiftr (BigZ.of_Z (Z.pos p)) (d - 52) in
-  (0 <= BigZ.to_Z (d - 52) ->
-   (BigZ.to_Z s * 2 ^ (BigZ.to_Z (d - 52)) <= Z.pos p < (BigZ.to_Z s + 1) * 2 ^ (BigZ.to_Z (d - 52))
-    /\  BigZ.to_Z s < 2^53))%Z.
+  let d := Z.log2 (Z.pos p) in
+  let s := Z.shiftr (Z.pos p) (d - 52) in
+  (0 <= d - 52 ->
+   (s * 2 ^ (d - 52) <= Z.pos p < (s + 1) * 2 ^ (d - 52)
+    /\  s < 2^53))%Z.
 Proof.
 intros d s.
 unfold s.
-rewrite BigZ.spec_shiftr, BigZ.spec_of_Z.
 unfold d.
-rewrite BigZ.spec_sub, BigZ.spec_log2, BigZ.spec_of_Z.
-change (BigZ.to_Z 52) with 52%Z.
 clear d s; intro He.
 rewrite (Z.shiftr_div_pow2 _ _ He).
 split; [split| ].
@@ -507,28 +479,28 @@ intros prec [ |p|p]; unfold fromZ_UP.
     rewrite valid_ub_correct, real_correct.
     rewrite (of_int63_of_pos_exact _ Hp').
     now intro H; split; [revert H; case classify|now right]. }
-  set (e := BigZ.to_Z (_ - _)).
-  set (s := BigZ.shiftr _ _).
+  set (e := (_ - _)%Z).
+  set (s := Z.shiftr _ _).
   assert (Pe : (0 <= e)%Z).
-  { unfold e; rewrite BigZ.spec_sub; change (BigZ.to_Z 52) with 52%Z.
-    rewrite BigZ.spec_log2, BigZ.spec_of_Z.
+  { unfold e.
     apply Zle_minus_le_0.
     refine (proj1 (Z.log2_le_pow2 _ _ _) _); [now simpl| ].
     generalize (Pos2Z.pos_lt_pos _ _ Hp'); lia. }
-  case_eq s; intros ps Hps; [ |now simpl].
-  case_eq ps; intros ips Hips; [ |now simpl..].
   rewrite <-(B2Prim_Prim2B (ldexp _ _)) at 1; rewrite toX_Prim2B.
   rewrite ldexp_equiv.
-  generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold s.
-  rewrite Hps, Hips.
-  change (BigZ.to_Z (BigZ.Pos _)) with (Int63.to_Z ips).
+  generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold e s.
   intros [_ H1] H2.
-  assert (Hips1 : (Int63.to_Z (ips + 1) = Int63.to_Z ips + 1)%Z).
-  { rewrite Int63.add_spec, Zmod_small; rewrite to_Z_1; [lia| ].
-    generalize (proj1 (Int63.to_Z_bounded ips)); revert H2.
+  assert (Hips1 : (Int63.to_Z (of_Z s + 1) = s + 1)%Z).
+  { generalize H2. rewrite (is_int s) at -2.
+    intros H3.
+    rewrite Int63.add_spec, Zmod_small; rewrite to_Z_1. easy.
+    generalize (proj1 (Int63.to_Z_bounded (of_Z s))); revert H3.
     change (2^53)%Z with 9007199254740992%Z.
-    change wB with 9223372036854775808%Z; lia. }
-  assert (H2' : (Int63.to_Z (ips + 1) <= 2 ^ 53)%Z).
+    change wB with 9223372036854775808%Z. lia.
+    split.
+    now apply Z.shiftr_nonneg.
+    now apply Z.lt_trans with (1 := H2). }
+  assert (H2' : (Int63.to_Z (of_Z s + 1) <= 2 ^ 53)%Z).
   { rewrite Hips1; lia. }
   assert (Rips := of_int63_exact _ H2').
   set (f := Prim2B _).
@@ -538,9 +510,9 @@ intros prec [ |p|p]; unfold fromZ_UP.
     rewrite toX_Prim2B.
     intro H; apply (Bsign_pos _ _ H).
     apply IZR_lt.
-    rewrite Int63.add_spec, Zmod_small;
-      generalize (proj1 (Int63.to_Z_bounded ips)); rewrite to_Z_1; [lia| ].
-    change wB with 9223372036854775808%Z; lia. }
+    rewrite Hips1.
+    apply Zle_lt_succ.
+    now apply Z.shiftr_nonneg. }
   case Rlt_bool.
   2:{ rewrite Hsf.
     change (binary_overflow _ _ _ _)
@@ -573,23 +545,26 @@ case Pos.compare_spec; intro Hp'.
   revert H; unfold classify; rewrite !classify_spec, opp_spec.
   now case Prim2SF as [[ | ]|[ | ]| |[ | ]]; simpl; try now simpl;
     set (s := match digits2_pos m with 53%positive => _ | _ => _ end); case s. }
-set (e := BigZ.to_Z (_ - _)).
-set (s := BigZ.shiftr _ _).
-case_eq s; intros ps Hps; [ |now simpl].
-case_eq ps; intros ips Hips; [ |now simpl..].
+set (e := (_ - _)%Z).
+set (s := Z.shiftr _ _).
 split; [now rewrite valid_ub_next_up| ].
 assert (Pe : (0 <= e)%Z).
-{ unfold e; rewrite BigZ.spec_sub; change (BigZ.to_Z 52) with 52%Z.
-  rewrite BigZ.spec_log2, BigZ.spec_of_Z.
+{ unfold e.
   apply Zle_minus_le_0.
   refine (proj1 (Z.log2_le_pow2 _ _ _) _); [now simpl| ].
   generalize (Pos2Z.pos_lt_pos _ _ Hp'); lia. }
 rewrite toX_Prim2B, next_up_equiv, ldexp_equiv, opp_equiv.
-generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold s.
-rewrite Hps, Hips.
-change (BigZ.to_Z (BigZ.Pos _)) with (Int63.to_Z ips).
+generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold e s.
 intros [H1 _] H2.
-assert (Rips := of_int63_exact _ (Z.lt_le_incl _ _ H2)).
+assert (Rips : toX (of_int63 (of_Z s)) = Xreal (IZR s)).
+{ generalize H2.
+  rewrite is_int at -2.
+  intros H3.
+  apply of_int63_exact.
+  now apply Z.lt_le_incl.
+  split.
+  now apply Z.shiftr_nonneg.
+  now apply Z.lt_trans with (1 := H2). }
 set (f := Prim2B _).
 change (Z.neg p) with (- (Z.pos p))%Z; rewrite opp_IZR.
 generalize (Bldexp_correct _ _ _ _ mode_NE (Bopp f) e).
@@ -635,7 +610,7 @@ revert Hlt.
 rewrite B2R_Bopp, <-Ropp_mult_distr_l, Rabs_Ropp.
 rewrite mult_IZR, <-(BtoX_B2R _ _ Rips).
 rewrite Rabs_mult.
-rewrite Rabs_pos_eq; [ |now apply IZR_le, to_Z_bounded].
+rewrite Rabs_pos_eq; [ |now apply IZR_le, Z.shiftr_nonneg].
 rewrite Rabs_pos_eq; [ |now apply bpow_ge_0].
 rewrite <-(IZR_Zpower _ _ Pe).
 apply Rle_trans; compute; lra.
@@ -653,23 +628,27 @@ intros prec [ |p|p]; unfold fromZ_DN.
     rewrite valid_lb_correct, real_correct.
     rewrite (of_int63_of_pos_exact _ Hp').
     now intro H; split; [revert H; case classify|right]. }
-  set (e := BigZ.to_Z (_ - _)).
-  set (s := BigZ.shiftr _ _).
-  case_eq s; intros ps Hps; [ |now simpl].
-  case_eq ps; intros ips Hips; [ |now simpl..].
+  set (e := (_ - _)%Z).
+  set (s := Z.shiftr _ _).
   split; [now rewrite valid_lb_next_down| ].
   assert (Pe : (0 <= e)%Z).
-  { unfold e; rewrite BigZ.spec_sub; change (BigZ.to_Z 52) with 52%Z.
-    rewrite BigZ.spec_log2, BigZ.spec_of_Z.
+  { unfold e.
     apply Zle_minus_le_0.
     refine (proj1 (Z.log2_le_pow2 _ _ _) _); [now simpl| ].
     generalize (Pos2Z.pos_lt_pos _ _ Hp'); lia. }
   rewrite toX_Prim2B, next_down_equiv, ldexp_equiv.
-  generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold s.
-  rewrite Hps, Hips.
-  change (BigZ.to_Z (BigZ.Pos _)) with (Int63.to_Z ips).
+  generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold e s.
   intros [H1 _] H2.
-  assert (Rips := of_int63_exact _ (Z.lt_le_incl _ _ H2)).
+  assert (Rips: toX (of_int63 (of_Z s)) = Xreal (IZR s)).
+  { generalize H2. rewrite (is_int s) at -2.
+    intros H3.
+    apply of_int63_exact.
+    generalize (proj1 (Int63.to_Z_bounded (of_Z s))); revert H3.
+    change (2^53)%Z with 9007199254740992%Z.
+    change wB with 9223372036854775808%Z. lia.
+    split.
+    now apply Z.shiftr_nonneg.
+    now apply Z.lt_trans with (1 := H2). }
   set (f := Prim2B _).
   generalize (Bldexp_correct _ _ _ _ mode_NE f e).
   rewrite Generic_fmt.round_generic.
@@ -680,7 +659,8 @@ intros prec [ |p|p]; unfold fromZ_DN.
   { intros [Hr [Hf Hs]].
     generalize (Bpred_correct _ _ _ _ f').
     rewrite Hf.
-    unfold f; rewrite <-real_is_finite, B2Prim_Prim2B, real_correct, Rips.
+    unfold f; rewrite <-real_is_finite, B2Prim_Prim2B, real_correct.
+    rewrite Rips.
     intro H; generalize (H (eq_refl _)); clear H.
     case Rlt_bool.
     2:{ change (SpecFloat.S754_infinity true)
@@ -711,7 +691,7 @@ intros prec [ |p|p]; unfold fromZ_DN.
   revert Hlt.
   rewrite mult_IZR, <-(BtoX_B2R _ _ Rips).
   rewrite Rabs_mult.
-  rewrite Rabs_pos_eq; [ |now apply IZR_le, to_Z_bounded].
+  rewrite Rabs_pos_eq; [ |now apply IZR_le, Z.shiftr_nonneg].
   rewrite Rabs_pos_eq; [ |now apply bpow_ge_0].
   rewrite <-(IZR_Zpower _ _ Pe).
   apply Rle_trans; compute; lra. }
@@ -722,31 +702,31 @@ case Pos.compare_spec; intro Hp'.
   generalize (of_int63_of_pos_exact _ Hp').
   rewrite !toX_Prim2B, opp_equiv, BtoX_Bopp; intros ->.
   now intro H; split; [revert H; case classify|right]. }
-set (e := BigZ.to_Z (_ - _)).
-set (s := BigZ.shiftr _ _).
+set (e := (_ - _)%Z).
+set (s := Z.shiftr _ _).
 assert (Pe : (0 <= e)%Z).
-{ unfold e; rewrite BigZ.spec_sub; change (BigZ.to_Z 52) with 52%Z.
-  rewrite BigZ.spec_log2, BigZ.spec_of_Z.
+{ unfold e.
   apply Zle_minus_le_0.
   refine (proj1 (Z.log2_le_pow2 _ _ _) _); [now simpl| ].
   generalize (Pos2Z.pos_lt_pos _ _ Hp'); lia. }
-case_eq s; intros ps Hps; [ |now simpl].
-case_eq ps; intros ips Hips; [ |now simpl..].
 rewrite <-(B2Prim_Prim2B (ldexp _ _)) at 1; rewrite toX_Prim2B.
 rewrite ldexp_equiv, opp_equiv.
 rewrite Bldexp_Bopp_NE.
 rewrite BtoX_Bopp.
 change (Z.neg p) with (- (Z.pos p))%Z; rewrite opp_IZR.
-generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold s.
-rewrite Hps, Hips.
-change (BigZ.to_Z (BigZ.Pos _)) with (Int63.to_Z ips).
+generalize (shiftr_pos p Pe); intros [H1 H2]; revert H1 H2; fold e s.
 intros [_ H1] H2.
-assert (Hips1 : (Int63.to_Z (ips + 1) = Int63.to_Z ips + 1)%Z).
-{ rewrite Int63.add_spec, Zmod_small; rewrite to_Z_1; [lia| ].
-  generalize (proj1 (Int63.to_Z_bounded ips)); revert H2.
+assert (Hips1 : (Int63.to_Z (of_Z s + 1) = s + 1)%Z).
+{ generalize H2. rewrite (is_int s) at -2.
+  intros H3.
+  rewrite Int63.add_spec, Zmod_small; rewrite to_Z_1. easy.
+  generalize (proj1 (Int63.to_Z_bounded (of_Z s))); revert H3.
   change (2^53)%Z with 9007199254740992%Z.
-  change wB with 9223372036854775808%Z; lia. }
-assert (H2' : (Int63.to_Z (ips + 1) <= 2 ^ 53)%Z).
+  change wB with 9223372036854775808%Z. lia.
+  split.
+  now apply Z.shiftr_nonneg.
+  now apply Z.lt_trans with (1 := H2). }
+assert (H2' : (Int63.to_Z (of_Z s + 1) <= 2 ^ 53)%Z).
 { rewrite Hips1; lia. }
 assert (Rips := of_int63_exact _ H2').
 set (f := Prim2B _).
@@ -756,9 +736,9 @@ assert (Hsf : Bsign f = false).
   rewrite toX_Prim2B.
   intro H; apply (Bsign_pos _ _ H).
   apply IZR_lt.
-  rewrite Int63.add_spec, Zmod_small;
-    generalize (proj1 (Int63.to_Z_bounded ips)); rewrite to_Z_1; [lia| ].
-  change wB with 9223372036854775808%Z; lia. }
+  rewrite Hips1.
+  apply Zle_lt_succ.
+  now apply Z.shiftr_nonneg. }
 case Rlt_bool.
 2:{ rewrite Hsf.
   change (binary_overflow _ _ _ _)
@@ -2646,12 +2626,18 @@ set (mh := (_ / 2 ^ _)%Z).
 assert (Hmh : (0 <= mh < 2 ^ FloatOps.prec)%Z).
 { unfold mh; split.
   { now apply Z.div_pos; [ |apply Z.pow_pos_nonneg; lia]. }
-  apply Cyclic63.div_lt; split; [now simpl| ].
+  apply Z.div_lt_upper_bound.
+  apply (Zpower_gt_0 radix2).
+  lia.
   apply (Z.lt_le_trans _ (2 ^ FloatOps.prec)).
   { change (Z.pos mf') with (Z.abs (Z.pos mf')).
     rewrite <-Hmf', Digits.Zpos_digits2_pos.
     apply Digits.Zdigits_correct. }
-  apply Z.le_refl. }
+  rewrite <- Zpower_plus.
+  apply (Zpower_le radix2).
+  lia.
+  lia.
+  easy. }
 assert (Hmagmh : (mh <> 0 -> 0 < Raux.mag radix2 (IZR mh) <= FloatOps.prec)%Z).
 { intro Nzmh; split.
   { now apply mag_gt_bpow; simpl; rewrite Rabs_pos_eq; apply IZR_le; lia. }
