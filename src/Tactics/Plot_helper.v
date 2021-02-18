@@ -379,10 +379,10 @@ Ltac unify_eq :=
   end.
 
 Ltac plot1_aux1 prec x1 x2 w tac_t :=
-  let ox := reify x1 constr:(@nil R) in
-  let dx := reify constr:(((x2 - x1) / IZR (Zpos w))%R) constr:(@nil R) in
-  let ox := eval vm_compute in (I.lower (T.eval_bnd prec ox)) in
-  let dx := eval vm_compute in (I.upper (T.eval_bnd prec dx)) in
+  let x1 := reify x1 constr:(@nil R) in
+  let x2 := reify x2 constr:(@nil R) in
+  let ox := eval vm_compute in (I.lower (T.eval_bnd prec x1)) in
+  let dx := eval vm_compute in (F.div_UP prec (F.sub_UP prec (I.upper (T.eval_bnd prec x2)) ox) (F.fromZ_DN prec (Zpos w))) in
   let oxr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert ox)) in
   let dxr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert dx)) in
   match goal with
@@ -413,7 +413,7 @@ Ltac plot1_aux1 prec x1 x2 w tac_t :=
 
 Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
   match goal with
-  | |- plot2 ?f ?ox ?dx ?oy ?dy (Zpos ?h) ?p2 =>
+  | |- plot2 ?f ?ox ?dx ?oy' ?dy' (Zpos ?h) ?p2 =>
     let p1 := fresh "__p1" in
     evar (p1 : list I.type) ;
     let tac_t := fun ox dx => tac_t prec ox dx w h in
@@ -421,13 +421,13 @@ Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
     assert (Hp: plot1 f ox dx p1) by plot1_aux1 prec x1 x2 w tac_t ;
     revert Hp ;
     let y1y2 := tac_b prec in
-    let oy' := constr:(fst y1y2) in
-    let dy' := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) oy') (F.fromZ (Zpos h))) in
-    let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert oy')) in
-    let dyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert dy')) in
-    unify oy oyr ;
-    unify dy dyr ;
-    refine (clamp_plot_correct prec _ _ _ _ _ oyr dyr _ _ _ _ (I.singleton_correct oy') (J.inv_correct prec _ _ (I.singleton_correct dy')) _) ;
+    let oy := constr:(fst y1y2) in
+    let dy := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) oy) (F.fromZ_DN prec (Zpos h))) in
+    let oyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert oy)) in
+    let dyr := eval cbv -[IZR Rdiv] in (proj_val (I.F.convert dy)) in
+    unify oy' oyr ;
+    unify dy' dyr ;
+    refine (clamp_plot_correct prec _ _ _ _ _ oyr dyr _ _ _ _ (I.singleton_correct oy) (J.inv_correct prec _ _ (I.singleton_correct dy)) _) ;
     [ try apply IZR_lt ;
       apply Rdiv_lt_0_compat ;
       now apply IZR_lt
@@ -453,12 +453,24 @@ Ltac plot_get_bounds prec :=
     eval vm_compute in (get_bounds prec p)
   end.
 
+Ltac plot_set_bounds y1 y2 prec :=
+  let y1 := reify y1 constr:(@nil R) in
+  let y2 := reify y2 constr:(@nil R) in
+  eval vm_compute in (I.lower (T.eval_bnd prec y1), I.upper (T.eval_bnd prec y2)).
+
 Ltac plot f x1 x2 w h :=
   let p := fresh "__p2" in
   evar (p : list (Z * Z)) ;
   let prec := eval vm_compute in (F.PtoP 90) in
   refine (_: plot2 f _ _ _ _ (Zpos h) p) ;
   plot2_aux prec x1 x2 w plot_get_threshold plot_get_bounds.
+
+Ltac plot' f x1 x2 y1 y2 w h :=
+  let p := fresh "__p2" in
+  evar (p : list (Z * Z)) ;
+  let prec := eval vm_compute in (F.PtoP 90) in
+  refine (_: plot2 f _ _ _ _ (Zpos h) p) ;
+  plot2_aux prec x1 x2 w plot_get_threshold ltac:(plot_set_bounds y1 y2).
 
 End PlotTacticAux.
 
@@ -482,8 +494,9 @@ Module PT := PlotTacticAux SFBI2 I.
 Declare ML Module "interval_plot".
 Import PT.
 Goal True.
-Time assert (foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 600%positive 450%positive)).
+Time assert (foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 512%positive 384%positive)).
 Time Plot foo.
+Time assert (foo := ltac:(plot' (fun x => sin (x + exp x))%R 2%R 6%R (-1)%R 1%R 512%positive 384%positive)).
 *)
 
 (*Time Definition foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive).*)
@@ -492,31 +505,5 @@ Time Plot foo.
   (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R
   (-1/32)%R (1/32)%R 1000%positive 700%positive).*)
 (*Plot foo.*)
-
-(*
-let prec := eval vm_compute in (F.PtoP 30) in
-plot2_aux prec (fun x => sin (x + exp x))%R 2%R 6%R 512%positive 512%positive
-  ltac:(plot_get_threshold) ltac:(fun _ => constr:((F.fromZ (-1), F.fromZ 1))).
-display_plot.
-*)
-(*
-let prec := eval vm_compute in (F.PtoP 10) in
-plot2_aux prec (fun x => x^2)%R 0%R 1%R 10%positive 100%positive
-  ltac:(plot_get_threshold) ltac:(plot_get_bounds).
-display_plot.
-*)
-(*
-let prec := eval vm_compute in (F.PtoP 52) in
-plot2_aux prec (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 1000%positive 700%positive
-  ltac:(plot_get_threshold) ltac:(plot_get_bounds).
-display_plot.
-*)
-(*
-let prec := eval vm_compute in (F.PtoP 90) in
-plot2_aux prec (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R
-  (-1/32)%R (1/32)%R 1000%positive 700%positive
-  ltac:(plot_get_threshold) ltac:(plot_get_bounds).
-display_plot.
-*)
 
 (* plot [-1./32:1./32] 1 + x * (4503599627370587. * 2**(-52) + x * (4503599627370551. * 2**(-53) + x * (6004799497195935. * 2**(-55) + x * (6004799498485985. * 2**(-57) + x * (2402017533563707. * 2**(-58) + x * (6405354563481393. * 2**(-62))))))) - exp(x) *)
