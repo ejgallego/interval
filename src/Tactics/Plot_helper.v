@@ -102,10 +102,14 @@ Definition sample_plot prec deg check hyps pf cf oxi dxi nb :=
   let hyps := R.merge_hyps prec hyps in
   let gi :=
     let bounds := hyps ++ map (T.eval_bnd prec) cf in
+    let fi xi := nth 0 (A.BndValuator.eval prec pf (xi :: bounds)) I.nai in
     let bounds := A.TaylorValuator.TM.var :: map A.TaylorValuator.TM.const bounds in
     fun yi =>
+      let zi := fi yi in
       let fi := nth 0 (A.TaylorValuator.eval prec deg yi pf bounds) A.TaylorValuator.TM.dummy in
-      fun xi => A.TaylorValuator.TM.eval (prec, deg) fi yi xi in
+      fun xi =>
+        let zi' := A.TaylorValuator.TM.eval (prec, deg) fi yi xi in
+        if I.subset xi yi then I.meet zi zi' else zi' in
   let ui := I.add prec oxi (I.mul prec dxi (I.fromZ prec 0)) in
   let vi := I.add prec oxi (I.mul prec dxi (I.fromZ prec nb)) in
   sample_plot_aux prec gi check oxi dxi I.whole (gi (I.join ui vi)) (Z.to_nat nb) 0%Z nb nb nil.
@@ -122,16 +126,29 @@ intros prec deg check vars hyps pf cf oxi dxi ox dx nb l Box Bdx <-.
 apply (R.eval_hyps_bnd_correct prec).
 intros H'.
 unfold sample_plot, eval_real'.
+set (bounds' := R.merge_hyps prec hyps ++ _).
 set (bounds := A.TaylorValuator.TM.var :: _).
 set (ui := I.add prec oxi (I.mul prec dxi (I.fromZ prec 0))).
 set (vi := I.add prec oxi (I.mul prec dxi (I.fromZ prec (Zpos nb)))).
 set (gi := fun yi =>
+      let zi := nth 0 (A.BndValuator.eval prec pf (yi :: bounds')) I.nai in
       let fi := nth 0 (A.TaylorValuator.eval prec deg yi pf bounds) A.TaylorValuator.TM.dummy in
-      fun xi => A.TaylorValuator.TM.eval (prec, deg) fi yi xi).
+      fun xi =>
+        let zi' := A.TaylorValuator.TM.eval (prec, deg) fi yi xi in
+        if I.subset xi yi then I.meet zi zi' else zi').
 set (f x := nth 0 (eval_real pf ((x :: vars) ++ map (fun c : expr => eval c nil) cf)) 0%R).
 fold (gi (I.join ui vi)).
 assert (Hg: forall ti xi x, contains (I.convert xi) (Xreal x) -> contains (I.convert (gi ti xi)) (Xreal (f x))).
 { intros ti xi x Hx.
+  unfold gi.
+  destruct I.subset eqn:Hs.
+  apply I.meet_correct.
+  apply A.BndValuator.eval_correct_ext'.
+  now apply app_merge_hyps_eval_bnd.
+  apply subset_contains with (2 := Hx).
+  now apply I.subset_correct.
+  apply A.TaylorValuator.eval_correct with (2 := Hx).
+  now apply app_merge_hyps_eval_bnd.
   apply A.TaylorValuator.eval_correct with (2 := Hx).
   now apply app_merge_hyps_eval_bnd. }
 rewrite <- (Z2Nat.id (Zpos nb)) at 2 by easy.
