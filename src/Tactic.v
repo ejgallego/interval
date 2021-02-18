@@ -51,7 +51,7 @@ Module IT1 := IntegralTacticAux F I1.
 Module I2 := FloatIntervalFull Tactic_float.Float.
 Module IT2 := IntegralTacticAux Tactic_float.Float I2.
 
-Ltac do_parse params depth :=
+Ltac do_interval_parse params depth :=
   let rec aux fvar bvars prec degree depth native nocheck itm params :=
     lazymatch params with
     | nil => constr:((fvar, bvars, prec, degree, depth, native, nocheck, itm))
@@ -67,8 +67,8 @@ Ltac do_parse params depth :=
     end in
   aux (@None R) (@nil R) (@None positive) 10%nat depth false false itm_naive params.
 
-Ltac do_interval_parse params :=
-  match do_parse params 15%nat with
+Ltac do_interval params :=
+  match do_interval_parse params 15%nat with
   | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
     lazymatch prec with
     | Some ?p =>
@@ -80,8 +80,8 @@ Ltac do_interval_parse params :=
     end
   end.
 
-Ltac do_interval_intro_parse t extend params :=
-  match do_parse params 5%nat with
+Ltac do_interval_intro t extend params :=
+  match do_interval_parse params 5%nat with
   | (?fvar, ?bvars, ?prec, ?degree, ?depth, ?native, ?nocheck, ?itm) =>
     lazymatch prec with
     | Some ?p =>
@@ -93,7 +93,7 @@ Ltac do_interval_intro_parse t extend params :=
     end
   end.
 
-Ltac do_parse' params :=
+Ltac do_integral_parse params :=
   let rec aux prec degree fuel width native nocheck params :=
     lazymatch params with
     | nil => constr:((prec, degree, fuel, width, native, nocheck))
@@ -108,8 +108,8 @@ Ltac do_parse' params :=
     end in
   aux (@None positive) 10%nat 100%positive (Zneg 10, true) false false params.
 
-Ltac do_integral_parse params :=
-  match do_parse' params with
+Ltac do_integral params :=
+  match do_integral_parse params with
   | (?prec, ?degree, ?fuel, _, ?native, ?nocheck) =>
     lazymatch prec with
     | Some ?p =>
@@ -121,8 +121,8 @@ Ltac do_integral_parse params :=
     end
   end.
 
-Ltac do_integral_intro_parse y extend params :=
-  match do_parse' params with
+Ltac do_integral_intro y extend params :=
+  match do_integral_parse params with
   | (?prec, ?degree, ?fuel, ?width, ?native, ?nocheck) =>
     lazymatch prec with
     | Some ?p =>
@@ -139,88 +139,88 @@ End Private.
 Import Private.
 
 Tactic Notation "interval" :=
-  do_interval_parse (@nil interval_tac_parameters).
+  do_interval (@nil interval_tac_parameters).
 
 Tactic Notation "interval" "with" constr(params) :=
-  do_interval_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+  do_interval ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "interval_intro" constr(t) :=
-  do_interval_intro_parse t ie_none (@nil interval_tac_parameters) ; intro.
+  do_interval_intro t ie_none (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "lower" :=
-  do_interval_intro_parse t ie_upper (@nil interval_tac_parameters) ; intro.
+  do_interval_intro t ie_upper (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "upper"  :=
-  do_interval_intro_parse t ie_lower (@nil interval_tac_parameters) ; intro.
+  do_interval_intro t ie_lower (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "with" constr(params) :=
-  do_interval_intro_parse t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_interval_intro t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) :=
-  do_interval_intro_parse t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_interval_intro t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) :=
-  do_interval_intro_parse t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_interval_intro t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "interval_intro" constr(t) "as" simple_intropattern(H) :=
-  do_interval_intro_parse t ie_none (@nil interval_tac_parameters) ; intros H.
+  do_interval_intro t ie_none (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "interval_intro" constr(t) "lower" "as" simple_intropattern(H) :=
-  do_interval_intro_parse t ie_upper (@nil interval_tac_parameters) ; intros H.
+  do_interval_intro t ie_upper (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "interval_intro" constr(t) "upper" "as" simple_intropattern(H)  :=
-  do_interval_intro_parse t ie_lower (@nil interval_tac_parameters) ; intros H.
+  do_interval_intro t ie_lower (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "interval_intro" constr(t) "with" constr(params) "as" simple_intropattern(H) :=
-  do_interval_intro_parse t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_interval_intro t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 Tactic Notation "interval_intro" constr(t) "lower" "with" constr(params) "as" simple_intropattern(H) :=
-  do_interval_intro_parse t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_interval_intro t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 Tactic Notation "interval_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
-  do_interval_intro_parse t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_interval_intro t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 Tactic Notation "integral" :=
-  do_integral_parse (@nil interval_tac_parameters).
+  do_integral (@nil interval_tac_parameters).
 
 Tactic Notation "integral" "with" constr(params) :=
-  do_integral_parse ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+  do_integral ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 Tactic Notation "integral_intro" constr(t) :=
-  do_integral_intro_parse t ie_none (@nil interval_tac_parameters) ; intro.
+  do_integral_intro t ie_none (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "lower" :=
-  do_integral_intro_parse t ie_upper (@nil interval_tac_parameters) ; intro.
+  do_integral_intro t ie_upper (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "upper"  :=
-  do_integral_intro_parse t ie_lower (@nil interval_tac_parameters) ; intro.
+  do_integral_intro t ie_lower (@nil interval_tac_parameters) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "with" constr(params) :=
-  do_integral_intro_parse t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_integral_intro t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "lower" "with" constr(params) :=
-  do_integral_intro_parse t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_integral_intro t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "upper" "with" constr(params) :=
-  do_integral_intro_parse t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
+  do_integral_intro t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intro.
 
 Tactic Notation "integral_intro" constr(t) "as" simple_intropattern(H) :=
-  do_integral_intro_parse t ie_none (@nil interval_tac_parameters) ; intros H.
+  do_integral_intro t ie_none (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "integral_intro" constr(t) "lower" "as" simple_intropattern(H) :=
-  do_integral_intro_parse t ie_upper (@nil interval_tac_parameters) ; intros H.
+  do_integral_intro t ie_upper (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "integral_intro" constr(t) "upper" "as" simple_intropattern(H)  :=
-  do_integral_intro_parse t ie_lower (@nil interval_tac_parameters) ; intros H.
+  do_integral_intro t ie_lower (@nil interval_tac_parameters) ; intros H.
 
 Tactic Notation "integral_intro" constr(t) "with" constr(params) "as" simple_intropattern(H) :=
-  do_integral_intro_parse t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_integral_intro t ie_none ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 Tactic Notation "integral_intro" constr(t) "lower" "with" constr(params) "as" simple_intropattern(H) :=
-  do_integral_intro_parse t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_integral_intro t ie_upper ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 Tactic Notation "integral_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
-  do_integral_intro_parse t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+  do_integral_intro t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
 
 End IntervalTactic.
 
