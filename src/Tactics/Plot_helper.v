@@ -378,7 +378,7 @@ Ltac unify_eq :=
     vm_cast_no_check (eq_refl p2)
   end.
 
-Ltac plot1_aux1 prec x1 x2 w tac_t :=
+Ltac plot1_aux1 prec x1 x2 w h tac_b :=
   let x1 := reify x1 constr:(@nil R) in
   let x2 := reify x2 constr:(@nil R) in
   let ox := eval vm_compute in (I.lower (T.eval_bnd prec x1)) in
@@ -402,7 +402,8 @@ Ltac plot1_aux1 prec x1 x2 w tac_t :=
       reify_partial fapp (t :: vars) ;
       exact (fun H => H) |] ;
     find_hyps vars ;
-    let thr := tac_t ox dx in
+    let y1y2 := tac_b prec ox dx w in
+    let thr := eval vm_compute in (F.div_UP prec (F.sub_UP prec (snd y1y2) (fst y1y2)) (F.fromZ_DN prec (Zpos h))) in
     apply (sample_plot_correct prec) with
       (deg := 10%nat) (nb := w) (l := p)
       (check := fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr)
@@ -416,9 +417,8 @@ Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
   | |- plot2 ?f ?ox ?dx ?oy' ?dy' (Zpos ?h) ?p2 =>
     let p1 := fresh "__p1" in
     evar (p1 : list I.type) ;
-    let tac_t := fun ox dx => tac_t prec ox dx w h in
     let Hp := fresh "__Hp" in
-    assert (Hp: plot1 f ox dx p1) by plot1_aux1 prec x1 x2 w tac_t ;
+    assert (Hp: plot1 f ox dx p1) by plot1_aux1 prec x1 x2 w h tac_t ;
     revert Hp ;
     let y1y2 := tac_b prec in
     let oy := constr:(fst y1y2) in
@@ -434,16 +434,16 @@ Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
     | unify_eq ]
   end.
 
-Definition get_threshold prec hyps pf cf ox dx w h :=
+Definition get_threshold prec hyps pf cf ox dx w :=
   let w' := 50%Z in
   let dx := I.mul prec (I.singleton dx) (I.div prec (I.fromZ prec (Zpos w)) (I.fromZ prec w')) in
   let yi := bound_plot prec hyps pf cf (I.singleton ox) dx w' in
-  F.div_UP prec (F.sub_UP prec (I.upper yi) (I.lower yi)) (F.fromZ_DN prec (Zpos h)).
+  (I.lower yi, I.upper yi).
 
-Ltac plot_get_threshold prec ox dx w h :=
+Ltac plot_get_threshold prec ox dx w :=
   match goal with
   | |- eval_hyps ?hyps _ (plot1 (fun t => eval_real' ?pf (t :: _) ?cf) _ _ _) =>
-    eval vm_compute in (get_threshold prec hyps pf cf ox dx w h)
+    eval vm_compute in (get_threshold prec hyps pf cf ox dx w)
   end.
 
 Ltac plot_get_bounds prec :=
@@ -453,10 +453,9 @@ Ltac plot_get_bounds prec :=
     eval vm_compute in (get_bounds prec p)
   end.
 
-Ltac plot_set_bounds y1 y2 prec :=
-  let y1 := reify y1 constr:(@nil R) in
-  let y2 := reify y2 constr:(@nil R) in
-  eval vm_compute in (I.lower (T.eval_bnd prec y1), I.upper (T.eval_bnd prec y2)).
+Ltac plot_y_get_threshold y1 y2 prec ox dx w := constr:((y1, y2)).
+
+Ltac plot_y_get_bounds y1 y2 prec := constr:((y1, y2)).
 
 Ltac do_plot f x1 x2 prec degree width height native :=
   let p := fresh "__p2" in
@@ -466,9 +465,13 @@ Ltac do_plot f x1 x2 prec degree width height native :=
 
 Ltac do_plot_y f x1 x2 y1 y2 prec degree width height native :=
   let p := fresh "__p2" in
+  let y1 := reify y1 constr:(@nil R) in
+  let y2 := reify y2 constr:(@nil R) in
+  let y1 := eval vm_compute in (I.lower (T.eval_bnd prec y1)) in
+  let y2 := eval vm_compute in (I.upper (T.eval_bnd prec y2)) in
   evar (p : list (Z * Z)) ;
   refine (_: plot2 f _ _ _ _ (Zpos height) p) ;
-  plot2_aux prec x1 x2 width plot_get_threshold ltac:(plot_set_bounds y1 y2).
+  plot2_aux prec x1 x2 width ltac:(plot_y_get_threshold y1 y2) ltac:(plot_y_get_bounds y1 y2).
 
 End PlotTacticAux.
 
