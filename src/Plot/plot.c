@@ -131,7 +131,7 @@ let display_plot env evd p =
         pr_R ox pr_R dx pr_R oy pr_R dy;
       generate fmt h l;
       close_out ch;
-      let e = Sys.command (Printf.sprintf "gnuplot %s &" file) in
+      let e = Sys.command (Printf.sprintf "(gnuplot %s ; rm %s) &" file file) in
       if e <> 0 then
         CErrors.user_err ~hdr:"plot"
           (Pp.str "Gnuplot not found")
