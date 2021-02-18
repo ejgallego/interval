@@ -38,18 +38,21 @@ Inductive interval_tac_parameters : Set :=
   | i_width (w : Z)
   | i_relwidth (w : positive)
   | i_native_compute
+  | i_size (w : positive) (h : positive)
   | i_delay.
 
 Require Tactic_float.
 
-Module IntervalTactic (F : FloatOps with Definition sensible_format := true).
+Module IntervalTactic (F : FloatOps with Definition sensible_format := true with Definition radix := radix2).
 
 Module Private.
 
 Module I1 := FloatIntervalFull F.
 Module IT1 := IntegralTacticAux F I1.
+Module PT1 := PlotTacticAux F I1.
 Module I2 := FloatIntervalFull Tactic_float.Float.
 Module IT2 := IntegralTacticAux Tactic_float.Float I2.
+Module PT2 := PlotTacticAux Tactic_float.Float I2.
 
 Ltac do_interval_parse params depth :=
   let rec aux fvar bvars prec degree depth native nocheck itm params :=
@@ -131,6 +134,44 @@ Ltac do_integral_intro y extend params :=
     | None =>
       let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
       IT2.do_integral_intro y extend prec degree fuel width native nocheck
+    end
+  end.
+
+Ltac do_plot_parse params :=
+  let rec aux prec degree width height native params :=
+    lazymatch params with
+    | nil => constr:((prec, degree, width, height, native))
+    | cons (i_prec ?p) ?t => aux (Some p) degree width height native t
+    | cons (i_degree ?d) ?t => aux prec d width height native t
+    | cons (i_size ?w ?h) ?t => aux prec degree w h native t
+    | cons i_native_compute ?t => aux prec degree width height true t
+    | cons ?h _ => fail 100 "Unknown tactic parameter" h
+    end in
+  aux (@None positive) 10%nat 512%positive 384%positive false params.
+
+Ltac do_plot t x1 x2 params :=
+  match do_plot_parse params with
+  | (?prec, ?degree, ?width, ?height, ?native) =>
+    lazymatch prec with
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      PT1.do_plot t x1 x2 prec degree width height native
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      PT2.do_plot t x1 x2 prec degree width height native
+    end
+  end.
+
+Ltac do_plot_y t x1 x2 y1 y2 params :=
+  match do_plot_parse params with
+  | (?prec, ?degree, ?width, ?height, ?native) =>
+    lazymatch prec with
+    | Some ?p =>
+      let prec := eval vm_compute in (F.PtoP p) in
+      PT1.do_plot_y t x1 x2 y1 y2 prec degree width height native
+    | None =>
+      let prec := eval vm_compute in (Tactic_float.Float.PtoP 53) in
+      PT2.do_plot_y t x1 x2 y1 y2 prec degree width height native
     end
   end.
 
@@ -221,6 +262,18 @@ Tactic Notation "integral_intro" constr(t) "lower" "with" constr(params) "as" si
 
 Tactic Notation "integral_intro" constr(t) "upper" "with" constr(params) "as" simple_intropattern(H) :=
   do_integral_intro t ie_lower ltac:(tuple_to_list params (@nil interval_tac_parameters)) ; intros H.
+
+Tactic Notation "plot" constr(t) constr(x1) constr(x2) :=
+  do_plot t x1 x2 (@nil interval_tac_parameters).
+
+Tactic Notation "plot" constr(t) constr(x1) constr(x2) "with" constr(params) :=
+  do_plot t x1 x2 ltac:(tuple_to_list params (@nil interval_tac_parameters)).
+
+Tactic Notation "plot" constr(t) constr(x1) constr(x2) constr(y1) constr(y2) :=
+  do_plot_y t x1 x2 y1 y2 (@nil interval_tac_parameters).
+
+Tactic Notation "plot" constr(t) constr(x1) constr(x2) constr(y1) constr(y2) "with" constr(params) :=
+  do_plot_y t x1 x2 y1 y2 ltac:(tuple_to_list params (@nil interval_tac_parameters)).
 
 End IntervalTactic.
 

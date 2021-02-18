@@ -27,6 +27,12 @@ Require Import Xreal Interval Tree Reify Prog.
 Definition reify_var : R.
 Proof. exact 0%R. Qed.
 
+Definition plot2 (f : R -> R) (ox dx oy dy : R) (h : Z) (l : list (Z * Z)) :=
+  forall i x, (ox + dx * INR i <= x <= ox + dx * INR (S i))%R ->
+  (oy <= f x <= oy + dy * IZR h)%R ->
+  let r := nth i l (0%Z, h) in
+  (oy + dy * IZR (fst r) <= f x <= oy + dy * IZR (snd r))%R.
+
 Module PlotTacticAux (F : FloatOps with Definition radix := Zaux.radix2 with Definition sensible_format := true) (I : IntervalOps with Module F := F).
 
 Module F' := FloatExt F.
@@ -297,12 +303,6 @@ Fixpoint clamp_plot prec (vi ei : I.type) (h : Z) (l : list I.type) : list (Z * 
     cons r (clamp_plot prec vi ei h l)
   end.
 
-Definition plot2 (f : R -> R) (ox dx oy dy : R) (h : Z) (l : list (Z * Z)) :=
-  forall i x, (ox + dx * INR i <= x <= ox + dx * INR (S i))%R ->
-  (oy <= f x <= oy + dy * IZR h)%R ->
-  let r := nth i l (0%Z, h) in
-  (oy + dy * IZR (fst r) <= f x <= oy + dy * IZR (snd r))%R.
-
 Lemma affine_transf :
   forall oy dy y1 y2 y : R,
   (0 < dy)%R ->
@@ -458,19 +458,17 @@ Ltac plot_set_bounds y1 y2 prec :=
   let y2 := reify y2 constr:(@nil R) in
   eval vm_compute in (I.lower (T.eval_bnd prec y1), I.upper (T.eval_bnd prec y2)).
 
-Ltac plot f x1 x2 w h :=
+Ltac do_plot f x1 x2 prec degree width height native :=
   let p := fresh "__p2" in
   evar (p : list (Z * Z)) ;
-  let prec := eval vm_compute in (F.PtoP 90) in
-  refine (_: plot2 f _ _ _ _ (Zpos h) p) ;
-  plot2_aux prec x1 x2 w plot_get_threshold plot_get_bounds.
+  refine (_: plot2 f _ _ _ _ (Zpos height) p) ;
+  plot2_aux prec x1 x2 width plot_get_threshold plot_get_bounds.
 
-Ltac plot' f x1 x2 y1 y2 w h :=
+Ltac do_plot_y f x1 x2 y1 y2 prec degree width height native :=
   let p := fresh "__p2" in
   evar (p : list (Z * Z)) ;
-  let prec := eval vm_compute in (F.PtoP 90) in
-  refine (_: plot2 f _ _ _ _ (Zpos h) p) ;
-  plot2_aux prec x1 x2 w plot_get_threshold ltac:(plot_set_bounds y1 y2).
+  refine (_: plot2 f _ _ _ _ (Zpos height) p) ;
+  plot2_aux prec x1 x2 width plot_get_threshold ltac:(plot_set_bounds y1 y2).
 
 End PlotTacticAux.
 
