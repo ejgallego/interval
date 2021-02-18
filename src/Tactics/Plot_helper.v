@@ -386,16 +386,24 @@ Definition get_bounds (prec : F.precision) (l : list I.type): F.type * F.type :=
   (I.sub prec yi1 mi, I.add prec yi2 mi)
   *)
 
-Ltac unify_eq :=
+Ltac unify_eq native :=
   match goal with
   | |- ?f ?p1 = ?p2 =>
-    let p1 := eval hnf in p1 in
-    let p := eval vm_compute in (f p1) in
-    instantiate (p2 := p) ;
-    vm_cast_no_check (eq_refl p2)
+    match native with
+    | true =>
+      let p1 := eval hnf in p1 in
+      let p := eval native_compute in (f p1) in
+      instantiate (p2 := p) ;
+      native_cast_no_check (eq_refl p2)
+    | false =>
+      let p1 := eval hnf in p1 in
+      let p := eval vm_compute in (f p1) in
+      instantiate (p2 := p) ;
+      vm_cast_no_check (eq_refl p2)
+    end
   end.
 
-Ltac plot1_aux1 prec x1 x2 w h tac_b :=
+Ltac plot1_aux1 prec x1 x2 w h native tac_b :=
   let x1 := reify x1 constr:(@nil R) in
   let x2 := reify x2 constr:(@nil R) in
   let ox := eval vm_compute in (I.lower (T.eval_bnd prec x1)) in
@@ -426,16 +434,16 @@ Ltac plot1_aux1 prec x1 x2 w h tac_b :=
       (check := fun yi => F'.le' (F.sub_UP prec (I.upper yi) (I.lower yi)) thr)
       (1 := I.singleton_correct ox)
       (2 := I.singleton_correct dx) ;
-    unify_eq
+    unify_eq native
   end.
 
-Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
+Ltac plot2_aux prec x1 x2 w native tac_t tac_b :=
   match goal with
   | |- plot2 ?f ?ox ?dx ?oy' ?dy' (Zpos ?h) ?p2 =>
     let p1 := fresh "__p1" in
     evar (p1 : list I.type) ;
     let Hp := fresh "__Hp" in
-    assert (Hp: plot1 f ox dx p1) by plot1_aux1 prec x1 x2 w h tac_t ;
+    assert (Hp: plot1 f ox dx p1) by plot1_aux1 prec x1 x2 w h native tac_t ;
     revert Hp ;
     let y1y2 := tac_b prec in
     let oy := constr:(fst y1y2) in
@@ -448,7 +456,7 @@ Ltac plot2_aux prec x1 x2 w tac_t tac_b :=
     [ try apply IZR_lt ;
       apply Rdiv_lt_0_compat ;
       now apply IZR_lt
-    | unify_eq ]
+    | unify_eq false ]
   end.
 
 Definition get_threshold prec hyps pf cf ox dx w :=
@@ -478,7 +486,7 @@ Ltac do_plot f x1 x2 prec degree width height native :=
   let p := fresh "__p2" in
   evar (p : list (Z * Z)) ;
   refine (_: plot2 f _ _ _ _ (Zpos height) p) ;
-  plot2_aux prec x1 x2 width plot_get_threshold plot_get_bounds.
+  plot2_aux prec x1 x2 width native plot_get_threshold plot_get_bounds.
 
 Ltac do_plot_y f x1 x2 y1 y2 prec degree width height native :=
   let p := fresh "__p2" in
@@ -488,6 +496,6 @@ Ltac do_plot_y f x1 x2 y1 y2 prec degree width height native :=
   let y2 := eval vm_compute in (I.upper (T.eval_bnd prec y2)) in
   evar (p : list (Z * Z)) ;
   refine (_: plot2 f _ _ _ _ (Zpos height) p) ;
-  plot2_aux prec x1 x2 width ltac:(plot_y_get_threshold y1 y2) ltac:(plot_y_get_bounds y1 y2).
+  plot2_aux prec x1 x2 width native ltac:(plot_y_get_threshold y1 y2) ltac:(plot_y_get_bounds y1 y2).
 
 End PlotTacticAux.
