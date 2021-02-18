@@ -121,32 +121,38 @@ let generate fmt h l =
   print_row (List.length l) (fst !z) (snd !z);
   Format.fprintf fmt "e@\npause mouse close@\n@."
 
-let display_plot env evd p =
+let display_plot env evd p f =
   match tr_goal evd p with
   | (ox, dx, oy, dy, h, l) ->
-      let file = Filename.temp_file "interval_plot" "" in
+      let file =
+        match f with
+        | None -> Filename.temp_file "interval_plot" ""
+        | Some f -> f in
       let ch = open_out file in
       let fmt = Format.formatter_of_out_channel ch in
       Format.fprintf fmt "ox = %a@\ndx = %a@\noy = %a@\ndy = %a@\n"
         pr_R ox pr_R dx pr_R oy pr_R dy;
       generate fmt h l;
       close_out ch;
-      let e = Sys.command (Printf.sprintf "(gnuplot %s ; rm %s) &" file file) in
-      if e <> 0 then
-        CErrors.user_err ~hdr:"plot"
-          (Pp.str "Gnuplot not found")
+      begin match f with
+      | None ->
+          let e = Sys.command (Printf.sprintf "(gnuplot %s ; rm %s) &" file file) in
+          if e <> 0 then
+            CErrors.user_err ~hdr:"plot" (Pp.str "Gnuplot not found")
+      | Some _ -> ()
+      end
   | exception (NotPlot e) ->
       CErrors.user_err ~hdr:"plot"
         Pp.(str "Cannot parse" ++ spc () ++ Printer.pr_econstr_env env evd e)
 
-let display_plot ~pstate p =
+let display_plot p f ~pstate =
   let evd, env =
     match pstate with
     | None -> let env = Global.env () in Evd.from_env env, env
     | Some lemma -> get_current_context lemma in
   let evd, p = Constrintern.interp_constr_evars env evd p in
   let p = Retyping.get_type_of env evd p in
-  display_plot env evd p
+  display_plot env evd p f
 
 let __coq_plugin_name = "interval_plot"
 let _ = Mltop.add_known_module __coq_plugin_name
@@ -168,5 +174,24 @@ let () =
         (fun r ~atts ->
 #endif
           Attributes.unsupported_attributes atts;
-          Vernacextend.VtReadProofOpt (display_plot r)),
+          Vernacextend.VtReadProofOpt (display_plot r None)),
+        None);
+     Vernacextend.TyML
+       (false,
+        Vernacextend.TyTerminal
+          ("Plot",
+           Vernacextend.TyNonTerminal
+             (Extend.TUentry (Genarg.get_arg_tag Stdarg.wit_constr),
+              Vernacextend.TyTerminal
+                ("as",
+                 Vernacextend.TyNonTerminal
+                   (Extend.TUentry (Genarg.get_arg_tag Stdarg.wit_string),
+                    Vernacextend.TyNil)))),
+#if COQVERSION >= 81400
+        (fun r s ?loc ~atts ->
+#else
+        (fun r s ~atts ->
+#endif
+          Attributes.unsupported_attributes atts;
+          Vernacextend.VtReadProofOpt (display_plot r (Some s))),
         None)]
