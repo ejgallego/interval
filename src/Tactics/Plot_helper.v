@@ -491,37 +491,3 @@ Ltac do_plot_y f x1 x2 y1 y2 prec degree width height native :=
   plot2_aux prec x1 x2 width ltac:(plot_y_get_threshold y1 y2) ltac:(plot_y_get_bounds y1 y2).
 
 End PlotTacticAux.
-
-(*
-Require Import Float_full.
-Require Tactic_float.
-Module I := FloatIntervalFull Tactic_float.Float.
-Module PT := PlotTacticAux Tactic_float.Float I.
-*)
-
-(*
-Require Import Float_full.
-Require Import Specific_bigint.
-Require Import Specific_ops.
-Module SFBI2 := SpecificFloat BigIntRadix2.
-Module I := FloatIntervalFull SFBI2.
-Module PT := PlotTacticAux SFBI2 I.
-*)
-
-(*
-Declare ML Module "interval_plot".
-Import PT.
-Goal True.
-Time assert (foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 512%positive 384%positive)).
-Time Plot foo.
-Time assert (foo := ltac:(plot' (fun x => sin (x + exp x))%R 2%R 6%R (-1)%R 1%R 512%positive 384%positive)).
-*)
-
-(*Time Definition foo := ltac:(plot (fun x => x^2)%R 0%R 1%R 600%positive 450%positive).*)
-(*Time Definition foo := ltac:(plot (fun x => x^2 * sin (x^2))%R (-4)%R 4%R 600%positive 450%positive).*)
-(*Time Definition foo := ltac:(plot
-  (fun x => 1 + x * (4503599627370587 * powerRZ 2 (-52) + x * (4503599627370551 * powerRZ 2 (-53) + x * (6004799497195935 * powerRZ 2 (-55) + x * (6004799498485985 * powerRZ 2 (-57) + x * (2402017533563707 * powerRZ 2 (-58) + x * (6405354563481393 * powerRZ 2 (-62)))))))- exp x)%R
-  (-1/32)%R (1/32)%R 1000%positive 700%positive).*)
-(*Plot foo.*)
-
-(* plot [-1./32:1./32] 1 + x * (4503599627370587. * 2**(-52) + x * (4503599627370551. * 2**(-53) + x * (6004799497195935. * 2**(-55) + x * (6004799498485985. * 2**(-57) + x * (2402017533563707. * 2**(-58) + x * (6405354563481393. * 2**(-62))))))) - exp(x) *)
