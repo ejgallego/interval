@@ -70,7 +70,7 @@ src/Tactic_float.v: src/Tactic_bignum.v src/Tactic_primfloat.v Remakefile
 	@COQC@ @COQEXTRAFLAGS@ -R src Interval $<
 
 COQPKGS = clib engine kernel interp lib library parsing pretyping printing proofs tactics toplevel vernac plugins.ltac
-PACKAGES = $(addprefix -package coq., $(COQPKGS)) -package @BIGINTPKG@
+PACKAGES = $(addprefix -package coq-core., $(COQPKGS)) -package @BIGINTPKG@
 
 src/Plot/interval_plot.ml: src/Plot/plot.c
 	@CPP@ -DCOQVERSION=@COQVERSION@ $< -o $@

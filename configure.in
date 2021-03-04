@@ -148,7 +148,7 @@ if test "$native_tactic" = yes; then
   AC_MSG_CHECKING([for native development files])
   AS_IF(
     [ echo "let _ = (Evd.empty, $BIGINTMOD.zero_big_int)" > conftest.ml
-      $OCAMLFIND ocamlopt -rectypes -thread -package coq.engine -package $BIGINTPKG -shared conftest.ml -o conftest.cmxs ],
+      $OCAMLFIND ocamlopt -rectypes -thread -package coq-core.engine -package $BIGINTPKG -shared conftest.ml -o conftest.cmxs ],
     [ AC_MSG_RESULT(yes) ],
     [ AC_MSG_RESULT(no)
       AC_MSG_ERROR([ *** Failed to compile a native OCaml library ]) ])
@@ -158,7 +158,7 @@ if test "$byte_tactic" = yes; then
   AC_MSG_CHECKING([for bytecode development files])
   AS_IF(
     [ echo "let _ = (Evd.empty, $BIGINTMOD.zero_big_int)" > conftest.ml
-      $OCAMLFIND ocamlc -rectypes -thread -package coq.engine -package $BIGINTPKG -c conftest.ml -o conftest.cmo ],
+      $OCAMLFIND ocamlc -rectypes -thread -package coq-core.engine -package $BIGINTPKG -c conftest.ml -o conftest.cmo ],
     [ AC_MSG_RESULT(yes) ],
     [ AC_MSG_RESULT(no)
       AC_MSG_ERROR([ *** Failed to compile a bytecode OCaml library ]) ])
